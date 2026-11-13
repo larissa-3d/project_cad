@@ -7,7 +7,9 @@
 mod prism;
 
 use super::Exact;
-use super::wedge::{Around, Closing, Meeting, Together, cut_across, joined_across};
+use super::wedge::{
+    Apex, Around, Closing, Meeting, Together, cut_across, joined_across, polygon_across, tip,
+};
 use crate::brep::{Declined, EdgeName};
 
 impl Exact {
@@ -58,7 +60,14 @@ impl Exact {
     /// as two distances, meeting on a ridge in its place, that flat gone and
     /// its number answering to no face (#837) — and three at a concave corner,
     /// a pocket's bottom, by that triangle joined, filling the hollow the three
-    /// fills leave, as [`joined_across`] lays it. The three at a standing
+    /// fills leave, as [`joined_across`] lays it. Four or more meeting at a
+    /// convex corner, every edge ending there named — a right pyramid's apex
+    /// — are closed by one polygon through the points where each two beside
+    /// each other cross, where those lie on one plane: the tip past it cut off
+    /// before any flat is laid, as [`tip`] cuts it, so that no flat carried
+    /// past the corner takes the matter of a face it does not lie on, and the
+    /// face that leaves, trimmed by the flats to the polygon, numbered after
+    /// them, as [`polygon_across`] lays it. The three at a standing
     /// block's foot corner, two feet and the upright above them, go round the
     /// upright: its flat laid first, stopping flush on the lower block's top,
     /// then the feet filled along the outline it left with the foot of that
@@ -89,7 +98,9 @@ impl Exact {
     /// list of no edge, an edge that is not straight between two flat faces,
     /// one running on tangentially into the next edge of a face, one edge named
     /// twice, two edges meeting at any other corner where an edge meets inwards
-    /// — a cut and a fill —, more than three edges meeting at a corner, an edge
+    /// — a cut and a fill —, three or more edges meeting at a corner where
+    /// another edge, left out of the list, ends too, four or more whose
+    /// flats cross on no one plane there, an edge
     /// of a chain holding a crease — a leaning flight's (#926) — or whose
     /// flats stand a hair off one plane (#929), or one of a slope or a crease
     /// meeting another edge of the list at a corner — but an upright meeting
@@ -118,6 +129,10 @@ impl Exact {
                 closing: Closing {
                     outwards: cut_across,
                     inwards: joined_across,
+                    apex: Apex {
+                        clear: tip,
+                        close: polygon_across,
+                    },
                 },
                 around: Around::Edge,
             },

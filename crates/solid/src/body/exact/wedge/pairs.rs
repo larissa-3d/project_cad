@@ -15,7 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use glam::DVec3;
 
 use super::chain::TANGENT;
-use super::corners::{self, Beside, Three};
+use super::corners::{self, Beside, Closed};
 use super::{MADE, Prism, Wedge, too_short};
 use crate::body::exact::Exact;
 use crate::brep::{self, Declined, EdgeId, FaceId, Scale};
@@ -157,8 +157,8 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// outwards meet across, of no pair itself, that meets both of the pair at a
 /// corner — the edge at their end — or one of them and another such edge that
 /// meets the other — each edge of a pointed or a notched end (#843) — with
-/// the third edge of the list ending where those two meet, as `three` holds
-/// the corners three of them meet at — the upright at a point's tip, which
+/// the third edge of the list ending where those two meet, as `closed` holds
+/// the corners three or more of them meet at — the upright at a point's tip, which
 /// meets neither of the pair, the three closed there (#837) — and each edge
 /// whose faces meet outwards, not bounding that face, that meets one of the
 /// pair at a corner where no third edge of the list ends but the edge at
@@ -199,7 +199,7 @@ pub(super) fn at_their_ends(
     edges: &[EdgeId],
     wedges: &[Wedge],
     pairs: &[Pair],
-    three: &[Three],
+    closed: &[Closed],
     beside: &[Beside],
 ) -> Result<BTreeMap<usize, f64>, Declined> {
     let members: BTreeSet<usize> = pairs
@@ -218,7 +218,7 @@ pub(super) fn at_their_ends(
             !members.contains(&rank) && across.is_some_and(|face| wedges[rank].faces.contains(face))
         };
         let thirds = |rank: usize, tip: usize| -> Vec<usize> {
-            (three.iter())
+            (closed.iter())
                 .filter(|(_, at, _)| at.contains(&rank) && at.contains(&tip))
                 .flat_map(|(_, at, _)| at.iter().copied())
                 .filter(|third| ![rank, tip].contains(third))
@@ -236,7 +236,7 @@ pub(super) fn at_their_ends(
             meets(one, rank) != meets(other, rank)
                 && !wedges[rank].inwards
                 && !across.is_some_and(|face| wedges[rank].faces.contains(face))
-                && (three.iter())
+                && (closed.iter())
                     .filter(|(_, at, _)| at.contains(&rank) && at.contains(&member))
                     .all(|(_, at, _)| {
                         (at.iter())

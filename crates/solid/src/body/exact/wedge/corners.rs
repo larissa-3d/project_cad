@@ -1,7 +1,7 @@
 //! Edges of one step that meet at a corner: which corners a step takes, and
-//! the corners three of its edges meet at. At a convex corner (#699) each cut
-//! is carried past the corner along its edge's line, and two flats or two
-//! rounds trim each other in a mitre there. Beside an edge of the other sense
+//! the corners three or more of its edges meet at. At a convex corner (#699)
+//! each cut is carried past the corner along its edge's line, and two flats or
+//! two rounds trim each other in a mitre there. Beside an edge of the other sense
 //! left out of the list (#801) — two cuts beside a concave edge, two fills
 //! beside a convex one — each stops flush and the two run on past the corner
 //! into a mitre. Two concave edges beside a third concave one, at a pocket's
@@ -13,7 +13,9 @@
 //! the upright (#829), and so are a foot and the upright above it, the other
 //! foot left out and left sharp, and the mirror, a top edge at an L's inner
 //! corner and the upright below it, the other top edge left sharp (#846). Any
-//! other corner is declined.
+//! other corner is declined. Four or more convex edges at a corner, every
+//! edge ending there named — a pyramid's apex — are closed as three are
+//! (#804).
 
 use std::collections::BTreeMap;
 
@@ -34,7 +36,7 @@ pub(super) type Beside = (VertexId, [usize; 2]);
 /// upright, two meeting inwards beside one meeting outwards at the feet of a
 /// block standing on another — or, the two meeting inwards, inwards too, at
 /// a pocket's bottom corner, which takes its three edges too, closed as
-/// [`of_three`] reads it; and three of them ending at a corner of mixed
+/// [`closed`] reads it; and three of them ending at a corner of mixed
 /// sense, two meeting one way and the third the other — a standing block's
 /// foot corner, two feet meeting inwards and the upright above them outwards,
 /// or the top of an L's inner corner, two top edges meeting outwards and the
@@ -116,38 +118,39 @@ fn sharp_at(body: &brep::Body, corner: VertexId, pair: [EdgeId; 2]) -> Option<Ed
     (one? != other? && inwards(third).is_some()).then_some(third)
 }
 
-/// A corner three edges of a step meet at: where it stands, the three edges'
-/// ranks in the list, from the lowest, and the way each runs from the corner
-/// to its other end.
-pub(super) type Three = (DVec3, [usize; 3], [DVec3; 3]);
+/// A corner three or more edges of a step meet at, every edge ending there
+/// one of them: where it stands, the edges' ranks in the list, from the
+/// lowest, and the way each runs from the corner to its other end.
+pub(super) type Closed = (DVec3, Vec<usize>, Vec<DVec3>);
 
-/// The corners three of `edges` meet at, each where it stands, with the
-/// three edges' ranks in the list, from the lowest, and the way each edge
-/// runs from the corner to its other end, in the order of those ranks: by
-/// the lowest, then the next. Declined `Unsupported` where more than three
-/// of them meet at one, or three meet where another edge ends too.
-pub(super) fn of_three(body: &brep::Body, edges: &[EdgeId]) -> Result<Vec<Three>, Declined> {
+/// The corners three or more of `edges` meet at, each where it stands, with
+/// the edges' ranks in the list, from the lowest, and the way each edge runs
+/// from the corner to its other end, in the order of those ranks: by the
+/// lowest, then the next. Declined `Unsupported` where they meet where
+/// another edge ends too: some of a corner's edges named, not all.
+pub(super) fn closed(body: &brep::Body, edges: &[EdgeId]) -> Result<Vec<Closed>, Declined> {
     let mut corners = ranked(body, edges)
         .into_iter()
         .filter(|(_, ranks)| ranks.len() > 2)
-        .map(|(corner, ranks)| match ranks[..] {
-            [one, two, three] if ending(body, corner).count() == 3 => {
-                let at = body.vertex(corner).point;
-                let way = |rank: usize| {
-                    let ends = body.edge(edges[rank]).ends.into_iter().flatten();
-                    let far = ends
-                        .filter(|&end| end != corner)
-                        .map(|end| body.vertex(end).point);
-                    far.map(|point| (point - at).normalize())
-                        .next()
-                        .unwrap_or(DVec3::ZERO)
-                };
-                Ok((at, [one, two, three], [one, two, three].map(way)))
+        .map(|(corner, ranks)| {
+            if ending(body, corner).count() != ranks.len() {
+                return Err(Declined::Unsupported);
             }
-            _ => Err(Declined::Unsupported),
+            let at = body.vertex(corner).point;
+            let way = |&rank: &usize| {
+                let ends = body.edge(edges[rank]).ends.into_iter().flatten();
+                let far = ends
+                    .filter(|&end| end != corner)
+                    .map(|end| body.vertex(end).point);
+                far.map(|point| (point - at).normalize())
+                    .next()
+                    .unwrap_or(DVec3::ZERO)
+            };
+            let along = ranks.iter().map(way).collect();
+            Ok((at, ranks, along))
         })
         .collect::<Result<Vec<_>, Declined>>()?;
-    corners.sort_by_key(|&(_, ranks, _)| ranks);
+    corners.sort_by(|(_, one, _), (_, other, _)| one.cmp(other));
     Ok(corners)
 }
 

@@ -172,7 +172,15 @@
 //!   The guard that counts the edges ending there is not alone in holding
 //!   it: around such a vertex the faces run in a ring, so any three of its
 //!   edges hold two that share no face, and the corner's closing, reading
-//!   where each two of them cross on the face they share, declines it too
+//!   where each two of them cross on the face they share, declines it too.
+//!   The four were declined until #804 closed the pyramid's apex on one
+//!   surface, a piece of sphere or a square, held in its block below; the
+//!   three stay declined, for #942. #699 held this on a pyramid standing on a
+//!   box, whose hips' feet are vertices where four edges end too; since #804
+//!   it is held on a pyramid standing on its own base, each hip's foot a
+//!   corner of three edges, so that only the apex declines it. The pyramid on
+//!   the box waits on #943, which takes a cut ending alone at a vertex of four
+//!   edges
 //! - A later edge the step's own earlier cut takes whole at their corner is
 //!   laid even so, as the body given reads it, so that the step lays both
 //!   cuts whole whichever edge the list names first, as every mitre here
@@ -345,6 +353,117 @@
 //!   `a_full_round_meets_the_round_of_an_upright_at_its_end_on_an_ellipse.rs`
 //!   by
 //!   `a_chamfer_on_a_full_round_the_edge_across_its_end_and_both_uprights_there_closes_the_end_edge_s_flat_to_a_ridge_between_the_corners_triangles_whatever_the_order`
+//!
+//! Closes #804.
+//! - `pyramid()`, its four hips filleted at 1: built in every order (24), one
+//!   body, exact, closed and uncrossed. Each hip's round one face; the apex
+//!   closed by one face on the sphere of radius 1 about (5, 5, 10 − √2),
+//!   meeting each round along its end section. The volume the arithmetic
+//!   gives —
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_piece_of_sphere_one_radius_from_its_four_faces_whatever_the_order`.
+//!   Read on the pyramid standing on its own base, `pyramid_on_its_base`
+//!   10 by 10, apex (5, 5, 5), rather than on `pyramid()`, by the decision of
+//!   2026-11-13 in a comment on the issue: `pyramid()` stood on a box, and its
+//!   hips' feet are vertices where four edges end, which a cut ending there
+//!   alone does not reach yet, #943's; here each hip's foot is a corner of
+//!   three edges, the sphere's centre (5, 5, 5 − √2), and the apex the only
+//!   vertex of four. Read as: before the step, the centre one radius in from
+//!   each of the four slopes; in each of the 24 orders, the value taken
+//!   whole; the body exact, closed, uncrossed, holding 164.84162207554385, the
+//!   arithmetic below, and its triangles enclosing that within the drawing's
+//!   tolerance; one round for each hip, numbered by its rank in the list, and
+//!   the piece of sphere numbered after the four, as #699 numbers its patch,
+//!   the step ending past it, every face of the pyramid kept; the piece
+//!   curved, drawn on the sphere and on the apex's side of every round's end
+//!   section, its corners the centre's four feet on the slopes, met first
+//!   from outside on rays toward its centre, and meeting the four rounds, one
+//!   side each, and nothing else; each round curved, drawn on its cylinder of
+//!   radius 1 about the line through the centre along its hip and never short
+//!   of its end section, that section drawn along its arc between the feet on
+//!   its two slopes, its foot ending on the base as at a corner of three
+//!   edges, drawn along the curve the base cuts from its cylinder from one
+//!   edge of the base to the other, the round met first from outside, and
+//!   meeting its two slopes, the base and the piece of sphere, one edge each;
+//!   each slope a triangle, from the foot the piece of sphere touches down
+//!   along its two rounds to the base, meeting the base and those two rounds;
+//!   the base meeting each slope along one sharp edge and the four rounds, no
+//!   face left with a corner at the apex or at a corner of the base; and "one
+//!   body" read as every order laying the body the first order lays, each
+//!   face meeting what it meets there and each flat face keeping its corners
+//! - The same four hips chamfered at 1: built in every order, one body, the
+//!   apex closed by one square face on a plane square to the axis through the
+//!   four flats' crossings; the volume the arithmetic gives —
+//!   `a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_the_flats_edges_cross_whatever_the_order`.
+//!   Read on the same pyramid on its base, for the same reason. Read as:
+//!   before the step, the four crossings at one height, 5 − √(3/2); in each
+//!   of the 24 orders, the value taken whole; the body exact, closed,
+//!   uncrossed, holding 152.89141153805824, the arithmetic below; one flat for
+//!   each hip by its rank, the square numbered after the four, the step ending
+//!   past it, every face of the pyramid kept; the square's corners the four
+//!   crossings, facing up along the axis, meeting the four flats one side
+//!   each and nothing else; each flat facing halfway between its two slopes,
+//!   its corners the crossings on those slopes and where its edges on them
+//!   reach the base, meeting the square, its two slopes and the base, one
+//!   edge each, its foot cut off along a straight side as at a corner of
+//!   three edges; each slope a triangle from its crossing down to the base,
+//!   meeting the base and the flats of its two hips; the base an octagon, its
+//!   corners those eight points, meeting each slope along one sharp edge and
+//!   the four flats; no face left with a corner at the apex; and every order
+//!   laying the body the first lays, as for the fillet
+//! - Throughout: #699's corner tests and #698's keep their bodies — no test:
+//!   each is held by its own test, left as it was, #699's above in this file
+//!   and #698's in `a_chamfer_and_a_fillet_take_several_edges_in_one_step.rs`;
+//!   the one test of either that this issue changes is the decline below.
+//!   The issue writes this criterion and the next two as one; it is split
+//!   here, each part answered on its own
+//! - #699's pinned decline
+//!   `a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported`
+//!   keeps its three-hip cases (the follow-up) and flips its four-hip case to
+//!   the above. Read as: on the pyramid on its base, moved there from
+//!   `pyramid()` so that the apex is the one vertex that declines them, every
+//!   three of the four hips, in each of the six orders a list can name them
+//!   in, declined `Unsupported` for the fillet and for the chamfer at 1, the
+//!   hip left out running into the apex sharp, which neither closing reaches,
+//!   until #942; the list of the four hips leaves that test for the two tests
+//!   above
+//! - An apex of four edges whose faces share no sphere stays declined in
+//!   every order, pinned —
+//!   `a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_share_no_sphere_are_declined_as_unsupported_whatever_the_order`.
+//!   Read as: the pyramid on its base 10 by 6, `pyramid_on_its_base`, its
+//!   apex at (5, 3, 5), its front and back slopes steeper than its left and
+//!   right; before the step, no point of its axis standing as far in from the
+//!   front and back as from the left and right, and the four crossings of the
+//!   flats at 1 on no one plane; then its four hips, in each of the 24 orders,
+//!   declined `Unsupported` for the fillet and for the chamfer at 1, until
+//!   #942. Green before the branch and after, a pin rather than a red test
+//! - Decision (2026-11-13): the closings of #699 carry over to a vertex of
+//!   four edges where the shape allows one surface, every edge at it named.
+//!   Among rounds, where the faces round the vertex are all tangent to one
+//!   sphere of the radius, each round's axis passes through its centre and
+//!   the vertex is closed by the piece of that sphere about it, meeting each
+//!   round along its end section; among flats, where the points at which
+//!   neighbouring flats cross lie on one plane, by the polygon through them.
+//!   A right pyramid's apex is such a vertex for both —
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_piece_of_sphere_one_radius_from_its_four_faces_whatever_the_order`,
+//!   `a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_the_flats_edges_cross_whatever_the_order`.
+//!   Set aside, declined `Unsupported` in every order and pinned, for #942:
+//!   some of the vertex's edges named, not all, and an apex whose faces share
+//!   no sphere or whose crossings lie on no one plane —
+//!   `a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported`,
+//!   `a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_share_no_sphere_are_declined_as_unsupported_whatever_the_order`
+//! - The patch at an apex of four answers to the number after its four
+//!   edges' faces, as #699 numbers its triangle and its piece of sphere: on a
+//!   list from where the steps' numbers ended at `start`, the rounds or the
+//!   flats `start` to `start + 3` by their ranks, the patch `start + 4`, the
+//!   step ending past it. Beyond the issue's wording, carried over from
+//!   #699 —
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_piece_of_sphere_one_radius_from_its_four_faces_whatever_the_order`,
+//!   `a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_the_flats_edges_cross_whatever_the_order`
+//! - A hip cut alone, on either pyramid, ends at the apex at a vertex of four
+//!   edges, and is declined there before any corner is read; so is any edge
+//!   of `pyramid()`'s box ending at a hip's foot — no test: not this issue's,
+//!   a cut ending alone at a vertex of four edges is #943's, whose scope takes
+//!   the apex in. Set aside by the same decision, on this branch
 //!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
@@ -564,6 +683,70 @@
 //! flats, a height over the box's floor at most the least of the distances
 //! in from the front, the back and the end, `2d³/3` of the box's `2d³`. The
 //! block keeps `V − d²(L − d) − 4d³/3`, 3321 on the block 30 by 6 by 20 at 3.
+//!
+//! The square pyramid, `pyramid_on_its_base` 10 by 10, stands on its own base
+//! with its apex at (5, 5, 5), its four slopes leaning 45 degrees: `500/3`.
+//! Each of its four hips runs `5√3` from the apex down to a corner of the
+//! base, between two slopes whose outward normals stand 60 degrees apart, 120
+//! degrees inside the matter, and ends there at a corner of three edges, the
+//! hip and the two edges of the base. A point (5, 5, z) of the axis stands
+//! `|z − 5|/√2` in from each slope, so the point one radius in from all four
+//! is (5, 5, 5 − √2·r): the centre of the piece of sphere. Each round's axis
+//! runs through it along its hip, and each round ends on the plane through it
+//! square to its hip, `√(2/3)·r` down the hip from the apex.
+//!
+//! The four rounds at `r`. Along its hip each takes the section between its
+//! two slopes and its arc, `r²(1/√3 − π/6)`, from its end section down to the
+//! plane through the hip's foot square to it, `5√3 − r√(2/3)` long. There
+//! the base cuts the round's prism slantwise: a line of the prism along the
+//! hip, `(w_x, w_y, w_z)` off the foot in that plane, enters the pyramid where
+//! it crosses the base, `−√3·w_z` past the plane. With `α` measured into the
+//! matter along the line halfway between the slopes and `β` across it, `w_z`
+//! is `−2α/√6`, so each line is `√2·α` short; over the section at `r = 1`,
+//! `α` sums to `11/18 − π/(3√3)`, and the foot spares
+//! `√2·r³(11/18 − π/(3√3))`, 0.0092084 at 1. The four end sections bound at
+//! the apex a cell, a square cone from the centre about the axis whose edges
+//! run the four ways the slopes face, `|x| + |y| ≤ z` measured from the
+//! centre. Within the pyramid, each round's prism lies inside the cell on the
+//! apex's side of its own end section, and no two prisms meet outside it: the
+//! body is the pyramid less each round's prism past its end section, less the
+//! cell, the ball's sector in the cell given back. Of the pyramid the cell
+//! holds what lies under the four slopes, `z ≤ √2·r − max(|x|, |y|)`, that is
+//! `4√2r³/9`; the sector spans the solid angle between the four ways the
+//! slopes face, `4 asin(1/3)`, and holds `4 asin(1/3)·r³/3`. The body keeps
+//! `500/3 − 4(r²(1/√3 − π/6)(5√3 − r√(2/3)) − √2·r³(11/18 − π/(3√3))) − 4√2r³/9 + 4 asin(1/3)·r³/3`,
+//! 164.84162207554385 at 1. Held a second way, off the kernel: the length
+//! each line of a round's prism keeps in the pyramid, from where it enters it
+//! to the end section, read by bisection against the base and the slopes
+//! alone and integrated over the section, gives each round's share to the
+//! last digits, and sampling the pyramid finds no point two prisms past their
+//! end sections share, nor any of a prism on the apex's side of its section
+//! outside the cell.
+//!
+//! The four flats at `d`. Neighbouring flats cross on the slope they share,
+//! each `d` from its hip, at (5, 5 − √(3/2)·d, 5 − √(3/2)·d) and its three
+//! images about the axis: all four at one height, the square through them
+//! level, its side `√3·d`. Above it the pyramid's tip, `√(3/2)·d` high on a
+//! square base twice as wide, `√6·d³`, goes. Below it no two flats' prisms
+//! overlap, the line two neighbours' planes meet along climbing from their
+//! crossing into the pyramid. Each prism's section is the triangle between
+//! the hip and its two set-back lines, `√3d²/4`, and a line of it along the
+//! hip runs from the base, `√2·α` past the plane square to the hip at its
+//! foot, up to the square's plane, `√3(5 − √(3/2)·d) + √2·α` past it: every
+//! line the same length, `√3(5 − √(3/2)·d)`, and the prism
+//! `(3/4)(5 − √(3/2)·d)d²`. The body keeps `500/3 − 15d² + √6d³/2`,
+//! 152.89141153805824 at 1, which slicing the body, convex, by level planes
+//! gives to the last digits.
+//!
+//! The pyramid on its base 10 by 6 has its apex at (5, 3, 5), its front and
+//! back slopes rising 5 in 3 and its left and right 5 in 5; it holds 100. A
+//! point one radius in from both the front and the back stands on the plane
+//! y = 3, one in from both the left and the right on x = 5: on the axis,
+//! where a point `h` under the apex stands `3h/√34` in from the front and the
+//! back and `h/√2` in from the left and the right. No point stands as far in
+//! from all four, and no sphere touches them all. The flats at 1 cross on the
+//! front and the back 3.683 high, and on the left and the right 3.190 high:
+//! the four crossings lie on no one plane.
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
@@ -4594,50 +4777,810 @@ fn a_chamfer_and_a_fillet_on_edges_named_before_a_join_merged_the_faces_at_their
     }
 }
 
-/// The block 10 by 10 by 10 cut by four planes through the middle of its top,
-/// each leaning 45 degrees, down to its walls' halfway: a square pyramid 5
-/// high on a box 5 high, holding `500 + 500/3`. The four planes' faces are
-/// numbered six, twelve, eighteen and twenty-four, front, back, left and
-/// right; four edges end at the apex, one between each two faces beside each
-/// other.
-fn pyramid() -> Body {
-    let apex = DVec3::new(5.0, 5.0, 10.0);
-    [
-        DVec3::new(0.0, -1.0, 1.0),
-        DVec3::new(0.0, 1.0, 1.0),
-        DVec3::new(-1.0, 0.0, 1.0),
-        DVec3::new(1.0, 0.0, 1.0),
+/// The numbers a pyramid's slopes answer to: each cut by a slab of six faces,
+/// the slab's floor first, the front, the back, the left and the right in
+/// turn.
+const FRONT_SLOPE: usize = 6;
+const BACK_SLOPE: usize = 12;
+const LEFT_SLOPE: usize = 18;
+const RIGHT_SLOPE: usize = 24;
+
+/// How high a pyramid's apex stands over its base.
+const APEX_HEIGHT: f64 = 5.0;
+
+/// The base of the square pyramid, seen from above: 10 by 10.
+const SQUARE: [f64; 2] = [10.0, 10.0];
+
+/// The base of the pyramid whose faces share no sphere, seen from above: 10
+/// by 6.
+const OBLONG: [f64; 2] = [10.0, 6.0];
+
+/// What the square pyramid holds: a third of its base times its height.
+const PYRAMID_VOLUME: f64 = 100.0 * APEX_HEIGHT / 3.0;
+
+/// A slope of a pyramid: the number its face answers to, the way it faces,
+/// and what it is called.
+struct Slope {
+    face: usize,
+    outward: DVec3,
+    called: &'static str,
+}
+
+/// A hip of a pyramid: what it is called, the two slopes it lies between, as
+/// indices into its apex's, the corner of the base it runs down to, and the
+/// way it runs there from the apex.
+struct Hip {
+    called: &'static str,
+    slopes: [usize; 2],
+    foot: DVec3,
+    down: DVec3,
+}
+
+/// The apex of a pyramid, where its four hips end: where it stands, its four
+/// slopes, front, back, left and right, and its four hips round it.
+struct Apex {
+    at: DVec3,
+    slopes: [Slope; 4],
+    hips: [Hip; 4],
+}
+
+/// The apex of the pyramid [`pyramid_on_its_base`] stands on a base `length`
+/// by `breadth`: over the middle of the base, [`APEX_HEIGHT`] high, each slope
+/// running from it down to one edge of the base.
+fn apex_over([length, breadth]: [f64; 2]) -> Apex {
+    let at = DVec3::new(length / 2.0, breadth / 2.0, APEX_HEIGHT);
+    let rise = APEX_HEIGHT;
+    let slopes = [
+        (FRONT_SLOPE, DVec3::new(0.0, -rise, at.y), "the front slope"),
+        (BACK_SLOPE, DVec3::new(0.0, rise, at.y), "the back slope"),
+        (LEFT_SLOPE, DVec3::new(-rise, 0.0, at.x), "the left slope"),
+        (RIGHT_SLOPE, DVec3::new(rise, 0.0, at.x), "the right slope"),
     ]
-    .into_iter()
-    .fold(
-        raised(Contour::rectangle(DVec2::ZERO, DVec2::splat(10.0)), 10.0),
-        |part, away| {
-            part.difference(&beyond(&part, apex, away, 50.0))
-                .expect("a plane through the apex cuts the cube")
-        },
+    .map(|(face, outward, called)| Slope {
+        face,
+        outward: outward.normalize(),
+        called,
+    });
+    let hips = [
+        ("the front left hip", [0, 2], [0.0, 0.0]),
+        ("the front right hip", [0, 3], [length, 0.0]),
+        ("the back right hip", [1, 3], [length, breadth]),
+        ("the back left hip", [1, 2], [0.0, breadth]),
+    ]
+    .map(|(called, slopes, [x, y])| {
+        let foot = DVec3::new(x, y, 0.0);
+        Hip {
+            called,
+            slopes,
+            foot,
+            down: (foot - at).normalize(),
+        }
+    });
+    Apex { at, slopes, hips }
+}
+
+impl Apex {
+    /// The name on the part of hip `hip`: the edge between its two slopes.
+    fn name(&self, part: &Body, hip: usize) -> EdgeName {
+        let [one, other] = self.hips[hip].slopes.map(|slope| self.slopes[slope].face);
+        edge_between(part, one, other)
+    }
+
+    /// The two hips on slope `slope`, as indices into the apex's.
+    fn hips_on(&self, slope: usize) -> [usize; 2] {
+        let on: Vec<usize> = (0..4)
+            .filter(|&hip| self.hips[hip].slopes.contains(&slope))
+            .collect();
+        [on[0], on[1]]
+    }
+
+    /// The ways hip `hip`'s two slopes face.
+    fn facing(&self, hip: usize) -> [DVec3; 2] {
+        self.hips[hip]
+            .slopes
+            .map(|slope| self.slopes[slope].outward)
+    }
+
+    /// Where the flats a chamfer of `distance` lays on the two hips of slope
+    /// `slope` cross on it: the distance from each hip, square to it in the
+    /// slope, so the distance over the sine of the angle the two hips meet at
+    /// along each of them, as [`Trihedral::crossing`] reads a corner's.
+    fn crossing(&self, slope: usize, distance: f64) -> DVec3 {
+        let [one, other] = self.hips_on(slope).map(|hip| self.hips[hip].down);
+        self.at + (one + other) * distance / one.cross(other).length()
+    }
+}
+
+/// Where the line from `point` along hip `hip`'s way down meets the ground:
+/// where a line on a slope beside the hip, parallel to it, crosses the base's
+/// edge under that slope.
+fn down_to_the_base(apex: &Apex, hip: usize, point: DVec3) -> DVec3 {
+    let down = apex.hips[hip].down;
+    point - down * point.z / down.z
+}
+
+/// The block a pyramid on a base `length` by `breadth` is cut from: standing
+/// on the ground, one wider than the base all round and one higher than its
+/// apex, so that every plane through the apex and an edge of the base cuts
+/// the block's floor along that edge and takes its walls and top away whole.
+fn block_under([length, breadth]: [f64; 2]) -> Body {
+    raised(
+        Contour::rectangle(DVec2::splat(-1.0), DVec2::new(length + 1.0, breadth + 1.0)),
+        APEX_HEIGHT + 1.0,
     )
+}
+
+/// A pyramid standing on its own base, `length` by `breadth`, its apex where
+/// [`apex_over`] puts it: [`block_under`] cut by the four planes through the
+/// apex and an edge of the base, its base the block's floor, numbered nought,
+/// its slopes [`FRONT_SLOPE`], [`BACK_SLOPE`], [`LEFT_SLOPE`] and
+/// [`RIGHT_SLOPE`]. Four edges end at the apex, one between each two slopes
+/// beside each other; three at each corner of the base, its hip and the two
+/// edges of the base there.
+///
+/// #699 held its decline on a pyramid standing on a box, the block 10 by 10 by
+/// 10 cut down to its walls' halfway. Each hip's foot there is a vertex where
+/// four edges end, the hip, two eaves and the box's upright, and a cut ending
+/// at such a vertex, alone in its list, is declined before any corner is read:
+/// a behaviour of one edge, #943's. The pyramid on the box waits on that
+/// issue; the apex is held here on pyramids standing on their own base.
+fn pyramid_on_its_base(footprint: [f64; 2]) -> Body {
+    let apex = apex_over(footprint);
+    apex.slopes
+        .iter()
+        .fold(block_under(footprint), |part, slope| {
+            part.difference(&beyond(&part, apex.at, slope.outward, 50.0))
+                .expect("a plane through the apex cuts the block")
+        })
+}
+
+/// The reach a pyramid of [`pyramid_on_its_base`] is drawn at: a cut keeps
+/// the larger reach of the part and of the slab cut from it, and the slabs
+/// reach far past the block.
+fn pyramid_reach(footprint: [f64; 2]) -> f64 {
+    let apex = apex_over(footprint);
+    let block = block_under(footprint);
+    apex.slopes
+        .iter()
+        .map(|slope| reach_of(&beyond(&block, apex.at, slope.outward, 50.0)))
+        .fold(reach_of(&block), f64::max)
+}
+
+/// What the square pyramid keeps once its four hips are rounded at `radius`
+/// and its apex closed by a piece of sphere: each round's section along its
+/// hip from its end section to the plane square to the hip at its foot, less
+/// what the ground spares of the round's prism there, taken away, then the
+/// cell the end sections bound at the apex, the ball's sector in it given
+/// back, as the module's documentation derives it.
+fn pyramid_closed_by_a_sphere(radius: f64) -> f64 {
+    let r = radius;
+    let section = r * r * (1.0 / 3f64.sqrt() - PI / 6.0);
+    let along = APEX_HEIGHT * 3f64.sqrt() - r * (2.0f64 / 3.0).sqrt();
+    let at_the_foot = -(2f64.sqrt()) * r.powi(3) * (11.0 / 18.0 - PI / (3.0 * 3f64.sqrt()));
+    let cell = 4.0 * 2f64.sqrt() * r.powi(3) / 9.0;
+    let sector = 4.0 * (1.0f64 / 3.0).asin() * r.powi(3) / 3.0;
+    PYRAMID_VOLUME - 4.0 * (section * along + at_the_foot) - cell + sector
+}
+
+/// What the square pyramid keeps once its four hips are chamfered at
+/// `distance` and its apex closed by a square: the tip above the square, and
+/// each flat's prism below it, taken away, as the module's documentation
+/// derives it.
+fn pyramid_closed_by_a_square(distance: f64) -> f64 {
+    PYRAMID_VOLUME - 15.0 * distance * distance + 6f64.sqrt() / 2.0 * distance.powi(3)
+}
+
+/// The hips an order names, as the user reads them.
+fn hips_called(apex: &Apex, order: &[usize]) -> String {
+    order
+        .iter()
+        .map(|&hip| apex.hips[hip].called)
+        .collect::<Vec<_>>()
+        .join(", then ")
+}
+
+/// Where `edge` stands in `order`.
+fn rank_in(order: &[usize], edge: usize) -> usize {
+    order
+        .iter()
+        .position(|&named| named == edge)
+        .expect("every edge is named")
+}
+
+/// What a step of `cut` at `value` on the hips of `apex`, named in each of
+/// `orders`, leaves on `part`: the value asked, the value taken and the body,
+/// each order apart, or why it declined.
+fn laid_on_the_hips(
+    part: &Body,
+    apex: &Apex,
+    orders: &[Vec<usize>],
+    cut: Cut,
+    value: f64,
+) -> Vec<Result<(f64, f64, Body), Declined>> {
+    orders
+        .iter()
+        .map(|order| {
+            let names: Vec<EdgeName> = order.iter().map(|&hip| apex.name(part, hip)).collect();
+            match cut {
+                Cut::Flat => part
+                    .chamfer_edges(&names, value)
+                    .map(|chamfered| (chamfered.asked, chamfered.taken, chamfered.body)),
+                Cut::Round => part
+                    .fillet_edges(&names, value)
+                    .map(|filleted| (filleted.asked, filleted.taken, filleted.body)),
+            }
+        })
+        .collect()
+}
+
+/// Holds that a step was laid in every one of `orders`, and hands back what
+/// it laid in each.
+fn laid_in_every_order(
+    apex: &Apex,
+    orders: &[Vec<usize>],
+    laid: Vec<Result<(f64, f64, Body), Declined>>,
+    what: &str,
+) -> Vec<(f64, f64, Body)> {
+    let declined: Vec<String> = orders
+        .iter()
+        .zip(&laid)
+        .filter_map(|(order, laid)| {
+            laid.as_ref()
+                .err()
+                .map(|declined| format!("{}: {declined:?}", hips_called(apex, order)))
+        })
+        .collect();
+    assert!(
+        declined.is_empty(),
+        "{what} whatever the order; declined:\n{}",
+        declined.join("\n")
+    );
+    laid.into_iter()
+        .map(|laid| laid.expect("declines are held above"))
+        .collect()
+}
+
+/// Holds that no flat face of the body has a corner at any of `points`.
+fn no_corner_left_at(body: &Body, points: &[DVec3], what: &str) {
+    for face in numbers(body) {
+        if let Some(plane) = body.plane_of(face) {
+            for at in points {
+                assert!(
+                    plane
+                        .corners
+                        .iter()
+                        .all(|point| point.distance(*at) > PLACE),
+                    "{what}: face {face} still has a corner at the old vertex {at}"
+                );
+            }
+        }
+    }
+}
+
+/// Holds that the base of a pyramid whose hips were cut, face nought, meets
+/// each slope along one sharp edge, and the face `laid` hands for each hip,
+/// and nothing else.
+fn base_meets_the_slopes_and_what_was_laid(
+    body: &Body,
+    apex: &Apex,
+    laid: impl Fn(usize) -> usize,
+    what: &str,
+) {
+    for slope in &apex.slopes {
+        assert_eq!(
+            edges_between(body, FLOOR, slope.face).len(),
+            1,
+            "{what}: the base's edge under {} is still one sharp edge",
+            slope.called
+        );
+    }
+    let mut met: Vec<usize> = apex.slopes.iter().map(|slope| slope.face).collect();
+    met.extend((0..4).map(laid));
+    assert_eq!(
+        sides_met(body, FLOOR),
+        sides(&met),
+        "{what}: the base meets the four slopes along its edges and what was laid on each hip \
+         at its foot, by one edge each"
+    );
+}
+
+/// Holds that the bodies a step laid on the same edges named in each of
+/// `orders`, one body each, are one body: every face numbered from `start` on
+/// and short of `patch` taken from the rank its edge has in the first order to
+/// the rank it has in this one, and every other number kept, each face meets
+/// what it meets in the first order, and each flat face has the corners it has
+/// there.
+fn lays_one_body_whatever_the_order(
+    orders: &[Vec<usize>],
+    bodies: &[Body],
+    start: usize,
+    patch: usize,
+    what: &str,
+) {
+    let (first_order, first) = (&orders[0], &bodies[0]);
+    for (order, body) in orders.iter().zip(bodies).skip(1) {
+        let which = format!("{what}, named {order:?}, against the same named {first_order:?}");
+        let to_this = |number: usize| {
+            if number < start || number >= patch {
+                return number;
+            }
+            start + rank_in(order, first_order[number - start])
+        };
+        for face in numbers(first) {
+            assert_eq!(
+                sides_renumbered(first, face, to_this),
+                sides_met(body, to_this(face)),
+                "{which}: face {face} meets what it meets in the first order"
+            );
+            if let Some(plane) = first.plane_of(face) {
+                corners_are(
+                    body,
+                    to_this(face),
+                    &plane.corners,
+                    &format!("{which}: face {face}, as in the first order"),
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_fillet_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_piece_of_sphere_one_radius_from_its_four_faces_whatever_the_order()
+ {
+    let r = 1.0;
+    let pyramid = pyramid_on_its_base(SQUARE);
+    let apex = apex_over(SQUARE);
+    let centre = DVec3::new(5.0, 5.0, APEX_HEIGHT - 2f64.sqrt() * r);
+    for slope in &apex.slopes {
+        let depth = (apex.at - centre).dot(slope.outward);
+        assert!(
+            (depth - r).abs() < PLACE,
+            "the centre {centre} stands {depth} in from {}, where a point (5, 5, z) stands \
+             |z − 5|/√2 in from each slope: one radius",
+            slope.called
+        );
+    }
+    let start = pyramid.faces_end();
+    let piece = start + 4;
+    let rounds = [0, 1, 2, 3].map(|hip| Round {
+        start: centre,
+        along: apex.hips[hip].down,
+        length: apex.hips[hip].foot.distance(apex.at),
+        radius: r,
+        facing: apex.facing(hip),
+    });
+    let spread = 4.0 * (1.0f64 / 3.0).asin();
+    let area = rounds.iter().map(Round::area).sum::<f64>() + spread * r * r;
+    let drawn_within = DRAWN * pyramid_reach(SQUARE) * area;
+    let promised = pyramid_closed_by_a_sphere(r);
+    let orders = every_order(4);
+
+    let laid = laid_in_every_order(
+        &apex,
+        &orders,
+        laid_on_the_hips(&pyramid, &apex, &orders, Cut::Round, r),
+        "the fillet at 1 on the pyramid's four hips closes its apex",
+    );
+
+    let mut bodies = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the fillet on {}", hips_called(&apex, order));
+        taken_as_asked(asked, taken, r, &what);
+        sound_drawn_within(&body, promised, drawn_within, &what);
+        let round_of = |hip: usize| start + rank_in(order, hip);
+        assert_eq!(
+            faces_made(&pyramid, &body),
+            (start..=piece).collect::<Vec<_>>(),
+            "{what}: one round for each hip, numbered in the order the step names them, and the \
+             piece of sphere after them: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            piece + 1,
+            "{what}: the next step numbers its own faces past the piece of sphere"
+        );
+        assert!(
+            numbers(&pyramid).is_subset(&numbers(&body)),
+            "{what}: a face of the pyramid went: {:?}",
+            numbers(&body)
+        );
+
+        let which = format!("{what}: the piece of sphere");
+        assert!(
+            !body.is_flat(piece) && body.plane_of(piece).is_none(),
+            "{which} is curved, and offers no plane to draw on"
+        );
+        let drawn: Vec<DVec3> = body.triangles_of(piece).flatten().collect();
+        assert!(!drawn.is_empty(), "{which} is drawn");
+        for point in &drawn {
+            assert!(
+                (point.distance(centre) - r).abs() < PLACE,
+                "{which} is drawn through {point}, off the sphere of {r} about {centre}, one \
+                 radius from each of the four slopes"
+            );
+            for hip in &apex.hips {
+                assert!(
+                    (*point - centre).dot(hip.down) <= PLACE,
+                    "{which} is drawn through {point}, past the end section of the round on {}",
+                    hip.called
+                );
+            }
+        }
+        for slope in &apex.slopes {
+            let foot = centre + slope.outward * r;
+            assert!(
+                drawn.iter().any(|point| point.distance(foot) < PLACE),
+                "{which}: a corner at {foot}, where it touches {}",
+                slope.called
+            );
+        }
+        for weights in [
+            [1.0, 1.0, 1.0, 1.0],
+            [2.0, 1.0, 1.0, 1.0],
+            [1.0, 2.0, 1.0, 1.0],
+            [1.0, 1.0, 2.0, 1.0],
+            [1.0, 1.0, 1.0, 2.0],
+        ] {
+            let facing = apex
+                .slopes
+                .iter()
+                .zip(weights)
+                .map(|(slope, weight)| slope.outward * weight)
+                .sum::<DVec3>()
+                .normalize();
+            let from = centre + facing * (r + 10.0);
+            let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
+                panic!("{which}: a ray from {from} toward its centre meets nothing")
+            });
+            assert_eq!(
+                hit.face, piece,
+                "{which}: a ray from {from} toward its centre meets face {} before it",
+                hit.face
+            );
+            assert!(
+                hit.normal.distance(facing) < PLACE,
+                "{which}: where a ray from {from} meets it, it faces {}, not {facing}, away from \
+                 its centre",
+                hit.normal
+            );
+        }
+        assert_eq!(
+            sides_met(&body, piece),
+            sides(&[0, 1, 2, 3].map(round_of)),
+            "{which} meets the four rounds, one side each, and nothing else"
+        );
+
+        for (hip, round) in rounds.iter().enumerate() {
+            let face = round_of(hip);
+            let which = format!("{what}: the round of {}", apex.hips[hip].called);
+            assert!(
+                !body.is_flat(face) && body.plane_of(face).is_none(),
+                "{which} is curved, and offers no plane to draw on"
+            );
+            let corners: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+            assert!(!corners.is_empty(), "{which} is drawn");
+            for point in &corners {
+                assert!(
+                    round.holds(*point),
+                    "{which} is drawn through {point}, off its cylinder of {r} about the line \
+                     through {centre} along its hip, or short of its end section there"
+                );
+            }
+            let section: Vec<&DVec3> = corners
+                .iter()
+                .filter(|point| ((**point - centre).dot(round.along)).abs() < PLACE)
+                .collect();
+            for way in round.facing {
+                let foot = centre + way * r;
+                assert!(
+                    section.iter().any(|point| point.distance(foot) < PLACE),
+                    "{which}: its end section, an arc in the plane through the sphere's centre \
+                     square to its hip, ends at {foot}, among {section:?}"
+                );
+            }
+            assert!(
+                section.len() > 2,
+                "{which}: its end section is drawn along the arc between its two ends: \
+                 {section:?}"
+            );
+            let on_the_base: Vec<&DVec3> = corners
+                .iter()
+                .filter(|point| point.z.abs() < PLACE)
+                .collect();
+            for way in round.facing {
+                let base = down_to_the_base(&apex, hip, centre + way * r);
+                assert!(
+                    on_the_base.iter().any(|point| point.distance(base) < PLACE),
+                    "{which}: at its foot it ends on the base, as at a corner of three edges, \
+                     from {base} on an edge of the base, among {on_the_base:?}"
+                );
+            }
+            assert!(
+                on_the_base.len() > 2,
+                "{which}: its end on the base is drawn along the curve the base cuts from its \
+                 cylinder: {on_the_base:?}"
+            );
+            met_from_outside(
+                &body,
+                face,
+                &round.part(r, 0.7 * round.length),
+                &format!("{which}, past its end section"),
+            );
+            let [one, other] = apex.hips[hip].slopes.map(|slope| apex.slopes[slope].face);
+            assert_eq!(
+                sides_met(&body, face),
+                sides(&[one, other, FLOOR, piece]),
+                "{which} meets its two slopes along its sides, the base at its foot and the piece \
+                 of sphere along its end section, by one edge each, and no other round"
+            );
+        }
+        for (index, slope) in apex.slopes.iter().enumerate() {
+            let foot = centre + slope.outward * r;
+            let [one, other] = apex.hips_on(index);
+            corners_are(
+                &body,
+                slope.face,
+                &[
+                    foot,
+                    down_to_the_base(&apex, one, foot),
+                    down_to_the_base(&apex, other, foot),
+                ],
+                &format!(
+                    "{what}: {}, a triangle from where the piece of sphere touches it down \
+                     along the rounds of its two hips to the base",
+                    slope.called
+                ),
+            );
+            assert_eq!(
+                sides_met(&body, slope.face),
+                sides(&[FLOOR, round_of(one), round_of(other)]),
+                "{what}: {} meets the base and the rounds of its two hips, by one edge each, and \
+                 the piece of sphere at a corner only",
+                slope.called
+            );
+        }
+        base_meets_the_slopes_and_what_was_laid(&body, &apex, round_of, &what);
+        let corners_of_the_base: Vec<DVec3> = apex.hips.iter().map(|hip| hip.foot).collect();
+        no_corner_left_at(&body, &[apex.at], &what);
+        no_corner_left_at(&body, &corners_of_the_base, &what);
+        bodies.push(body);
+    }
+    lays_one_body_whatever_the_order(
+        &orders,
+        &bodies,
+        start,
+        piece,
+        "the fillet on the pyramid's four hips",
+    );
+}
+
+#[test]
+fn a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_the_flats_edges_cross_whatever_the_order()
+ {
+    let d = 1.0;
+    let pyramid = pyramid_on_its_base(SQUARE);
+    let apex = apex_over(SQUARE);
+    let crossings = [0, 1, 2, 3].map(|slope| apex.crossing(slope, d));
+    let level = APEX_HEIGHT - 1.5f64.sqrt() * d;
+    for (slope, crossing) in apex.slopes.iter().zip(crossings) {
+        assert!(
+            (crossing.z - level).abs() < PLACE,
+            "the flats of the two hips on {} cross at {crossing}, where the arithmetic puts \
+             all four crossings: {level} high",
+            slope.called
+        );
+    }
+    let start = pyramid.faces_end();
+    let square = start + 4;
+    let promised = pyramid_closed_by_a_square(d);
+    let orders = every_order(4);
+
+    let laid = laid_in_every_order(
+        &apex,
+        &orders,
+        laid_on_the_hips(&pyramid, &apex, &orders, Cut::Flat, d),
+        "the chamfer at 1 on the pyramid's four hips closes its apex",
+    );
+
+    let mut bodies = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the chamfer on {}", hips_called(&apex, order));
+        taken_as_asked(asked, taken, d, &what);
+        sound_drawn_within(&body, promised, EXACT * promised, &what);
+        let flat_of = |hip: usize| start + rank_in(order, hip);
+        assert_eq!(
+            faces_made(&pyramid, &body),
+            (start..=square).collect::<Vec<_>>(),
+            "{what}: one flat for each hip, numbered in the order the step names them, and the \
+             square after them: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            square + 1,
+            "{what}: the next step numbers its own faces past the square"
+        );
+        assert!(
+            numbers(&pyramid).is_subset(&numbers(&body)),
+            "{what}: a face of the pyramid went: {:?}",
+            numbers(&body)
+        );
+
+        corners_are(
+            &body,
+            square,
+            &crossings,
+            &format!(
+                "{what}: the square, its corners where the flats' edges cross on the four slopes"
+            ),
+        );
+        faces_toward(
+            &body,
+            square,
+            DVec3::Z,
+            &format!("{what}: the square, on a plane square to the pyramid's axis"),
+        );
+        assert_eq!(
+            sides_met(&body, square),
+            sides(&[0, 1, 2, 3].map(flat_of)),
+            "{what}: the square meets the four flats, one side each, and nothing else"
+        );
+
+        let mut on_the_base = Vec::new();
+        for (hip, at) in apex.hips.iter().enumerate() {
+            let flat = flat_of(hip);
+            let which = format!("{what}: the flat of {}", at.called);
+            let [one, other] = at.slopes;
+            let [facing_one, facing_other] = apex.facing(hip);
+            faces_toward(&body, flat, (facing_one + facing_other).normalize(), &which);
+            let [cross_one, cross_other] = [crossings[one], crossings[other]];
+            let [base_one, base_other] =
+                [cross_one, cross_other].map(|crossing| down_to_the_base(&apex, hip, crossing));
+            on_the_base.extend([base_one, base_other]);
+            corners_are(
+                &body,
+                flat,
+                &[cross_one, cross_other, base_one, base_other],
+                &format!(
+                    "{which}, from its side on the square between the crossings on its two \
+                     slopes down to the base, which it meets along a straight side, as at a \
+                     corner of three edges"
+                ),
+            );
+            assert_eq!(
+                sides_met(&body, flat),
+                sides(&[
+                    square,
+                    apex.slopes[one].face,
+                    apex.slopes[other].face,
+                    FLOOR
+                ]),
+                "{which} meets the square, its two slopes along its sides and the base at its \
+                 foot, by one edge each, and no other flat"
+            );
+        }
+        for (index, slope) in apex.slopes.iter().enumerate() {
+            let crossing = crossings[index];
+            let [one, other] = apex.hips_on(index);
+            corners_are(
+                &body,
+                slope.face,
+                &[
+                    crossing,
+                    down_to_the_base(&apex, one, crossing),
+                    down_to_the_base(&apex, other, crossing),
+                ],
+                &format!(
+                    "{what}: {}, a triangle from where the flats of its two hips cross on it \
+                     down to the base",
+                    slope.called
+                ),
+            );
+            assert_eq!(
+                sides_met(&body, slope.face),
+                sides(&[FLOOR, flat_of(one), flat_of(other)]),
+                "{what}: {} meets the base and the flats of its two hips, by one edge each, and \
+                 the square at a corner only",
+                slope.called
+            );
+        }
+        corners_are(
+            &body,
+            FLOOR,
+            &on_the_base,
+            &format!(
+                "{what}: the base, an octagon, each corner of it cut off by the flat of the hip \
+                 there"
+            ),
+        );
+        base_meets_the_slopes_and_what_was_laid(&body, &apex, flat_of, &what);
+        no_corner_left_at(&body, &[apex.at], &what);
+        bodies.push(body);
+    }
+    lays_one_body_whatever_the_order(
+        &orders,
+        &bodies,
+        start,
+        square,
+        "the chamfer on the pyramid's four hips",
+    );
 }
 
 #[test]
 fn a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported()
  {
-    let pyramid = pyramid();
+    let pyramid = pyramid_on_its_base(SQUARE);
     assert!(
-        (pyramid.volume() - (500.0 + 500.0 / 3.0)).abs() < EXACT * 1000.0,
-        "the pyramid on its box holds {}",
+        (pyramid.volume() - PYRAMID_VOLUME).abs() < EXACT * PYRAMID_VOLUME,
+        "the pyramid on its base holds {}",
         pyramid.volume()
     );
-    let [front, back, left, right] = [6, 12, 18, 24];
-    let hips = [[front, left], [front, right], [back, right], [back, left]]
-        .map(|[one, other]| edge_between(&pyramid, one, other));
+    let apex = apex_over(SQUARE);
 
-    for (what, list) in [
-        ("three hips in turn round the apex", vec![0, 1, 2]),
-        ("three hips, the last first", vec![3, 0, 1]),
-        ("three hips round the other way", vec![2, 1, 3]),
-        ("the four hips", vec![0, 1, 2, 3]),
-    ] {
-        let names: Vec<EdgeName> = list.iter().map(|&hip| hips[hip].clone()).collect();
+    for (left_out, sharp) in apex.hips.iter().enumerate() {
+        let three: Vec<usize> = (0..4).filter(|&hip| hip != left_out).collect();
+        for order in ORDERS_OF_THREE {
+            let list = order.map(|at| three[at]);
+            let names = list.map(|hip| apex.name(&pyramid, hip));
+            let what = format!("{}, {} left sharp", hips_called(&apex, &list), sharp.called);
+
+            let filleted = pyramid.fillet_edges(&names, 1.0).err();
+            let chamfered = pyramid.chamfer_edges(&names, 1.0).err();
+
+            assert_eq!(
+                filleted,
+                Some(Declined::Unsupported),
+                "the fillet on {what}: the hip left out runs into the apex sharp, which the \
+                 piece of sphere does not reach — a broken step and its reason, and no body, \
+                 until #942"
+            );
+            assert_eq!(
+                chamfered,
+                Some(Declined::Unsupported),
+                "the chamfer on {what}: the hip left out runs into the apex sharp, which the \
+                 square does not reach — a broken step and its reason, and no body, until #942"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_share_no_sphere_are_declined_as_unsupported_whatever_the_order()
+ {
+    let pyramid = pyramid_on_its_base(OBLONG);
+    let [length, breadth] = OBLONG;
+    let volume = length * breadth * APEX_HEIGHT / 3.0;
+    assert!(
+        (pyramid.volume() - volume).abs() < EXACT * volume,
+        "the pyramid on its base 10 by 6 holds {}, where {volume} is promised",
+        pyramid.volume()
+    );
+    let apex = apex_over(OBLONG);
+    let below = apex.at - DVec3::Z;
+    let [front, back, left, right] = apex
+        .slopes
+        .each_ref()
+        .map(|slope| (apex.at - below).dot(slope.outward));
+    assert!(
+        (front - back).abs() < PLACE && (left - right).abs() < PLACE && (left - front).abs() > 0.1,
+        "the point of the axis one under the apex stands {front} in from the front and the \
+         back and {left} in from the left and the right: every point of the axis stands in \
+         from the four in those proportions, so none stands as far in from all four, and no \
+         sphere touches them all"
+    );
+    let [on_front, on_back, on_left, on_right] =
+        [0, 1, 2, 3].map(|slope| apex.crossing(slope, 1.0));
+    let off_plane = (on_back - on_front).dot((on_left - on_front).cross(on_right - on_front));
+    assert!(
+        off_plane.abs() > 0.1,
+        "the flats at 1 cross on the front and the back at {on_front} and {on_back}, on the \
+         left and the right at {on_left} and {on_right}: on no one plane"
+    );
+
+    for order in every_order(4) {
+        let names: Vec<EdgeName> = order.iter().map(|&hip| apex.name(&pyramid, hip)).collect();
+        let what = hips_called(&apex, &order);
 
         let filleted = pyramid.fillet_edges(&names, 1.0).err();
         let chamfered = pyramid.chamfer_edges(&names, 1.0).err();
@@ -4645,14 +5588,14 @@ fn a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_dec
         assert_eq!(
             filleted,
             Some(Declined::Unsupported),
-            "the fillet on {what}, at a vertex four edges end at: a broken step and its \
-             reason, and no body"
+            "the fillet on {what}, the four slopes touching no one sphere: a broken step and \
+             its reason, and no body, until #942"
         );
         assert_eq!(
             chamfered,
             Some(Declined::Unsupported),
-            "the chamfer on {what}, at a vertex four edges end at: a broken step and its \
-             reason, and no body"
+            "the chamfer on {what}, the four flats' crossings on no one plane: a broken step and \
+             its reason, and no body, until #942"
         );
     }
 }

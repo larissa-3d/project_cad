@@ -9,8 +9,8 @@ use glam::DVec3;
 
 use super::Exact;
 use super::wedge::{
-    Around, Closing, Meeting, Prism, Together, Wedge, hollowed_across, rounded_across, together,
-    too_short,
+    Apex, Around, Closing, Meeting, Prism, Together, Wedge, cell, hollowed_across, rounded_across,
+    sphere_across, together, too_short,
 };
 use crate::brep::{Declined, EdgeName, Scale, Surface};
 
@@ -78,7 +78,16 @@ impl Exact {
     /// and three at a concave corner, a pocket's bottom, by a hollow piece of
     /// sphere centred one radius out from its three faces, facing its centre,
     /// as [`hollowed_across`] lays it; declined `Undrawn` where the kernel
-    /// cannot draw it. The three at a standing block's foot corner, two feet
+    /// cannot draw it. Four or more meeting at a convex corner, every edge
+    /// ending there named — a right pyramid's apex — are closed by one piece
+    /// of sphere where the faces round the corner all touch one sphere of the
+    /// radius, its centre one radius from every face, where every round's
+    /// axis passes: the corner cut back to the planes through the centre
+    /// square to the edges before any round is laid, as [`cell`] cuts it, so
+    /// that no round carried past the corner takes the matter of a face it
+    /// does not lie on, and once all are laid the faces that leaves, each
+    /// ending on a round's arc, replaced by the piece their arcs bound,
+    /// numbered after the rounds, as [`sphere_across`] lays it. The three at a standing block's foot corner, two feet
     /// and the upright above them, go round the upright's round: the corner
     /// filled up to the planes through its axis square to the feet, every
     /// round then laid against that — the upright's ending one radius above
@@ -120,7 +129,9 @@ impl Exact {
     /// no edge, an edge that is not straight between two flat faces, one
     /// running on tangentially into the next edge of a face on the body as
     /// given, one edge named twice, two edges meeting at any other corner where
-    /// an edge meets inwards, an edge whose set-backs meet those of two others
+    /// an edge meets inwards, three or more meeting at a corner where another
+    /// edge, left out of the list, ends too, four or more whose faces touch no
+    /// one sphere of the radius, an edge whose set-backs meet those of two others
     /// — rounds closing on themselves, #790 — an edge of a full round meeting
     /// another edge of the list at a corner but the edge at its end, the two
     /// of a pointed or a V-notched end or an upright, a notch's two where the
@@ -149,6 +160,10 @@ impl Exact {
                 closing: Closing {
                     outwards: rounded_across,
                     inwards: hollowed_across,
+                    apex: Apex {
+                        clear: cell,
+                        close: sphere_across,
+                    },
                 },
                 around: Around::Torus,
             },

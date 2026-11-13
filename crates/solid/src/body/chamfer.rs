@@ -57,7 +57,12 @@ impl Body {
     /// their edges in the list, then the next; two triangles at the ends of an
     /// edge whose flat has no width between them — the tip of a tongue as wide
     /// as two distances, its end edge and both uprights named — meet on a ridge
-    /// in its place, that flat gone. Two cut off where they meet
+    /// in its place, that flat gone. Four or more meeting at a convex corner,
+    /// every edge ending there named — a right pyramid's apex — are closed
+    /// there by one polygon through the points where each two beside each
+    /// other cross, where those lie on one plane, and declined `Unsupported`
+    /// where they do not; so are some of a corner's edges named and not all,
+    /// three of a pyramid's four hips. Two cut off where they meet
     /// beside a concave edge left sharp — the L's top edges at its inner
     /// corner, a pocket's rim — each stop flush on the face the other runs
     /// along and are mitred past it, down to the concave edge, no face laid

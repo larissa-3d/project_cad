@@ -34,15 +34,15 @@ use crate::body::caught::caught;
 use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale, VertexId};
 use crate::profile::{Contour, Frame};
 
-pub(super) use closing::Closing;
+pub(super) use closing::{Apex, Closing};
 use flush::{Flush, Stop};
 pub(super) use odd::Around;
 use overlap::OVERLAPS;
 pub(super) use pairs::{Together, together};
 pub(super) use section::Side;
-pub(super) use sphere::{hollowed_across, rounded_across};
+pub(super) use sphere::{cell, hollowed_across, rounded_across, sphere_across};
 use step::Kind;
-pub(super) use triangle::{cut_across, joined_across};
+pub(super) use triangle::{cut_across, joined_across, polygon_across, tip};
 
 /// A straight edge between two flat faces: a point of it, the way it runs, its
 /// two faces and the numbers they answer to on the body it was read on, for
@@ -130,6 +130,10 @@ impl Exact {
     /// where each two's set-backs cross on the face they share at the value
     /// they are laid at — a pair's, where one of them is laid as one — as
     /// [`Exact::closed`] closes it, its face numbered past the edges'. A corner
+    /// four or more of them meet at, all convex and every edge ending there
+    /// named, is cleared before any edge is laid, as [`Exact::cleared`] clears
+    /// it, so that no cut carried past it takes the matter of a face its edge
+    /// does not lie on, and closed the same way once all are laid. A corner
     /// three of them meet at, two of one sense and the odd one of the other —
     /// two feet and the upright above them, two top edges and the upright
     /// below them — is gone round its odd edge as `meeting` says, as
@@ -147,8 +151,9 @@ impl Exact {
     /// is neither convex — every edge ending there a wedge whose faces meet
     /// outwards — nor two of one sense beside an edge of the other left out of
     /// the list, nor two concave beside a third concave, nor three of mixed
-    /// sense, more than three edges meeting at a corner, or three where
-    /// another edge ends too, where `meeting` raises two together an edge
+    /// sense, three or more meeting at a corner where another edge ends too,
+    /// four or more that `meeting` closes on no one surface, where `meeting`
+    /// raises two together an edge
     /// meeting two others but in a closed chain, cut down to one cylinder as
     /// [`Exact::closed_round`] cuts it, or one of two laid together that meets another
     /// edge of the list at a corner any other way — a notch's two edges among
