@@ -464,6 +464,53 @@
 //!   of `pyramid()`'s box ending at a hip's foot — no test: not this issue's,
 //!   a cut ending alone at a vertex of four edges is #943's, whose scope takes
 //!   the apex in. Set aside by the same decision, on this branch
+//! - Decided on the way, after the green (2026-11-13): the chamfer's guard
+//!   that the crossings lie on one plane is held on its own, which the pin
+//!   above does not do: on the base 10 by 6 a later check declines the
+//!   chamfer whether the guard stands or not. A crossing a little off one
+//!   plane is declined either way too: on the base 10 by 9.8, the crossing on
+//!   the left 0.025 off the plane through the three others, the chamfer at 1
+//!   is declined `Unsupported` in each of the 24 orders, with or without the
+//!   guard —
+//!   `a_chamfer_on_the_four_hips_of_a_pyramid_10_by_9_8_whose_crossings_lie_a_little_off_one_plane_is_declined_as_unsupported_whatever_the_order`.
+//!   The guard alone declines a crossing a hair off, past the kernel's
+//!   tolerance, a billionth of the reach the body is drawn at, and short of
+//!   some three times it, where the later check lets the closing through: on
+//!   the base 10 by 9.999999, the crossing on the left 1.6 tolerances off, the
+//!   chamfer at 1 is declined `Unsupported` in each of the 24 orders, until
+//!   #942 —
+//!   `a_chamfer_on_the_four_hips_of_a_pyramid_whose_crossings_lie_a_hair_off_one_plane_past_the_kernel_s_tolerance_is_declined_as_unsupported_whatever_the_order`.
+//!   Read as: before each step, the crossing's distance off the plane read
+//!   from the fixture, 0.025 on the first, between 1.2 and 2 tolerances on the
+//!   second. Checked in a scratch copy with its own target, the guard's `>`
+//!   turned into `==`: the second test fails, the chamfer built, closed and
+//!   uncrossed, its patch a quadrilateral laid a hair off the fourth crossing;
+//!   the first still passes. From 3.2 tolerances off the later check declines
+//!   the chamfer without the guard; below one, the guard lets it through and
+//!   the patch is built
+//! - Decided on the way, after the green (2026-11-13): an apex beside four
+//!   corners of mixed sense — the square pyramid standing on a plate 20 by 20
+//!   by 2, `pyramid_on_a_plate`, its four hips named with the four feet where
+//!   its slopes meet the plate, each hip the odd edge at its foot, as #829
+//!   reads such a corner — chamfered at 1, goes round each hip at its foot and
+//!   closes the apex with its square, one body in every order; filleted at 1,
+//!   it is declined in every order —
+//!   `a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order`.
+//!   Read as: the four hips alone, filleted and chamfered at 1, keep the
+//!   plate's 800 with the pyramid's figures above, 964.84162207554385 and
+//!   952.89141153805824, the apex closed on the plate as on the pyramid's own
+//!   base; then, in 48 of the 40320 orders the eight edges can be named in,
+//!   spread over them all: the chamfer taken whole, the body exact, closed,
+//!   uncrossed, holding 965.567266914305, the volume measured on this branch
+//!   at f2b6bdda, which no arithmetic here holds; one flat for each edge by
+//!   its rank and five patches after them, one of them the apex's square,
+//!   level, at the four crossings; every order laying the body the first
+//!   lays, face for face, each patch found by its plane and its corners; and
+//!   the fillet on the same lists declined `Unsupported` in each of those
+//!   orders, though the four hips alone are built and so are the four feet
+//!   alone: what declines is the hip as the odd edge of its foot corner among
+//!   rounds, not the apex. Pinned as found, a decline this branch does not
+//!   take, until #944
 //!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
@@ -5597,6 +5644,334 @@ fn a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_shar
             "the chamfer on {what}, the four flats' crossings on no one plane: a broken step and \
              its reason, and no body, until #942"
         );
+    }
+}
+
+/// The base of the pyramid whose four crossings lie a little off one plane,
+/// seen from above: 10 by 9.8.
+const NEARLY_SQUARE: [f64; 2] = [10.0, 9.8];
+
+#[test]
+fn a_chamfer_on_the_four_hips_of_a_pyramid_10_by_9_8_whose_crossings_lie_a_little_off_one_plane_is_declined_as_unsupported_whatever_the_order()
+ {
+    let pyramid = pyramid_on_its_base(NEARLY_SQUARE);
+    let apex = apex_over(NEARLY_SQUARE);
+    let [on_front, on_back, on_left, on_right] =
+        [0, 1, 2, 3].map(|slope| apex.crossing(slope, 1.0));
+    let across = (on_back - on_front).cross(on_right - on_front).normalize();
+    let off = (on_left - on_front).dot(across).abs();
+    assert!(
+        off > 0.01 && off < 0.05,
+        "the flats at 1 cross on the left {off} off the plane through the three other \
+         crossings: a little, far past what the kernel takes for one place"
+    );
+
+    for order in every_order(4) {
+        let names: Vec<EdgeName> = order.iter().map(|&hip| apex.name(&pyramid, hip)).collect();
+
+        let chamfered = pyramid.chamfer_edges(&names, 1.0).err();
+
+        assert_eq!(
+            chamfered,
+            Some(Declined::Unsupported),
+            "the chamfer on {}, the four flats' crossings a little off one plane: a broken step \
+             and its reason, and no body, until #942",
+            hips_called(&apex, &order)
+        );
+    }
+}
+
+/// The base of the pyramid whose four crossings lie a hair off one plane,
+/// past the kernel's tolerance, seen from above: 10 by 9.999999.
+const A_HAIR_OFF_SQUARE: [f64; 2] = [10.0, 9.999999];
+
+#[test]
+fn a_chamfer_on_the_four_hips_of_a_pyramid_whose_crossings_lie_a_hair_off_one_plane_past_the_kernel_s_tolerance_is_declined_as_unsupported_whatever_the_order()
+ {
+    let pyramid = pyramid_on_its_base(A_HAIR_OFF_SQUARE);
+    let apex = apex_over(A_HAIR_OFF_SQUARE);
+    let [on_front, on_back, on_left, on_right] =
+        [0, 1, 2, 3].map(|slope| apex.crossing(slope, 1.0));
+    let across = (on_back - on_front).cross(on_right - on_front).normalize();
+    let off = (on_left - on_front).dot(across).abs();
+    let tolerance = 1e-9 * pyramid_reach(A_HAIR_OFF_SQUARE);
+    assert!(
+        off > 1.2 * tolerance && off < 2.0 * tolerance,
+        "the flats at 1 cross on the left {off} off the plane through the three other \
+         crossings: past the kernel's tolerance, {tolerance}, a billionth of the reach the \
+         pyramid is drawn at, and short of twice it"
+    );
+
+    for order in every_order(4) {
+        let names: Vec<EdgeName> = order.iter().map(|&hip| apex.name(&pyramid, hip)).collect();
+
+        let chamfered = pyramid.chamfer_edges(&names, 1.0).err();
+
+        assert_eq!(
+            chamfered,
+            Some(Declined::Unsupported),
+            "the chamfer on {}, the four flats' crossings a hair off one plane, past what the \
+             kernel takes for one place: a broken step and its reason, and no body, until #942",
+            hips_called(&apex, &order)
+        );
+    }
+}
+
+/// How thick the plate [`pyramid_on_a_plate`] stands on is, and how far the
+/// plate reaches past the pyramid's base all round.
+const PLATE_THICKNESS: f64 = 2.0;
+const PLATE_MARGIN: f64 = 5.0;
+
+/// The apex of [`pyramid_on_a_plate`]: the square pyramid's, raised onto the
+/// plate's top, its slopes numbered six past [`apex_over`]'s, as the prism
+/// they are cut from is numbered past the plate's six faces.
+fn apex_on_a_plate() -> Apex {
+    let mut apex = apex_over(SQUARE);
+    let up = DVec3::Z * PLATE_THICKNESS;
+    apex.at += up;
+    for slope in &mut apex.slopes {
+        slope.face += 6;
+    }
+    for hip in &mut apex.hips {
+        hip.foot += up;
+    }
+    apex
+}
+
+/// The square pyramid of [`apex_over`], 10 by 10 and 5 high, standing on a
+/// plate 20 by 20 by 2 that reaches [`PLATE_MARGIN`] past its base all round:
+/// the plate raised first, its top numbered one; then a prism over the base,
+/// on the plate's top, numbered past the plate's six faces, cut by the planes
+/// through the apex and each edge of the base, their faces numbered six apart
+/// past the prism's — the front, back, left and right slopes twelve,
+/// eighteen, twenty-four and thirty — and joined to the plate. The feet,
+/// where the slopes meet the plate's top, meet inwards, the hips outwards: at
+/// each corner of the base the hip above two feet is the odd edge of a corner
+/// of mixed sense, and the four hips meet at the apex.
+fn pyramid_on_a_plate() -> Body {
+    let [length, breadth] = SQUARE;
+    let plate = raised(
+        Contour::rectangle(
+            DVec2::splat(-PLATE_MARGIN),
+            DVec2::new(length + PLATE_MARGIN, breadth + PLATE_MARGIN),
+        ),
+        PLATE_THICKNESS,
+    );
+    let apex = apex_on_a_plate();
+    let prism = plate
+        .tool_raised(
+            &profile(Contour::rectangle(DVec2::ZERO, DVec2::new(length, breadth))),
+            Frame {
+                origin: DVec3::Z * PLATE_THICKNESS,
+                ..ground()
+            },
+            DVec3::Z * (APEX_HEIGHT + 1.0),
+        )
+        .expect("the prism raises");
+    let pyramid = apex.slopes.iter().fold(prism, |part, slope| {
+        part.difference(&beyond(&part, apex.at, slope.outward, 50.0))
+            .expect("a plane through the apex cuts the prism")
+    });
+    plate
+        .union(&pyramid)
+        .expect("the pyramid stands on the plate")
+}
+
+/// The reach [`pyramid_on_a_plate`] is drawn at: the plate's, or a slab's
+/// the pyramid was cut by, whichever is the larger.
+fn plate_reach(part: &Body) -> f64 {
+    let apex = apex_on_a_plate();
+    apex.slopes
+        .iter()
+        .map(|slope| reach_of(&beyond(part, apex.at, slope.outward, 50.0)))
+        .fold(reach_of(part), f64::max)
+}
+
+/// What [`pyramid_on_a_plate`] keeps once its four hips and its four feet are
+/// chamfered at 1, as the branch of #804 measured it at f2b6bdda: no
+/// arithmetic holds it, the fills along the hips' flats at their feet having
+/// no closed form here.
+const PLATE_CHAMFERED: f64 = 965.567266914305;
+
+/// Forty-eight of the orders eight edges can be named in, spread over them
+/// all: a stride prime to their count through [`every_order`]'s list.
+fn spread_orders_of_eight() -> Vec<Vec<usize>> {
+    let all = every_order(8);
+    (0..48)
+        .map(|k| all[(k * 7919 + 13) % all.len()].clone())
+        .collect()
+}
+
+/// Whether two lists of points hold the same points, whatever their order
+/// and however often each is listed: a face lists a corner once for each of
+/// its edges that ends there.
+fn same_points(one: &[DVec3], other: &[DVec3]) -> bool {
+    let within = |some: &[DVec3], all: &[DVec3]| {
+        some.iter()
+            .all(|point| all.iter().any(|theirs| theirs.distance(*point) < PLACE))
+    };
+    within(one, other) && within(other, one)
+}
+
+#[test]
+fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order()
+ {
+    let part = pyramid_on_a_plate();
+    let plate = 20.0 * 20.0 * PLATE_THICKNESS;
+    assert!(
+        (part.volume() - (plate + PYRAMID_VOLUME)).abs() < EXACT * part.volume(),
+        "the pyramid on its plate holds {}",
+        part.volume()
+    );
+    let apex = apex_on_a_plate();
+    let reach = plate_reach(&part);
+    let hips: Vec<EdgeName> = (0..4).map(|hip| apex.name(&part, hip)).collect();
+    let feet: Vec<EdgeName> = (apex.slopes.iter())
+        .map(|slope| edge_between(&part, TOP, slope.face))
+        .collect();
+
+    let rounded = part
+        .fillet_edges(&hips, 1.0)
+        .unwrap_or_else(|declined| panic!("the fillet on the four hips alone: {declined:?}"));
+    let flattened = part
+        .chamfer_edges(&hips, 1.0)
+        .unwrap_or_else(|declined| panic!("the chamfer on the four hips alone: {declined:?}"));
+
+    let area = 4.0 * PI / 3.0 * 5.0 * 3f64.sqrt() + 4.0 * (1.0f64 / 3.0).asin();
+    sound_drawn_within(
+        &rounded.body,
+        plate + pyramid_closed_by_a_sphere(1.0),
+        DRAWN * reach * area,
+        "the fillet on the four hips alone, the apex closed on the plate as on its own base",
+    );
+    sound_drawn_within(
+        &flattened.body,
+        plate + pyramid_closed_by_a_square(1.0),
+        EXACT * flattened.body.volume(),
+        "the chamfer on the four hips alone, the apex closed on the plate as on its own base",
+    );
+
+    let feet_rounded = part
+        .fillet_edges(&feet, 1.0)
+        .unwrap_or_else(|declined| panic!("the fillet on the four feet alone: {declined:?}"));
+    let triangles = feet_rounded.body.triangles();
+    assert!(
+        feet_rounded.body.is_exact()
+            && closed(&triangles) == Ok(())
+            && uncrossed(&triangles) == Ok(()),
+        "the fillet on the four feet alone, each hip left sharp over them: exact, closed and \
+         uncrossed"
+    );
+
+    let edges: Vec<EdgeName> = hips.iter().chain(&feet).cloned().collect();
+    let start = part.faces_end();
+    let laid_end = start + 8 + 5;
+    let square_at = [0, 1, 2, 3].map(|slope| apex.crossing(slope, 1.0));
+    let mut bodies: Vec<(Vec<usize>, Body)> = Vec::new();
+    for order in spread_orders_of_eight() {
+        let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+        let what = format!("the four hips and the four feet, named {order:?}");
+
+        let filleted = part.fillet_edges(&names, 1.0).err();
+        let chamfered = part
+            .chamfer_edges(&names, 1.0)
+            .unwrap_or_else(|declined| panic!("the chamfer on {what}: declined, {declined:?}"));
+
+        assert_eq!(
+            filleted,
+            Some(Declined::Unsupported),
+            "the fillet on {what}: each hip the odd edge at its foot, which the fillet does not \
+             go round on this pyramid, though its four hips alone close the apex — a broken step \
+             and its reason, and no body"
+        );
+        let what = format!("the chamfer on {what}");
+        taken_as_asked(chamfered.asked, chamfered.taken, 1.0, &what);
+        let body = chamfered.body;
+        sound_drawn_within(&body, PLATE_CHAMFERED, EXACT * PLATE_CHAMFERED, &what);
+        assert_eq!(
+            faces_made(&part, &body),
+            (start..laid_end).collect::<Vec<_>>(),
+            "{what}: one flat for each edge by its rank, then five patches, the apex's square \
+             and one at each foot: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            laid_end,
+            "{what}: the next step numbers its own faces past the patches"
+        );
+        let squares: Vec<usize> = (start + 8..laid_end)
+            .filter(|&patch| {
+                body.plane_of(patch).is_some_and(|plane| {
+                    plane.normal.distance(DVec3::Z) < PLACE
+                        && same_points(&plane.corners, &square_at)
+                })
+            })
+            .collect();
+        assert_eq!(
+            squares.len(),
+            1,
+            "{what}: one patch is the apex's square, level, its corners where the hips' flats \
+             cross on the four slopes"
+        );
+        bodies.push((order, body));
+    }
+
+    let (first_order, first) = &bodies[0];
+    let patches: Vec<usize> = (start + 8..laid_end).collect();
+    let patch_planes: Vec<_> = patches
+        .iter()
+        .map(|&patch| {
+            first
+                .plane_of(patch)
+                .unwrap_or_else(|| panic!("the chamfer's patch {patch} is flat"))
+        })
+        .collect();
+    for (order, body) in bodies.iter().skip(1) {
+        let which = format!(
+            "the chamfer on the four hips and the four feet, named {order:?}, against the same \
+             named {first_order:?}"
+        );
+        let patch_here: Vec<usize> = patch_planes
+            .iter()
+            .map(|plane| {
+                *patches
+                    .iter()
+                    .find(|&&patch| {
+                        body.plane_of(patch).is_some_and(|here| {
+                            here.normal.distance(plane.normal) < PLACE
+                                && same_points(&here.corners, &plane.corners)
+                        })
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("{which}: no patch where the first order lays one at {plane:?}")
+                    })
+            })
+            .collect();
+        let to_this = |number: usize| {
+            if number < start || number >= laid_end {
+                number
+            } else if number < start + 8 {
+                start + rank_in(order, first_order[number - start])
+            } else {
+                patch_here[number - start - 8]
+            }
+        };
+        for face in numbers(first) {
+            assert_eq!(
+                sides_renumbered(first, face, to_this),
+                sides_met(body, to_this(face)),
+                "{which}: face {face} meets what it meets in the first order"
+            );
+            if let Some(plane) = first.plane_of(face) {
+                corners_are(
+                    body,
+                    to_this(face),
+                    &plane.corners,
+                    &format!("{which}: face {face}, as in the first order"),
+                );
+            }
+        }
     }
 }
 
