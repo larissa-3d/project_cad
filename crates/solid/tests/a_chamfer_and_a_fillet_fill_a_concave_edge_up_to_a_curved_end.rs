@@ -207,6 +207,41 @@
 //! declined are turned round with it: a slab at a slant through a ball cuts
 //! it in half, and a block whose side crosses a ball off its axis cuts and
 //! joins it, each holding the arithmetic's volume.
+//!
+//! The mutants of #805's first slice no test kills, one line each, applied
+//! by hand. `seen_along`'s `climb_sway`, its second term in every way it was
+//! turned: equivalent, that term carries `ρ·out + z·run_z`, the point's
+//! distance from the centre times its rate of change, nought on the sphere.
+//! `through_a_pole`'s `+` turned `-`: equivalent, it tries both poles.
+//! `through_a_pole`'s `from - axis·h` turned `+`: equivalent, it only
+//! matters for `|h| ≤ eps`, where it moves the radial distance by `O(h²)`.
+//! `angle`'s `<` turned `<=`: equivalent, equality is a circle through a
+//! pole, which no tilted trace reads. `angle`'s pierce point (`/ pierce`
+//! turned `%` or `*`) and the circle's own angle about it (four operators of
+//! line 80): kept, `carried` only picks the turn of `raw`, and a perturbed
+//! `carried` gives the same θ while it stays within half a turn of it. That
+//! holds on every circle tried in `sphere/tests.rs`: rims at nine tenths of
+//! the radius and more, tilts to 89.5°, eight starting parameters and both
+//! ways round. Where the circle's own angle is most perturbed, at its
+//! parameter's nought and half turn, the affine error vanishes by `shift`.
+//! `wrapped`'s `angle + PI` turned `-`: equivalent, the two differ by a turn
+//! before `rem_euclid`. `highest`'s crest `+ PI·turn` turned `-`: equivalent,
+//! the height at `crest ± kπ` is one value. `charted`'s `> steep` turned `>=`
+//! and `outside_sphere`'s `half > 0` turned `>=`: equivalent but at exact
+//! equality, a circle at the guard's bound or an edge tangent to the sphere.
+//! `past_the_end`'s sphere `> 0` turned `>=` is the same, an edge tangent to
+//! its sphere end, #698's chain. `charted`'s `||` turned `&&` and `laid_out`'s
+//! Tilted `&&` turned `||`: kept, a later step declines what they let
+//! through. The half ball, the slice, the two flats square to each other and
+//! the band are drawn the same triangles or declined alike under either.
+//! `outside_sphere`'s `r² - d²` turned `/` and `(leaving - clear) *` turned
+//! `/`, and `ball`'s `ON_THE_AXIS * r` turned `/`: margins, the box only has
+//! to start inside the ball along every long edge, and the axis's tolerance
+//! only has to take in the half disc's two corners on it. `most`'s `BUDGET *
+//! area` turned `+`: a margin, the refinement's budget only has to be large
+//! enough. `Rounded::carries` turned `true`: equivalent, every circle
+//! bounding a sphere face lies on it, and no face of a torus has a circle of
+//! another axis.
 
 mod step_reader;
 
@@ -2410,6 +2445,48 @@ fn a_chamfer_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flus
 
         let what = format!(
             "the chamfer at the foot of the {} side of the rib cut from a ball",
+            side.name
+        );
+        taken_whole(chamfered.asked, chamfered.taken, value, &what);
+        let body = &chamfered.body;
+        let height = |out: f64| chamfer_height(value, out);
+        sound_drawn_within(
+            body,
+            ball_rib_volume() + fill_matter(value, height, across_the_ball),
+            drawn_within(&part, ball_area() + 2.0 * value * value),
+            &what,
+        );
+        let chamfer = one_flat_face_more(&part, body, &what);
+        numbered_after_the_steps_last(&part, body, chamfer, &what);
+        flush_on_the_ball(body, (side, chamfer), value, height, &what);
+    }
+}
+
+/// A chamfer of 5.8 at the foot of either side of the rib: its flat's foot
+/// stands 7.8 from the sphere's centre along the axis the ball was turned
+/// about, a fifth short of the pole there, and the whole circle its plane
+/// cuts the sphere along passes within two degrees of that pole, while the
+/// arc of it the sphere keeps turns back thirteen degrees short. The sphere,
+/// whose edges stand clear of the poles all along, is laid out in its own
+/// chart and drawn there.
+#[test]
+fn a_chamfer_at_the_foot_of_a_rib_cut_from_a_ball_whose_circle_passes_by_a_pole_of_its_chart_is_trimmed_flush_and_drawn()
+ {
+    let value = 5.8;
+    let part = rib_cut_from_a_ball();
+    for side in BALL_SIDES {
+        let foot = edge_between(&part, TOP, side.face);
+
+        let chamfered = part.chamfer(&foot, value).unwrap_or_else(|declined| {
+            panic!(
+                "the chamfer of {value} at the foot of the {} side of the rib cut from a ball: \
+                 declined, {declined:?}",
+                side.name
+            )
+        });
+
+        let what = format!(
+            "the chamfer of {value} at the foot of the {} side of the rib cut from a ball",
             side.name
         );
         taken_whole(chamfered.asked, chamfered.taken, value, &what);

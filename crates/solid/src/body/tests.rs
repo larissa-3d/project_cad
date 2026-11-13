@@ -1,7 +1,7 @@
 //! What a body answers about the matter it holds, whichever kernel computed
 //! it.
 
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 use glam::{DVec2, DVec3};
 
@@ -385,14 +385,13 @@ fn a_ball_cut_by_two_flats_whose_planes_are_not_parallel_is_declined_as_undrawn(
     );
 }
 
-/// The ball cut by a slab at a slant whose face stands `offset` along its
-/// normal, (1, 1, 0), from the ball's centre, the slab holding what lies past
-/// the face; and the matter the arithmetic leaves, the ball less that cap.
-/// The ball's pole at y = 5 stands 5/√2 along the normal.
-fn cut_at_a_slant(offset: f64) -> (Result<Body, Declined>, f64) {
-    let normal = DVec3::new(1.0, 1.0, 0.0).normalize();
+/// A slab 10 thick along `normal` from the plane `offset` along it, its
+/// sides 20 from the normal's line either way: past the plane, it holds all
+/// of a ball of radius 5 about the origin.
+fn slab_along(normal: DVec3, offset: f64) -> Body {
+    let normal = normal.normalize();
     let u = normal.any_orthonormal_vector();
-    let slab = Body::default()
+    Body::default()
         .tool_raised(
             &exact(
                 Contour::rectangle(DVec2::splat(-20.0), DVec2::splat(20.0)),
@@ -405,16 +404,51 @@ fn cut_at_a_slant(offset: f64) -> (Result<Body, Declined>, f64) {
             },
             normal * 10.0,
         )
-        .expect("the slab raises");
-    let height = 5.0 - offset;
-    let kept = 500.0 * PI / 3.0 - PI * height * height * (15.0 - height) / 3.0;
-    (ball_about_y().difference(&slab), kept)
+        .expect("the slab raises")
 }
 
-/// How far the triangles of the ball cut at a slant may enclose from what it
-/// holds: two ten-thousandths of a reach of 40, the drawing's tolerance and
-/// more, over the ball's whole sphere.
-const DRAWN_BALL: f64 = 2e-4 * 40.0 * 4.0 * PI * 25.0;
+/// The ball of radius 5, and what a cap of it `height` high holds.
+const BALL_OF_5: f64 = 500.0 * PI / 3.0;
+
+fn cap_of_5(height: f64) -> f64 {
+    PI * height * height * (15.0 - height) / 3.0
+}
+
+/// The ball cut by a slab at a slant whose face stands `offset` along its
+/// normal, (1, 1, 0), from the ball's centre, the slab holding what lies past
+/// the face; and the matter the arithmetic leaves, the ball less that cap.
+/// The ball's pole at y = 5 stands 5/√2 along the normal.
+fn cut_at_a_slant(offset: f64) -> (Result<Body, Declined>, f64) {
+    let slab = slab_along(DVec3::new(1.0, 1.0, 0.0), offset);
+    (
+        ball_about_y().difference(&slab),
+        BALL_OF_5 - cap_of_5(5.0 - offset),
+    )
+}
+
+/// Holds that a body cut from the ball is exact, holds `kept`, and that its
+/// triangles are closed, uncrossed and enclose that within what the drawing
+/// promises over its curved faces, `curved` in all: each triangle within the
+/// drawing's tolerance of its face, at the reach of the body's own box.
+fn built_and_drawn(body: &Body, kept: f64, curved: f64, what: &str) {
+    assert!(
+        body.is_exact() && (body.volume() - kept).abs() <= 1e-9 * kept,
+        "{what}: holds {}, where the arithmetic leaves {kept}",
+        body.volume()
+    );
+    let triangles = body.triangles();
+    assert_eq!(crate::soundness::closed(&triangles), Ok(()), "{what}");
+    assert_eq!(crate::soundness::uncrossed(&triangles), Ok(()), "{what}");
+    let (low, high) = body.bounds().expect("a body has a box");
+    let reach = crate::brep::Scale::of(low.abs().max(high.abs()).max_element()).reach();
+    let promised = super::drawn::DRAWN * reach * curved;
+    let enclosed = crate::soundness::enclosed(&triangles);
+    assert!(
+        (enclosed - kept).abs() <= promised,
+        "{what}: its triangles enclose {enclosed}, where it holds {kept}, more than the \
+         {promised} the drawing's tolerance gives"
+    );
+}
 
 /// The circle a slab at a slant leaves on the ball passes its chart's pole
 /// as near as its face does. Within a hundredth of the pole, the cut may be
@@ -448,22 +482,142 @@ fn a_ball_cut_at_a_slant_close_by_a_pole_of_its_chart_holds_the_matter_the_arith
 }
 
 /// Wherever the slab's face stands, clear of the pole, through the centre
-/// or off it, keeping one pole of the ball's chart or both: the cut's
-/// triangles are closed, uncrossed and enclose what it holds within
-/// [`DRAWN_BALL`].
+/// or off it, keeping one pole of the ball's chart or both: the cut is built
+/// and drawn as [`built_and_drawn`] holds, its sphere 2πr (r + offset).
 #[test]
 fn a_ball_cut_at_a_slant_is_drawn_within_the_drawing_s_tolerance_of_what_it_holds() {
     for offset in [-4.0, -2.0, 0.0, 1.0, 2.0, 3.0, 4.0, 4.5] {
         let (cut, kept) = cut_at_a_slant(offset);
         let what = format!("the ball cut at a slant {offset} from its centre");
         let body = cut.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
-        let triangles = body.triangles();
-        assert_eq!(crate::soundness::closed(&triangles), Ok(()), "{what}");
-        assert_eq!(crate::soundness::uncrossed(&triangles), Ok(()), "{what}");
-        let enclosed = crate::soundness::enclosed(&triangles);
-        assert!(
-            (enclosed - kept).abs() <= DRAWN_BALL,
-            "{what}: its triangles enclose {enclosed}, where it holds {kept}"
+        built_and_drawn(&body, kept, TAU * 5.0 * (5.0 + offset), &what);
+    }
+}
+
+/// The ball sliced between two planes at a slant, 2 either side of its
+/// centre along (1, 1, 0): its sphere a zone whose two circles turn about
+/// that one line, read about it, 2πr × 4.
+#[test]
+fn a_ball_sliced_between_two_parallel_planes_at_a_slant_is_built_and_drawn_within_the_drawing_s_tolerance()
+ {
+    let normal = DVec3::new(1.0, 1.0, 0.0);
+
+    let sliced = ball_about_y()
+        .difference(&slab_along(normal, 2.0))
+        .and_then(|cut| cut.difference(&slab_along(-normal, 2.0)));
+
+    let what = "the ball sliced between two parallel planes at a slant";
+    let body = sliced.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    built_and_drawn(
+        &body,
+        BALL_OF_5 - 2.0 * cap_of_5(3.0),
+        TAU * 5.0 * 4.0,
+        what,
+    );
+}
+
+/// What two caps of the ball 3 high hold in common, their planes 2 from its
+/// centre along two directions square to each other: over every place `a`
+/// along the first from 2 out to √21, the slice of the disc of radius
+/// c = √(25 − a²) past the chord 2 along the second, c² (π/2 − asin(2/c))
+/// − 2 √(c² − 4), summed by Simpson's rule with a = √21 − s², under which
+/// the slice's vanishing at √21 is smooth.
+fn two_caps_square_to_each_other_share() -> f64 {
+    let slice = |s: f64| {
+        let a = 21f64.sqrt() - s * s;
+        let square = 25.0 - a * a;
+        let across = square * (FRAC_PI_2 - (2.0 / square.sqrt()).min(1.0).asin())
+            - 2.0 * (square - 4.0).max(0.0).sqrt();
+        across * 2.0 * s
+    };
+    let (steps, end) = (1 << 12, (21f64.sqrt() - 2.0).sqrt());
+    let step = end / f64::from(steps);
+    let inner: f64 = (1..steps)
+        .map(|index| slice(step * f64::from(index)) * if index % 2 == 1 { 4.0 } else { 2.0 })
+        .sum();
+    (slice(0.0) + inner + slice(end)) * step / 3.0
+}
+
+/// The ball cut by two flats at a slant, square to each other, 2 from its
+/// centre along (1, 1, 0) and (1, −1, 0): the one takes its pole at y = 5,
+/// the other the one at y = −5, and the sphere left holds neither, bounded by
+/// two circles of two axes, neither the ball's — the face #805's own chart
+/// lays out. Its sphere is under the whole sphere less one cap, 70π.
+#[test]
+fn a_ball_cut_by_two_flats_square_to_each_other_across_both_poles_is_built_and_drawn_within_the_drawing_s_tolerance()
+ {
+    let cut = ball_about_y()
+        .difference(&slab_along(DVec3::new(1.0, 1.0, 0.0), 2.0))
+        .and_then(|cut| cut.difference(&slab_along(DVec3::new(1.0, -1.0, 0.0), 2.0)));
+
+    let what = "the ball cut by two flats square to each other across both poles";
+    let body = cut.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    built_and_drawn(
+        &body,
+        BALL_OF_5 - 2.0 * cap_of_5(3.0) + two_caps_square_to_each_other_share(),
+        70.0 * PI,
+        what,
+    );
+}
+
+/// The ball cut by two flats at a slant whose circles do not meet, 2 from
+/// its centre along (1, 1, 0) and nearly against it: the sphere left is a
+/// band round the ball's axis between two circles of two axes, which no
+/// chart of #805 lays out, and the step is declined until #940.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circles_turn_about_two_axes_round_its_own_is_declined_as_undrawn()
+{
+    let first = ball_about_y()
+        .difference(&slab_along(DVec3::new(1.0, 1.0, 0.0), 2.0))
+        .expect("one flat cuts the ball");
+
+    let declined = first
+        .difference(&slab_along(DVec3::new(-1.0, -1.0, 0.4), 2.0))
+        .err();
+
+    assert_eq!(
+        declined,
+        Some(Declined::Undrawn),
+        "a ball cut by two flats into a band round its axis, which #940 is to draw"
+    );
+}
+
+/// The ball cut by two flats whose caps overlap, each reaching 62° from its
+/// direction, in a plane holding the ball's axis: the first along a
+/// direction 60° off one of its poles, which it takes two degrees inside its
+/// rim; the second 20° off the other, which it takes well inside. The sphere
+/// left holds neither pole, and its first circle passes two degrees by the
+/// pole the first cap took, nearer than the chart can lay a face out: the
+/// step is declined until #940 — whichever pole, and whichever plane holding
+/// the axis the two directions lie in.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circle_passes_two_degrees_by_a_pole_of_its_chart_is_declined_as_undrawn()
+ {
+    let reach = 5.0 * 62f64.to_radians().cos();
+    let (sin, cos) = 60f64.to_radians().sin_cos();
+    let (aside, under) = 20f64.to_radians().sin_cos();
+    for (pole, across) in [
+        (1.0, DVec3::X),
+        (-1.0, DVec3::X),
+        (1.0, DVec3::Z),
+        (-1.0, DVec3::new(-1.0, 0.0, 1.0).normalize()),
+    ] {
+        let first = ball_about_y()
+            .difference(&slab_along(across * sin + DVec3::Y * (pole * cos), reach))
+            .expect("one flat cuts the ball");
+
+        let declined = first
+            .difference(&slab_along(
+                across * aside - DVec3::Y * (pole * under),
+                reach,
+            ))
+            .err();
+
+        assert_eq!(
+            declined,
+            Some(Declined::Undrawn),
+            "a ball cut by two flats along {across} either side of its pole {pole}, the sphere \
+             left bounded by a circle two degrees by that pole, which #940 is to draw"
         );
     }
 }
