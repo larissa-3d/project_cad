@@ -131,24 +131,67 @@ fn a_circle_a_round_holds_lies_along_it_and_one_about_the_axis_off_it_crosses_it
     );
 }
 
+/// A circle of another axis than the ball's, or of its axis and off it, is
+/// read in its own plane against the circle that plane cuts the ball along
+/// (#805): about the foot of the centre, of radius √(r² − d²). The ring
+/// stays unsupported until #805's third slice.
 #[test]
-fn a_circle_in_a_plane_off_the_axis_is_unsupported_against_a_round() {
+fn a_circle_off_the_axis_meets_a_ball_where_it_meets_the_section_its_plane_cuts_and_a_ring_is_unsupported()
+ {
     let leaning = Curve::Circle(Circle::about(DVec3::new(4.0, 0.0, 2.0), DVec3::X, 1.0));
     assert_eq!(
         crossings(&leaning, &ring(), scale()),
         Crossings::Unsupported
     );
+
     let beside = Curve::Circle(Circle::about(DVec3::new(1.0, 0.0, 5.0), DVec3::Z, 2.0));
-    assert_eq!(crossings(&beside, &ball(), scale()), Crossings::Unsupported);
-    let slanted = Curve::Circle(Circle::about(
-        DVec3::new(0.0, 0.0, 5.0),
-        DVec3::new(1.0, 0.0, 1.0),
-        2.0,
-    ));
+    let once = found(&beside, &ball(), 1e-12 * REACH);
+    assert_eq!(
+        tangents(&once),
+        [true],
+        "a circle of 2 about (1, 0, 5) in the equator's plane touches the equator, of 3 about \
+         (0, 0, 5), from inside: {once:?}"
+    );
+    assert!(
+        once[0].point.distance(DVec3::new(3.0, 0.0, 5.0)) < 1e-12 * REACH,
+        "{once:?}"
+    );
+
+    let across = Curve::Circle(Circle::about(DVec3::new(1.0, 0.0, 5.0), DVec3::Z, 3.0));
+    let twice = found(&across, &ball(), 1e-12 * REACH);
+    assert_eq!(tangents(&twice), [false, false], "{twice:?}");
+    for side in [-1.0, 1.0] {
+        let at = DVec3::new(0.5, side * 8.75f64.sqrt(), 5.0);
+        assert!(
+            twice
+                .iter()
+                .any(|crossing| crossing.point.distance(at) < 1e-12 * REACH),
+            "the circle of 3 about (1, 0, 5) crosses the equator at {at}: {twice:?}"
+        );
+    }
+
+    let normal = DVec3::new(1.0, 0.0, 1.0).normalize();
+    let slanted = Curve::Circle(Circle::about(DVec3::new(0.0, 0.0, 5.0), normal, 2.0));
     assert_eq!(
         crossings(&slanted, &ball(), scale()),
-        Crossings::Unsupported
+        Crossings::At(Vec::new()),
+        "a circle of 2 about the ball's centre, inside the great circle of 3 its plane cuts"
     );
+
+    let off = DVec3::new(1.0, 0.0, -1.0).normalize();
+    let crossing = Curve::Circle(Circle::about(DVec3::new(0.0, 0.0, 5.0) + off, normal, 3.0));
+    let twice = found(&crossing, &ball(), 1e-12 * REACH);
+    assert_eq!(tangents(&twice), [false, false], "{twice:?}");
+    for side in [-1.0, 1.0] {
+        let at = DVec3::new(0.0, 0.0, 5.0) + off * 0.5 + DVec3::Y * (side * 8.75f64.sqrt());
+        assert!(
+            twice
+                .iter()
+                .any(|crossing| crossing.point.distance(at) < 1e-12 * REACH),
+            "the circle of 3 at a slant, 1 off the ball's centre, crosses its great circle at \
+             {at}: {twice:?}"
+        );
+    }
 }
 
 /// Whether every crossing stands on a circle of the pair's rims, within
