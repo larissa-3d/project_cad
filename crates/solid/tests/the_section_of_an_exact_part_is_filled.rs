@@ -52,7 +52,7 @@
 //!   the rest of #193 is the view's, transcribed in
 //!   `crates/app/src/screens/viewport/render/tests.rs`
 
-use std::f64::consts::{FRAC_PI_2, PI, TAU};
+use std::f64::consts::{PI, TAU};
 
 use cao_solid::brep::Scale;
 use cao_solid::profile::{Contour, Frame, Profile, Run};
@@ -535,22 +535,15 @@ fn a_block_parted_by_a_plane_is_filled_on_both_sides() {
     );
 }
 
-/// A ball of radius 5: a half disc turned about its diameter.
-fn ball() -> Body {
-    let sampled = (0..=32)
-        .map(|step| DVec2::from_angle(-FRAC_PI_2 + PI * f64::from(step) / 32.0) * 5.0)
+/// A ring of tube radius 2 about a circle of radius 6: a disc 6 off the
+/// sketch's Y axis, turned whole about it.
+fn ring() -> Body {
+    let center = DVec2::new(6.0, 0.0);
+    let sampled = (0..32)
+        .map(|step| center + DVec2::from_angle(TAU * f64::from(step) / 32.0) * 2.0)
         .collect();
-    turned(
-        vec![DVec2::new(0.0, -5.0), DVec2::new(0.0, 5.0)],
-        vec![
-            Run::Round {
-                center: DVec2::ZERO,
-                turn: PI,
-            },
-            Run::Straight,
-        ],
-        sampled,
-    )
+    let Contour { corners, runs } = disc(center, 2.0);
+    turned(corners, runs, sampled)
 }
 
 /// The area of the part of `triangle` with `normal · p ≤ offset`.
@@ -629,10 +622,19 @@ fn is_its_drawing_clipped(body: &Body, normal: DVec3, offset: f64) {
     );
 }
 
+/// A ring cut by a plane at a slant to its axis, which the kernel meets a
+/// torus with along no curve it builds until #805's third slice. The ball
+/// this test cut by the same plane moved to built with #805's first, which
+/// meets a sphere and a plane at a slant along a circle.
 #[test]
 fn a_section_the_kernel_declines_is_clipped_from_the_drawn_triangles() {
-    let part = ball();
+    let part = ring();
     let normal = DVec3::new(1.0, 1.0, 0.0).normalize();
+    assert!(
+        part.is_exact() && !part.behind(normal, 1.0).is_exact(),
+        "the ring is exact, and the kernel declines its section at a slant, which #805's third \
+         slice is to build"
+    );
 
     is_its_drawing_clipped(&part, normal, 1.0);
 }
