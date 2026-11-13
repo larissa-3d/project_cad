@@ -155,6 +155,16 @@ impl Rounded {
         }
     }
 
+    /// Whether `circle` lies on a sphere within `eps`, whatever line it turns
+    /// about (#805); a torus carries no circle but its latitudes and
+    /// meridians.
+    pub fn carries(&self, circle: &Circle, eps: f64) -> bool {
+        match self {
+            Rounded::Sphere(sphere) => sphere.carries(circle, eps),
+            Rounded::Torus(_) => false,
+        }
+    }
+
     /// The poles of the surface, the low one first, with the room along the
     /// meridian `eps` leaves at the tube's radius.
     pub fn poles(&self, eps: f64) -> Vec<Pole> {

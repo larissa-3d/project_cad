@@ -21,7 +21,9 @@ use glam::DVec3;
 use crate::brep::curve::Curve;
 use crate::brep::domain::floor;
 use crate::brep::surface::Surface;
-use crate::brep::topology::{Coedge, Edge, EdgeId, Face, SurfaceId, Vertex, VertexId, ascending};
+use crate::brep::topology::{
+    Coedge, Edge, EdgeId, Face, SurfaceId, Vertex, VertexId, ascending, turning_points,
+};
 
 /// A use of an edge: the face, the loop, the rank in the loop.
 type Use = (usize, usize, usize);
@@ -260,9 +262,9 @@ fn joint(
 
 /// Whether a face may reach a point of its surface: on a plane, where the
 /// point stands within `eps` of the box its boundary spans — a flat face
-/// holds nothing outside it — each arc of it taken at its whole circle's
-/// reach, each conic at its stretch's; on any other surface, or bounded by
-/// another curve, always, since such a face may bulge past its boundary.
+/// holds nothing outside it — each arc and each conic of it taken at its
+/// stretch's reach; on any other surface, or bounded by another curve,
+/// always, since such a face may bulge past its boundary.
 fn reaches(
     face: &Face,
     point: DVec3,
@@ -283,8 +285,9 @@ fn reaches(
                 spanned.extend(ends.map(|end| vertices[end.0 as usize].point));
             }
             (Curve::Circle(circle), _) => {
-                let reach = DVec3::splat(circle.radius);
-                spanned.extend([circle.center - reach, circle.center + reach]);
+                let [from, to] = [edge.from, edge.to].map(|at| circle.point(at));
+                spanned.extend([from, to]);
+                spanned.extend(turning_points(circle, edge.from, edge.to));
             }
             (Curve::Conic(conic), _) => spanned.extend(conic.bounds(edge.from, edge.to)),
             _ => return true,

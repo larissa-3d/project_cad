@@ -57,8 +57,9 @@
 //!   `a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_round_end_turns_away_short_of_the_fill_s_reach_are_declined_as_unsupported`;
 //!   a round the edge runs into,
 //!   `a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_into_its_round_end_are_declined_as_unsupported`;
-//!   a sphere, #805's, here a rib cut from a ball —
-//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_are_declined_as_unsupported`;
+//!   a sphere, #805's, here a rib cut from a ball, whose chamfer #805's first
+//!   slice builds and whose fillet waits for its second —
+//!   `a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported`;
 //!   two edges filled in one step, the second of which runs into the round —
 //!   `a_chamfer_and_a_fillet_on_both_floor_edges_of_a_slot_whose_back_wall_runs_into_its_round_end_are_declined_as_unsupported`;
 //!   a drafted round end the edge runs into —
@@ -151,6 +152,61 @@
 //! turned `<=`: equivalent, it lets in only an edge tangent to the round,
 //! the flipped tangent slot or a wall tangent to a pillar, #698's chain,
 //! declined further on.
+//!
+//! Closes #805 — its first slice only, a plane at a slant against a sphere
+//! and the chamfer. Its second slice, a cylinder of another axis against a
+//! sphere and the fillet; its third, the torus; and its fourth, a rib joined
+//! to a dome whose axis its sides do not hold, come on branches of their own,
+//! each with its own criteria; the issue stays open until the last one lands.
+//! - A chamfer and a fillet at the foot of a rib running into, or ending on,
+//!   a sphere are trimmed flush on it. The sphere stays one face and takes in
+//!   the fill's section, and the body is closed, sound and of the right
+//!   volume, with one more face — answered for the chamfer, at the foot of
+//!   either side of a rib cut from a ball, whose foot runs out of the sphere
+//!   at both its ends —
+//!   `a_chamfer_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flush_on_its_sphere`.
+//!   Read as: the value taken whole; the body exact, closed and uncrossed,
+//!   holding the part's matter and the flat's prism along the foot from the
+//!   sphere in front to the sphere behind, and its triangles enclosing that
+//!   within the drawing's tolerance; one face more, the flat, numbered where
+//!   the steps' numbers ended; the sphere one face still, answering to its
+//!   number, drawn on its sphere alone and reaching out to the flat's far
+//!   side; the flat meeting the plate's top and the side along its sides and
+//!   the sphere at both its ends, its corners where its foot and its top
+//!   leave the sphere, and every other on the circle its plane cuts the
+//!   sphere along, about the foot of the centre on that plane, of radius
+//!   √(r² − d²); the sphere's foot on the plate's top run on to the flat at
+//!   each end, no corner left where the two alone meet; the side meeting the
+//!   sphere along one edge above the flat, its corners where the flat's top
+//!   leaves the sphere; every ray aimed along the foot from outside the rib,
+//!   at either end, through the flat's section, meeting the sphere first and
+//!   on it; and no corner of the flat outside the ball. The fillet is the
+//!   second slice's, and stays declined until then —
+//!   `a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported`
+//! - The exact STEP export of such a part writes every face on its true
+//!   surface — answered for the chamfer above, at the foot of the rib's right
+//!   side —
+//!   `a_rib_cut_from_a_ball_chamfered_at_its_foot_written_to_step_writes_every_face_on_its_true_surface`.
+//!   Read as: one closed solid of the body's faces, every loop on its surface
+//!   within the file's tolerance, enclosing the matter and covering the area
+//!   arithmetic gives; the sphere written as one `SPHERICAL_SURFACE`, about
+//!   the ball's centre and of its radius; the flat on its plane; and the
+//!   flat's two edges on the sphere written as arcs of the circle its plane
+//!   cuts the sphere along
+//! - #788's tests and #778's tests still pass — no test: they are the tests
+//!   above in this file and `a_chamfer_and_a_fillet_fill_a_concave_edge.rs`,
+//!   left as they were but for #788's sphere decline, which this slice turns
+//!   round for the chamfer and keeps, renamed, for the fillet
+//!
+//! The slice stands on a relation the kernel lacked, and its tests live with
+//! the kernel's, in `src/brep/relation/tests/round.rs`: a plane at a slant to
+//! a sphere's axis, or square to it off its centre, meets the sphere along
+//! the circle about the foot of the centre on the plane, of radius
+//! √(r² − d²), and misses it further off. Two booleans of
+//! `src/brep/combine/tests/round.rs` that pinned a ball against such a plane
+//! declined are turned round with it: a slab at a slant through a ball cuts
+//! it in half, and a block whose side crosses a ball off its axis cuts and
+//! joins it, each holding the arithmetic's volume.
 
 mod step_reader;
 
@@ -1897,6 +1953,35 @@ fn a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_into_its_round_en
 /// plate's top, are taken in by the join.
 const BALL_RIGHT: usize = 7;
 const BALL: usize = 8;
+const BALL_LEFT: usize = 9;
+
+/// A side of the [`rib_cut_from_a_ball`] a fill stands against: the number
+/// its face answers to, where it stands along X, and the way out of the rib
+/// across it.
+#[derive(Clone, Copy, Debug)]
+struct BallSide {
+    face: usize,
+    at: f64,
+    out: f64,
+    name: &'static str,
+}
+
+/// The rib's right side, at x = 22, and its left side, at x = 18, each 2
+/// from the sphere's centre.
+const BALL_SIDES: [BallSide; 2] = [
+    BallSide {
+        face: BALL_RIGHT,
+        at: RIB_SIDE,
+        out: 1.0,
+        name: "right",
+    },
+    BallSide {
+        face: BALL_LEFT,
+        at: 18.0,
+        out: -1.0,
+        name: "left",
+    },
+];
 
 /// Where the [`rib_cut_from_a_ball`]'s sphere has its centre, on the plate's
 /// top, and its radius.
@@ -1907,12 +1992,11 @@ const BALL_RADIUS: f64 = 8.0;
 /// [`BALL_RADIUS`] about [`BALL_CENTRE`] between x = 18 and its right side at
 /// 22, above the plate, turned half a turn about the line along X through the
 /// centre as a part's next step turns. Its sides are square to that line and
-/// its floor holds it, the only planes the kernel meets a sphere with; a rib
-/// with flat sides parallel to a sphere's axis and off it cannot be built.
-/// The edge at the foot of its right side runs out of the sphere at both
-/// ends, where the matter lies inside it — the case #805 is to fill, and
-/// whose fill's chamfer, slanted to that line, the kernel cannot meet the
-/// sphere with today.
+/// its floor holds it, the only planes the kernel met a sphere with before
+/// #805; a rib with flat sides parallel to a sphere's axis and off it could
+/// not be built. The edge at the foot of either side runs out of the sphere
+/// at both ends, where the matter lies inside it — the case #805 fills, its
+/// chamfer slanted to that line.
 fn rib_cut_from_a_ball() -> Body {
     let plate = plate(PLATE);
     let reach = (BALL_RADIUS * BALL_RADIUS - 4.0).sqrt();
@@ -1955,40 +2039,521 @@ fn rib_cut_from_a_ball() -> Body {
     plate.union(&rib).expect("the rib is joined")
 }
 
-#[test]
-fn a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_are_declined_as_unsupported() {
-    let part = rib_cut_from_a_ball();
-    let what = "the rib cut from a ball, before any step";
+/// The matter the [`rib_cut_from_a_ball`] holds: the plate's 40 × 30 × 4,
+/// and half the ball's slice between its sides, 2 either side of the centre:
+/// π (r² − x²) summed over x from −2 to 2, halved.
+fn ball_rib_volume() -> f64 {
+    4800.0 + PI / 2.0 * (4.0 * BALL_RADIUS * BALL_RADIUS - 16.0 / 3.0)
+}
+
+/// The area the drawing of the [`rib_cut_from_a_ball`]'s sphere is held
+/// over: the zone of the whole ball between the rib's sides, 2πr × 4, twice
+/// the half the rib holds.
+fn ball_area() -> f64 {
+    2.0 * PI * BALL_RADIUS * 4.0
+}
+
+/// How far a point stands outside the [`rib_cut_from_a_ball`]'s sphere.
+fn off_the_ball(point: DVec3) -> f64 {
+    point.distance(BALL_CENTRE) - BALL_RADIUS
+}
+
+/// Where the [`rib_cut_from_a_ball`]'s sphere crosses the line along Y `off`
+/// from its centre along X and `up` over the plate's top: in front of the
+/// centre, and behind it.
+fn on_the_ball(off: f64, up: f64) -> [f64; 2] {
+    let half = (BALL_RADIUS * BALL_RADIUS - off * off - up * up).sqrt();
+    [BALL_CENTRE.y - half, BALL_CENTRE.y + half]
+}
+
+/// How long a fill at the foot of a side of the [`rib_cut_from_a_ball`] runs,
+/// `out` from that side and `up` over the plate's top: from the sphere in
+/// front of the centre to the sphere behind it, across the ball's section
+/// there, the side standing 2 from the centre as either side does.
+fn across_the_ball(out: f64, up: f64) -> f64 {
+    let [front, back] = on_the_ball(2.0 + out, up);
+    back - front
+}
+
+/// The circle a chamfer of `value` at the foot of `side` lies on the sphere
+/// along: its plane's normal, out of the matter; the foot of the sphere's
+/// centre on that plane, which the circle is about; and its radius,
+/// √(r² − d²), `d` the centre's distance from the plane.
+fn chamfer_s_circle(side: BallSide, value: f64) -> (DVec3, DVec3, f64) {
+    let normal = DVec3::new(side.out, 0.0, 1.0).normalize();
+    let on_the_flat = DVec3::new(side.at, BALL_CENTRE.y, PLATE + value);
+    let standing = (BALL_CENTRE - on_the_flat).dot(normal);
+    let about = BALL_CENTRE - normal * standing;
+    (
+        normal,
+        about,
+        (BALL_RADIUS * BALL_RADIUS - standing * standing).sqrt(),
+    )
+}
+
+/// Holds that the face numbered `face` is the [`rib_cut_from_a_ball`]'s
+/// sphere: curved, and every corner of its triangles on the sphere.
+fn drawn_on_the_ball(body: &Body, face: usize, what: &str) {
     assert!(
-        part.has_face(BALL) && !part.is_flat(BALL) && part.is_flat(BALL_RIGHT),
-        "{what}: face {BALL} is a round and face {BALL_RIGHT} flat"
+        body.has_face(face) && !body.is_flat(face),
+        "{what}: face {face} is a round"
     );
-    for corner in part.triangles_of(BALL).flatten() {
-        let off = corner.distance(BALL_CENTRE) - BALL_RADIUS;
+    let corners: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+    assert!(!corners.is_empty(), "{what}: the sphere is drawn");
+    for corner in corners {
         assert!(
-            off.abs() < PLACE,
-            "{what}: the rib's sphere is drawn through {corner}, {off} off it"
+            off_the_ball(corner).abs() < PLACE,
+            "{what}: the sphere is drawn through {corner}, {} off it",
+            off_the_ball(corner)
         );
     }
-    one_edge_between(
-        &part,
-        [TOP, BALL_RIGHT],
-        [&[TOP, BALL_RIGHT, BALL], &[TOP, BALL_RIGHT, BALL]],
-        &format!("{what}: the foot of the rib's right side, the sphere at both its ends"),
+}
+
+/// Holds that the faces numbered `first` and `second` meet along `count`
+/// edges, each between the two corners each of `ends` names by the faces at
+/// it, as [`one_edge_between`] holds it of one.
+fn each_edge_between(
+    body: &Body,
+    [first, second]: [usize; 2],
+    count: usize,
+    ends: [&[usize]; 2],
+    what: &str,
+) {
+    let (one, other) = (vec![first as u32], vec![second as u32]);
+    let meeting: Vec<EdgeName> = body
+        .edge_names()
+        .into_iter()
+        .filter(|name| name.between.contains(&one) && name.between.contains(&other))
+        .collect();
+    assert_eq!(
+        meeting.len(),
+        count,
+        "{what}: faces {first} and {second} meet along {count} edges: {meeting:?}"
     );
-    let half_turned = PI / 2.0 * (4.0 * BALL_RADIUS * BALL_RADIUS - 16.0 / 3.0);
+    let mut expected: Vec<Vec<Vec<u32>>> = ends
+        .iter()
+        .map(|faces| {
+            let besides: Vec<usize> = faces
+                .iter()
+                .copied()
+                .filter(|face| ![first, second].contains(face))
+                .collect();
+            sides_of(&besides)
+        })
+        .collect();
+    expected.sort();
+    for name in &meeting {
+        let mut found: Vec<Vec<Vec<u32>>> = name
+            .ends
+            .iter()
+            .map(|end| {
+                let mut sides = end.clone();
+                sides.sort();
+                sides
+            })
+            .collect();
+        found.sort();
+        assert_eq!(
+            found, expected,
+            "{what}: an edge between faces {first} and {second} runs between the corners where \
+             these faces meet: {name:?}"
+        );
+    }
+}
+
+/// Holds that the [`rib_cut_from_a_ball`] is what the steps are given: the
+/// plate's faces, the rib's two sides and its sphere; the sphere curved and
+/// drawn on itself alone, the sides flat; the foot of each side, and each
+/// side's edge with the sphere, one edge from the sphere at one end to the
+/// sphere at the other; the sphere meeting the plate's top along two edges,
+/// in front of the centre and behind it, each from one side to the other;
+/// and its matter the plate's and the rib's.
+fn the_rib_is_cut_from_a_ball(part: &Body) {
+    let what = "the rib cut from a ball, before any step";
+    let faces: BTreeSet<usize> = (0..6).chain([BALL_RIGHT, BALL, BALL_LEFT]).collect();
+    assert_eq!(numbers(part), faces, "{what}: the faces it has");
+    drawn_on_the_ball(part, BALL, what);
+    for side in BALL_SIDES {
+        assert!(
+            part.is_flat(side.face),
+            "{what}: its {} side, face {}, is flat",
+            side.name,
+            side.face
+        );
+        one_edge_between(
+            part,
+            [TOP, side.face],
+            [&[TOP, side.face, BALL]; 2],
+            &format!(
+                "{what}: the foot of the rib's {} side, the sphere at both its ends",
+                side.name
+            ),
+        );
+        one_edge_between(
+            part,
+            [BALL, side.face],
+            [&[TOP, side.face, BALL]; 2],
+            &format!(
+                "{what}: the sphere's edge with the rib's {} side, over its top",
+                side.name
+            ),
+        );
+    }
+    each_edge_between(
+        part,
+        [TOP, BALL],
+        2,
+        [&[TOP, BALL, BALL_LEFT], &[TOP, BALL, BALL_RIGHT]],
+        &format!("{what}: the sphere's foot, in front of the centre and behind it"),
+    );
     sound_drawn_within(
-        &part,
-        4800.0 + half_turned,
-        drawn_within(&part, 2.0 * PI * BALL_RADIUS * 4.0),
+        part,
+        ball_rib_volume(),
+        drawn_within(part, ball_area()),
         what,
     );
+}
 
-    both_declined(
-        &part,
-        [TOP, BALL_RIGHT],
-        2.0,
-        "at the foot of a rib whose ends are a sphere, which #805 is to fill",
+/// Holds what a fill of `value` at the foot of `side` of the
+/// [`rib_cut_from_a_ball`], its section `height(out)` high `out` from that
+/// side, leaves where it meets the sphere at both its ends, as
+/// [`flush_on_the_round`] holds it of a cylinder: the fill, the face numbered
+/// `made`, meeting the plate's top and the side along its sides and the
+/// sphere at both its ends, by one edge each; the sphere one face, no edge
+/// between it and itself; the sphere's foot on the plate's top run on at
+/// each end from the other side to the fill, no corner left where the two
+/// alone meet; the side meeting the sphere along one edge over the fill, its
+/// corners where the fill's top leaves the sphere; the plate's top one face
+/// round the rib and the fill's footprint, its edges with the sphere on the
+/// sphere's foot; a chamfer's corners where its foot and its top leave the
+/// sphere, and every other on [`chamfer_s_circle`]; the sphere drawn on
+/// itself alone, reaching out to the fill's far side; every ray aimed along
+/// the foot from outside the rib, at either end, through a place of the
+/// fill's section, meeting the sphere first and on it, on that end's side of
+/// the centre; and no corner of the fill outside the sphere.
+fn flush_on_the_ball(
+    body: &Body,
+    (side, made): (BallSide, usize),
+    value: f64,
+    height: impl Fn(f64) -> f64,
+    what: &str,
+) {
+    let other = BALL_SIDES
+        .into_iter()
+        .find(|other| other.face != side.face)
+        .expect("the rib has two sides");
+    let mut sides = [TOP, side.face, BALL, BALL].map(|face| vec![face as u32]);
+    sides.sort();
+    assert_eq!(
+        sides_met(body, made),
+        sides,
+        "{what}: the fill meets the plate's top and the rib's side along its sides, and the \
+         sphere at both its ends, by one edge each"
+    );
+    let itself = [vec![BALL as u32], vec![BALL as u32]];
+    assert!(
+        !body.edge_names().iter().any(|name| name.between == itself),
+        "{what}: the sphere is one face, with no edge between it and itself"
+    );
+    each_edge_between(
+        body,
+        [TOP, BALL],
+        2,
+        [&[TOP, BALL, other.face], &[TOP, BALL, made]],
+        &format!("{what}: the sphere's foot, run on along the fill's footprint at each end"),
+    );
+    no_corner_where_only(
+        body,
+        &[TOP, BALL],
+        &format!("{what}: the corners the foot of the rib's side ended at"),
+    );
+    one_edge_between(
+        body,
+        [BALL, side.face],
+        [&[BALL, side.face, made]; 2],
+        &format!("{what}: the sphere's edge with the rib's side, over the fill"),
+    );
+    let (far, up) = (side.at + side.out * value, PLATE + value);
+    let [front_foot, back_foot] = on_the_ball(2.0 + value, 0.0);
+    let [front_top, back_top] = on_the_ball(2.0, value);
+    let [front_rib, back_rib] = on_the_ball(2.0, 0.0);
+    corners_are_or_on(
+        body,
+        side.face,
+        &[
+            DVec3::new(side.at, front_top, up),
+            DVec3::new(side.at, back_top, up),
+        ],
+        |corner| {
+            (corner.x - side.at).abs() < PLACE
+                && off_the_ball(corner).abs() < PLACE
+                && corner.z >= up - PLACE
+        },
+        &format!("{what}: what is left of the rib's side, over the fill and under the sphere"),
+    );
+    let [low, high] = if side.out > 0.0 {
+        [other.at, far]
+    } else {
+        [far, other.at]
+    };
+    corners_are_or_on(
+        body,
+        TOP,
+        &[
+            DVec3::new(0.0, 0.0, PLATE),
+            DVec3::new(40.0, 0.0, PLATE),
+            DVec3::new(40.0, 30.0, PLATE),
+            DVec3::new(0.0, 30.0, PLATE),
+            DVec3::new(other.at, front_rib, PLATE),
+            DVec3::new(other.at, back_rib, PLATE),
+            DVec3::new(far, front_foot, PLATE),
+            DVec3::new(far, back_foot, PLATE),
+        ],
+        |corner| {
+            off_the_ball(corner).abs() < PLACE
+                && (corner.z - PLATE).abs() < PLACE
+                && (low - PLACE..=high + PLACE).contains(&corner.x)
+        },
+        &format!(
+            "{what}: the plate's top, one face round the rib and the fill's footprint, its edges \
+             with the sphere on the sphere's foot"
+        ),
+    );
+    if body.is_flat(made) {
+        let (normal, about, radius) = chamfer_s_circle(side, value);
+        corners_are_or_on(
+            body,
+            made,
+            &[
+                DVec3::new(far, front_foot, PLATE),
+                DVec3::new(far, back_foot, PLATE),
+                DVec3::new(side.at, front_top, up),
+                DVec3::new(side.at, back_top, up),
+            ],
+            |corner| {
+                (corner - about).dot(normal).abs() < PLACE
+                    && (corner.distance(about) - radius).abs() < PLACE
+            },
+            &format!(
+                "{what}: the flat, its corners where its foot and its top leave the sphere, and \
+                 every other on the circle of {radius} about {about} its plane cuts the sphere \
+                 along"
+            ),
+        );
+    }
+    drawn_on_the_ball(body, BALL, what);
+    let furthest = body
+        .triangles_of(BALL)
+        .flatten()
+        .map(|corner| side.out * (corner.x - side.at))
+        .fold(f64::NEG_INFINITY, f64::max);
+    assert!(
+        (furthest - value).abs() < PLACE,
+        "{what}: the sphere reaches {furthest} out from the rib's side, where it takes in the \
+         fill's section out to {value}"
+    );
+    for (from_y, way) in [(-1.0, DVec3::Y), (31.0, -DVec3::Y)] {
+        for share_out in [0.2, 0.5] {
+            let out = value * share_out;
+            for share_up in [0.25, 0.5, 0.75] {
+                let from = DVec3::new(
+                    side.at + side.out * out,
+                    from_y,
+                    PLATE + height(out) * share_up,
+                );
+                let hit = body.ray_hit(from, way).unwrap_or_else(|| {
+                    panic!("{what}: a ray from {from} through the fill's section meets nothing")
+                });
+                let at = from + way * hit.distance;
+                assert_eq!(
+                    hit.face,
+                    BALL,
+                    "{what}: a ray from {from} through the fill's section meets face {} at {at}, \
+                     before the sphere, which stands at y = {:?} there",
+                    hit.face,
+                    on_the_ball(2.0 + out, from.z - PLATE)
+                );
+                assert!(
+                    off_the_ball(at).abs() <= MET && (at.y - BALL_CENTRE.y) * way.y < 0.0,
+                    "{what}: a ray from {from} meets the sphere at {at}, {} off it, which stands \
+                     at y = {:?} there",
+                    off_the_ball(at),
+                    on_the_ball(2.0 + out, from.z - PLATE)
+                );
+            }
+        }
+    }
+    for corner in body.triangles_of(made).flatten() {
+        assert!(
+            off_the_ball(corner) <= PLACE,
+            "{what}: the fill is drawn through {corner}, {} outside the sphere: past it",
+            off_the_ball(corner)
+        );
+    }
+}
+
+#[test]
+fn a_chamfer_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flush_on_its_sphere() {
+    let value = 2.0;
+    let part = rib_cut_from_a_ball();
+    the_rib_is_cut_from_a_ball(&part);
+    for side in BALL_SIDES {
+        let foot = edge_between(&part, TOP, side.face);
+
+        let chamfered = part.chamfer(&foot, value).unwrap_or_else(|declined| {
+            panic!(
+                "the chamfer at the foot of the {} side of the rib cut from a ball: declined, \
+                 {declined:?}",
+                side.name
+            )
+        });
+
+        let what = format!(
+            "the chamfer at the foot of the {} side of the rib cut from a ball",
+            side.name
+        );
+        taken_whole(chamfered.asked, chamfered.taken, value, &what);
+        let body = &chamfered.body;
+        let height = |out: f64| chamfer_height(value, out);
+        sound_drawn_within(
+            body,
+            ball_rib_volume() + fill_matter(value, height, across_the_ball),
+            drawn_within(&part, ball_area() + 2.0 * value * value),
+            &what,
+        );
+        let chamfer = one_flat_face_more(&part, body, &what);
+        numbered_after_the_steps_last(&part, body, chamfer, &what);
+        flush_on_the_ball(body, (side, chamfer), value, height, &what);
+    }
+}
+
+#[test]
+fn a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported() {
+    let part = rib_cut_from_a_ball();
+    the_rib_is_cut_from_a_ball(&part);
+    let foot = edge_between(&part, TOP, BALL_RIGHT);
+
+    let declined = part.fillet(&foot, 2.0).err();
+
+    assert_eq!(
+        declined,
+        Some(Declined::Unsupported),
+        "the fillet of 2 at the foot of a rib whose ends are a sphere, which #805's second \
+         slice, a cylinder of another axis against a sphere, is to fill"
+    );
+}
+
+/// How long the edges of the [`rib_cut_from_a_ball`] chamfered at the foot
+/// of its right side are in all, rounded up: the plate's twelve, near 300;
+/// the left side's half circle and its foot; the sphere's foot in front and
+/// behind; the flat's foot, its top and its two arcs on the sphere; and the
+/// right side's arc over the flat. The file's tolerance over a strip that
+/// long is what its area may be off by.
+const CHAMFERED_BALL_RIB_EDGES: f64 = 410.0;
+
+/// The area of the [`rib_cut_from_a_ball`] chamfered at the foot of its
+/// right side by `value`: the plate's floor and walls; its top less the
+/// footprint of the rib and the flat, the ball's section on the top from the
+/// left side out to the flat's foot; the left side, a half disc; the right
+/// side, a half disc less the strip under the flat's top; the sphere, half
+/// the zone between the sides, grown at each end by the flat's section laid
+/// on it, which stretches each place of the section by r over its depth into
+/// the ball, √(r² − x² − z²), x and z read from the centre; and the flat,
+/// the ball's section along its slope.
+fn chamfered_ball_rib_area(value: f64) -> f64 {
+    let square = BALL_RADIUS * BALL_RADIUS;
+    let footprint = simpson(|out| across_the_ball(out, 0.0), [-4.0, value], STEPS);
+    let plate = 1200.0 + 2.0 * (40.0 + 30.0) * PLATE + 1200.0 - footprint;
+    let half_disc = PI * (square - 4.0) / 2.0;
+    let strip = simpson(|up| across_the_ball(0.0, up), [0.0, value], STEPS);
+    let zone = 4.0 * PI * BALL_RADIUS;
+    let stretched = fill_matter(
+        value,
+        |out| chamfer_height(value, out),
+        |out, up| 2.0 * BALL_RADIUS / (square - (2.0 + out).powi(2) - up * up).sqrt(),
+    );
+    let laid = 2f64.sqrt() * simpson(|out| across_the_ball(out, value - out), [0.0, value], STEPS);
+    plate + half_disc + (half_disc - strip) + zone + stretched + laid
+}
+
+#[test]
+fn a_rib_cut_from_a_ball_chamfered_at_its_foot_written_to_step_writes_every_face_on_its_true_surface()
+ {
+    let value = 2.0;
+    let part = rib_cut_from_a_ball();
+    let foot = edge_between(&part, TOP, BALL_RIGHT);
+
+    let chamfered = part.chamfer(&foot, value).unwrap_or_else(|declined| {
+        panic!("the chamfer at the foot of the rib cut from a ball: declined, {declined:?}")
+    });
+    let text = step::of(&chamfered.body, 1.0).expect("an exact body is written");
+
+    let what = "the rib cut from a ball chamfered at its foot";
+    let solid = step_reader::read(&text)
+        .unwrap_or_else(|fault| panic!("{what}: the file does not read back: {fault}"));
+    assert_eq!(
+        solid.faces, 10,
+        "{what}: the plate's six faces, the rib's two sides and its sphere, and the flat"
+    );
+    let height = |out: f64| chamfer_height(value, out);
+    written_whole(
+        &solid,
+        &chamfered.body,
+        [
+            ball_rib_volume() + fill_matter(value, height, across_the_ball),
+            chamfered_ball_rib_area(value),
+            CHAMFERED_BALL_RIB_EDGES,
+        ],
+        what,
+    );
+    let [(centre, radius)] = solid.spheres[..] else {
+        panic!(
+            "{what}: one face written on a sphere, the rib's: {:?}",
+            solid.spheres
+        );
+    };
+    assert!(
+        centre.distance(BALL_CENTRE) <= solid.uncertainty
+            && (radius - BALL_RADIUS).abs() <= solid.uncertainty,
+        "{what}: the sphere is written about {centre}, of radius {radius}, where the ball stands \
+         about {BALL_CENTRE}, of radius {BALL_RADIUS}"
+    );
+    assert!(
+        solid.cylinders.is_empty() && solid.planes.len() == 9,
+        "{what}: every face but the sphere written on a plane, none on a cylinder: {:?}, {:?}",
+        solid.planes,
+        solid.cylinders
+    );
+    let facing = DVec3::new(1.0, 0.0, 1.0).normalize();
+    let through = [
+        DVec3::new(RIB_SIDE + value, BALL_CENTRE.y, PLATE),
+        DVec3::new(RIB_SIDE, BALL_CENTRE.y, PLATE + value),
+    ];
+    assert!(
+        solid.planes.iter().any(|&(origin, normal)| {
+            normal.distance(facing) < PLACE
+                && through
+                    .iter()
+                    .all(|point| (*point - origin).dot(normal).abs() <= solid.uncertainty)
+        }),
+        "{what}: no face of the file faces {facing} through {through:?}: {:?}",
+        solid.planes
+    );
+    let (normal, about, across) = chamfer_s_circle(BALL_SIDES[0], value);
+    let arcs = solid
+        .circles
+        .iter()
+        .filter(|&&(origin, axis, written)| {
+            origin.distance(about) <= solid.uncertainty
+                && axis.cross(normal).length() < PLACE
+                && (written - across).abs() <= solid.uncertainty
+        })
+        .count();
+    assert_eq!(
+        arcs, 2,
+        "{what}: the flat's two edges on the sphere are written as arcs of the circle of radius \
+         {across} about {about} its plane cuts the sphere along: {:?}",
+        solid.circles
     );
 }
 

@@ -21,8 +21,9 @@ use crate::brep::surface::Surface;
 /// block's top, and stands twenty tolerances off it at the cut's floor
 /// (5541239472). A cone carries its rulings and its circles about its axis,
 /// an elliptic wall its rulings and the curves it meets a wall square to it
-/// along. A conic is carried by a surface
-/// decided one with its plane or with its wall, and by nothing else.
+/// along, a sphere every circle lying on it whatever its axis (#805), a
+/// torus its latitude circles and its meridians. A conic is carried by a
+/// surface decided one with its plane or with its wall, and by nothing else.
 pub(in crate::brep::combine) fn carries(surface: &Surface, curve: &Curve, scale: Scale) -> bool {
     let eps = scale.eps();
     let parallel =
@@ -54,9 +55,7 @@ pub(in crate::brep::combine) fn carries(surface: &Surface, curve: &Curve, scale:
             meet.own(&Wall::Elliptic(*wall), eps).is_some()
         }
         (Surface::Elliptic(_), Curve::Circle(_)) => false,
-        (Surface::Sphere(sphere), Curve::Circle(circle)) => {
-            sphere.holds(circle, eps) || sphere.meridian(circle, eps)
-        }
+        (Surface::Sphere(sphere), Curve::Circle(circle)) => sphere.carries(circle, eps),
         (Surface::Torus(torus), Curve::Circle(circle)) => {
             torus.holds(circle, eps) || torus.meridian(circle, eps)
         }

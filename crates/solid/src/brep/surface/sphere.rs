@@ -7,8 +7,11 @@
 //! its centre, and keeping the one it was turned about, with the `origin`,
 //! `u` and `v` every cylinder of that axis has, makes every coaxial circle it
 //! meets the very circle a cylinder or a cone of the axis has there. A
-//! surface of another axis through its centre is exact mathematics, and
-//! declined in this chart.
+//! surface of another axis through its centre is exact mathematics: the
+//! circle a plane at a slant cuts it along is read in this chart as `seen.rs`
+//! reads it (#805), and a wall or a round of another axis is declined.
+
+mod seen;
 
 use std::f64::consts::FRAC_PI_2;
 

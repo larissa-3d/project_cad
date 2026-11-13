@@ -4,7 +4,9 @@
 //! of the meridian half-plane (`revolved/arc.rs`), read in the round's own
 //! frame, or in the first of two rounds' by an order read off their bits; a
 //! plane holding its axis as the meridian circles it cuts, with the poles
-//! they cross at. Anything else — a plane at a slant, a wall or a round of
+//! they cross at. Any other plane cuts a sphere along the circle about the
+//! foot of its centre (#805), a circle of another axis than the sphere's.
+//! Anything else — such a plane against a torus, a wall or a round of
 //! another axis, an elliptic wall — is unsupported, which declines a boolean
 //! unless the two faces stand clear of each other; none of it is a conic's,
 //! so `at_a_slant` answers false and `clear` may pass the faces by.
@@ -203,7 +205,8 @@ fn coaxial(frame: &Frame, origin: DVec3, axis: DVec3, scale: Scale) -> bool {
 
 /// Square to the axis, the circles at the plane's height, from the formula a
 /// cylinder of the axis reads it with; holding it, the meridian circles it
-/// cuts; at a slant, unsupported.
+/// cuts; any other plane, the section of a sphere (#805) — a torus's at a
+/// slant or off its axis is a quartic, unsupported.
 fn with_plane(frame: &Frame, center: DVec2, radius: f64, plane: &Plane, scale: Scale) -> Relation {
     if parallel(plane.normal, frame.axis, scale) {
         let level = Meridian::Level(frame.level(plane));
@@ -213,7 +216,34 @@ fn with_plane(frame: &Frame, center: DVec2, radius: f64, plane: &Plane, scale: S
     {
         return meridians(frame, center, radius, plane, scale);
     }
+    if center.y == 0.0 {
+        return section(frame.point(center.x), radius, plane, scale);
+    }
     Relation::Unsupported
+}
+
+/// A plane at a slant to the axis of the sphere about `middle` of `radius`,
+/// or holding a direction of it off it: the circle about the foot of the
+/// centre on the plane, square to the plane, of radius √(r² − d²), `d` the
+/// centre's distance from the plane, written as a product; apart where the
+/// plane stands further than the tolerance off the sphere. Within the
+/// tolerance of touching it, the plane touches it at a point no pole stands
+/// on, which no face is built through: unsupported.
+fn section(middle: DVec3, radius: f64, plane: &Plane, scale: Scale) -> Relation {
+    let standing = plane.distance(middle);
+    let away = standing.abs();
+    let gap = away - radius;
+    if gap > scale.eps() {
+        return Relation::Apart;
+    }
+    if gap >= -scale.eps() {
+        return Relation::Unsupported;
+    }
+    Relation::Circle(Circle::about(
+        middle - plane.normal * standing,
+        plane.normal,
+        ((radius - away) * (radius + away)).sqrt(),
+    ))
 }
 
 /// Holding the axis, the meridian circles the plane cuts: one great circle

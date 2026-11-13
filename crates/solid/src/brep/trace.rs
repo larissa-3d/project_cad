@@ -5,8 +5,8 @@
 use glam::DVec2;
 
 use super::conic::{Conic, On};
-use super::curve::Meet;
-use super::surface::Cylinder;
+use super::curve::{Circle, Meet};
+use super::surface::{Cylinder, Sphere};
 
 // A trace is handed round the overlay by value; boxing the curve two
 // cylinders meet along would cost it `Copy`.
@@ -40,6 +40,14 @@ pub enum Trace {
     Conic {
         conic: Conic,
         on: On,
+        from: f64,
+        to: f64,
+    },
+    /// A circle a sphere carries neither as a latitude nor as a meridian,
+    /// seen on that sphere between two of the circle's parameters (#805).
+    Tilted {
+        circle: Circle,
+        sphere: Sphere,
         from: f64,
         to: f64,
     },
@@ -90,6 +98,16 @@ impl Trace {
                 let [point, first, second] = conic.seen_on(on, from + span * u);
                 [point, first * span, second * span * span]
             }
+            Trace::Tilted {
+                circle,
+                sphere,
+                from,
+                to,
+            } => {
+                let span = to - from;
+                let [point, first, second] = sphere.seen_along(&circle, from + span * u);
+                [point, first * span, second * span * span]
+            }
         }
     }
 
@@ -137,6 +155,17 @@ impl Trace {
             } => Trace::Conic {
                 conic,
                 on,
+                from: to,
+                to: from,
+            },
+            Trace::Tilted {
+                circle,
+                sphere,
+                from,
+                to,
+            } => Trace::Tilted {
+                circle,
+                sphere,
                 from: to,
                 to: from,
             },

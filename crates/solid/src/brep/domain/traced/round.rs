@@ -3,7 +3,9 @@
 //! reference as on a cone, never from points; a meridian as a stretch at
 //! constant `θ`, read where the stretch stands farthest from the axis, since
 //! at a pole the angle is rounding, its `φ` run on from its start the way the
-//! circle turns, a whole circle a whole turn.
+//! circle turns, a whole circle a whole turn; any other circle a sphere
+//! carries through neither pole as itself, read in the sphere's `(θ, φ)`
+//! (#805, `surface/sphere/seen.rs`).
 
 use glam::{DVec2, DVec3};
 
@@ -90,8 +92,8 @@ impl Chart {
 }
 
 /// The stretch of `circle` from `from` to `to` seen on `surface`, a sphere
-/// or a torus: a latitude, a meridian, or the chord it stands within `eps`
-/// of.
+/// or a torus: a latitude, a meridian, on a sphere any other circle it
+/// carries through neither pole, or the chord it stands within `eps` of.
 pub(super) fn traced(
     surface: &Surface,
     circle: &Circle,
@@ -136,6 +138,17 @@ pub(super) fn traced(
         return Ok(Trace::Segment {
             from: DVec2::new(theta, start),
             to: DVec2::new(theta, start + turn * (to - from)),
+        });
+    }
+    if let Surface::Sphere(sphere) = surface
+        && sphere.carries(circle, eps)
+        && !sphere.through_a_pole(circle, eps)
+    {
+        return Ok(Trace::Tilted {
+            circle: *circle,
+            sphere: *sphere,
+            from,
+            to,
         });
     }
     chord(&Curve::Circle(*circle), surface, from, to, eps)

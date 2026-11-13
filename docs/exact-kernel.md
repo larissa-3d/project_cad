@@ -56,7 +56,9 @@ It can:
   circular cones against cylinders and cones of their axis; a sphere or a
   torus against a plane square to or holding its axis, and a coaxial
   cylinder, cone, sphere or torus — a bore through a ball, a shaft joined to
-  it at its equator, a groove cut in a shaft (#576); a plane against
+  it at its equator, a groove cut in a shaft (#576); a sphere against any
+  other plane, along a circle of another axis — a ball cut at a slant, the
+  chamfer at the foot of a rib cut from a ball (#805); a plane against
   a cylinder or a cone at any angle (#552); elliptic cylinders (#571)
   against planes at any angle and round or elliptic walls parallel or
   square to them; curves: lines, circles, ellipses, the
@@ -370,16 +372,26 @@ It can:
   so trimmed: a rib's round end bulging out of the matter, or
   drawn in by draft, and a slot's round end that turns in toward the slot off
   its wall at a few degrees, which the fill runs on into. The round stays one
-  face and takes in the fill's section. A sphere or a torus end is still
-  declined: the kernel does not meet either with a plane at a slant or a wall
-  of another axis (#805). The trimmed prism is joined to the body. Its ends merge into
+  face and takes in the fill's section. A sphere end the edge runs out of
+  trims a chamfer's prism by the box past where its long edges leave the
+  sphere, raised as a plane's end is, less the ball turned about the
+  sphere's own axis, so that the fill's end lies on the very sphere of the
+  face it merges into (#805, `fill/ball.rs`); the ball carries its own
+  reach, which a dome far larger than its part would pass on to every later
+  step. A fillet on a sphere end, which meets it along a cylinder of
+  another axis, and a torus end are still declined. The trimmed prism is
+  joined to the body. Its ends merge into
   the faces at the edge's ends, which a join would leave answering to the
   numbers of both operands: each face the prism merged into answers to the
   body's numbers alone, so a cap stays the one face it was, its number with
   it. Where a rib ends short of its plate, the plate's top meets the rib's end
   along one edge again across the fill's foot: the edge's two end corners are
   handed back to the boolean's step 8 as cleared, and the edges either side of
-  each are joined. The check is the cut's: one new face, in one piece, its
+  each are joined — where no flat face on a surface the corner lies on may
+  still reach it, read off the box of its edges, each arc's taken over its
+  own stretch: a rib's side ending on a sphere is bounded by an arc of its
+  rim, whose whole circle reaches past the corner under the fill (#805).
+  The check is the cut's: one new face, in one piece, its
   corners on the edge's two faces, nothing else of the prism left, and no face
   of the body gone but those two. A flat face facing back along the edge,
   matter lying past it — the floor a pocket's upright stands on, the plate's
@@ -467,9 +479,9 @@ Left, in the order #497 set:
 - revolutions of ellipses: the exact kernel has no surface an ellipse turns
   into. Those of straight runs and arcs are done: parallel or square to the
   axis (#533), slanted (#536), and an arc into a sphere or a torus (#576);
-- a sphere or a torus against a plane at a slant, a wall or a round of
-  another axis, or an elliptic wall: declined as unsupported where the
-  faces may cross;
+- a torus against a plane at a slant or off its axis, a sphere or a torus
+  against a wall or a round of another axis, or an elliptic wall: declined
+  as unsupported where the faces may cross;
 - a few pairs of walls at any angle that the kernel still declines (see
   "Two walls at any angle"): two walls nearly parallel, a cone whose
   rulings run along the other wall's axis, a hole in the flank of a
@@ -562,12 +574,13 @@ Known and still open:
   its apex alone. A sphere or a torus meets a plane square to its axis
   along latitude circles, a touch at a crest or a root, or its pole; a
   plane holding its axis along its meridians; and a coaxial cylinder, cone,
-  sphere or torus along one or two rims. A cone within the
+  sphere or torus along one or two rims. A sphere meets any other plane
+  along a circle of another axis (#805). A cone within the
   tolerance of a plane or a cylinder of its axis all across the box, two
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another
   wall" names (#577), a plane at a slant
-  through a sphere or a torus, a wall or a round of
+  through a torus, a wall or a round of
   another axis, and an elliptic wall against a round, are declined where
   their faces may cross: the operation gives no answer, which
   the harness counts as such rather than as a wrong solid. Where the faces stand clear of each other — a
@@ -803,7 +816,20 @@ The decisions, in the order taken, once per operation:
    `Relation::Meridians`, one great circle for a sphere, two tube circles
    for a torus — with the poles it crosses at as corners, as a cone's apex
    is. Two rounds within `EPS` all round are `Same`, and unsupported where
-   no meridian tells them apart. A plane at a slant, a wall or a round of
+   no meridian tells them apart. Any other plane cuts a sphere (#805) along
+   the circle about the foot of its centre on the plane, square to the
+   plane, of radius `√(r² − d²)`, `d` the centre's distance from the plane,
+   written as a product — `Relation::Circle`, a circle of another axis than
+   the sphere's — and misses it further than `EPS` off; within `EPS` of
+   touching, the plane touches the sphere at a point no pole stands on,
+   through which no face is built: unsupported. The circle is a line of no
+   chart of the sphere's, and is seen in its `(θ, φ)` as itself
+   (`Trace::Tilted`, `surface/sphere/seen.rs`): its angle about the axis
+   unwrapped by where the axis pierces the circle's disc, once round a turn
+   where it does and back within half a turn of the centre's angle where it
+   does not; a circle within `EPS` of a pole has no angle there and is not
+   read so. A sphere carries every circle lying on it, whatever its axis. A
+   plane at a slant to a torus or off its axis, a wall or a round of
    another axis, and an elliptic wall are unsupported, and decline unless
    `clear` stands the two faces apart; none of them asks for a conic, so
    `at_a_slant` answers false.
@@ -2573,6 +2599,18 @@ pointed cone's flank waits on #711.
   a ball at — lies on both and is sampled once, on the shaft's grid and the
   round's. A coaxial wall a hair inside a ball is not drawn in common with it
   yet: a family the campaign measures.
+- **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
+  The strips cannot cut a face of a sphere such a circle bounds, since it
+  runs along no line of the chart, nor can the central chart where the face
+  reaches ninety degrees or more from every direction. A face every circle
+  of which turns about one axis — half a ball cut at a slant — is cut in
+  strips on its sphere read about that axis, where each is a latitude, the
+  pole its loops turn round a point added inside it. Any other — the sphere
+  of a rib cut from a ball, a chamfer trimmed flush on it — holding and
+  reaching no pole and standing within some 87° of the equator, is laid out
+  in the sphere's own `(θ, φ)`, each sample of such a circle where it is
+  read, swept, and refined as the central chart refines, each point added
+  lifted onto the sphere from `(θ, φ)`. Any other is left open still.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

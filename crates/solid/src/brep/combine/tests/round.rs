@@ -1,8 +1,10 @@
 //! A sphere or a torus joined to or cut from what shares its axis (#576):
 //! a plane square to the axis or holding it, a coaxial shaft, bore, cone,
-//! sphere or torus. Each body is listed sound and holds the arithmetic's
-//! volume, by Pappus, to the bit the cone's booleans hold; everything else
-//! declines as unsupported, unless the faces stand clear of each other.
+//! sphere or torus; and a sphere cut or joined by a plane at a slant to its
+//! axis, or square to it off its centre, along a circle (#805). Each body is
+//! listed sound and holds the arithmetic's volume, by Pappus, to the bit the
+//! cone's booleans hold; everything else declines as unsupported, unless the
+//! faces stand clear of each other.
 //!
 //! Closes #625.
 //! - a quarter of a torus and a slanted wall that meet the whole torus's box
@@ -511,8 +513,11 @@ fn a_half_ball_cut_out_of_a_block_is_a_flipped_round_face_through_a_pole() {
     assert!(hollowed.vertex(pole).point.distance(DVec3::Y * 5.0) < 1e-12);
 }
 
+/// The slab at a slant through the ball's centre: 10 thick along the normal
+/// (1, 1, 0) from the plane through the origin, its sides 20 from it either
+/// way, so that it holds the half of the ball the normal points to.
 #[test]
-fn a_plane_at_a_slant_through_a_ball_is_declined_as_unsupported() {
+fn a_plane_at_a_slant_through_a_ball_cuts_it_in_half_along_a_great_circle() {
     let normal = DVec3::new(1.0, 1.0, 0.0).normalize();
     let u = normal.any_orthonormal_vector();
     let frame = Frame {
@@ -527,10 +532,25 @@ fn a_plane_at_a_slant_through_a_ball_is_declined_as_unsupported() {
         normal * 10.0,
     )
     .expect("a slab raises");
+
+    let cut = turned(&ball(), 360.0).cut_by(&slab);
+    let joined = turned(&ball(), 360.0).joined(&slab);
+
+    let what = "a ball cut by a slab at a slant through its centre";
+    let cut = cut.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    held(&cut, BALL / 2.0, what);
+    let [round] = rounds(&cut)[..] else {
+        panic!("{what}: one round face");
+    };
+    assert!(!round.flipped, "{what}");
     assert_eq!(
-        turned(&ball(), 360.0).cut_by(&slab).err(),
-        Some(Declined::Unsupported)
+        cut.face_ids().count(),
+        2,
+        "{what}: the half ball and its disc"
     );
+    let what = "a ball joined to a slab at a slant through its centre";
+    let joined = joined.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    held(&joined, 16_000.0 + BALL / 2.0, what);
 }
 
 #[test]
@@ -687,22 +707,36 @@ fn a_slanted_wall_cut_from_a_quarter_torus_past_its_quarter_leaves_the_quarter_w
 /// Lane T's campaign found a plane crossing a ball, or standing a hair inside
 /// its crest, that `clear` passed as apart, so that the body's faces crossed
 /// (seeds 5576502870, 5576400540): a whole ball's face has no edge to read
-/// its reach off.
+/// its reach off. Once #805 meets the two along the circle about the foot of
+/// the centre, the cut keeps the ball beside the plane and the join adds the
+/// block to it; a hair inside the crest, the cut and the join are built
+/// sound or declined, and never a body whose faces cross.
 #[test]
-fn a_block_whose_side_crosses_a_ball_off_its_axis_is_declined_as_unsupported() {
+fn a_block_whose_side_crosses_a_ball_off_its_axis_cuts_and_joins_it_along_a_circle() {
     let eps = Scale::of(10.0).eps();
     for low in [2.0, 4.9, -3.0, 5.0 - eps] {
         let slab = block([low, -10.0, -10.0], [10.0, 10.0, 10.0]);
-        assert_eq!(
-            turned(&ball(), 360.0).cut_by(&slab).err(),
-            Some(Declined::Unsupported),
-            "{low}"
-        );
-        assert_eq!(
-            turned(&ball(), 360.0).joined(&slab).err(),
-            Some(Declined::Unsupported),
-            "{low}"
-        );
+
+        let cut = turned(&ball(), 360.0).cut_by(&slab);
+        let joined = turned(&ball(), 360.0).joined(&slab);
+
+        let kept = BALL - cap_above(low);
+        for (what, built, volume) in [
+            (format!("a ball cut by a block from x = {low}"), cut, kept),
+            (
+                format!("a ball joined to a block from x = {low}"),
+                joined,
+                400.0 * (10.0 - low) + kept,
+            ),
+        ] {
+            match built {
+                Ok(body) => held(&body, volume, &what),
+                Err(declined) if low == 5.0 - eps => {
+                    assert_eq!(declined, Declined::Unsupported, "{what}");
+                }
+                Err(declined) => panic!("{what}: declined, {declined:?}"),
+            }
+        }
     }
 }
 
