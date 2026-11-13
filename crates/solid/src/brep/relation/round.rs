@@ -42,13 +42,13 @@ pub(super) fn relation(one: &Surface, other: &Surface, scale: Scale) -> Relation
     match (round(one), round(other)) {
         (Some(first), Some(second)) => {
             if goes_first(one, other) {
-                against(first, other, scale)
+                against(one, first, other, scale)
             } else {
-                against(second, one, scale)
+                against(other, second, one, scale)
             }
         }
-        (Some(first), None) => against(first, other, scale),
-        (None, Some(second)) => against(second, one, scale),
+        (Some(first), None) => against(one, first, other, scale),
+        (None, Some(second)) => against(other, second, one, scale),
         (None, None) => Relation::Unsupported,
     }
 }
@@ -169,15 +169,19 @@ fn goes_first(one: &Surface, other: &Surface) -> bool {
         .is_none_or(|order| order.is_lt())
 }
 
-/// The round against `other`: a plane square to its axis or holding it, or
-/// a surface of revolution about its axis, each read in the round's frame.
+/// The round `surface` against `other`: a plane square to its axis or
+/// holding it, or a surface of revolution about its axis, each read in the
+/// round's frame; any other plane against a sphere.
 fn against(
+    surface: &Surface,
     (frame, center, radius): (Frame, DVec2, f64),
     other: &Surface,
     scale: Scale,
 ) -> Relation {
     let (origin, axis) = match other {
-        Surface::Plane(plane) => return with_plane(&frame, center, radius, plane, scale),
+        Surface::Plane(plane) => {
+            return with_plane(surface, (&frame, center, radius), plane, scale);
+        }
         Surface::Cylinder(Cylinder { origin, axis, .. })
         | Surface::Cone(Cone { origin, axis, .. })
         | Surface::Sphere(Sphere { origin, axis, .. })
@@ -207,7 +211,12 @@ fn coaxial(frame: &Frame, origin: DVec3, axis: DVec3, scale: Scale) -> bool {
 /// cylinder of the axis reads it with; holding it, the meridian circles it
 /// cuts; any other plane, the section of a sphere (#805) — a torus's at a
 /// slant or off its axis is a quartic, unsupported.
-fn with_plane(frame: &Frame, center: DVec2, radius: f64, plane: &Plane, scale: Scale) -> Relation {
+fn with_plane(
+    surface: &Surface,
+    (frame, center, radius): (&Frame, DVec2, f64),
+    plane: &Plane,
+    scale: Scale,
+) -> Relation {
     if parallel(plane.normal, frame.axis, scale) {
         let level = Meridian::Level(frame.level(plane));
         return met_round(frame, center, radius, level, scale);
@@ -216,20 +225,25 @@ fn with_plane(frame: &Frame, center: DVec2, radius: f64, plane: &Plane, scale: S
     {
         return meridians(frame, center, radius, plane, scale);
     }
-    if center.y == 0.0 {
-        return section(frame.point(center.x), radius, plane, scale);
+    match surface {
+        Surface::Sphere(sphere) => section(sphere, plane, scale),
+        Surface::Torus(_)
+        | Surface::Plane(_)
+        | Surface::Cylinder(_)
+        | Surface::Cone(_)
+        | Surface::Elliptic(_) => Relation::Unsupported,
     }
-    Relation::Unsupported
 }
 
-/// A plane at a slant to the axis of the sphere about `middle` of `radius`,
-/// or holding a direction of it off it: the circle about the foot of the
-/// centre on the plane, square to the plane, of radius √(r² − d²), `d` the
-/// centre's distance from the plane, written as a product; apart where the
-/// plane stands further than the tolerance off the sphere. Within the
-/// tolerance of touching it, the plane touches it at a point no pole stands
-/// on, which no face is built through: unsupported.
-fn section(middle: DVec3, radius: f64, plane: &Plane, scale: Scale) -> Relation {
+/// A plane at a slant to the axis of `sphere`, or holding a direction of it
+/// off it: the circle about the foot of the centre on the plane, square to
+/// the plane, of radius √(r² − d²), `d` the centre's distance from the
+/// plane, written as a product; apart where the plane stands further than
+/// the tolerance off the sphere. Within the tolerance of touching it, the
+/// plane touches it at a point no pole stands on, which no face is built
+/// through: unsupported.
+fn section(sphere: &Sphere, plane: &Plane, scale: Scale) -> Relation {
+    let (middle, radius) = (sphere.middle(), sphere.radius);
     let standing = plane.distance(middle);
     let away = standing.abs();
     let gap = away - radius;

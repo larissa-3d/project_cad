@@ -25,9 +25,10 @@
 //! circle of it turns about, or, holding and reaching no pole, laid out in
 //! its own `(θ, φ)` and refined there as on the central chart. Any other
 //! face reaching some 87° or more from every direction, or behind the plane
-//! of its chart, is left open, as is a face of a torus its chart refuses. Each face is cut alone, so two faces standing within the
-//! tolerance of each other can fold onto each other across their edge;
-//! [`folds`] cuts them the other way once all are cut.
+//! of its chart, is left open, as is a face of a torus its chart refuses.
+//! Each face is cut alone, so two faces standing within the tolerance of
+//! each other can fold onto each other across their edge; [`folds`] cuts
+//! them the other way once all are cut.
 
 mod contact;
 mod folds;

@@ -58,7 +58,7 @@ impl Outline {
             return None;
         };
         Outline::central(sphere, samples, &laps(body, samples, id)?, tolerance)
-            .or_else(|| Outline::about(body, samples, id, sphere))
+            .or_else(|| Outline::about(body, samples, id, sphere, tolerance))
             .or_else(|| Outline::charted(body, samples, id, sphere, tolerance))
     }
 

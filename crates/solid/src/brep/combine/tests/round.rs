@@ -513,25 +513,31 @@ fn a_half_ball_cut_out_of_a_block_is_a_flipped_round_face_through_a_pole() {
     assert!(hollowed.vertex(pole).point.distance(DVec3::Y * 5.0) < 1e-12);
 }
 
-/// The slab at a slant through the ball's centre: 10 thick along the normal
-/// (1, 1, 0) from the plane through the origin, its sides 20 from it either
-/// way, so that it holds the half of the ball the normal points to.
-#[test]
-fn a_plane_at_a_slant_through_a_ball_cuts_it_in_half_along_a_great_circle() {
+/// A slab at a slant to the ball's axis: 10 thick along the normal
+/// (1, 1, 0) from the plane `offset` along it, its sides 20 from the
+/// normal's line either way, so that it holds all of the ball past the plane.
+fn slab_at_a_slant(offset: f64) -> Body {
     let normal = DVec3::new(1.0, 1.0, 0.0).normalize();
     let u = normal.any_orthonormal_vector();
     let frame = Frame {
-        origin: DVec3::ZERO,
+        origin: normal * offset,
         u,
         v: normal.cross(u),
     };
-    let slab = Body::raised(
+    Body::raised(
         &Contour::rectangle(DVec2::splat(-20.0), DVec2::splat(20.0)),
         &[],
         frame,
         normal * 10.0,
     )
-    .expect("a slab raises");
+    .expect("a slab raises")
+}
+
+/// The slab at a slant through the ball's centre, which holds the half of
+/// the ball the normal points to.
+#[test]
+fn a_plane_at_a_slant_through_a_ball_cuts_it_in_half_along_a_great_circle() {
+    let slab = slab_at_a_slant(0.0);
 
     let cut = turned(&ball(), 360.0).cut_by(&slab);
     let joined = turned(&ball(), 360.0).joined(&slab);
@@ -551,6 +557,151 @@ fn a_plane_at_a_slant_through_a_ball_cuts_it_in_half_along_a_great_circle() {
     let what = "a ball joined to a slab at a slant through its centre";
     let joined = joined.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
     held(&joined, 16_000.0 + BALL / 2.0, what);
+}
+
+/// What is left of the ball of radius 5 behind the slab at a slant through
+/// its centre, less the ball of radius 3 about the same centre: half a
+/// shell.
+const HALF_SHELL: f64 = (BALL - 36.0 * PI) / 2.0;
+
+/// Holds that a body is half the shell between the balls of radius 5 and 3
+/// about the origin, behind the plane at a slant through it: sound, holding
+/// [`HALF_SHELL`], its rounds the outer sphere and the inner one, flipped,
+/// and its one other face the half ring between them on the plane.
+fn a_half_shell(body: &Body, what: &str) {
+    held(body, HALF_SHELL, what);
+    let mut flipped: Vec<bool> = rounds(body).iter().map(|round| round.flipped).collect();
+    flipped.sort();
+    assert_eq!(
+        flipped,
+        [false, true],
+        "{what}: the outer sphere, and the inner one flipped"
+    );
+    assert_eq!(
+        body.face_ids().count(),
+        3,
+        "{what}: the two spheres and the half ring between them"
+    );
+}
+
+/// The great circle the slanted cut leaves on the ball is no latitude and
+/// no meridian of the inner ball's sphere, about the same axis: a later step
+/// of that axis has to cross it all the same.
+#[test]
+fn a_ball_cut_at_a_slant_and_hollowed_by_a_coaxial_ball_is_one_half_shell_in_either_order() {
+    let inner = ball_of(0.0, 3.0);
+
+    let slanted = turned(&ball(), 360.0)
+        .cut_by(&slab_at_a_slant(0.0))
+        .expect("the ball is cut at a slant");
+    let slanted_first = slanted.cut_by(&inner);
+    let hollowed = turned(&ball(), 360.0)
+        .cut_by(&inner)
+        .expect("the ball is hollowed");
+    let hollowed_first = hollowed.cut_by(&slab_at_a_slant(0.0));
+
+    for (what, built) in [
+        (
+            "a ball cut at a slant, then hollowed by a coaxial ball",
+            slanted_first,
+        ),
+        (
+            "a ball hollowed by a coaxial ball, then cut at a slant",
+            hollowed_first,
+        ),
+    ] {
+        let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        a_half_shell(&body, what);
+    }
+}
+
+/// A knob of radius 1 about the ball's pole at h = −5, on the side the slab
+/// leaves: it adds its own matter less the lens it shares with the ball, the
+/// caps of heights 0.1 and 0.9 either side of the plane h = −4.9 the two
+/// spheres meet in.
+#[test]
+fn a_ball_cut_at_a_slant_and_joined_to_a_coaxial_knob_at_its_pole_holds_both_in_either_order() {
+    let knob = ball_of(-5.0, 1.0);
+    let cap = |radius: f64, height: f64| PI * height * height * (3.0 * radius - height) / 3.0;
+    let volume = BALL / 2.0 + 4.0 * PI / 3.0 - cap(5.0, 0.1) - cap(1.0, 0.9);
+
+    let slanted = turned(&ball(), 360.0)
+        .cut_by(&slab_at_a_slant(0.0))
+        .expect("the ball is cut at a slant");
+    let slanted_first = slanted.joined(&knob);
+    let knobbed = turned(&ball(), 360.0)
+        .joined(&knob)
+        .expect("the knob is joined");
+    let knobbed_first = knobbed.cut_by(&slab_at_a_slant(0.0));
+
+    for (what, built) in [
+        (
+            "a ball cut at a slant, then joined to a coaxial knob",
+            slanted_first,
+        ),
+        (
+            "a ball joined to a coaxial knob, then cut at a slant",
+            knobbed_first,
+        ),
+    ] {
+        let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        held(&body, volume, what);
+        assert_eq!(rounds(&body).len(), 2, "{what}: the half ball and the knob");
+    }
+}
+
+/// A slab at a slant whose face runs through the ball's pole at h = 5: its
+/// circle passes through a pole of the sphere's chart, where θ has no value,
+/// and the cut and the join are declined until #938, though the sphere has
+/// no pole but its chart's. The slab half a unit further out cuts the cap
+/// past it.
+#[test]
+fn a_slab_at_a_slant_through_a_pole_of_a_ball_s_chart_is_declined_as_unsupported() {
+    let through = 5.0 / 2f64.sqrt();
+
+    let cut = turned(&ball(), 360.0).cut_by(&slab_at_a_slant(through));
+    let joined = turned(&ball(), 360.0).joined(&slab_at_a_slant(through));
+
+    for (what, declined) in [("cut", cut.err()), ("join", joined.err())] {
+        assert_eq!(
+            declined,
+            Some(Declined::Unsupported),
+            "the {what} of a ball by a slab at a slant through its pole, which #938 is to build"
+        );
+    }
+    let past = through + 0.5;
+    let cut = turned(&ball(), 360.0)
+        .cut_by(&slab_at_a_slant(past))
+        .expect("a slab half a unit past the pole cuts the ball");
+    held(
+        &cut,
+        BALL - cap_above(past),
+        "a ball cut by a slab at a slant half a unit past its pole",
+    );
+}
+
+/// A block whose side stands within the tolerance of touching the ball, at a
+/// point off its poles, half a hair inside it or outside: the relation reads
+/// no circle there, and the cut and the join are declined until #939.
+#[test]
+fn a_block_whose_side_stands_within_a_hair_of_touching_a_ball_off_its_poles_is_declined_as_unsupported()
+ {
+    let eps = Scale::of(10.0).eps();
+    for low in [5.0 - eps / 2.0, 5.0 + eps / 2.0] {
+        let slab = block([low, -10.0, -10.0], [10.0, 10.0, 10.0]);
+
+        let cut = turned(&ball(), 360.0).cut_by(&slab);
+        let joined = turned(&ball(), 360.0).joined(&slab);
+
+        for (what, declined) in [("cut", cut.err()), ("join", joined.err())] {
+            assert_eq!(
+                declined,
+                Some(Declined::Unsupported),
+                "the {what} of a ball by a block from x = {low}, touching it off its poles, \
+                 which #939 is to build"
+            );
+        }
+    }
 }
 
 #[test]
@@ -710,11 +861,21 @@ fn a_slanted_wall_cut_from_a_quarter_torus_past_its_quarter_leaves_the_quarter_w
 /// its reach off. Once #805 meets the two along the circle about the foot of
 /// the centre, the cut keeps the ball beside the plane and the join adds the
 /// block to it; a hair inside the crest, the cut and the join are built
-/// sound or declined, and never a body whose faces cross.
+/// sound or declined, and never a body whose faces cross. Two hairs inside
+/// and more, the circle is built however small: two hairs inside, its radius
+/// is √(2r × 2 eps), under half a thousandth.
 #[test]
 fn a_block_whose_side_crosses_a_ball_off_its_axis_cuts_and_joins_it_along_a_circle() {
     let eps = Scale::of(10.0).eps();
-    for low in [2.0, 4.9, -3.0, 5.0 - eps] {
+    for low in [
+        2.0,
+        4.9,
+        -3.0,
+        5.0 - eps,
+        5.0 - 2.0 * eps,
+        5.0 - 20.0 * eps,
+        5.0 - 1e-6,
+    ] {
         let slab = block([low, -10.0, -10.0], [10.0, 10.0, 10.0]);
 
         let cut = turned(&ball(), 360.0).cut_by(&slab);

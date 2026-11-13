@@ -678,6 +678,22 @@ fn a_plane_at_a_slant_further_from_a_ball_s_centre_than_its_radius_misses_it() {
 }
 
 #[test]
+fn a_plane_within_a_hair_of_touching_a_ball_off_its_poles_is_unsupported() {
+    let eps = scale().eps();
+    for normal in slanted_and_square(DVec3::Z) {
+        for standing in [3.0 - eps / 2.0, 3.0, 3.0 + eps / 2.0, -3.0] {
+            let flat = plane(DVec3::new(0.0, 0.0, 5.0) + normal * standing, normal);
+            assert_eq!(
+                between(&ball(), &flat),
+                Relation::Unsupported,
+                "a plane facing {normal} {standing} from the centre, touching the ball off its \
+                 poles, which #939 is to read as a touch"
+            );
+        }
+    }
+}
+
+#[test]
 fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
     let eps = scale().eps();
     let planes = [

@@ -23,7 +23,7 @@ use std::f64::consts::PI;
 
 use glam::DVec3;
 
-use super::super::sampling::{Rounded, Samples};
+use super::super::sampling::{Rounded, SHARE, Samples, divisions_in};
 use super::super::sweep;
 use super::central::FRONT;
 use super::central::refinement::refined;
@@ -89,13 +89,18 @@ impl Outline {
     }
 
     /// The face `id` of `sphere` read about the axis every circle of it turns
-    /// about, and cut in strips there. None where an edge is no circle, where
-    /// two turn about different axes, and where the strips cannot cut it.
+    /// about, and cut in strips there within `tolerance`, its grid of angles
+    /// cut for the sphere's own radius: the grid of the sphere read about its
+    /// own axis is cut for the widest the faces reach about that one, and a
+    /// face of a slanted cut reaches no circle of it. None where an edge is no
+    /// circle, where two turn about different axes, and where the strips
+    /// cannot cut it.
     pub(super) fn about(
         body: &Body,
         samples: &mut Samples,
         id: FaceId,
         sphere: &Sphere,
+        tolerance: f64,
     ) -> Option<(Outline, Vec<[usize; 3]>)> {
         let face = body.face(id);
         let mut axes = (face.loops.iter().flatten()).map(|coedge| {
@@ -118,7 +123,8 @@ impl Outline {
         };
         let poles = [low, high].map(|pole| samples.added(pole.point));
         let laps = laps(body, samples, id)?;
-        let grid = (samples.steps(face.surface)?, samples.rows(face.surface)?);
+        let steps = divisions_in(sphere.radius, tolerance * SHARE, samples.span);
+        let grid = (steps, samples.rows(face.surface)?);
         let mut outline = Outline::default();
         let mut lattice = outline.laid_out(
             body,

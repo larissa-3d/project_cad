@@ -56,9 +56,12 @@ It can:
   circular cones against cylinders and cones of their axis; a sphere or a
   torus against a plane square to or holding its axis, and a coaxial
   cylinder, cone, sphere or torus — a bore through a ball, a shaft joined to
-  it at its equator, a groove cut in a shaft (#576); a sphere against any
-  other plane, along a circle of another axis — a ball cut at a slant, the
-  chamfer at the foot of a rib cut from a ball (#805); a plane against
+  it at its equator, a groove cut in a shaft (#576); a sphere against a
+  plane at a slant to its axis or off it, along a circle of another axis —
+  a ball cut at a slant, the chamfer at the foot of a rib cut from a ball
+  (#805), short of a cut through a pole of its chart (#938), a plane within
+  the tolerance of touching it (#939) and a face bounded by circles of two
+  such axes, not drawn yet (#940); a plane against
   a cylinder or a cone at any angle (#552); elliptic cylinders (#571)
   against planes at any angle and round or elliptic walls parallel or
   square to them; curves: lines, circles, ellipses, the
@@ -575,7 +578,10 @@ Known and still open:
   along latitude circles, a touch at a crest or a root, or its pole; a
   plane holding its axis along its meridians; and a coaxial cylinder, cone,
   sphere or torus along one or two rims. A sphere meets any other plane
-  along a circle of another axis (#805). A cone within the
+  along a circle of another axis (#805); a cut along one through a pole of
+  its chart (#938), a plane within the tolerance of touching it (#939), and
+  a face bounded by circles of two such axes, which is not drawn (#940),
+  are still declined. A cone within the
   tolerance of a plane or a cylinder of its axis all across the box, two
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another
@@ -828,8 +834,12 @@ The decisions, in the order taken, once per operation:
    unwrapped by where the axis pierces the circle's disc, once round a turn
    where it does and back within half a turn of the centre's angle where it
    does not; a circle within `EPS` of a pole has no angle there and is not
-   read so. A sphere carries every circle lying on it, whatever its axis. A
-   plane at a slant to a torus or off its axis, a wall or a round of
+   read so (#938). A sphere carries every circle lying on it, whatever its
+   axis, and any other circle crosses it where it crosses the circle its
+   own plane cuts the sphere along, the two in one plane (decision 4); the
+   flux through a face bounded by such a circle is integrated over panels
+   halving towards where it passes nearest each pole, round which its angle
+   about the axis turns fastest. A plane at a slant to a torus or off its axis, a wall or a round of
    another axis, and an elliptic wall are unsupported, and decline unless
    `clear` stands the two faces apart; none of them asks for a conic, so
    `at_a_slant` answers false.

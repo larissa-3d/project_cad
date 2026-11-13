@@ -311,6 +311,163 @@ fn an_exact_body_behind_a_plane_keeps_only_what_is_behind_it() {
     assert_eq!(behind.ray_hit(DVec3::new(15.0, 10.0, 6.0), DVec3::X), None);
 }
 
+/// A ball of radius 5 about the origin: a half disc turned whole about Y.
+fn ball_about_y() -> Body {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..=32)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * 5.0)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let half = Contour {
+        corners: vec![DVec2::new(0.0, -5.0), DVec2::new(0.0, 5.0)],
+        runs: vec![
+            Run::Round {
+                center: DVec2::ZERO,
+                turn: PI,
+            },
+            Run::Straight,
+        ],
+    };
+    let profile = Profile {
+        exact: Some((half, Vec::new())),
+        sampled: Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    Body::default()
+        .tool_turned(&profile, FLAT, &about_v(&profile, TAU))
+        .expect("the exact kernel turns the ball")
+}
+
+/// The box from `low` to `high`, raised along Z.
+fn boxed(low: DVec3, high: DVec3) -> Body {
+    Body::default()
+        .tool_raised(
+            &exact(Contour::rectangle(low.truncate(), high.truncate()), vec![]),
+            Frame {
+                origin: DVec3::Z * low.z,
+                ..FLAT
+            },
+            DVec3::Z * (high.z - low.z),
+        )
+        .expect("the kernel raises it")
+}
+
+/// The ball cut by x ≥ 4, then by z ≥ 4: the sphere's face holds both poles
+/// and is bounded by circles about two axes, X and Z, neither the ball's,
+/// which neither of #805's ways of drawing a sphere face takes. The body is
+/// sound, but its triangles do not close, and the step is declined until
+/// #940.
+#[test]
+fn a_ball_cut_by_two_flats_whose_planes_are_not_parallel_is_declined_as_undrawn() {
+    let cap = PI * (15.0 - 1.0) / 3.0;
+    let ball = ball_about_y();
+    let flat = ball
+        .difference(&boxed(DVec3::new(4.0, -10.0, -10.0), DVec3::splat(10.0)))
+        .expect("one flat cuts the ball");
+    let ball_volume = 500.0 * PI / 3.0;
+    assert!(
+        (flat.volume() - (ball_volume - cap)).abs() <= 1e-9 * ball_volume,
+        "the ball with one flat holds {}, where the arithmetic gives {}",
+        flat.volume(),
+        ball_volume - cap
+    );
+
+    let declined = flat
+        .difference(&boxed(DVec3::new(-10.0, -10.0, 4.0), DVec3::splat(10.0)))
+        .err();
+
+    assert_eq!(
+        declined,
+        Some(Declined::Undrawn),
+        "the ball cut by a second flat not parallel to the first, which #940 is to draw"
+    );
+}
+
+/// The ball cut by a slab at a slant whose face stands `offset` along its
+/// normal, (1, 1, 0), from the ball's centre, the slab holding what lies past
+/// the face; and the matter the arithmetic leaves, the ball less that cap.
+/// The ball's pole at y = 5 stands 5/√2 along the normal.
+fn cut_at_a_slant(offset: f64) -> (Result<Body, Declined>, f64) {
+    let normal = DVec3::new(1.0, 1.0, 0.0).normalize();
+    let u = normal.any_orthonormal_vector();
+    let slab = Body::default()
+        .tool_raised(
+            &exact(
+                Contour::rectangle(DVec2::splat(-20.0), DVec2::splat(20.0)),
+                vec![],
+            ),
+            Frame {
+                origin: normal * offset,
+                u,
+                v: normal.cross(u),
+            },
+            normal * 10.0,
+        )
+        .expect("the slab raises");
+    let height = 5.0 - offset;
+    let kept = 500.0 * PI / 3.0 - PI * height * height * (15.0 - height) / 3.0;
+    (ball_about_y().difference(&slab), kept)
+}
+
+/// How far the triangles of the ball cut at a slant may enclose from what it
+/// holds: two ten-thousandths of a reach of 40, the drawing's tolerance and
+/// more, over the ball's whole sphere.
+const DRAWN_BALL: f64 = 2e-4 * 40.0 * 4.0 * PI * 25.0;
+
+/// The circle a slab at a slant leaves on the ball passes its chart's pole
+/// as near as its face does. Within a hundredth of the pole, the cut may be
+/// declined as #938 declines the one through it; further off, it is built;
+/// and built, it holds the matter the arithmetic leaves, its triangles
+/// closed and uncrossed.
+#[test]
+fn a_ball_cut_at_a_slant_close_by_a_pole_of_its_chart_holds_the_matter_the_arithmetic_leaves_or_is_declined()
+ {
+    let pole = 5.0 / 2f64.sqrt();
+    for off in [-0.5, -0.1, -0.05, -0.01, -1e-4, 1e-4, 0.01, 0.05, 0.1, 0.5] {
+        let (cut, kept) = cut_at_a_slant(pole + off);
+        let what = format!("the ball cut at a slant {off} along the normal off its pole");
+        let body = match cut {
+            Ok(body) => body,
+            Err(declined) if off.abs() <= 0.01 => {
+                assert_eq!(declined, Declined::Unsupported, "{what}");
+                continue;
+            }
+            Err(declined) => panic!("{what}: declined, {declined:?}"),
+        };
+        assert!(
+            body.is_exact() && (body.volume() - kept).abs() <= 1e-9 * kept,
+            "{what}: holds {}, where the arithmetic leaves {kept}",
+            body.volume()
+        );
+        let triangles = body.triangles();
+        assert_eq!(crate::soundness::closed(&triangles), Ok(()), "{what}");
+        assert_eq!(crate::soundness::uncrossed(&triangles), Ok(()), "{what}");
+    }
+}
+
+/// Wherever the slab's face stands, clear of the pole, through the centre
+/// or off it, keeping one pole of the ball's chart or both: the cut's
+/// triangles are closed, uncrossed and enclose what it holds within
+/// [`DRAWN_BALL`].
+#[test]
+fn a_ball_cut_at_a_slant_is_drawn_within_the_drawing_s_tolerance_of_what_it_holds() {
+    for offset in [-4.0, -2.0, 0.0, 1.0, 2.0, 3.0, 4.0, 4.5] {
+        let (cut, kept) = cut_at_a_slant(offset);
+        let what = format!("the ball cut at a slant {offset} from its centre");
+        let body = cut.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        let triangles = body.triangles();
+        assert_eq!(crate::soundness::closed(&triangles), Ok(()), "{what}");
+        assert_eq!(crate::soundness::uncrossed(&triangles), Ok(()), "{what}");
+        let enclosed = crate::soundness::enclosed(&triangles);
+        assert!(
+            (enclosed - kept).abs() <= DRAWN_BALL,
+            "{what}: its triangles enclose {enclosed}, where it holds {kept}"
+        );
+    }
+}
+
 #[test]
 fn a_disc_s_box_reaches_its_rim_exactly() {
     let post = raised(
