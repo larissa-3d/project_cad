@@ -146,12 +146,7 @@ fn a_circle_off_the_axis_meets_a_ball_where_it_meets_the_section_its_plane_cuts_
 
     let beside = Curve::Circle(Circle::about(DVec3::new(1.0, 0.0, 5.0), DVec3::Z, 2.0));
     let once = found(&beside, &ball(), 1e-12 * REACH);
-    assert_eq!(
-        tangents(&once),
-        [true],
-        "a circle of 2 about (1, 0, 5) in the equator's plane touches the equator, of 3 about \
-         (0, 0, 5), from inside: {once:?}"
-    );
+    assert_eq!(tangents(&once), [true], "beside: {once:?}");
     assert!(
         once[0].point.distance(DVec3::new(3.0, 0.0, 5.0)) < 1e-12 * REACH,
         "{once:?}"
@@ -166,7 +161,7 @@ fn a_circle_off_the_axis_meets_a_ball_where_it_meets_the_section_its_plane_cuts_
             twice
                 .iter()
                 .any(|crossing| crossing.point.distance(at) < 1e-12 * REACH),
-            "the circle of 3 about (1, 0, 5) crosses the equator at {at}: {twice:?}"
+            "across, at {at}: {twice:?}"
         );
     }
 
@@ -175,7 +170,7 @@ fn a_circle_off_the_axis_meets_a_ball_where_it_meets_the_section_its_plane_cuts_
     assert_eq!(
         crossings(&slanted, &ball(), scale()),
         Crossings::At(Vec::new()),
-        "a circle of 2 about the ball's centre, inside the great circle of 3 its plane cuts"
+        "slanted"
     );
 
     let off = DVec3::new(1.0, 0.0, -1.0).normalize();
@@ -188,8 +183,7 @@ fn a_circle_off_the_axis_meets_a_ball_where_it_meets_the_section_its_plane_cuts_
             twice
                 .iter()
                 .any(|crossing| crossing.point.distance(at) < 1e-12 * REACH),
-            "the circle of 3 at a slant, 1 off the ball's centre, crosses its great circle at \
-             {at}: {twice:?}"
+            "crossing, at {at}: {twice:?}"
         );
     }
 }
