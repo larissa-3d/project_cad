@@ -6,6 +6,7 @@ use super::*;
 use crate::profile::{Contour, Frame};
 
 mod conic;
+mod pole;
 mod round;
 
 fn ground() -> Frame {
