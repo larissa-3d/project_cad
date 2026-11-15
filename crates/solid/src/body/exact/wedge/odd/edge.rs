@@ -19,7 +19,7 @@ use crate::body::exact::wedge::too_short;
 use crate::brep::{Declined, EdgeId, EdgeName};
 
 /// The ranks of the edges of a step laid first, ascending: each odd edge of
-/// `odd`, and every edge closing a corner of three of one sense, as [`alike`]
+/// `odd`, and every edge closing a corner of three or more of one sense, as [`alike`]
 /// reads them, with one laid first — the top edges of a standing block whose
 /// uprights are odd at their feet, their top corners closed among them as
 /// #699 closes one, before the feet go round the uprights.
@@ -40,9 +40,9 @@ fn laid_first(step: &Step, odd: &[Odd]) -> Vec<usize> {
 }
 
 /// What a list of edges laid in turn leaves: the body, and the corners three
-/// of its edges meet at, by their ranks in the list, in the order their
-/// closing faces are numbered.
-type Laid = (Exact, Vec<[usize; 3]>);
+/// or more of its edges meet at, by their ranks in the list, in the order
+/// their closing faces are numbered.
+type Laid = (Exact, Vec<Vec<usize>>);
 
 /// What laying at a value gives: what it lays, or the most the edges give
 /// there, short of the value.
@@ -69,8 +69,8 @@ impl Exact {
     /// in the list, as [`ranked_patches`] numbers them: the flat laid on each
     /// edge no name finds, at its corner of mixed sense — the fill along a
     /// flat's foot, the cut along a fill's top — and the face closing
-    /// a corner three edges of either list meet at — the apex of a pyramid
-    /// whose slanted edges are laid first. Declined `Unsupported` where
+    /// a corner three or more edges of either list meet at — the apex of a
+    /// pyramid whose slanted edges are laid first. Declined `Unsupported` where
     /// either list gives less than `taken`, as [`Step::bound`] reads it on
     /// the body it is laid on, an edge cannot be followed, the odd edge's
     /// face meets the face its two others share along no edge or several, or
@@ -163,24 +163,23 @@ impl Exact {
             Ok(laid) => laid,
             Err(gives) => return Ok(Err(gives)),
         };
-        let back = |ranks: &[usize], corner: [usize; 3]| -> Result<[usize; 3], Declined> {
-            let mut back = [0; 3];
-            for (into, rank) in back.iter_mut().zip(corner) {
-                *into = *ranks.get(rank).ok_or(Declined::Unsupported)?;
-            }
+        let back = |ranks: &[usize], corner: &[usize]| -> Result<Vec<usize>, Declined> {
+            let mut back = (corner.iter())
+                .map(|&rank| ranks.get(rank).copied().ok_or(Declined::Unsupported))
+                .collect::<Result<Vec<usize>, Declined>>()?;
             back.sort();
             Ok(back)
         };
         let after_first = start + first.len() as u32;
         let after_rest = laid.next + rest.len() as u32;
         let mut patches = Vec::new();
-        for (index, &corner) in closed_first.iter().enumerate() {
+        for (index, corner) in closed_first.iter().enumerate() {
             patches.push((back(&first, corner)?, after_first + index as u32));
         }
         for (index, corner) in odd.iter().enumerate() {
-            patches.push((corner.ranks, after_rest + index as u32));
+            patches.push((corner.ranks.to_vec(), after_rest + index as u32));
         }
-        for (index, &corner) in closed_after.iter().enumerate() {
+        for (index, corner) in closed_after.iter().enumerate() {
             let number = laid.next + following.len() as u32 + index as u32;
             patches.push((back(&rest, corner)?, number));
         }
@@ -220,8 +219,8 @@ impl Exact {
     }
 
     /// The body with the edges `names` find on it laid in turn at `taken`, as
-    /// [`Exact::in_turn`] lays them with `kind`, and the corners three of them
-    /// meet at, by their ranks, in the order their closing faces are
+    /// [`Exact::in_turn`] lays them with `kind`, and the corners three or more
+    /// of them meet at, by their ranks, in the order their closing faces are
     /// numbered; or, where they give less than `taken`, as [`Step::bound`]
     /// reads it on this body, by more than the body's tolerance — a limit the
     /// value was taken at, read again through a mitre, comes back a rounding
@@ -240,7 +239,9 @@ impl Exact {
         if taken - gives > self.brep.scale().eps() {
             return Ok(Err(gives));
         }
-        let closed = step.three.iter().map(|&(_, ranks, _)| ranks).collect();
+        let closed = (step.closed.iter())
+            .map(|(_, ranks, _)| ranks.clone())
+            .collect();
         let (laid, _, _) = self.in_turn(names, step, taken, kind)?;
         Ok(Ok((laid, closed)))
     }

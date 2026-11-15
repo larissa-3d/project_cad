@@ -80,7 +80,7 @@ pub(in crate::body::exact) enum Around {
 }
 
 /// The corners of mixed sense among those three of a step's edges meet at,
-/// on `body`, in the order [`super::corners::of_three`] reads them. Declined
+/// on `body`, in the order [`super::corners::closed`] reads them. Declined
 /// `Unsupported` where the two others at such a corner share no face, an
 /// edge is the odd one at one corner and one of the two others at another,
 /// or an odd edge meets at its other end an edge of the list that is odd at
@@ -93,18 +93,21 @@ pub(in crate::body::exact) enum Around {
 /// its uprights at its top corners, are laid with them first.
 pub(super) fn corners(body: &brep::Body, step: &Step) -> Result<Vec<Odd>, Declined> {
     let mut odd: Vec<Odd> = Vec::new();
-    for &(at, ranks, along) in &step.three {
-        let inwards = ranks.map(|rank| step.wedges[rank].inwards);
+    for (at, ranks, along) in &step.closed {
+        let inwards: Vec<bool> = (ranks.iter())
+            .map(|&rank| step.wedges[rank].inwards)
+            .collect();
         let alike = |at: usize| inwards.iter().filter(|&&way| way == inwards[at]).count();
-        let Some(lone) = (0..3).find(|&at| alike(at) == 1) else {
+        let Some(lone) = (0..ranks.len()).find(|&at| alike(at) == 1) else {
             continue;
         };
+        let ranks: [usize; 3] = ranks[..].try_into().map_err(|_| Declined::Unsupported)?;
         let [one, other] = [1, 2].map(|by| &step.wedges[ranks[(lone + by) % 3]]);
         let shared = (0..2)
             .find(|&side| other.faces.contains(&one.faces[side]))
             .ok_or(Declined::Unsupported)?;
         odd.push(Odd {
-            at,
+            at: *at,
             ranks,
             lone: ranks[lone],
             up: along[lone],
@@ -161,11 +164,12 @@ pub(super) fn corners(body: &brep::Body, step: &Step) -> Result<Vec<Odd>, Declin
     Ok(odd)
 }
 
-/// The corners three of a step's edges meet at, all of one sense, by their
-/// ranks: those #699 closes, and #801 at a pocket's bottom.
-fn alike(step: &Step) -> Vec<[usize; 3]> {
-    (step.three.iter())
-        .map(|&(_, ranks, _)| ranks)
+/// The corners three or more of a step's edges meet at, all of one sense, by
+/// their ranks: those #699 closes, #801 at a pocket's bottom, and #804 at a
+/// pyramid's apex.
+fn alike(step: &Step) -> Vec<Vec<usize>> {
+    (step.closed.iter())
+        .map(|(_, ranks, _)| ranks.clone())
         .filter(|ranks| {
             let sense = step.wedges[ranks[0]].inwards;
             ranks.iter().all(|&rank| step.wedges[rank].inwards == sense)
@@ -174,13 +178,13 @@ fn alike(step: &Step) -> Vec<[usize; 3]> {
 }
 
 /// The numbers the faces closing a step's corners take, each corner by its
-/// three edges' ranks, from the lowest, and the number its face answers to:
+/// edges' ranks, from the lowest, and the number its face answers to:
 /// `first` and on, in the order of those ranks, as #699 numbers its patches.
 pub(super) fn ranked_patches(
-    mut patches: Vec<([usize; 3], u32)>,
+    mut patches: Vec<(Vec<usize>, u32)>,
     first: u32,
 ) -> BTreeMap<u32, u32> {
-    patches.sort_by_key(|&(ranks, _)| ranks);
+    patches.sort_by(|(one, _), (other, _)| one.cmp(other));
     (patches.into_iter().enumerate())
         .map(|(place, (_, number))| (number, first + place as u32))
         .collect()

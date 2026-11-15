@@ -34,6 +34,12 @@ pub(super) const ENDS: u32 = OVERLAPS + (1 << 29);
 /// numbers a boolean moves it by.
 pub(super) const STRIDE: u32 = 1 << 20;
 
+/// Where the numbers of the faces a corner of four or more edges is cleared
+/// to before any of them is laid start (#804): past those of the ends held on
+/// a plane and below the pieces', so that a laying leaves them standing as
+/// no face of a prism, and the corner's closing lays its own face there.
+pub(super) const CLEARED: u32 = ENDS + (1 << 28);
+
 /// What two prisms carried past a corner both hold past the faces their edges
 /// stop flush on there, every face of it numbered [`OVERLAPS`], and the points
 /// where each edge's set-back lines cross every face it stops on, there or at

@@ -57,7 +57,7 @@ impl Exact {
     /// in the list; what [`clearing`] holds then cut from each corner; and
     /// each corner closed by its piece of torus, as [`Exact::torused`] lays
     /// it, every patch — a piece of torus, or the face closing a corner three
-    /// edges of the list meet at — numbered past them in the order of its
+    /// or more edges of the list meet at — numbered past them in the order of its
     /// corner's ranks, as [`ranked_patches`] numbers them, and each end
     /// section a corner left sharp leaves past every patch. Declined
     /// `Unsupported` where joining the fillings, or cutting the clearings,
@@ -97,7 +97,9 @@ impl Exact {
             .map(|(name, wedge)| filled.following(name, wedge))
             .collect::<Result<Vec<_>, Declined>>()?;
         let step = filled.step(&followed, kind)?;
-        let closings: Vec<[usize; 3]> = step.three.iter().map(|&(_, ranks, _)| ranks).collect();
+        let closings: Vec<Vec<usize>> = (step.closed.iter())
+            .map(|(_, ranks, _)| ranks.clone())
+            .collect();
         let (laid, _, pairs) = filled.in_turn(&followed, step, taken, kind)?;
         let lent = filled.next - start;
         let laid_on = filled.next..laid.next;
@@ -128,7 +130,7 @@ impl Exact {
             ..set_aside
         };
         let after = start + names.len() as u32;
-        let mut patches: Vec<([usize; 3], u32)> = (closings.into_iter().enumerate())
+        let mut patches: Vec<(Vec<usize>, u32)> = (closings.into_iter().enumerate())
             .map(|(index, ranks)| (ranks, after + index as u32))
             .collect();
         let mut ends = Vec::new();
@@ -138,7 +140,7 @@ impl Exact {
                 .map(|&rank| start + rank as u32)
                 .collect();
             let left = OVERLAPS + index as u32;
-            patches.push((corner.ranks, closed.next));
+            patches.push((corner.ranks.to_vec(), closed.next));
             if corner.sharp.is_some() {
                 ends.push(closed.next + 1);
             }
@@ -156,7 +158,7 @@ impl Exact {
 
     /// Whether every face this body holds still stands on `on` but those
     /// numbered in `fillings`: what a join or a cut took away.
-    fn kept_on(&self, on: &Exact, fillings: &[Range<u32>]) -> bool {
+    pub(super) fn kept_on(&self, on: &Exact, fillings: &[Range<u32>]) -> bool {
         (self.brep.face_ids())
             .flat_map(|face| self.brep.numbers(face))
             .filter(|number| !fillings.iter().any(|numbers| numbers.contains(number)))

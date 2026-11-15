@@ -2,14 +2,15 @@
 //! there and the corners they meet at, what a kind lays them with, the one
 //! value they take, and the edges laid in turn at that value — two whose
 //! set-backs meet across the face they share as one, a later edge mitred
-//! against the earlier ones it meets at a corner, and the corners three of
-//! them meet at closed once all are laid.
+//! against the earlier ones it meets at a corner, and the corners three or
+//! more of them meet at closed once all are laid — four or more cleared
+//! first.
 
 use std::collections::BTreeSet;
 
 use glam::DVec3;
 
-use super::corners::{self, Beside, Three};
+use super::corners::{self, Beside, Closed};
 use super::extent::runs;
 use super::flush::{self, Flush, Held};
 use super::reach::reach_within;
@@ -21,8 +22,8 @@ use crate::brep::{self, Declined, EdgeId, EdgeName, Scale};
 /// its wedge, by its rank in the list; each two facing each other across a
 /// face they share, as [`pairs::facing`] reads them; the corners two of them
 /// meet at beside a third that is not convex with them, as
-/// [`corners::admit`] takes them; the corners three of them meet at, as
-/// [`corners::of_three`] reads them; and the ends of cuts and fills held on
+/// [`corners::admit`] takes them; the corners three or more of them meet
+/// at, as [`corners::closed`] reads them; and the ends of cuts and fills held on
 /// a plane of their own, none unless a step going round an odd edge holds
 /// them (#846).
 pub(super) struct Step {
@@ -30,7 +31,7 @@ pub(super) struct Step {
     pub wedges: Vec<Wedge>,
     facing: Vec<(usize, usize, f64)>,
     beside: Vec<Beside>,
-    pub three: Vec<Three>,
+    pub closed: Vec<Closed>,
     pub held: Vec<Held>,
 }
 
@@ -43,7 +44,7 @@ impl Exact {
     /// Declined `Lost` where a name no longer finds its edge, and
     /// `Unsupported` where an edge is not a wedge, two names find one edge,
     /// or the corners are declined as [`corners::admit`] and
-    /// [`corners::of_three`] decline them.
+    /// [`corners::closed`] decline them.
     pub(super) fn step(&self, names: &[EdgeName], kind: &Kind) -> Result<Step, Declined> {
         let found = names
             .iter()
@@ -55,7 +56,7 @@ impl Exact {
             return Err(Declined::Unsupported);
         }
         let beside = corners::admit(&self.brep, &edges)?;
-        let three = corners::of_three(&self.brep, &edges)?;
+        let closed = corners::closed(&self.brep, &edges)?;
         let mut wedges: Vec<Wedge> = found.into_iter().map(|(_, wedge)| wedge).collect();
         let reached = |rank: usize, side: usize| {
             let ends = runs(
@@ -83,7 +84,7 @@ impl Exact {
             wedges,
             facing,
             beside,
-            three,
+            closed,
             held: Vec::new(),
         })
     }
@@ -134,9 +135,11 @@ impl Exact {
     /// as one, and each chain of them at the turn of its last edge, as
     /// [`pairs::together`] joins it — each set back the kind's `set_back` of the value, by the
     /// prisms its `tool` raises, its `meeting` laying the pairs together and
-    /// closing the corners three meet at, the faces numbered from where the
-    /// steps' numbers ended by the edges' ranks, the closings' past them in
-    /// the order of the step's corners. Each edge meets in a mitre the faces
+    /// closing the corners three or more meet at — those of four or more
+    /// cleared before any edge is laid, as [`Exact::cleared`] clears them —
+    /// the faces numbered from where the steps' numbers ended by the edges'
+    /// ranks, the closings' past them in the order of the step's corners.
+    /// Each edge meets in a mitre the faces
     /// laid before it on edges it shares a corner with, and a pair those of
     /// the edges [`pairs::at_their_ends`] lays against it: every edge it
     /// shares a corner with, and the upright at a point's tip, whose round
@@ -160,7 +163,7 @@ impl Exact {
             wedges,
             facing,
             beside,
-            three,
+            closed,
             held,
         } = step;
         let scale = self.brep.scale();
@@ -169,7 +172,7 @@ impl Exact {
             return Ok((self.closed_round(&ring, &wedges)?, taken, pairs));
         }
         pairs::apart(&pairs, meeting.together)?;
-        let ends = pairs::at_their_ends(&self.brep, &edges, &wedges, &pairs, &three, &beside)?;
+        let ends = pairs::at_their_ends(&self.brep, &edges, &wedges, &pairs, &closed, &beside)?;
         let laid_at = |rank: usize| {
             (pairs.iter())
                 .find(|&&(one, other, _)| rank == one || rank == other)
@@ -178,11 +181,11 @@ impl Exact {
                     |&(_, _, value)| value,
                 )
         };
-        let closes = closing::closings(three, &wedges, laid_at, set_back, meeting.closing)?;
+        let closes = closing::closings(closed, &wedges, laid_at, set_back, meeting.closing)?;
         let given: Vec<(EdgeId, &Wedge)> = edges.iter().copied().zip(&wedges).collect();
         let crossing = set_backs::crossing_on(&self.brep, &edges, &wedges, set_back);
         let start = self.next;
-        let mut cut = self.clone();
+        let mut cut = self.cleared(&closes, meeting.closing.apex.clear)?;
         for rank in 0..names.len() {
             let joined = pairs::together(rank, &pairs);
             if joined.last() != Some(&rank) {
