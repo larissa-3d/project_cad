@@ -123,11 +123,8 @@ fn inward() -> DVec3 {
 /// the step lays it about, square to [`inward`], and laid again on the same
 /// sphere read about [`inward`] itself: the axis #804 first gave it, whose
 /// pole above the centre stands inside the piece, on the apex's side of every
-/// round's end section. The same matter either way, the volume the arithmetic
-/// gives. On the kernel #945 was written against, the second read 158.99: the
-/// piece's arcs, circles of the sphere neither latitudes nor meridians of its
-/// chart, could not be traced until #805 read them as tilted traces, so the
-/// piece held no pole and its flux lost the pole's cap.
+/// round's end section. The first holds no pole of its chart, the second that
+/// one; the same matter either way, the volume the arithmetic gives.
 #[test]
 fn the_pyramid_s_apex_piece_read_about_the_way_its_hips_run_in_holds_the_volume_the_arithmetic_gives()
  {
@@ -160,6 +157,26 @@ fn the_pyramid_s_apex_piece_read_about_the_way_its_hips_run_in_holds_the_volume_
             },
         )
         .expect("the piece lies on the same sphere read about another axis");
+
+    assert!(
+        laid.face(piece).poles.is_empty(),
+        "the piece as the step lays it holds no pole of its chart, and holds {:?}",
+        laid.face(piece).poles
+    );
+    let [read_piece] = (read.face_ids())
+        .filter(|&face| matches!(read.surface(read.face(face).surface), Surface::Sphere(_)))
+        .collect::<Vec<_>>()[..]
+    else {
+        panic!("one piece of sphere closes the apex read about the way the hips run in");
+    };
+    let held: Vec<DVec3> = (read.face(read_piece).poles.iter())
+        .map(|&pole| read.vertex(pole).point)
+        .collect();
+    let above = sphere.middle() - inward() * sphere.radius;
+    assert!(
+        matches!(held[..], [pole] if pole.distance(above) <= 1e-9),
+        "the piece read about the way the hips run in holds the one pole above its centre, {above}, and holds {held:?}"
+    );
 
     for (what, body) in [
         ("about the axis the step lays", laid),
@@ -199,23 +216,26 @@ fn cap_of_5(height: f64) -> f64 {
     PI * height * height * (15.0 - height) / 3.0
 }
 
-/// The ball of radius 5 turned about Y, cut down to the cap past a plane
-/// whose normal leans `tilt` from the axis towards X, `offset` along it from
-/// the centre: square to the axis where the tilt is nought, else a circle at
-/// a slant to it. Each cap holds the pole at y = 5, which stands 5 cos `tilt`
-/// along the normal, past the plane, and not the other: a smaller cap than a
-/// half, a half and a larger one.
+/// The caps cut from the ball, each past a plane whose normal leans `tilt`
+/// from the ball's axis towards X, `offset` along it from the centre. Each
+/// holds the pole at y = 5, which stands 5 cos `tilt` along the normal, past
+/// the plane, and not the one at y = −5: a smaller cap than a half, a half and
+/// a larger one.
+const CAPS: [(f64, f64); 6] = [
+    (0.0, 2.0),
+    (0.0, -1.5),
+    (0.3, 2.0),
+    (0.4, 0.0),
+    (0.5, -2.0),
+    (1.0, 1.0),
+];
+
+/// The ball of radius 5 turned about Y, cut down to each of [`CAPS`]: its
+/// circle square to the axis where the tilt is nought, else at a slant to it.
 #[test]
 fn a_cap_of_a_ball_holding_a_pole_of_its_chart_holds_the_cap_s_volume_its_circle_square_to_the_axis_or_tilted_round_the_pole()
  {
-    for (tilt, offset) in [
-        (0.0, 2.0),
-        (0.0, -1.5),
-        (0.3, 2.0),
-        (0.4, 0.0),
-        (0.5, -2.0),
-        (1.0, 1.0),
-    ] {
+    for (tilt, offset) in CAPS {
         let normal = DVec3::new(f64::sin(tilt), f64::cos(tilt), 0.0);
         let what = format!("the cap of the ball past {offset} along a normal leaning {tilt}");
         let cap = turned(&ball(), 360.0)
