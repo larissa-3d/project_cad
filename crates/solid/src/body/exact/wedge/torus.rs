@@ -57,7 +57,7 @@ impl Exact {
     /// in the list; what [`clearing`] holds then cut from each corner; and
     /// each corner closed by its piece of torus, as [`Exact::torused`] lays
     /// it, every patch — a piece of torus, or the face closing a corner three
-    /// edges of the list meet at — numbered past them in the order of its
+    /// or more edges of the list meet at — numbered past them in the order of its
     /// corner's ranks, as [`ranked_patches`] numbers them, and each end
     /// section a corner left sharp leaves past every patch. Declined
     /// `Unsupported` where joining the fillings, or cutting the clearings,

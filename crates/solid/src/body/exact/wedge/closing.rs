@@ -205,31 +205,33 @@ impl Exact {
     /// The body with each corner of `closes` four or more edges meet at
     /// cleared as `clear` clears it, before any of them is laid, so that no
     /// edge's cut, carried past the corner, takes the matter of a face it
-    /// does not lie on: what the clearing leaves numbered [`CLEARED`] past
-    /// the steps' numbers, until the corner's closing lays its own face there.
+    /// does not lie on: what each clearing leaves numbered past the steps'
+    /// numbers from [`CLEARED`], one number for each corner, in the order of
+    /// their ranks, until the corner's closing lays its own face there.
     /// Declined `Unsupported` where a clearing takes a face of the body away
-    /// whole or leaves other faces than it says; otherwise as it declines.
+    /// whole, or leaves more or fewer faces answering to its number than it
+    /// says; otherwise as it declines.
     pub(super) fn cleared(
         &self,
         closes: &[(Corner, Vec<usize>, Close)],
         clear: Clear,
     ) -> Result<Exact, Declined> {
-        let count = |body: &Exact| {
-            (body.brep.face_ids())
-                .filter(|&face| body.brep.numbers(face).contains(&(CLEARED + self.next)))
-                .count()
-        };
         (closes.iter())
             .filter(|(_, ranks, _)| ranks.len() > 3)
-            .try_fold(self.clone(), |body, (corner, _, _)| {
+            .enumerate()
+            .try_fold(self.clone(), |body, (index, (corner, _, _))| {
                 let (solid, leaves) = clear(&body, corner)?;
+                let number = CLEARED + index as u32;
                 let tool = Exact {
-                    brep: solid.brep.renumbered_by(|_| CLEARED),
+                    brep: solid.brep.renumbered_by(|_| number),
                     next: 0,
                     ..solid
                 };
                 let cut = body.cut_by(&tool)?;
-                if body.kept_on(&cut, &[]) && count(&cut) == count(&body) + leaves {
+                let left = (cut.brep.face_ids())
+                    .filter(|&face| cut.brep.numbers(face).contains(&(number + body.next)))
+                    .count();
+                if body.kept_on(&cut, &[]) && left == leaves {
                     Ok(cut)
                 } else {
                     Err(Declined::Unsupported)

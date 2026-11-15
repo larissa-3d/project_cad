@@ -185,31 +185,51 @@ fn ahead(body: &Exact, corner: &Corner, centre: DVec3) -> Result<(), Declined> {
     }
 }
 
-/// The axis the piece of sphere is read about: square to two of the edges
-/// next in rank, and as near along the one after them as any such: at a
-/// corner of three, its end sections then lie on two meridians meeting at a
-/// pole, where the piece touches the face of the two edges, and as near the
-/// equator as the corner lets the third — on it where the third edge stands
-/// square to the other two, at a square corner or the end of a prism.
+/// The axis the piece of sphere is read about. At a corner of three: square
+/// to two of the edges, and as near along the third as any such: its end
+/// sections then lie on two meridians meeting at a pole, where the piece
+/// touches the face of the two edges, and as near the equator as the corner
+/// lets the third — on it where the third edge stands square to the other
+/// two, at a square corner or the end of a prism. At a corner of four or
+/// more, where no such axis holds every end section on a meridian, a way
+/// square to the way its edges run on the whole, [`inward`], so that the
+/// piece is read about the same axis whatever the order the step names them
+/// in, and both poles stand off it: the piece lies on the corner's side of
+/// every end section. A pole inside the piece would be read wrong — the
+/// body's volume came out short with the axis along that way.
 fn axis(along: &[DVec3]) -> DVec3 {
-    let count = along.len();
-    (0..count)
-        .map(|one| {
-            let axis = along[one].cross(along[(one + 1) % count]).normalize();
-            (axis.dot(along[(one + 2) % count]).abs(), axis)
-        })
-        .max_by(|(one, _), (other, _)| one.total_cmp(other))
-        .map_or(along[0], |(_, axis)| axis)
+    let [one, other, third] = along[..] else {
+        return inward(along).any_orthonormal_vector();
+    };
+    [
+        [one, other, third],
+        [other, third, one],
+        [third, one, other],
+    ]
+    .map(|[one, other, third]| {
+        let axis = one.cross(other).normalize();
+        (axis.dot(third).abs(), axis)
+    })
+    .into_iter()
+    .max_by(|(one, _), (other, _)| one.total_cmp(other))
+    .map_or(one, |(_, axis)| axis)
 }
 
-/// What of the corner stands on its side of the three planes through
-/// `centre` square to its edges: a cube about the centre, its half side
-/// twice the way from the centre to the corner, less what of it stands past
-/// each plane.
+/// The way a corner's edges run from it on the whole: the sum of the ways
+/// each runs, of length one, whatever the order they come in.
+fn inward(along: &[DVec3]) -> DVec3 {
+    along.iter().sum::<DVec3>().normalize()
+}
+
+/// What of the corner stands on the corner's side of the planes through
+/// `centre` square to its edges: a cube about the centre, turned by the way
+/// its edges run on the whole, [`inward`], whatever the order they come in,
+/// its half side twice the way from the centre to the corner, less what of
+/// it stands past each plane.
 fn short_of(corner: &Corner, centre: DVec3) -> Result<Exact, Declined> {
     let half = 2.0 * centre.distance(corner.at);
-    let last = corner.along[corner.along.len() - 1];
-    let mut kept = slab(last, centre - last * half, half)?;
+    let way = inward(&corner.along);
+    let mut kept = slab(way, centre - way * half, half)?;
     for &way in &corner.along {
         kept = kept.cut_by(&slab(way, centre, 2.0 * half)?)?;
     }

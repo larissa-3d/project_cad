@@ -19,7 +19,7 @@ use crate::body::exact::wedge::too_short;
 use crate::brep::{Declined, EdgeId, EdgeName};
 
 /// The ranks of the edges of a step laid first, ascending: each odd edge of
-/// `odd`, and every edge closing a corner of three of one sense, as [`alike`]
+/// `odd`, and every edge closing a corner of three or more of one sense, as [`alike`]
 /// reads them, with one laid first — the top edges of a standing block whose
 /// uprights are odd at their feet, their top corners closed among them as
 /// #699 closes one, before the feet go round the uprights.
@@ -69,8 +69,8 @@ impl Exact {
     /// in the list, as [`ranked_patches`] numbers them: the flat laid on each
     /// edge no name finds, at its corner of mixed sense — the fill along a
     /// flat's foot, the cut along a fill's top — and the face closing
-    /// a corner three edges of either list meet at — the apex of a pyramid
-    /// whose slanted edges are laid first. Declined `Unsupported` where
+    /// a corner three or more edges of either list meet at — the apex of a
+    /// pyramid whose slanted edges are laid first. Declined `Unsupported` where
     /// either list gives less than `taken`, as [`Step::bound`] reads it on
     /// the body it is laid on, an edge cannot be followed, the odd edge's
     /// face meets the face its two others share along no edge or several, or
@@ -219,8 +219,8 @@ impl Exact {
     }
 
     /// The body with the edges `names` find on it laid in turn at `taken`, as
-    /// [`Exact::in_turn`] lays them with `kind`, and the corners three of them
-    /// meet at, by their ranks, in the order their closing faces are
+    /// [`Exact::in_turn`] lays them with `kind`, and the corners three or more
+    /// of them meet at, by their ranks, in the order their closing faces are
     /// numbered; or, where they give less than `taken`, as [`Step::bound`]
     /// reads it on this body, by more than the body's tolerance — a limit the
     /// value was taken at, read again through a mitre, comes back a rounding
