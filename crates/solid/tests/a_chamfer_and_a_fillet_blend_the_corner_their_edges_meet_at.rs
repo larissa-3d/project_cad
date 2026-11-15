@@ -551,7 +551,8 @@
 //! - Decided on the way, after the review (2026-11-13): an apex closed in
 //!   the same step as #699's corners, the square pyramid on its base with its
 //!   four hips and the four edges of its base named, each corner of the base
-//!   a convex corner of three edges, its hip and two edges of the base —
+//!   a convex corner of three edges, its hip and two edges of the base; the
+//!   fillet declined in every order until #946 —
 //!   `a_chamfer_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_and_a_fillet_is_declined_whatever_the_order`.
 //!   Read as: the fillet on the four base edges alone built, exact, closed
 //!   and uncrossed; then, in 48 of the 40320 orders: the chamfer taken whole,
@@ -6556,7 +6557,7 @@ fn a_chamfer_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its
             laid.err(),
             Some(Declined::Unsupported),
             "the fillet at 1 on the four hips and the four base edges, named {order:?}: a broken \
-             step and its reason, and no body"
+             step and its reason, and no body, until #946"
         );
     }
 
