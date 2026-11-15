@@ -6435,7 +6435,7 @@ fn a_fillet_whose_clearing_would_take_whole_a_cube_standing_just_above_the_apex_
             laid.err(),
             Some(Declined::Unsupported),
             "the fillet on {}: its clearing about the sphere's centre would take the cube whole, \
-             a broken step and its reason rather than a body short of the cube",
+             a broken step and its reason rather than a body short of the cube, until #948",
             hips_called(&apex, order)
         );
     }
