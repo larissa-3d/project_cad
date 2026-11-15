@@ -175,6 +175,40 @@ impl<'a> Flush<'a> {
             held: Vec::new(),
         })
     }
+
+    /// The box the edge's prism, read as `wedge`, is carried over. Past an
+    /// end a cut is carried past, it reaches as far as the faces meeting the
+    /// edge at its ends, its own two among them: matter standing further
+    /// along its line, a second boss as high, is no part of the cut (#924).
+    /// Towards an end the prism is trimmed at — a fill's, a stop, a held end
+    /// — it is grown to the box from `lowest` to `highest`, the body's it is
+    /// laid on: the section must reach the plane it is trimmed on, which runs
+    /// on past the end where it leans. None where the edge has no ends.
+    pub fn run(&self, wedge: &Wedge, (lowest, highest): (DVec3, DVec3)) -> Option<(DVec3, DVec3)> {
+        let body = self.on;
+        let ends = body.edge(self.edge).ends?;
+        let meets = |face: &FaceId| {
+            (body.face(*face).loops.iter().flatten())
+                .filter_map(|coedge| body.edge(coedge.edge).ends)
+                .any(|at| at.iter().any(|end| ends.contains(end)))
+        };
+        let mut run = (body.face_ids().filter(meets))
+            .map(|face| body.boxed(face, 0.0))
+            .reduce(|[low, high], [lower, higher]| [low.min(lower), high.max(higher)])?;
+        let stopping = stops(body, self.edge, wedge);
+        let eps = body.scale().eps();
+        for (end, past) in ends.into_iter().zip([-wedge.along, wedge.along]) {
+            let corner = body.vertex(end).point;
+            let trimmed = wedge.inwards
+                || stopping.iter().any(|stop| stop.end == end)
+                || holding(&self.held, corner, eps).is_some();
+            if trimmed {
+                let furthest = DVec3::select(past.cmpge(DVec3::ZERO), highest, lowest);
+                run = [run[0].min(furthest), run[1].max(furthest)];
+            }
+        }
+        Some((run[0], run[1]))
+    }
 }
 
 /// The ends of `edge` on `body`, read there as `wedge`, where the one face met

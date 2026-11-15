@@ -14,8 +14,8 @@ impl Wedge {
     /// face pushed out by the margin, or by less where the chamfer's plane
     /// lies so near it that its run would end further than the distance, or
     /// the margin, past the set-back; capped as [`Side::top`] caps it. Its
-    /// first run lies on the chamfer's plane. Carried over the body's box
-    /// along the edge's line and a margin past either end. A fill's section
+    /// first run lies on the chamfer's plane. Carried along the edge's line
+    /// over the box `bounds` and a margin past either end. A fill's section
     /// runs on the chamfer's plane from set-back to set-back and no further,
     /// as [`Wedge::squared_off`] draws it: carried into the matter past a
     /// set-back, its run would come out past a face whose far end stands

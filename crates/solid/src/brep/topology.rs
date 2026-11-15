@@ -262,7 +262,7 @@ impl Body {
     /// The box round a face, from the extremes of its edges, the poles it
     /// holds within it and, on a sphere or a torus, where it bulges, grown
     /// by `eps`.
-    pub(in crate::brep) fn boxed(&self, face: FaceId, eps: f64) -> [DVec3; 2] {
+    pub(crate) fn boxed(&self, face: FaceId, eps: f64) -> [DVec3; 2] {
         let edged = self.edged(face);
         let [low, high] = self
             .bulges_past(face, edged)

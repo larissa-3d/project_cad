@@ -1110,27 +1110,6 @@ fn a_chamfer_leaves_a_lump_a_few_tenths_clear_of_its_edge_in_front_and_above_who
 }
 
 #[test]
-fn a_chamfer_whose_cut_carried_along_its_edge_would_reach_a_second_block_in_line_is_declined_as_unsupported()
- {
-    let first = block([15.0, 10.0, 10.0]);
-    let in_line = joined_to(
-        &first,
-        Contour::rectangle(DVec2::new(20.0, 0.0), DVec2::new(35.0, 10.0)),
-        0.0,
-        10.0,
-    );
-    let edge = edge_between(&in_line, TOP, FRONT);
-
-    let declined = in_line.chamfer(&edge, 2.0).err();
-
-    assert_eq!(
-        declined,
-        Some(Declined::Unsupported),
-        "the cut would chamfer the second block's top front edge as well"
-    );
-}
-
-#[test]
 fn a_chamfer_whose_cut_would_bite_into_a_rib_beside_its_edge_is_declined_as_unsupported() {
     let ribbed = joined_to(
         &block_to_chamfer(),

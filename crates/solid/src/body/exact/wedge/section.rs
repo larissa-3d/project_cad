@@ -12,15 +12,15 @@ use super::{Prism, Wedge};
 use crate::brep::Scale;
 use crate::profile::{Contour, Frame, Run};
 
-/// How far the prism stands off the edge's two faces, past the edge and
-/// past the body's box along it, in square roots of the kernel's relative tolerance
-/// over the edge's slant, times the part's reach. A raise refuses a section
-/// whose area is under its tolerance times its reach, `RELATIVE · reach²`;
-/// however short the distance, a section a margin `m` round the edge holds
-/// some `m² · tan γ`, `γ` the angle between either face and the plane
-/// through the two lines the cut is set back to — a chamfer's own plane —
-/// `tan γ` taken at most one, as at a square edge or a sharper one:
-/// at three, nine times what the raise needs. There it grows the part's
+/// How far the prism stands off the edge's two faces, past the edge and past
+/// the box it is carried over along it, in square roots of the kernel's
+/// relative tolerance over the edge's slant, times the part's reach. A raise
+/// refuses a section whose area is under its tolerance times its reach,
+/// `RELATIVE · reach²`; however short the distance, a section a margin `m`
+/// round the edge holds some `m² · tan γ`, `γ` the angle between either face
+/// and the plane through the two lines the cut is set back to — a chamfer's
+/// own plane — `tan γ` taken at most one, as at a square edge or a sharper
+/// one: at three, nine times what the raise needs. There it grows the part's
 /// reach by some 1e-4 of it, and more as the edge flattens.
 const SECTION: f64 = 3.0;
 
@@ -164,8 +164,8 @@ impl Wedge {
 
     /// The frame a section square to the edge is drawn in, `across` its
     /// first axis, and the travel that raises it along the edge's line over
-    /// the body's box and `margin` past either end — a fill's, before the
-    /// faces at the edge's ends trim it.
+    /// the box from `low` to `high` and `margin` past either end — a fill's,
+    /// before the faces at the edge's ends trim it.
     pub(in crate::body::exact) fn raised_along(
         &self,
         across: DVec3,
