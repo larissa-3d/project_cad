@@ -552,8 +552,13 @@
 //!   the same step as #699's corners, the square pyramid on its base with its
 //!   four hips and the four edges of its base named, each corner of the base
 //!   a convex corner of three edges, its hip and two edges of the base; the
-//!   fillet declined in every order until #946 —
-//!   `a_chamfer_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_and_a_fillet_is_declined_whatever_the_order`.
+//!   fillet built in every order since #805 met a sphere and a plane at a
+//!   slant, which fixed the boolean #946 found declining at the second
+//!   corner of the base —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_close_its_apex_and_its_four_base_corners_in_one_body_whatever_the_order`,
+//!   the fillet there in 12 of the chamfer's 48 orders, every fourth, and in
+//!   all 48 in a campaign run by hand —
+//!   `a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_in_each_of_48_orders`.
 //!   Read as: the fillet on the four base edges alone built, exact, closed
 //!   and uncrossed; then, in 48 of the 40320 orders: the chamfer taken whole,
 //!   the body exact, closed, uncrossed, holding 141.77296518494913, which
@@ -563,9 +568,19 @@
 //!   (0.707107, 1.931852, 0.707107) and (1.931852, 0.707107, 0.707107) at the
 //!   corner on the origin; one flat for each edge by its rank and five
 //!   patches after them, one of them the apex's square; every order laying
-//!   the body the first lays, each patch found by its plane and its corners;
-//!   and the fillet on the same lists declined `Unsupported` in each of those
-//!   orders. Pinned as found: the decline is not taken here
+//!   the body the first lays, each patch found by its plane and its corners.
+//!   And the fillet on 12 of the same lists, every fourth — all 48 in the
+//!   campaign — pinned declined `Unsupported` in each of those orders until
+//!   #805's first slice built it: the value taken
+//!   whole; the body exact, closed, uncrossed, holding 125.5604204966659, the
+//!   pyramid opened by the ball of radius 1 — the pyramid shrunk about the
+//!   centre of its inscribed sphere until its faces stand 1 in, then swelled
+//!   by the ball, by Steiner's formula — and its triangles enclosing that
+//!   within the drawing's tolerance; one round for each edge by its rank and
+//!   five patches after them; each patch a piece of the sphere of radius 1
+//!   about one corner of the shrunk pyramid, each of the five taken once,
+//!   meeting the rounds of that corner's edges and nothing else; and every
+//!   order laying the body the first lays, each patch found by its sphere
 //! - Decided on the way, after the review (2026-11-13): the piece of sphere's
 //!   chart, read from pairs of hips of consecutive rank, can turn with the
 //!   order, so that the piece is drawn with other triangles — no test: the
@@ -899,6 +914,16 @@
 //! from all four, and no sphere touches them all. The flats at 1 cross on the
 //! front and the back 3.683 high, and on the left and the right 3.190 high:
 //! the four crossings lie on no one plane.
+//!
+//! The campaign is run by hand, out of the gate, compiled only under the
+//! `campaigns` feature: the fillet on the square pyramid's four hips and the
+//! four edges of its base in all 48 of the orders the chamfer is held in,
+//! where the gate takes every fourth, each held as the gate holds its own —
+//!
+//! ```text
+//! cargo test --release -p cao_solid --features campaigns \
+//!     --test a_chamfer_and_a_fillet_blend_the_corner_their_edges_meet_at -- --ignored
+//! ```
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
@@ -6730,6 +6755,58 @@ fn a_chamfer_on_the_hips_of_two_pyramids_in_one_step_closes_both_apexes_in_one_b
     closes_both_apexes(Cut::Flat);
 }
 
+/// How far the square pyramid's faces stand from the centre of the sphere
+/// they all touch, on its axis: the base's distance from it is its height,
+/// a slope's is 5 less that height over √2, and the two are one.
+fn pyramid_s_inradius() -> f64 {
+    5.0 / (1.0 + 2f64.sqrt())
+}
+
+/// What the square pyramid keeps once its eight edges are rounded at
+/// `radius`, its apex and the four corners of its base each closed by a
+/// piece of sphere: the pyramid opened by the ball of `radius`, which every
+/// face of it touches. Its faces stood `radius` in, the pyramid shrinks about
+/// the centre of its inscribed sphere by `k = (ρ − r)/ρ`; the ball swells the
+/// shrunk pyramid back, by Steiner's formula, into its own matter, its area
+/// times the radius, the length of its edges times the angle each turns
+/// through by half the radius squared — its rounds — and the ball, its
+/// corners' pieces making one whole. The base's edges turn through 3π/4, the
+/// hips, of 5√3, through π/3.
+fn pyramid_opened_by_a_ball(radius: f64) -> f64 {
+    let k = (pyramid_s_inradius() - radius) / pyramid_s_inradius();
+    let area = 100.0 + 100.0 * 2f64.sqrt();
+    let turns = (4.0 * 10.0 * 3.0 * PI / 4.0 + 4.0 * 5.0 * 3f64.sqrt() * PI / 3.0) / 2.0;
+    k.powi(3) * PYRAMID_VOLUME
+        + k * k * area * radius
+        + k * turns * radius * radius
+        + 4.0 * PI * radius.powi(3) / 3.0
+}
+
+/// The corners of the square pyramid shrunk as [`pyramid_opened_by_a_ball`]
+/// shrinks it at a radius of 1: its apex, √2 under the pyramid's, then the
+/// corner over each hip's foot, 1 up, in the order of the apex's hips.
+fn shrunk_pyramid_s_corners(apex: &Apex) -> [DVec3; 5] {
+    let k = (pyramid_s_inradius() - 1.0) / pyramid_s_inradius();
+    let middle = DVec3::new(apex.at.x, apex.at.y, 1.0);
+    let [one, two, three, four] = apex.hips.each_ref().map(|hip| {
+        let foot = DVec3::new(hip.foot.x, hip.foot.y, 1.0);
+        middle + (foot - middle) * k
+    });
+    [apex.at - DVec3::Z * 2f64.sqrt(), one, two, three, four]
+}
+
+/// Which of `centres` every point drawn of the face numbered `patch` stands
+/// 1 from, if one.
+fn sphere_of(body: &Body, patch: usize, centres: &[DVec3]) -> Option<usize> {
+    let drawn: Vec<DVec3> = body.triangles_of(patch).flatten().collect();
+    centres.iter().position(|centre| {
+        !drawn.is_empty()
+            && drawn
+                .iter()
+                .all(|point| (point.distance(*centre) - 1.0).abs() < PLACE)
+    })
+}
+
 /// What the square pyramid keeps once its four hips and the four edges of its
 /// base are chamfered at 1, the apex closed by its square and each corner of
 /// the base by a triangle through its three crossings: the pyramid cut by the
@@ -6737,17 +6814,116 @@ fn a_chamfer_on_the_hips_of_two_pyramids_in_one_step_closes_both_apexes_in_one_b
 /// measured by slicing it with level planes, each slice's area exact.
 const HIPS_AND_BASE_CHAMFERED: f64 = 141.77296518494913;
 
-#[test]
-fn a_chamfer_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_and_a_fillet_is_declined_whatever_the_order()
- {
+/// The square pyramid on its base, its four hips and the four edges of its
+/// base, as [`pyramid_on_its_base`] numbers and names them, the hips first.
+fn pyramid_and_its_eight_edges() -> (Body, Apex, Vec<EdgeName>) {
     let part = pyramid_on_its_base(SQUARE);
     let apex = apex_over(SQUARE);
-    let hips: Vec<EdgeName> = (0..4).map(|hip| apex.name(&part, hip)).collect();
-    let base: Vec<EdgeName> = (apex.slopes.iter())
-        .map(|slope| edge_between(&part, FLOOR, slope.face))
-        .collect();
+    let hips = (0..4).map(|hip| apex.name(&part, hip));
+    let base = (apex.slopes.iter()).map(|slope| edge_between(&part, FLOOR, slope.face));
+    let edges = hips.chain(base).collect();
+    (part, apex, edges)
+}
+
+/// Holds the fillet at 1 on the square pyramid's eight edges in each of
+/// `orders`: the value taken whole; the body exact, closed and uncrossed,
+/// holding [`pyramid_opened_by_a_ball`] at 1, its triangles enclosing that
+/// within the drawing's tolerance over its rounds and its five pieces of
+/// sphere; one round for each edge by its rank and five patches after them,
+/// each a piece of the sphere of 1 about one corner of the shrunk pyramid,
+/// each of the five taken once, meeting the rounds of that corner's edges
+/// and nothing else; and every order laying the body the first lays, each
+/// patch found by its sphere.
+fn pyramid_s_eight_edges_rounded_in(orders: &[Vec<usize>]) {
+    let (part, apex, edges) = pyramid_and_its_eight_edges();
+    let start = part.faces_end();
+    let laid_end = start + 8 + 5;
+    let centres = shrunk_pyramid_s_corners(&apex);
+    let at_corners: [Vec<usize>; 5] = [
+        vec![0, 1, 2, 3],
+        vec![0, 4 + apex.hips[0].slopes[0], 4 + apex.hips[0].slopes[1]],
+        vec![1, 4 + apex.hips[1].slopes[0], 4 + apex.hips[1].slopes[1]],
+        vec![2, 4 + apex.hips[2].slopes[0], 4 + apex.hips[2].slopes[1]],
+        vec![3, 4 + apex.hips[3].slopes[0], 4 + apex.hips[3].slopes[1]],
+    ];
+    let opened = pyramid_opened_by_a_ball(1.0);
+    let k = (pyramid_s_inradius() - 1.0) / pyramid_s_inradius();
+    let curved = k * (4.0 * 10.0 * 3.0 * PI / 4.0 + 4.0 * 5.0 * 3f64.sqrt() * PI / 3.0) + 4.0 * PI;
+    let patches: Vec<usize> = (start + 8..laid_end).collect();
+    let laid = laid_in_every_listed_order(
+        orders,
+        laid_on_the_edges(&part, &edges, orders, Cut::Round, 1.0),
+        "the fillet at 1 on the four hips and the four base edges closes the apex and the four \
+         corners of the base",
+    );
+    let mut bodies = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the fillet on the four hips and the four base edges, named {order:?}");
+        taken_as_asked(asked, taken, 1.0, &what);
+        sound_drawn_within(&body, opened, DRAWN * pyramid_reach(SQUARE) * curved, &what);
+        assert_eq!(
+            faces_made(&part, &body),
+            (start..laid_end).collect::<Vec<_>>(),
+            "{what}: one round for each edge by its rank, then five patches, a piece of sphere \
+             at the apex and at each corner of the base: {:?}",
+            numbers(&body)
+        );
+        let mut taken_once = [false; 5];
+        for &patch in &patches {
+            let corner = sphere_of(&body, patch, &centres).unwrap_or_else(|| {
+                panic!(
+                    "{what}: patch {patch} is drawn on none of the spheres of 1 about the shrunk \
+                     pyramid's corners {centres:?}"
+                )
+            });
+            assert!(
+                !taken_once[corner],
+                "{what}: two patches on the sphere about {}",
+                centres[corner]
+            );
+            taken_once[corner] = true;
+            let rounds: Vec<usize> = (at_corners[corner].iter())
+                .map(|&edge| start + rank_in(order, edge))
+                .collect();
+            assert_eq!(
+                sides_met(&body, patch),
+                sides(&rounds),
+                "{what}: patch {patch}, on the sphere about {}, meets the rounds of that \
+                 corner's edges, and nothing else",
+                centres[corner]
+            );
+        }
+        bodies.push((order.clone(), body));
+    }
+    one_body_face_for_face(
+        &bodies,
+        start,
+        8,
+        |(_, first), (_, body), which| {
+            (patches.iter())
+                .map(|&patch| {
+                    let corner = sphere_of(first, patch, &centres)
+                        .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
+                    *patches
+                        .iter()
+                        .find(|&&here| sphere_of(body, here, &centres) == Some(corner))
+                        .unwrap_or_else(|| {
+                            panic!("{which}: no patch on the sphere about {}", centres[corner])
+                        })
+                })
+                .collect()
+        },
+        "the fillet on the four hips and the four base edges",
+    );
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_close_its_apex_and_its_four_base_corners_in_one_body_whatever_the_order()
+ {
+    let (part, apex, edges) = pyramid_and_its_eight_edges();
+    let base = &edges[4..];
     let rounded_base = part
-        .fillet_edges(&base, 1.0)
+        .fillet_edges(base, 1.0)
         .unwrap_or_else(|declined| panic!("the fillet on the four base edges alone: {declined:?}"));
     let triangles = rounded_base.body.triangles();
     assert!(
@@ -6757,24 +6933,12 @@ fn a_chamfer_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its
         "the fillet on the four base edges alone, each corner of the base closed among two \
          rounds and its hip left sharp: exact, closed and uncrossed"
     );
-    let edges: Vec<EdgeName> = hips.iter().chain(&base).cloned().collect();
     let start = part.faces_end();
     let laid_end = start + 8 + 5;
     let orders = spread_orders_of_eight();
     let square = [0, 1, 2, 3].map(|slope| apex.crossing(slope, 1.0));
-
-    for (order, laid) in
-        orders
-            .iter()
-            .zip(laid_on_the_edges(&part, &edges, &orders, Cut::Round, 1.0))
-    {
-        assert_eq!(
-            laid.err(),
-            Some(Declined::Unsupported),
-            "the fillet at 1 on the four hips and the four base edges, named {order:?}: a broken \
-             step and its reason, and no body, until #946"
-        );
-    }
+    let every_fourth: Vec<Vec<usize>> = orders.iter().step_by(4).cloned().collect();
+    pyramid_s_eight_edges_rounded_in(&every_fourth);
 
     let laid = laid_in_every_listed_order(
         &orders,
@@ -7019,5 +7183,17 @@ fn a_fillet_on_the_three_edges_of_a_corner_whose_sphere_would_stand_behind_it_al
             corner.called[order[2]]
         );
         closes_with_a_triangle(&part, &corner, order, value, promised);
+    }
+}
+
+#[cfg(feature = "campaigns")]
+mod campaign {
+    use super::*;
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_in_each_of_48_orders()
+     {
+        pyramid_s_eight_edges_rounded_in(&spread_orders_of_eight());
     }
 }

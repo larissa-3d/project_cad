@@ -199,7 +199,10 @@ pub(in crate::brep) fn floors_round(
                         from: DVec2::new(from.x, pole.at),
                         to: DVec2::new(to.x, pole.at),
                     },
-                    Trace::Round { .. } | Trace::Graph { .. } | Trace::Conic { .. } => *floor,
+                    Trace::Round { .. }
+                    | Trace::Graph { .. }
+                    | Trace::Conic { .. }
+                    | Trace::Tilted { .. } => *floor,
                 }));
                 interleaved(lap, joins)
             })

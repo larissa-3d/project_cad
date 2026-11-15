@@ -59,8 +59,11 @@
 //!   sentences are held in `cao_app` (`wording/unstable/tests.rs`, the extrusion
 //!   screen's and the part tree's tests)
 //! - a decline stays a broken step with its reason, never a note —
-//!   `a_slanted_cut_through_a_ball_is_a_broken_step_with_its_reason`, since
-//!   #577 built the skew bore that held it
+//!   `an_elliptic_shaft_drilled_through_a_ball_is_a_broken_step_with_its_reason`,
+//!   since #577 built the skew bore that held it, and #805 the slanted cut
+//!   through a ball that held it next —
+//!   `a_slanted_cut_through_a_ball_holds_the_arithmetics_volume`; an elliptic
+//!   wall against a sphere is out of #805's reach
 //!
 //! A part cut at a slant, as the application builds it: a plane meets a
 //! cylinder or a cone at any angle along a conic the exact kernel builds — an
@@ -96,6 +99,23 @@ fn rectangle(history: &mut History, sketch: usize, corner: DVec2, opposite: DVec
         corner: PointRef::New(corner),
         opposite: PointRef::New(opposite),
         construction: false,
+    });
+}
+
+/// An ellipse about `center`, its first semi-axis `first`, its second
+/// `second` long, square to it.
+fn ellipse(history: &mut History, sketch: usize, center: DVec2, first: DVec2, second: f64) {
+    let across = first.perp().normalize() * second;
+    history.push(Operation::AddEllipse {
+        sketch,
+        center: PointRef::New(center),
+        first: [PointRef::New(center - first), PointRef::New(center + first)],
+        second: [
+            PointRef::New(center - across),
+            PointRef::New(center + across),
+        ],
+        construction: false,
+        drawn: None,
     });
 }
 
@@ -550,14 +570,11 @@ fn a_shaft_cut_by_a_slice_turned_a_hundredth_of_a_degree_is_built_and_its_step_n
     );
 }
 
-/// A ball of radius 5 about the origin, then a block leaning 45° cutting
-/// through its centre: a plane at a slant against a sphere, which the exact
-/// kernel does not build.
-#[test]
-fn a_slanted_cut_through_a_ball_is_a_broken_step_with_its_reason() {
-    let mut history = History::default();
-    sketch_on(&mut history, WorkPlane::XY);
-    let first = PartState::rebuild(&history).sketches[0].points().len();
+/// A ball of radius 5 about the origin, turned about the first sketch's V
+/// axis from a half disc.
+fn a_ball(history: &mut History) {
+    sketch_on(history, WorkPlane::XY);
+    let first = PartState::rebuild(history).sketches[0].points().len();
     history.push(Operation::AddArc {
         sketch: 0,
         center: PointRef::New(DVec2::ZERO),
@@ -573,22 +590,61 @@ fn a_slanted_cut_through_a_ball_is_a_broken_step_with_its_reason() {
     });
     history.push(Operation::Revolve {
         sketch: 0,
-        areas: clicked(&history, 0, DVec2::new(2.0, 0.0)),
+        areas: clicked(history, 0, DVec2::new(2.0, 0.0)),
         axis: RevolutionAxis::Sketch(SketchAxis::V),
         angle: 360.0.into(),
         mode: ExtrusionMode::Add,
     });
+}
+
+/// The [`a_ball`], then a block leaning 45° cutting through its centre: a
+/// plane at a slant against a sphere, which #805 meets along a great circle,
+/// leaving half the ball behind the plane.
+#[test]
+fn a_slanted_cut_through_a_ball_holds_the_arithmetics_volume() {
+    let mut history = History::default();
+    a_ball(&mut history);
     let normal = DVec3::new(1.0, 1.0, 0.0).normalize();
     let u = DVec3::new(1.0, -1.0, 0.0).normalize();
     sketch_on(&mut history, plane(DVec3::ZERO, u, normal.cross(u)));
     rectangle(&mut history, 1, DVec2::splat(-20.0), DVec2::splat(20.0));
     raise(&mut history, 1, DVec2::ZERO, 10.0, ExtrusionMode::Cut);
 
+    built_exactly(
+        &history,
+        250.0 * PI / 3.0,
+        "a ball cut at 45° through its centre, half of it left",
+    );
+}
+
+/// The [`a_ball`], then an elliptic shaft drilled through it off its axis,
+/// along Z: an elliptic wall against a sphere, which the exact kernel does
+/// not build.
+#[test]
+fn an_elliptic_shaft_drilled_through_a_ball_is_a_broken_step_with_its_reason() {
+    let mut history = History::default();
+    a_ball(&mut history);
+    sketch_on(&mut history, plane(DVec3::Z * -10.0, DVec3::X, DVec3::Y));
+    ellipse(
+        &mut history,
+        1,
+        DVec2::new(2.0, 0.0),
+        DVec2::new(3.0, 0.0),
+        1.5,
+    );
+    raise(
+        &mut history,
+        1,
+        DVec2::new(2.0, 0.0),
+        20.0,
+        ExtrusionMode::Cut,
+    );
+
     let part = applied_live(&history);
     assert_eq!(
         part.declined_because(last_step(&history)),
         Some(Declined::Unsupported),
-        "a plane at 45° through the ball's centre",
+        "an elliptic shaft through the ball",
     );
     let volume = part.body().volume();
     let ball = 500.0 * PI / 3.0;

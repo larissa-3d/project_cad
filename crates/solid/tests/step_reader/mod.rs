@@ -36,6 +36,11 @@ pub struct Solid {
     /// The cylinder of each round face, as a point of its axis, the way the
     /// axis runs, and its radius.
     pub cylinders: Vec<(DVec3, DVec3, f64)>,
+    /// The sphere of each spherical face, as its centre and its radius.
+    pub spheres: Vec<(DVec3, f64)>,
+    /// The circle of each edge written as one, as its centre, the way its
+    /// axis runs, and its radius.
+    pub circles: Vec<(DVec3, DVec3, f64)>,
     /// The furthest a point of any loop, or any vertex, stands from the
     /// surface of its face or the curve of its edge.
     pub worst: f64,
@@ -191,12 +196,32 @@ pub fn read(text: &str) -> Result<Solid, String> {
             _ => None,
         })
         .collect();
+    let spheres = faces
+        .iter()
+        .filter_map(|face| match &face.surface {
+            Surface::Sphere { placement, radius } => Some((placement.origin, *radius)),
+            _ => None,
+        })
+        .collect();
+    let circles = edges
+        .values()
+        .filter_map(|edge| match &edge.curve {
+            Curve::Ellipse {
+                placement,
+                first,
+                second,
+            } if first == second => Some((placement.origin, placement.z, *first)),
+            _ => None,
+        })
+        .collect();
     Ok(Solid {
         faces: faces.len(),
         volume,
         area,
         planes,
         cylinders,
+        spheres,
+        circles,
         worst,
         uncertainty,
         metres_per_unit,

@@ -17,8 +17,10 @@
 //! crosses the round's own meridian circle on either side of the axis
 //! (`relation/revolved/arc.rs`): the very crossings decision 2 gives the
 //! pair of the round and the surface the circle lies on, a touch decided
-//! there as that pair decides it. Any other circle is unsupported, as the
-//! pair it lies on is.
+//! there as that pair decides it. Any other circle is read in its own
+//! plane, which cuts a sphere along a circle (#805): the two circles of that
+//! plane cross where they do. Against a torus it is unsupported, as the pair
+//! it lies on is.
 
 use glam::{DVec2, DVec3};
 
@@ -115,11 +117,62 @@ pub(super) fn circle_and_sphere(
     touching: &Touches,
 ) -> Solved {
     let eps = scale.eps();
-    if sphere.holds(circle, eps) || sphere.meridian(circle, eps) {
+    if sphere.carries(circle, eps) {
         return Solved::Along;
     }
     let round = (DVec2::new(sphere.center, 0.0), sphere.radius);
-    circle_and_round(circle, &Frame::of_sphere(sphere), round, scale, touching)
+    match circle_and_round(circle, &Frame::of_sphere(sphere), round, scale, touching) {
+        Solved::Unsupported => in_its_plane(circle, sphere, scale, touching),
+        solved => solved,
+    }
+}
+
+/// A circle the sphere does not carry, of no axis the sphere's own reading
+/// takes, read in its own plane: the plane cuts the sphere along the circle
+/// about the foot of its centre (#805), and the two circles of one plane
+/// cross as two meridian circles do, a touch decided against the tolerance
+/// before any root.
+fn in_its_plane(circle: &Circle, sphere: &Sphere, scale: Scale, touching: &Touches) -> Solved {
+    let eps = scale.eps();
+    let standing = circle.axis.dot(sphere.middle() - circle.center);
+    let away = standing.abs();
+    if away - sphere.radius > eps {
+        return Solved::At(Vec::new());
+    }
+    let section = ((sphere.radius - away) * (sphere.radius + away))
+        .max(0.0)
+        .sqrt();
+    let between = sphere.middle() - circle.axis * standing - circle.center;
+    let across = between.try_normalize().unwrap_or(circle.u);
+    let aside = circle.axis.cross(across);
+    let point = |at: DVec2| circle.center + across * at.x + aside * at.y;
+    let theirs = Meridian::Arc {
+        center: DVec2::new(between.length(), 0.0),
+        radius: section,
+    };
+    let (foot, along, gap, half) =
+        match met_in_the_half_plane(DVec2::ZERO, circle.radius, &theirs, eps) {
+            Met::Same => return Solved::Along,
+            Met::Unsupported => return Solved::Unsupported,
+            Met::Near {
+                foot,
+                along,
+                gap,
+                half,
+            } => (foot, along, gap, half),
+        };
+    if gap > eps {
+        return Solved::At(Vec::new());
+    }
+    if touches(gap, half, touching.here(point(foot), scale), scale) {
+        return Solved::At(vec![(circle.parameter(point(foot)), true)]);
+    }
+    let crossings = [foot - along * half, foot + along * half];
+    Solved::At(
+        crossings
+            .map(|at| (circle.parameter(point(at)), false))
+            .to_vec(),
+    )
 }
 
 pub(super) fn circle_and_torus(

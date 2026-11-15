@@ -66,7 +66,10 @@ impl Body {
             .iter()
             .filter_map(|floor| match *floor {
                 Trace::Segment { from, to } => round.straight(anchor, from, to),
-                Trace::Round { .. } | Trace::Graph { .. } | Trace::Conic { .. } => None,
+                Trace::Round { .. }
+                | Trace::Graph { .. }
+                | Trace::Conic { .. }
+                | Trace::Tilted { .. } => None,
             })
             .collect()
     }

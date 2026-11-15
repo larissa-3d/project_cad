@@ -23,7 +23,7 @@
 //! too.
 
 mod cap;
-mod refinement;
+pub(super) mod refinement;
 
 use std::cmp::Ordering;
 
@@ -42,7 +42,7 @@ use crate::orientation::rotation;
 /// measured on the sphere and every turn decided exactly, and a triangle
 /// stretched on the chart is short on the sphere all the same. Nearer a
 /// hemisphere, the chart would run off to infinity.
-const FRONT: f64 = 0.05;
+pub(super) const FRONT: f64 = 0.05;
 
 /// The plane tangent to the unit sphere at `ahead`, read along `x` and `y`,
 /// square to it and to each other, `x × y = ahead`: a turn counterclockwise

@@ -23,7 +23,7 @@ use crate::turning::{Axis, ON_THE_AXIS, Straight, Turn};
 /// Each long edge of the prism, from its end behind to its end along `past`,
 /// and how far a solid holding what of them stands past an end is to stand
 /// clear of them: a share [`CLEAR`] of the section's reach.
-fn long_edges((outline, frame, travel): &Prism, past: DVec3) -> (Vec<[DVec3; 2]>, f64) {
+pub(super) fn long_edges((outline, frame, travel): &Prism, past: DVec3) -> (Vec<[DVec3; 2]>, f64) {
     let ahead = past.dot(*travel) > 0.0;
     let edges = (outline.corners.iter())
         .map(|corner| {

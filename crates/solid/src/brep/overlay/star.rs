@@ -157,7 +157,9 @@ fn leaving(arcs: &[Arc], half: usize, rounding: f64, vertex: DVec2) -> Leaving {
         blur: rounding / lever,
         bend: direction.perp_dot(second) / direction.length().powi(3),
         flat: match *trace {
-            Trace::Graph { .. } | Trace::Conic { .. } => 2.0 * rounding / (lever * lever),
+            Trace::Graph { .. } | Trace::Conic { .. } | Trace::Tilted { .. } => {
+                2.0 * rounding / (lever * lever)
+            }
             Trace::Segment { .. } | Trace::Round { .. } => 0.0,
         },
         off: start.distance(vertex) + rounding,
@@ -180,7 +182,7 @@ fn length(trace: &Trace) -> f64 {
     match *trace {
         Trace::Segment { from, to } => from.distance(to),
         Trace::Round { radius, sweep, .. } => radius * sweep.abs(),
-        Trace::Graph { .. } | Trace::Conic { .. } => (0..PIECES)
+        Trace::Graph { .. } | Trace::Conic { .. } | Trace::Tilted { .. } => (0..PIECES)
             .map(|piece| {
                 let at = |piece: usize| trace.at(piece as f64 / PIECES as f64)[0];
                 at(piece).distance(at(piece + 1))
@@ -228,7 +230,7 @@ fn sides(one: &Leaving, other: &Leaving) -> Option<[f64; 2]> {
 /// has run `run`, read with its angle as it is unwrapped.
 fn seen(leaving: &Leaving, run: f64) -> f64 {
     let share = match leaving.trace {
-        Trace::Conic { .. } => along(&leaving.trace, leaving.forward, run),
+        Trace::Conic { .. } | Trace::Tilted { .. } => along(&leaving.trace, leaving.forward, run),
         Trace::Segment { .. } | Trace::Round { .. } | Trace::Graph { .. } => {
             (run / leaving.length).min(1.0)
         }

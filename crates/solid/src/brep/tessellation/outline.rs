@@ -2,6 +2,7 @@
 //! left of every segment: what the sweep cuts.
 
 mod central;
+mod charted;
 mod columns;
 mod cone;
 mod cylinder;
@@ -38,8 +39,9 @@ pub(super) struct Outline {
 impl Outline {
     /// The outline of a face and its triangles. A face of a sphere its
     /// `(θ, φ)` chart cannot lay out, for whatever reason, is laid out and
-    /// cut on a chart of its own ([`central`]), with points added inside it;
-    /// one it lays out is cut there or not at all. None when the face can be
+    /// cut on a chart of its own ([`central`]), with points added inside it,
+    /// or, with a circle of another axis, as [`charted`] lays it; one the
+    /// chart lays out is cut there or not at all. None when the face can be
     /// neither laid out nor cut.
     pub(super) fn cut_of(
         body: &Body,
@@ -56,6 +58,8 @@ impl Outline {
             return None;
         };
         Outline::central(sphere, samples, &laps(body, samples, id)?, tolerance)
+            .or_else(|| Outline::about(body, samples, id, sphere, tolerance))
+            .or_else(|| Outline::charted(body, samples, id, sphere, tolerance))
     }
 
     /// The outline of a face, turned when the face is flipped so that its

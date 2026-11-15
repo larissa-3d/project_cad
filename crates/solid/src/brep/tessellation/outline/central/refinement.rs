@@ -1,5 +1,8 @@
 //! The triangles of a piece of sphere swept on its central chart, refined
-//! until each stands within the tolerance of the sphere (#800).
+//! until each stands within the tolerance of the sphere (#800) — or on the
+//! sphere's own `(θ, φ)`, for a piece its central chart cannot hold (#805):
+//! nothing here reads the chart but the point of the sphere each of its
+//! points stands for.
 //!
 //! A triangle whose corners lie on the sphere stands furthest from it at the
 //! point of the triangle nearest the centre, measured exactly here. While a
@@ -20,7 +23,35 @@ use std::collections::{BTreeMap, BTreeSet};
 use glam::{DVec2, DVec3};
 
 use super::Chart;
+use crate::brep::surface::Sphere;
 use crate::orientation::turn;
+
+/// A chart of a sphere: the sphere's radius, and the point of the sphere a
+/// point of the chart stands for, from the centre.
+pub(in crate::brep::tessellation::outline) trait Lifted {
+    fn radius(&self) -> f64;
+    fn lift(&self, at: DVec2) -> DVec3;
+}
+
+impl Lifted for Chart {
+    fn radius(&self) -> f64 {
+        self.radius
+    }
+
+    fn lift(&self, at: DVec2) -> DVec3 {
+        self.lifted(at)
+    }
+}
+
+impl Lifted for Sphere {
+    fn radius(&self) -> f64 {
+        self.radius
+    }
+
+    fn lift(&self, at: DVec2) -> DVec3 {
+        self.point(at) - self.middle()
+    }
+}
 
 /// How far beyond the plane of a triangle, as a share of the product of the
 /// lengths from one of its corners, the point across a side must stand for
@@ -39,8 +70,8 @@ const BUDGET: f64 = 16.0;
 /// bounding it, refined within `tolerance`: the points added on the chart,
 /// numbered on past the outline's, and the triangles. None when the cut
 /// does not end, or leaves a triangle that does not turn counterclockwise.
-pub(super) fn refined(
-    chart: &Chart,
+pub(in crate::brep::tessellation::outline) fn refined(
+    chart: &impl Lifted,
     (points, places): (&[DVec2], &[DVec3]),
     segments: &[[usize; 2]],
     swept: Vec<[usize; 3]>,
@@ -86,8 +117,8 @@ pub(super) fn refined(
     Some((mesh.points[points.len()..].to_vec(), mesh.triangles))
 }
 
-struct Mesh<'a> {
-    chart: &'a Chart,
+struct Mesh<'a, C> {
+    chart: &'a C,
     points: Vec<DVec2>,
     places: Vec<DVec3>,
     triangles: Vec<[usize; 3]>,
@@ -97,7 +128,7 @@ struct Mesh<'a> {
     bounds: BTreeSet<[usize; 2]>,
 }
 
-impl Mesh<'_> {
+impl<C: Lifted> Mesh<'_, C> {
     /// Whether the triangle at `at` stands further from the sphere than
     /// `tolerance`, and than the chord of any of its sides on the boundary.
     fn sags(&self, at: usize, tolerance: f64) -> bool {
@@ -105,9 +136,9 @@ impl Mesh<'_> {
         let allowed = (0..3)
             .map(|side| [corners[side], corners[(side + 1) % 3]])
             .filter(|&side| self.bounds.contains(&sorted(side)))
-            .map(|[one, other]| self.chart.radius - self.reach(one, other))
+            .map(|[one, other]| self.chart.radius() - self.reach(one, other))
             .fold(tolerance, f64::max);
-        self.chart.radius - self.nearest(corners) > allowed
+        self.chart.radius() - self.nearest(corners) > allowed
     }
 
     /// How near the centre the triangle on `corners` comes.
@@ -155,7 +186,7 @@ impl Mesh<'_> {
                 (b - a).cross(c - a).length() / 2.0
             })
             .sum();
-        let room = (BUDGET * area / (self.chart.radius * tolerance)).ceil();
+        let room = (BUDGET * area / (self.chart.radius() * tolerance)).ceil();
         self.points.len() + 64 + room.min(u32::MAX as f64) as usize
     }
 
@@ -261,7 +292,7 @@ impl Mesh<'_> {
     /// A point of the chart, with the point of the sphere it stands for.
     fn place(&mut self, at: DVec2) -> usize {
         self.points.push(at);
-        self.places.push(self.chart.lifted(at));
+        self.places.push(self.chart.lift(at));
         self.points.len() - 1
     }
 

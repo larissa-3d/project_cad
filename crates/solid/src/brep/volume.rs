@@ -10,7 +10,7 @@ mod cone;
 mod elliptic;
 mod round;
 
-use std::f64::consts::PI;
+use std::f64::consts::{PI, TAU};
 
 use glam::DVec3;
 
@@ -110,7 +110,7 @@ fn swept(trace: &Trace) -> Option<f64> {
             let moment = center.x * (end_sin - start_sin) - center.y * (end_cos - start_cos);
             Some((radius * radius * sweep + radius * moment) / 2.0)
         }
-        Trace::Graph { .. } | Trace::Conic { .. } => None,
+        Trace::Graph { .. } | Trace::Conic { .. } | Trace::Tilted { .. } => None,
     }
 }
 
@@ -143,7 +143,7 @@ fn wall(cylinder: &Cylinder, from: f64, to: f64, low: f64, high: f64) -> Option<
 /// 1-form anchored at the length `anchor` along the ruling.
 fn along(curve: &Curve, from: f64, to: f64, surface: &Surface, anchor: f64) -> f64 {
     let mut total = 0.0;
-    for [start, end] in panels(curve, from, to) {
+    for [start, end] in panels_on(curve, from, to, surface) {
         let (middle, width) = ((start + end) / 2.0, end - start);
         for (node, weight) in GAUSS_LEGENDRE {
             for side in [-1.0, 1.0] {
@@ -175,20 +175,58 @@ fn along(curve: &Curve, from: f64, to: f64, surface: &Surface, anchor: f64) -> f
 /// ends, down to far below any waist the kernel keeps apart from a touch.
 fn panels(curve: &Curve, from: f64, to: f64) -> Vec<[f64; 2]> {
     const EQUAL: usize = 64;
-    const HALVINGS: i32 = 40;
     let Curve::Meet(_) = curve else {
         let width = (to - from) / EQUAL as f64;
         return (0..EQUAL)
             .map(|panel| [panel, panel + 1].map(|end| from + width * end as f64))
             .collect();
     };
-    let mut cuts = vec![from];
     let (low, high) = (from.min(to), from.max(to));
-    let mut end = (low / PI).floor() + 1.0;
-    while end * PI < high {
-        cuts.push(end * PI);
-        end += 1.0;
-    }
+    halved(from, to, every(PI, 0.0, low, high))
+}
+
+/// The panels a stretch of `curve` on `surface` is integrated over: on a
+/// sphere, a circle of another axis is cut where it comes nearest each
+/// pole, and each piece halved towards both of its ends as the curve two
+/// walls meet along is (#805). The angle about the axis turns fastest
+/// there, by half a turn within as much of the circle's own parameter as the
+/// circle passes from the pole, and over equal panels a ball cut at a slant
+/// a twentieth of a unit from its pole was two hundred-thousandths off its
+/// volume.
+fn panels_on(curve: &Curve, from: f64, to: f64, surface: &Surface) -> Vec<[f64; 2]> {
+    let (Curve::Circle(circle), Surface::Sphere(sphere)) = (curve, surface) else {
+        return panels(curve, from, to);
+    };
+    let (low, high) = (from.min(to), from.max(to));
+    let mut inner: Vec<f64> = [-1.0, 1.0]
+        .into_iter()
+        .flat_map(|side| {
+            let pole = sphere.middle() + sphere.axis * (side * sphere.radius) - circle.center;
+            let nearest = pole.dot(circle.v).atan2(pole.dot(circle.u));
+            every(TAU, nearest, low, high)
+        })
+        .collect();
+    inner.sort_by(f64::total_cmp);
+    inner.dedup();
+    halved(from, to, inner)
+}
+
+/// Every place `at` plus a whole number of `period`s strictly between `low`
+/// and `high`, in order.
+fn every(period: f64, at: f64, low: f64, high: f64) -> Vec<f64> {
+    let first = ((low - at) / period).floor() as i64 + 1;
+    (first..)
+        .map(|turns| at + period * turns as f64)
+        .take_while(|place| *place < high)
+        .collect()
+}
+
+/// Panels from `from` to `to`, cut at `inner`, in order between them, and
+/// halving towards both ends of each piece.
+fn halved(from: f64, to: f64, inner: Vec<f64>) -> Vec<[f64; 2]> {
+    const HALVINGS: i32 = 40;
+    let mut cuts = vec![from];
+    cuts.extend(inner);
     cuts.push(to);
     let last = cuts.len() - 1;
     if to < from {

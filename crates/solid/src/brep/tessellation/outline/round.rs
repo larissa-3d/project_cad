@@ -50,6 +50,20 @@ struct Standing {
     phi: Option<f64>,
 }
 
+/// The chart a face of a round is laid out in.
+#[derive(Clone, Copy, PartialEq)]
+pub(super) enum Read {
+    /// Its surface's own, every edge a line of it.
+    Own,
+    /// Its sphere's own, a circle of another axis among its edges (#805),
+    /// whose samples stand where they are read.
+    Tilted,
+    /// Its sphere's read about the axis every circle of it turns about, each
+    /// a latitude there (#805): the samples standing for that chart's poles,
+    /// the low one first, the face holding the one its loops turn round.
+    About([usize; 2]),
+}
+
 impl Outline {
     /// Lays out and cuts in strips the loops `laps` of `face`, on `round`,
     /// whose grid has `steps` angles a turn and `rows` rows a turn of the
@@ -63,13 +77,31 @@ impl Outline {
         face: &Face,
         round: &Rounded,
         laps: &[Vec<usize>],
-        (steps, rows): (usize, usize),
+        grid: (usize, usize),
     ) -> Option<()> {
+        let mut lattice = self.laid_out(body, samples, face, laps, grid, (round, Read::Own))?;
+        self.stripped(samples, &mut lattice)
+    }
+
+    /// Lays out the loops `laps` of `face` on `round` as [`Outline::rounded`]
+    /// does, short of the strips, read as `read` says, and hands back the
+    /// lattice they would be cut along. None as there, and where a face read
+    /// [`Read::Tilted`] has no circle of another axis.
+    pub(super) fn laid_out(
+        &mut self,
+        body: &Body,
+        samples: &mut Samples,
+        face: &Face,
+        laps: &[Vec<usize>],
+        (steps, rows): (usize, usize),
+        (round, read): (&Rounded, Read),
+    ) -> Option<Lattice> {
         let eps = body.scale().eps();
         let levels = levels(body, face, round, eps);
         let mut lattice = Lattice::new(*round, steps, rows, &levels, eps / round.radius());
         let mut standing: BTreeMap<usize, Standing> = BTreeMap::new();
         let mut winding = Vec::new();
+        let mut met = false;
         for (rank, lap) in face.loops.iter().enumerate() {
             for coedge in lap {
                 let edge = body.edge(coedge.edge);
@@ -89,10 +121,15 @@ impl Outline {
                     if edge.ends.is_none() && lap.len() == 1 {
                         winding.push(rank);
                     }
+                } else if read == Read::Tilted && round.carries(circle, eps) {
+                    met = true;
                 } else {
                     return None;
                 }
             }
+        }
+        if read == Read::Tilted && !met {
+            return None;
         }
         one_angle_a_meridian(&mut standing);
         let ring = round.cut().is_some() && round.poles(eps).is_empty();
@@ -117,17 +154,19 @@ impl Outline {
         } else if laps.is_empty() && round.poles(eps).is_empty() {
             self.whole_ring(samples, round, &mut lattice)?;
         } else {
-            self.laid_round(samples, face, laps, &standing, &lattice, eps)?;
+            self.laid_round(samples, (face, read), laps, &standing, &lattice, eps)?;
         }
-        self.stripped(samples, &mut lattice)
+        Some(lattice)
     }
 
     /// A face with loops through vertices laid out as a cone's face is, each
-    /// sample on the line of its edge, the poles along their floors.
+    /// sample on the line of its edge, the poles along their floors: those
+    /// it holds as its own surface's chart records them, or, read about
+    /// another axis, the one its loops turn round.
     fn laid_round(
         &mut self,
         samples: &Samples,
-        face: &Face,
+        (face, chart): (&Face, Read),
         laps: &[Vec<usize>],
         standing: &BTreeMap<usize, Standing>,
         lattice: &Lattice,
@@ -169,14 +208,19 @@ impl Outline {
             .map(|lap| floors.laid(lap))
             .collect::<Option<_>>()?;
         let turns: i64 = laid.iter().map(|lap| lap.turns).sum();
-        let held: Vec<(usize, usize)> = face
-            .poles
-            .iter()
-            .map(|vertex| {
-                let id = vertex.0 as usize;
-                floors.tip(id).map(|pole| (pole, id))
-            })
-            .collect::<Option<_>>()?;
+        let held: Vec<(usize, usize)> = match (chart, turns) {
+            (Read::About([_, high]), 1) => vec![(1, high)],
+            (Read::About([low, _]), -1) => vec![(0, low)],
+            (Read::About(_), _) => Vec::new(),
+            (Read::Own | Read::Tilted, _) => face
+                .poles
+                .iter()
+                .map(|vertex| {
+                    let id = vertex.0 as usize;
+                    floors.tip(id).map(|pole| (pole, id))
+                })
+                .collect::<Option<_>>()?,
+        };
         match (held.is_empty(), turns) {
             (true, _) => {}
             (false, 1 | -1) => {

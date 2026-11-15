@@ -60,8 +60,9 @@ pub enum Relation {
     /// beside crossings: each ruling, and whether the walls only touch along
     /// it.
     Parallel(Vec<Ruled>),
-    /// A plane square to a cylinder's axis, or a cone and a surface of its
-    /// axis crossing off it.
+    /// A plane square to a cylinder's axis, a cone and a surface of its axis
+    /// crossing off it, or a plane cutting a sphere at a slant to its axis or
+    /// off it (#805).
     Circle(Circle),
     /// Two walls not parallel, circular or elliptic.
     Meet(Meeting),

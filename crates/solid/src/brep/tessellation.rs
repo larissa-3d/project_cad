@@ -20,11 +20,15 @@
 //! circle that is neither a latitude nor a meridian, a loop its strips
 //! cannot follow — is cut on its central projection instead (#800), points
 //! added inside it until every triangle stands within the tolerance, on no
-//! edge either; a face reaching some 87° or more from every direction, or
-//! behind the plane of its chart, is left open, as is a face of a torus its
-//! chart refuses. Each face is cut alone, so two faces standing within the
-//! tolerance of each other can fold onto each other across their edge;
-//! [`folds`] cuts them the other way once all are cut.
+//! edge either. One with a circle of another axis that chart cannot hold
+//! either (#805) is cut in strips on its sphere read about the axis every
+//! circle of it turns about, or, holding and reaching no pole, laid out in
+//! its own `(θ, φ)` and refined there as on the central chart. Any other
+//! face reaching some 87° or more from every direction, or behind the plane
+//! of its chart, is left open, as is a face of a torus its chart refuses.
+//! Each face is cut alone, so two faces standing within the tolerance of
+//! each other can fold onto each other across their edge; [`folds`] cuts
+//! them the other way once all are cut.
 
 mod contact;
 mod folds;

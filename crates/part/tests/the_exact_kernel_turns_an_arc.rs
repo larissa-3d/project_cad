@@ -25,10 +25,11 @@
 //!   (a torus taking matter away, tangent to the shaft's wall)
 //! - a sphere or a torus against anything else is a broken step with its
 //!   reason —
-//!   `a_hole_drilled_off_axis_through_a_ball_is_a_broken_step_with_its_reason`,
-//!   `a_plane_at_a_slant_through_a_ball_is_a_broken_step_with_its_reason`
+//!   `a_hole_drilled_off_axis_through_a_ball_is_a_broken_step_with_its_reason`
 //!   (`Declined::Unsupported` read through `declined_because`, the part as
-//!   before the step, and still exact)
+//!   before the step, and still exact). A plane at a slant through a ball was
+//!   the second such step until #805 met the two along a circle, and is built
+//!   now — `a_plane_at_a_slant_through_a_ball_cuts_it_into_half_a_ball`
 //! - every face keeps the number the flats give it today, so a drawing laid
 //!   on a face keeps it —
 //!   `a_ball_knob_and_a_rounded_shaft_number_their_faces_as_the_flats_do`
@@ -686,7 +687,7 @@ fn a_hole_drilled_off_axis_through_a_ball_is_a_broken_step_with_its_reason() {
 }
 
 #[test]
-fn a_plane_at_a_slant_through_a_ball_is_a_broken_step_with_its_reason() {
+fn a_plane_at_a_slant_through_a_ball_cuts_it_into_half_a_ball() {
     let mut history = History::default();
     let sketch = sketch_on(&mut history, WorkPlane::XY);
     a_half_disc(&mut history, sketch, 5.0);
@@ -714,13 +715,13 @@ fn a_plane_at_a_slant_through_a_ball_is_a_broken_step_with_its_reason() {
     let part = applied_live(&history);
     assert_eq!(
         part.declined_because(last_step(&history)),
-        Some(Declined::Unsupported),
-        "a plane at 45° through the ball's centre is not square to its axis",
+        None,
+        "a plane at 45° through the ball's centre meets it along a great circle (#805)",
     );
     assert_near(
         part.body().volume(),
-        500.0 * PI / 3.0,
-        "the ball, as it stood before",
+        250.0 * PI / 3.0,
+        "the half of the ball behind the plane",
     );
     assert!(part.body().is_exact(), "the part stays exact");
 }

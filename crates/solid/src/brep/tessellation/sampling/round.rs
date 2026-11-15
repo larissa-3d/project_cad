@@ -24,7 +24,7 @@ use crate::brep::topology::{Body, Edge, Face, SurfaceId};
 /// a half, since the sags add up along the hypotenuse of a triangle of the
 /// lattice, and a little more than their sum — a thousandth of the tolerance
 /// over the radius — comes of the two curvatures together.
-pub(super) const SHARE: f64 = 0.45;
+pub(in crate::brep::tessellation) const SHARE: f64 = 0.45;
 
 /// How close to a row, in radians along the meridian, a sample must stand to
 /// be read as on it: far over the rounding of a point read back from the
@@ -152,6 +152,16 @@ impl Rounded {
         match self {
             Rounded::Sphere(sphere) => sphere.meridian(circle, eps),
             Rounded::Torus(torus) => torus.meridian(circle, eps),
+        }
+    }
+
+    /// Whether `circle` lies on a sphere within `eps`, whatever line it turns
+    /// about (#805); a torus carries no circle but its latitudes and
+    /// meridians.
+    pub fn carries(&self, circle: &Circle, eps: f64) -> bool {
+        match self {
+            Rounded::Sphere(sphere) => sphere.carries(circle, eps),
+            Rounded::Torus(_) => false,
         }
     }
 

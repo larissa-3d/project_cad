@@ -1,5 +1,7 @@
 //! What a sphere or a torus makes with another surface (#576): the coaxial
-//! pairs decided once in the meridian half-plane, everything else declined.
+//! pairs decided once in the meridian half-plane; a sphere and a plane at a
+//! slant to its axis, or square to it off its centre, along the circle about
+//! the foot of the centre on the plane (#805); everything else declined.
 
 use glam::{DVec2, DVec3};
 
@@ -196,7 +198,7 @@ fn a_plane_holding_the_axis_cuts_a_ball_s_great_circle_through_its_poles() {
         }
     }
     let beside = plane(DVec3::new(2.0 * eps, 0.0, 0.0), DVec3::X);
-    assert_eq!(between(&ball(), &beside), Relation::Unsupported);
+    cut_about_the_foot(&ball(), &beside, "a plane two hairs off the axis");
 }
 
 #[test]
@@ -576,13 +578,130 @@ fn a_round_s_relation_is_the_same_whichever_comes_first() {
     }
 }
 
+/// Holds that a plane cuts a ball along one circle, about the foot of the
+/// ball's centre on the plane, square to the plane, of radius √(r² − d²),
+/// `d` the centre's distance from the plane; that the circle lies on both
+/// surfaces; and that no point of it need be a vertex — the same whichever
+/// surface comes first.
+fn cut_about_the_foot(round: &Surface, flat: &Surface, what: &str) {
+    let (Surface::Sphere(sphere), Surface::Plane(cutting)) = (round, flat) else {
+        unreachable!()
+    };
+    let middle = sphere.middle();
+    let standing = cutting.distance(middle);
+    let foot = middle - cutting.normal * standing;
+    let radius = (sphere.radius * sphere.radius - standing * standing).sqrt();
+    let found = between(round, flat);
+    let [Curve::Circle(circle)] = found.curves()[..] else {
+        panic!("{what}: one circle expected, got {found:?}");
+    };
+    assert!(
+        circle.center.distance(foot) < 1e-12 * REACH,
+        "{what}: the circle is about {}, the foot of the centre on the plane is {foot}",
+        circle.center
+    );
+    assert!(
+        (circle.radius - radius).abs() < 1e-12 * REACH,
+        "{what}: the circle's radius is {}, where √(r² − d²) is {radius}",
+        circle.radius
+    );
+    assert!(
+        circle.axis.cross(cutting.normal).length() < 1e-12,
+        "{what}: the circle turns about {}, the plane faces {}",
+        circle.axis,
+        cutting.normal
+    );
+    assert!(
+        found.points().is_empty(),
+        "{what}: no point to be a vertex, got {found:?}"
+    );
+    assert_on_both(&found, round, flat, 1e-12 * REACH);
+}
+
+/// Unit normals at a slant to a ball's axis, along `axis`, and square to it.
+fn slanted_and_square(axis: DVec3) -> Vec<DVec3> {
+    let square = axis.any_orthonormal_vector();
+    let across = axis.cross(square);
+    [
+        axis + square,
+        axis * 2.0 - square * 3.0 + across,
+        -axis * 4.0 + across,
+        axis * 1e-6 + square,
+        square,
+        -across,
+        (square + across) * 0.5,
+    ]
+    .map(|normal| normal.normalize())
+    .to_vec()
+}
+
+#[test]
+fn a_plane_at_a_slant_or_off_a_ball_s_axis_cuts_it_along_the_circle_about_the_foot_of_its_centre() {
+    let eps = scale().eps();
+    for axis in [DVec3::Z, DVec3::new(2.0, -1.0, 3.0).normalize()] {
+        let through = DVec3::new(-4.0, 2.5, 1.0);
+        let round = Surface::Sphere(Sphere::through(through, axis, 5.0, 3.0));
+        let middle = through + axis * 5.0;
+        for normal in slanted_and_square(axis) {
+            let slanted = normal.dot(axis).abs() * 2.0 * REACH > eps;
+            for standing in [0.0, 1.0, -2.5, 2.9, 3.0 - 1e-3] {
+                if standing == 0.0 && !slanted {
+                    continue;
+                }
+                for facing in [normal, -normal] {
+                    let flat = plane(middle + normal * standing, facing);
+                    cut_about_the_foot(
+                        &round,
+                        &flat,
+                        &format!(
+                            "about {axis}, a plane facing {facing} {standing} from the centre"
+                        ),
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn a_plane_at_a_slant_further_from_a_ball_s_centre_than_its_radius_misses_it() {
+    for normal in slanted_and_square(DVec3::Z) {
+        for standing in [3.0 + 1e-3, 3.5, -4.0, 30.0] {
+            let flat = plane(DVec3::new(0.0, 0.0, 5.0) + normal * standing, normal);
+            assert_eq!(
+                between(&ball(), &flat),
+                Relation::Apart,
+                "a plane facing {normal} {standing} from the centre"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_plane_within_a_hair_of_touching_a_ball_off_its_poles_is_unsupported() {
+    let eps = scale().eps();
+    for normal in slanted_and_square(DVec3::Z) {
+        for standing in [3.0 - eps / 2.0, 3.0, 3.0 + eps / 2.0, -3.0] {
+            let flat = plane(DVec3::new(0.0, 0.0, 5.0) + normal * standing, normal);
+            assert_eq!(
+                between(&ball(), &flat),
+                Relation::Unsupported,
+                "a plane facing {normal} {standing} from the centre, touching the ball off its \
+                 poles, which #939 is to read as a touch"
+            );
+        }
+    }
+}
+
 #[test]
 fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
     let eps = scale().eps();
-    let others = [
+    let planes = [
         plane(DVec3::ZERO, DVec3::new(1.0, 0.0, 1.0)),
         plane(DVec3::new(1.0, 0.0, 0.0), DVec3::X),
         plane(DVec3::new(0.0, 0.0, 5.0), DVec3::new(1.0, 0.0, 1e-6)),
+    ];
+    let others = [
         cylinder(DVec3::ZERO, DVec3::X, 2.0),
         cylinder(DVec3::new(0.0, 2.0 * eps, 0.0), DVec3::Z, 2.0),
         Surface::Cone(Cone::through(
@@ -603,13 +722,18 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
             3.0,
         )),
     ];
-    for round in [ball(), ring()] {
-        for other in &others {
+    for (round, unsupported) in [
+        (ball(), others.to_vec()),
+        (ring(), planes.iter().chain(&others).copied().collect()),
+    ] {
+        for other in &unsupported {
             assert_eq!(
                 between(&round, other),
                 Relation::Unsupported,
                 "{round:?} {other:?}"
             );
+        }
+        for other in planes.iter().chain(&others) {
             assert!(!at_a_slant(&round, other, scale()));
             assert!(!at_a_slant(other, &round, scale()));
         }

@@ -1,9 +1,10 @@
-use std::f64::consts::{FRAC_PI_2, PI};
+use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 use glam::{DVec2, DVec3};
 
 use super::Sphere;
 use crate::brep::curve::Circle;
+use crate::brep::scale::Scale;
 use crate::brep::surface::Cylinder;
 
 const CLOSE: f64 = 1e-12;
@@ -213,5 +214,271 @@ fn a_sphere_reaches_its_radius_either_way_along_any_direction() {
         let point = sphere.point(DVec2::new(theta, 0.2));
         let along = point.dot(direction);
         assert!(low - CLOSE <= along && along <= high + CLOSE);
+    }
+}
+
+/// An angle moved by whole turns into `[-π, π)`.
+fn wrapped(angle: f64) -> f64 {
+    (angle + PI).rem_euclid(TAU) - PI
+}
+
+/// The circle the plane `standing` from the centre of `sphere` along the unit
+/// `normal` cuts it along, turning about `normal` itself — not the canonical
+/// direction [`Circle::about`] would turn it to, so that either way round is
+/// read — its parameter starting `start` round from a reference square to
+/// `normal`.
+fn cut_along(sphere: &Sphere, normal: DVec3, standing: f64, start: f64) -> Circle {
+    let reference = normal.any_orthonormal_vector();
+    let (sin, cos) = start.sin_cos();
+    let u = reference * cos + normal.cross(reference) * sin;
+    Circle {
+        center: sphere.middle() + normal * standing,
+        axis: normal,
+        radius: (sphere.radius * sphere.radius - standing * standing).sqrt(),
+        u,
+        v: normal.cross(u),
+    }
+}
+
+/// Holds that `seen_along` reads `circle` on `sphere` as `parameters` reads
+/// its points, all round it: θ the same but for whole turns, and never
+/// jumping by half a turn or more from one sample to the next where both
+/// stand a hundredth of the radius or more off the axis — nearer, the arc
+/// between two samples may sweep past half a turn round it; φ the same;
+/// and, wherever the point stands a tenth of the radius or more off the
+/// axis, the first and second derivatives the central differences of the
+/// point and of the first derivative give. Gives back how far θ turns round
+/// the circle.
+fn read_as_the_parameters_read_it(sphere: &Sphere, circle: &Circle, what: &str) -> f64 {
+    const SAMPLES: usize = 4096;
+    const STEP: f64 = 1e-6;
+    let mut before: Option<(f64, f64)> = None;
+    for index in 0..=SAMPLES {
+        let t = TAU * index as f64 / SAMPLES as f64;
+        let [at, speed, bend] = sphere.seen_along(circle, t);
+        let point = circle.point(t);
+        let read = sphere.parameters(point);
+        let from = point - sphere.middle();
+        let rho = (from - sphere.axis * from.dot(sphere.axis)).length();
+        assert!(
+            wrapped(at.x - read.x).abs() <= CLOSE * (1.0 + sphere.radius / rho),
+            "{what}: at {t}, θ is {}, where the parameters read {}",
+            at.x,
+            read.x
+        );
+        assert!(
+            (at.y - read.y).abs() <= CLOSE,
+            "{what}: at {t}, φ is {}, where the parameters read {}",
+            at.y,
+            read.y
+        );
+        if let Some((before, off)) = before
+            && off.min(rho) >= 0.01 * sphere.radius
+        {
+            assert!(
+                (at.x - before).abs() < PI,
+                "{what}: θ jumps from {before} to {} by {t}",
+                at.x
+            );
+        }
+        before = Some((at.x, rho));
+        if rho < 0.1 * sphere.radius {
+            continue;
+        }
+        let [behind, ahead] = [t - STEP, t + STEP].map(|t| sphere.seen_along(circle, t));
+        let drift = (ahead[0] - behind[0]) / (2.0 * STEP);
+        assert!(
+            (drift - speed).length() <= 1e-6 * (1.0 + speed.length()),
+            "{what}: at {t}, the first derivative is {speed}, the differences give {drift}"
+        );
+        let sway = (ahead[1] - behind[1]) / (2.0 * STEP);
+        assert!(
+            (sway - bend).length() <= 1e-6 * (1.0 + bend.length()),
+            "{what}: at {t}, the second derivative is {bend}, the differences give {sway}"
+        );
+    }
+    sphere.seen_along(circle, TAU)[0].x - sphere.seen_along(circle, 0.0)[0].x
+}
+
+/// Which way round the sphere's axis a circle turns: `+1` where its own
+/// turn, `u` towards `v`, runs about the axis as θ does, `-1` against it.
+fn way(sphere: &Sphere, circle: &Circle) -> f64 {
+    circle.u.cross(circle.v).dot(sphere.axis).signum()
+}
+
+/// Holds that θ along a circle the axis passes by stays within half a turn
+/// of the angle its centre stands at about the axis, as the module says it
+/// turns back there.
+fn within_half_a_turn_of_its_centre(sphere: &Sphere, circle: &Circle, what: &str) {
+    let from = circle.center - sphere.middle();
+    let centre = from.dot(sphere.v).atan2(from.dot(sphere.u));
+    for index in 0..=256 {
+        let t = TAU * f64::from(index) / 256.0;
+        let theta = sphere.seen_along(circle, t)[0].x;
+        assert!(
+            (theta - centre).abs() < PI,
+            "{what}: at {t}, θ is {theta}, more than half a turn from its centre's {centre}"
+        );
+    }
+}
+
+/// The unit normal `degrees` off the sphere's axis, towards `square`.
+fn tilted(sphere: &Sphere, square: DVec3, degrees: f64) -> DVec3 {
+    let (sin, cos) = degrees.to_radians().sin_cos();
+    sphere.axis * cos + square * sin
+}
+
+#[test]
+fn a_circle_at_a_slant_is_seen_in_the_sphere_s_parameters_with_the_derivatives_the_differences_give()
+ {
+    let sphere = slanted();
+    let square = sphere.axis.any_orthonormal_vector();
+    let across = sphere.axis.cross(square);
+    let pierced = [
+        ("a great circle at 45°", sphere.axis + square, 0.0),
+        (
+            "a circle at a slant the axis runs through",
+            sphere.axis * 2.0 + square - across,
+            1.0,
+        ),
+        (
+            "a circle at 60° the axis runs through at nine tenths of its radius",
+            tilted(&sphere, square, 60.0),
+            1.4,
+        ),
+        (
+            "a circle at 80° the axis runs through near its rim",
+            tilted(&sphere, across, 80.0),
+            0.5,
+        ),
+        (
+            "a circle at 85° the axis runs through near its rim",
+            tilted(&sphere, -square, 85.0),
+            0.25,
+        ),
+    ];
+    let beside = [
+        (
+            "a circle at a slant the axis passes by",
+            sphere.axis * 0.3 + square,
+            2.0,
+        ),
+        ("a circle along the axis, off it", across, -2.0),
+        (
+            "a circle at 80° the axis passes by near its rim",
+            tilted(&sphere, across, 80.0),
+            0.55,
+        ),
+        (
+            "a circle at 85° the axis passes by near its rim",
+            tilted(&sphere, square, 85.0),
+            -0.3,
+        ),
+    ];
+    for (turns, cases) in [(true, &pierced[..]), (false, &beside[..])] {
+        for &(what, normal, standing) in cases {
+            for (facing, start) in [(1.0, 0.0), (-1.0, 0.0), (1.0, 2.0), (-1.0, -2.5)] {
+                let normal = normal.normalize() * facing;
+                let circle = cut_along(&sphere, normal, standing * facing, start);
+                let what = format!("{what}, turning about {normal} from {start}");
+                assert!(
+                    sphere.carries(&circle, CLOSE) && !sphere.through_a_pole(&circle, CLOSE),
+                    "{what}: on the sphere, through neither pole"
+                );
+
+                let turned = read_as_the_parameters_read_it(&sphere, &circle, &what);
+
+                let expected = if turns {
+                    way(&sphere, &circle) * TAU
+                } else {
+                    within_half_a_turn_of_its_centre(&sphere, &circle, &what);
+                    0.0
+                };
+                assert!(
+                    (turned - expected).abs() <= CLOSE,
+                    "{what}: θ turns {turned} round it, where it turns {expected}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_circle_ten_hairs_off_a_pole_is_seen_round_the_pole_or_turning_back_by_the_side_it_passes() {
+    let sphere = slanted();
+    let eps = Scale::of(10.0).eps();
+    let square = sphere.axis.any_orthonormal_vector();
+    let normal = (sphere.axis + square).normalize();
+    for (side, pole) in [(1.0, sphere.axis), (-1.0, -sphere.axis)] {
+        let through = sphere.radius * normal.dot(pole);
+        let at_the_pole = cut_along(&sphere, normal, through, 0.0);
+        assert!(
+            sphere.through_a_pole(&at_the_pole, eps),
+            "the circle through the pole {side} is read as through it"
+        );
+        for (inward, turns) in [(-1.0, true), (1.0, false)] {
+            let standing = through + side * inward * 10.0 * eps;
+            for facing in [1.0, -1.0] {
+                let circle = cut_along(&sphere, normal * facing, standing * facing, 1.0);
+                let facing = normal * facing;
+                let what = format!(
+                    "a circle ten hairs {} of the pole {side}, turning about {facing}",
+                    if turns { "inside" } else { "outside" }
+                );
+                assert!(
+                    !sphere.through_a_pole(&circle, eps),
+                    "{what}: not read as through the pole"
+                );
+
+                let turned = read_as_the_parameters_read_it(&sphere, &circle, &what);
+
+                let expected = if turns {
+                    way(&sphere, &circle) * TAU
+                } else {
+                    0.0
+                };
+                assert!(
+                    (turned - expected).abs() <= 1e-9,
+                    "{what}: θ turns {turned} round it, where it turns {expected}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_circle_tilted_nearly_along_the_axis_which_runs_through_it_by_its_rim_turns_once_whatever_its_parameter_starts_at()
+ {
+    let sphere = slanted();
+    let square = sphere.axis.any_orthonormal_vector();
+    for (degrees, standing) in [(88.0, 0.1), (89.5, 0.0255), (89.5, 0.0262)] {
+        let normal = tilted(&sphere, square, degrees);
+        let reach = standing * degrees.to_radians().tan();
+        let radius = (sphere.radius * sphere.radius - standing * standing).sqrt();
+        let inside = reach < radius;
+        for index in 0..8 {
+            let start = TAU * f64::from(index) / 8.0;
+            for facing in [1.0, -1.0] {
+                let circle = cut_along(&sphere, normal * facing, standing * facing, start);
+                let what = format!(
+                    "a circle at {degrees}° {standing} off the centre, the axis {reach} from its \
+                     centre, of {radius}, turning about {} from {start}",
+                    circle.axis
+                );
+
+                let turned = read_as_the_parameters_read_it(&sphere, &circle, &what);
+
+                let expected = if inside {
+                    way(&sphere, &circle) * TAU
+                } else {
+                    within_half_a_turn_of_its_centre(&sphere, &circle, &what);
+                    0.0
+                };
+                assert!(
+                    (turned - expected).abs() <= 1e-9,
+                    "{what}: θ turns {turned} round it, where it turns {expected}"
+                );
+            }
+        }
     }
 }
