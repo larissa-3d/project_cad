@@ -5,7 +5,6 @@ use cao_prefs::Command;
 use cao_sketch::{ChosenAxis, Element, SketchAxis};
 
 use crate::lang::Catalogue;
-use crate::wording::command;
 use crate::wording::dimension::short;
 
 /// An element held, by the name its row in the part goes by; a point, which
@@ -65,13 +64,5 @@ pub fn step_asks(lang: &Catalogue, tool: Command, number: usize, asked: Asked) -
         Asked::CountAndStep => "copy_panel.asks_count_and_step",
         Asked::Rotation => "copy_panel.asks_rotation",
     });
-    let tool = command::label(lang, tool);
-    lang.t_with(
-        "copy_panel.step_asks",
-        &[
-            ("tool", &tool),
-            ("number", &number.to_string()),
-            ("asked", &asked),
-        ],
-    )
+    super::steps::asks(lang, tool, number, &asked)
 }

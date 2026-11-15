@@ -64,18 +64,24 @@
 //!   « Devant » / « Derrière » with « Inverser », and « Enregistrer la coupe »
 //!   as the main button. Each step reads done, current or to come; a
 //!   presenter test checks it — no test: here; held in
-//!   `crates/app/src/screens/viewport/section/tests.rs` by
-//!   `the_section_s_steps_read_done_current_or_to_come`, under its own
-//!   `Closes #739`
+//!   `crates/app/src/screens/viewport/section/tests/steps.rs` by
+//!   `the_section_s_steps_read_done_current_or_to_come`,
+//!   `a_face_clicked_in_the_view_fills_the_face_step_and_moves_on_to_the_distance`,
+//!   `a_face_step_left_waiting_for_a_face_reads_to_come_rather_than_done`,
+//!   `a_step_clicked_in_the_section_s_panel_becomes_current` and
+//!   `enter_on_the_section_s_last_step_keeps_it_in_the_part`, under its own
+//!   `Closes #739`, which says what was decided on the way
 //! - The message pill follows the section's step; a test on the wording
 //!   checks it — no test: here; held in
-//!   `crates/app/src/screens/viewport/section/tests.rs` by
-//!   `the_message_pill_follows_the_step_of_the_section`, under its own
-//!   `Closes #739`
+//!   `crates/app/src/screens/viewport/section/tests/steps.rs` by
+//!   `the_message_pill_follows_the_step_of_the_section`, and the pill on
+//!   screen in `crates/app/tests/keeping_a_section.rs` by
+//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`,
+//!   each under its own `Closes #739`
 //! - The values, the section kept in the part (#716, #717) and the handle on
 //!   the cutting plane are unchanged; a test compares the section produced
 //!   before and after — no test: here; held in
-//!   `crates/app/src/screens/viewport/section/tests.rs` by
+//!   `crates/app/src/screens/viewport/section/tests/steps.rs` by
 //!   `a_section_set_through_its_steps_is_kept_as_it_was_before`, under its
 //!   own `Closes #739`
 //!

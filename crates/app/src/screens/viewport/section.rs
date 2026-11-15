@@ -32,6 +32,8 @@ pub(crate) struct Section {
     pivot: DVec3,
     /// Whether « Inverser » has turned the arrow against the normal.
     inverted: bool,
+    /// The field of the panel `Entrée` stands on.
+    field: SectionField,
 }
 
 /// Where the handle was taken: the line it slides along, how far along it the
@@ -64,6 +66,7 @@ impl Section {
             middle: plane.origin,
             pivot: plane.origin,
             inverted: false,
+            field: SectionField::Face,
         }
     }
 
@@ -91,6 +94,7 @@ impl Section {
 
     pub(crate) fn wait_for_a_face(&mut self) {
         self.waiting_for_a_face = true;
+        self.field = SectionField::Face;
     }
 
     pub(crate) fn is_waiting_for_a_face(&self) -> bool {
@@ -104,6 +108,7 @@ impl Section {
         self.pivot = self.middle;
         self.on = None;
         self.waiting_for_a_face = false;
+        self.field = SectionField::Distance;
     }
 
     pub(crate) fn choose_face(&mut self, plane: WorkPlane) {
@@ -112,6 +117,7 @@ impl Section {
         self.pivot = cao_part::pivot_of(plane, true, self.middle);
         self.on = None;
         self.waiting_for_a_face = false;
+        self.field = SectionField::Distance;
     }
 
     pub(crate) fn type_distance(&mut self, millimetres: f64, millimetres_per_unit: f64) {
@@ -257,6 +263,9 @@ pub(crate) fn closest_along(line: (DVec3, DVec3), ray: (DVec3, DVec3)) -> Option
 }
 
 mod kept;
+mod steps;
+
+pub(crate) use steps::{SectionField, SectionStep};
 
 #[cfg(test)]
 mod tests;

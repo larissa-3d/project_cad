@@ -55,6 +55,15 @@
 //!   `saving_again_after_the_save_was_undone_keeps_a_section_again`, and the editing and the
 //!   deleting by `undo_takes_back_making_editing_and_deleting_a_section`, in
 //!   `crates/part/tests/a_section_is_kept_in_the_part.rs`
+//!
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`,
+//! the section view's bullets in `crates/app/src/screens/viewport/section/tests/steps.rs`;
+//! this is the half only the whole application holds, the pill on screen.
+//! - The message pill follows the section's step; a test on the wording
+//!   checks it — that the pill shows it, and says none of it once the section
+//!   is closed,
+//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`
 
 mod driver;
 
@@ -204,6 +213,37 @@ fn reopen_the_part(app: &mut driver::App) {
         .expect("the start menu lists the part");
     recent.click();
     app.run();
+}
+
+#[test]
+fn the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed() {
+    let mut app = driver::a_block("the_title_bar_pill_says_the_section_s_step");
+
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    assert!(
+        driver::says(&app, "Vue en coupe — étape 1 : face"),
+        "the section opens on its face: {:?}",
+        driver::said(&app)
+    );
+    driver::click(&mut app, "Plan YZ");
+    assert!(
+        driver::says(&app, "Vue en coupe — étape 2 : distance"),
+        "a plane chosen, the distance is asked for: {:?}",
+        driver::said(&app)
+    );
+
+    driver::press(&mut app, egui::Key::Escape);
+
+    assert!(
+        !the_panel_is_open(&app),
+        "Échap closes the section: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !driver::says(&app, "Vue en coupe — étape"),
+        "the section closed, the pill says none of its steps: {:?}",
+        driver::said(&app)
+    );
 }
 
 #[test]

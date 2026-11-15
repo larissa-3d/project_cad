@@ -5,8 +5,9 @@
 
 use super::super::super::input::count_brought_down;
 use super::super::live_fields::{taken_whole_when_reached, value_field};
+use super::super::step_panel::title;
 use super::Asked;
-use super::steps::{Held, title};
+use super::steps::Held;
 use crate::screens::SketchContext;
 use crate::screens::sketch::{CopySlot, CopyValue, Tool};
 use crate::ui::number_field::number_field;

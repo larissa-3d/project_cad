@@ -36,6 +36,8 @@ use glam::{DVec2, DVec3};
 
 use super::*;
 
+mod steps;
+
 const TOLERANCE: f64 = 1e-9;
 
 /// A block 10 by 10 from 0 to 4 over XY, raised by the exact kernel: its

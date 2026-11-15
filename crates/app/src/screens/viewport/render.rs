@@ -32,6 +32,7 @@ mod planes;
 mod preview;
 mod reading;
 mod section_panel;
+mod step_panel;
 mod symmetric_line;
 mod triad;
 mod trim;

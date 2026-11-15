@@ -217,9 +217,10 @@ impl CaoApp {
         asked.extend(ribbon.show(ui, &settings, &mut drawn, lang));
         asked.extend(
             shortcuts_pressed(ui, &settings, |command| {
-                // Enter moves through the panel of a tool laying copies rather
-                // than finishing the sketch under it.
-                command == Command::FinishSketch && editor.copy_panel().is_some()
+                // Enter moves through the panel of a tool laying copies, or the
+                // section view's, rather than finishing the sketch under it.
+                command == Command::FinishSketch
+                    && (editor.copy_panel().is_some() || viewport.section().is_some())
             })
             .into_iter()
             .map(|command| blend.answering(command))

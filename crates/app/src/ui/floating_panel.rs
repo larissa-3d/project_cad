@@ -18,29 +18,10 @@ pub struct Floated<R> {
     pub closed: bool,
 }
 
-/// Shows the panel at the place it was last left this session, or else at
-/// `left_at`, brought back inside `view` whenever it no longer fits there. The
-/// title carries a control reading `close`.
-pub fn floating_panel<R>(
-    ctx: &egui::Context,
-    id: egui::Id,
-    (title, close): (&str, &str),
-    (left_at, view): (egui::Pos2, egui::Rect),
-    contents: impl FnOnce(&mut egui::Ui) -> R,
-) -> Floated<R> {
-    let heading = |ui: &mut egui::Ui| {
-        ui.horizontal(|ui| {
-            let title = dragged_by(ui, egui::RichText::new(title).strong());
-            (title, ui.small_button(close).clicked())
-        })
-        .inner
-    };
-    floated(ctx, id, (left_at, view), heading, contents)
-}
-
-/// The same panel as C13 draws a tool's: `TOOL_PANEL_WIDTH` across, its title
-/// larger, and what the tool works on — `context` — written at the right of
-/// it.
+/// The panel as C13 draws a tool's, shown at the place it was last left this
+/// session, or else at `left_at`, brought back inside `view` whenever it no
+/// longer fits there: `TOOL_PANEL_WIDTH` across, and on its title row what the
+/// tool works on — `context` — and a control reading `close`.
 pub fn tool_panel<R>(
     ctx: &egui::Context,
     id: egui::Id,
