@@ -13,6 +13,7 @@ use glam::DVec2;
 
 mod arc;
 mod body;
+mod chamfer_sides_panel;
 mod circle;
 mod copy_panel;
 mod curves;
@@ -37,6 +38,7 @@ mod symmetric_line;
 mod triad;
 mod trim;
 
+pub(crate) use chamfer_sides_panel::paint_chamfer_sides_panel;
 pub(crate) use copy_panel::paint_copy_panel;
 pub(crate) use cuts::cut_label_under;
 pub(crate) use dimensions::{paint_dimension_field, paint_dimension_labels};

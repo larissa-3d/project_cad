@@ -93,9 +93,15 @@
 //!   presenter test checks that it appears only during a sketch chamfer or
 //!   fillet, and that the button swaps the sides — no test: here; held in
 //!   `crates/app/src/screens/viewport/input/cut_changes/tests.rs` by
-//!   `the_swap_sides_panel_shows_only_during_a_sketch_chamfer_or_fillet` and
-//!   `the_swap_sides_panel_s_button_swaps_the_sides`, under its own
-//!   `Closes #739`
+//!   `the_swap_sides_panel_shows_only_while_a_sketch_chamfer_with_two_sides_is_held`
+//!   and `the_swap_sides_panel_s_button_swaps_the_sides`, which says how the
+//!   condition was read; the row it leaves, in
+//!   `crates/app/src/screens/ribbon/view/tests.rs` by
+//!   `with_a_chamfer_held_the_ribbon_no_longer_offers_to_swap_its_sides`; the
+//!   panel over the view at its top left, in
+//!   `crates/app/tests/swapping_a_chamfer_s_sides.rs` by
+//!   `a_chamfer_held_puts_its_swap_in_a_panel_at_the_top_left_of_the_view_whose_button_swaps_its_sides`;
+//!   each under its own `Closes #739`
 //! - The sketch's chamfer and fillet keep their fields by the cursor and
 //!   their keys; a test checks it — no test: here; held in
 //!   `crates/app/src/screens/viewport/input/corner/tests.rs` by

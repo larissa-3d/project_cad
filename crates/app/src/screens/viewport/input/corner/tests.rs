@@ -70,6 +70,19 @@
 //! `a_value_too_big_is_held_back_and_the_field_offers_the_largest` — and the
 //! « Construction » toggle decides what the cut is laid as —
 //! `a_cut_laid_while_construction_is_on_is_laid_in_construction`.
+//!
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`;
+//! this is the corner tools' share.
+//! - The sketch's chamfer and fillet keep their fields by the cursor and
+//!   their keys; a test checks it —
+//!   `a_sketch_chamfer_or_fillet_still_takes_its_values_by_the_cursor_and_its_keys`:
+//!   what is typed goes to the live fields, which the view draws at the
+//!   cursor, ↵ is the tool's own key, and no panel of steps opens. Where the
+//!   field stands on screen, by the cursor, is drawing; a chamfer typed in the
+//!   only field and laid by ↵ through the whole application is held by
+//!   `inside_a_sketch_the_chamfer_still_cuts_the_corner_clicked_next_and_opens_no_edge_panel`
+//!   in `crates/app/tests/the_edge_panel.rs`
 
 use cao_part::history::ChamferAsked;
 use cao_part::{Formula, Operation, Variables};
@@ -1164,6 +1177,79 @@ fn two_sides_clicked_are_the_corner_taken_whatever_else_ends_there() {
             "the arc and the base clicked near {end:?} are the corner taken, not the arc \
              and the wall, and not a crowd: {:?}",
             context.editor.message
+        );
+    }
+}
+
+/// A plate forty by twenty on XY, clear of the sketch's origin, whose point
+/// is no corner.
+fn a_plate() -> cao_part::PartDocument {
+    let mut document = cao_part::PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: cao_part::history::PointRef::New(A_CORNER_OF_THE_PLATE),
+        opposite: cao_part::history::PointRef::New(DVec2::new(50.0, 30.0)),
+        construction: false,
+    });
+    document
+}
+
+const A_CORNER_OF_THE_PLATE: DVec2 = DVec2::new(10.0, 10.0);
+
+#[test]
+fn a_sketch_chamfer_or_fillet_still_takes_its_values_by_the_cursor_and_its_keys() {
+    for (tool, laid) in [
+        (
+            Tool::Chamfer,
+            cao_sketch::CutShape::Chamfer(Chamfer::Equal(2.0)),
+        ),
+        (Tool::Fillet, cao_sketch::CutShape::Fillet { radius: 2.0 }),
+    ] {
+        let mut document = a_plate();
+        let mut editor = editing_with(tool);
+        let mut extrusion = crate::screens::extrusion::ExtrusionState::default();
+        let lang = crate::lang::Catalogue::french();
+        let mut context = SketchContext {
+            document: &mut document,
+            editor: &mut editor,
+            extrusion: &mut extrusion,
+            lang: &lang,
+        };
+
+        corner(&mut context, 0, A_CORNER_OF_THE_PLATE, SNAP);
+        assert_eq!(
+            on_enter(&context.editor.tool_state),
+            CornerEnter::Cut,
+            "{tool:?}: the corner clicked, ↵ is the tool's own key to cut it"
+        );
+        assert!(
+            !cut(&mut context, 0),
+            "{tool:?}: ↵ with the field at the cursor still empty lays nothing"
+        );
+        assert_eq!(
+            corners_held(&context).len(),
+            1,
+            "{tool:?}: and keeps the corner, waiting for its value"
+        );
+
+        type_a_value(&mut context, 2.0);
+        assert!(
+            cut(&mut context, 0),
+            "{tool:?}: ↵ lays the value typed in the field at the cursor"
+        );
+
+        let cuts: Vec<cao_sketch::CutShape> = context.document.sketches()[0]
+            .live_corner_cuts()
+            .map(|(_, cut)| cut.shape)
+            .collect();
+        assert_eq!(cuts, [laid], "{tool:?}");
+        assert!(
+            context.editor.copy_panel().is_none(),
+            "{tool:?}: no panel of steps opens for it"
         );
     }
 }

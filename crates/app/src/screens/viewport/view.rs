@@ -16,10 +16,10 @@ use super::input::{handle_sketch_input, pick_an_edge, pick_areas, point_the_sect
 use super::matter::seen;
 use super::navigation::{advance_transition, handle_navigation};
 use super::render::{
-    frame_of, paint_band, paint_copy_panel, paint_dimension_field, paint_dimension_labels,
-    paint_face_labels, paint_measure, paint_pattern_labels, paint_rule_marks, paint_ruler,
-    paint_section_handle, paint_section_panel, push_blinking_matter, turning_guides,
-    what_is_measured, what_would_go,
+    frame_of, paint_band, paint_chamfer_sides_panel, paint_copy_panel, paint_dimension_field,
+    paint_dimension_labels, paint_face_labels, paint_measure, paint_pattern_labels,
+    paint_rule_marks, paint_ruler, paint_section_handle, paint_section_panel, push_blinking_matter,
+    turning_guides, what_is_measured, what_would_go,
 };
 use super::state::{GestureGoesTo, ViewScale, ViewportState, cube_rect, gesture_goes_to};
 use super::values::refused_for_what_is_typed;
@@ -103,6 +103,7 @@ pub fn show(
     let (laid, copy_panel_let_go_at) = paint_copy_panel(ui, state.copy_panel_at, rect, sketch);
     changed |= laid;
     changed |= paint_section_panel(ui, state, rect, sketch);
+    changed |= paint_chamfer_sides_panel(ui, rect, sketch);
 
     // A measure read a moment ago is about a drawing that has just moved, so
     // it goes with the change rather than staying on screen being wrong.

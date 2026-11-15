@@ -1888,11 +1888,11 @@ construction. The preview shows whichever of the two `Entrée` will do.
 **Taken off.** `Suppr` with a cut selected takes it off: the corner is sharp
 again, its sides whole up to it, and the cuts laid with it stay.
 
-**Its sides.** « Inverser les côtés » shows under the ribbon, where « Extruder
-l'esquisse » does, while one chamfer in two distances or in a distance and an
-angle is selected: what one side gave, the other gives. A fillet and an equal
-chamfer read both sides alike and offer nothing to swap. The button moves to a
-panel of the feature's own once there is one.
+**Its sides.** « Inverser les côtés » shows in a small panel at the top left of
+the view, titled « Chanfrein » in the look of the step panels, while one
+chamfer in two distances or in a distance and an angle is selected: what one
+side gave, the other gives. « Fermer » on that panel lets go of the chamfer. A
+fillet and an equal chamfer read both sides alike and offer nothing to swap.
 
 **Construction.** « Construction » with a cut selected switches that cut alone
 between construction and the outline. The toggle switches nothing else while a

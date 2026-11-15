@@ -6,10 +6,22 @@
 //!   `a_click_on_the_icon_of_the_stl_export_reaches_the_normal_level`, read
 //!   from what the bar answers: past it a save dialog opens, which no driver
 //!   can stand in front of
-//! - found in review: down a side the chamfer swap button is small too —
-//!   `down_a_side_the_chamfer_swap_button_is_small`
+//! - found in review: down a side the chamfer swap button is small too — no
+//!   test: since #739 the button is in no row of the bar, down a side or
+//!   across the top, and leaves nothing there to size
 //! - found in review: no line of the bar breaks inside a word —
 //!   `a_group_too_narrow_for_its_widest_button_wraps_instead_of_breaking_its_letters`
+//!
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`;
+//! this is the bar's share, the row the button leaves.
+//! - In the sketch, « Inverser les côtés » leaves the row under the ribbon
+//!   for a small floating panel of the same look as the step panel, holding
+//!   that button alone, at the top left of the view like the step panel. A
+//!   presenter test checks that it appears only during a sketch chamfer or
+//!   fillet, and that the button swaps the sides — the row it leaves, across
+//!   the top or down a side —
+//!   `with_a_chamfer_held_the_ribbon_no_longer_offers_to_swap_its_sides`
 
 // `architecture.rs`'s language test slices each file at its own first
 // "#[cfg(test)]" literal to tell test code from shipped prose. This file is
@@ -330,8 +342,8 @@ fn a_click_on_the_icon_of_the_stl_export_reaches_the_normal_level() {
     assert_eq!(asked, [Command::ExportStlNormal]);
 }
 
-/// A plain rectangle and its first corner chamfered, the selection holding
-/// that chamfer: what the bar offers its swap for.
+/// A plain rectangle and its first corner chamfered in two distances, the
+/// selection holding that chamfer, whose two sides can trade places.
 fn a_chamfer_held() -> (PartDocument, SketchEditor) {
     use cao_part::Operation;
     use cao_part::history::{ChamferAsked, PointRef};
@@ -373,23 +385,28 @@ fn a_chamfer_held() -> (PartDocument, SketchEditor) {
 }
 
 #[test]
-fn down_a_side_the_chamfer_swap_button_is_small() {
+fn with_a_chamfer_held_the_ribbon_no_longer_offers_to_swap_its_sides() {
     use egui_kittest::kittest::Queryable;
 
-    let (document, editor) = a_chamfer_held();
-    assert!(
-        chamfer_to_swap(&document, &editor).is_some(),
-        "the chamfer held is one the bar offers its swap for",
-    );
-    let mut settings = Settings::default();
-    settings.toolbar.edge = Edge::Left;
+    use crate::screens::viewport::chamfer_to_swap;
 
-    let (height, _) = on_a_bench(settings, document, editor, 0, |harness| {
-        harness.get_by_label("Inverser les côtés").rect().height()
-    });
+    for edge in [Edge::Top, Edge::Left] {
+        let (document, editor) = a_chamfer_held();
+        assert!(
+            chamfer_to_swap(&document, &editor).is_some(),
+            "the chamfer held is one whose two sides can trade places",
+        );
+        let mut settings = Settings::default();
+        settings.toolbar.edge = edge;
 
-    assert!(
-        height <= 27.0,
-        "down a side, « Inverser les côtés » is {height} high, where a small button is 20 or 26",
-    );
+        let (offered, _) = on_a_bench(settings, document, editor, 0, |harness| {
+            harness.query_all_by_label("Inverser les côtés").count()
+        });
+
+        assert_eq!(
+            offered, 0,
+            "{edge:?}: « Inverser les côtés » left the row under the ribbon for a \
+             panel of its own over the view (#739)",
+        );
+    }
 }

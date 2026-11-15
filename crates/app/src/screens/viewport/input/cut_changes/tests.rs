@@ -1,5 +1,22 @@
 //! What app · screens/viewport/input/cut_changes.rs is held to, with the
 //! corner tool laying what it opens.
+//!
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`;
+//! this is the share of « Inverser les côtés » that needs no window.
+//! - In the sketch, « Inverser les côtés » leaves the row under the ribbon
+//!   for a small floating panel of the same look as the step panel, holding
+//!   that button alone, at the top left of the view like the step panel. A
+//!   presenter test checks that it appears only during a sketch chamfer or
+//!   fillet, and that the button swaps the sides —
+//!   `the_swap_sides_panel_shows_only_while_a_sketch_chamfer_with_two_sides_is_held`,
+//!   `the_swap_sides_panel_s_button_swaps_the_sides`. Reworded on the way:
+//!   « during a sketch chamfer or fillet » reads as what the code decides
+//!   today, a chamfer of the sketch held alone by the selection, measured
+//!   from its first side, in two distances or a distance and an angle. A
+//!   fillet and an equal chamfer read the same either way round and have no
+//!   sides to swap; the chamfer tool laying a new one holds nothing laid yet;
+//!   the part's own chamfer is #701's
 
 use cao_part::history::{ChamferAsked, CutChange, PointRef};
 use cao_part::{Operation, PartDocument, Variables};
@@ -589,5 +606,158 @@ fn retyping_a_fillet_on_a_d_whose_end_a_trait_was_drawn_from_reshapes_it() {
     assert_eq!(
         shapes(context.document),
         vec![CutShape::Fillet { radius: 3.0 }]
+    );
+}
+
+/// A plate forty by twenty, three of its corners chamfered — in two
+/// distances, in a distance and an angle, in one distance — and the fourth
+/// rounded: cuts 0, 1, 2 and 3.
+fn a_plate_cut_four_ways() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::ZERO),
+        opposite: PointRef::New(DVec2::new(40.0, 20.0)),
+        construction: false,
+    });
+    let between = |one: usize, other: usize| {
+        vec![Corner::Between(
+            SegmentId(one).into(),
+            SegmentId(other).into(),
+        )]
+    };
+    for (corner, chamfer) in [
+        (
+            0,
+            Chamfer::Sided {
+                first: 2.0,
+                second: 4.0,
+            },
+        ),
+        (
+            1,
+            Chamfer::Angled {
+                along: 3.0,
+                degrees: 30.0,
+            },
+        ),
+        (2, Chamfer::Equal(2.0)),
+    ] {
+        document.apply(Operation::Chamfer {
+            sketch: 0,
+            corners: between(corner, corner + 1),
+            mode: ChamferAsked::from(chamfer),
+            construction: false,
+        });
+    }
+    document.apply(Operation::Fillet {
+        sketch: 0,
+        corners: between(3, 0),
+        radius: 5.0.into(),
+        construction: false,
+    });
+    document
+}
+
+#[test]
+fn the_swap_sides_panel_shows_only_while_a_sketch_chamfer_with_two_sides_is_held() {
+    let document = a_plate_cut_four_ways();
+    let held = |cuts: &[usize]| {
+        holding(
+            cuts.iter()
+                .map(|cut| Selection::Cut(CornerCutId(*cut)))
+                .collect(),
+        )
+    };
+    let not_editing = SketchEditor {
+        tool: Tool::Select,
+        tool_state: ToolState::Select(Box::new(cao_sketch::SelectState {
+            held: vec![Selection::Cut(CornerCutId(0))],
+            ..Default::default()
+        })),
+        ..Default::default()
+    };
+    let chamfering = SketchEditor {
+        phase: SketchPhase::Editing(0),
+        tool: Tool::Chamfer,
+        tool_state: ToolState::Corner {
+            taken: vec![Corner::Between(SegmentId(0).into(), SegmentId(1).into())],
+            half: None,
+        },
+        ..Default::default()
+    };
+
+    for (editor, shows, what) in [
+        (
+            held(&[0]),
+            Some(CornerCutId(0)),
+            "a chamfer in two distances held",
+        ),
+        (
+            held(&[1]),
+            Some(CornerCutId(1)),
+            "a chamfer in a distance and an angle held",
+        ),
+        (
+            held(&[2]),
+            None,
+            "a chamfer in one distance held: it reads the same either way round",
+        ),
+        (held(&[3]), None, "a fillet held: it has no sides to swap"),
+        (held(&[]), None, "nothing held"),
+        (
+            held(&[0, 1]),
+            None,
+            "two chamfers held: the one to swap is not said",
+        ),
+        (
+            not_editing,
+            None,
+            "the chamfer held while no sketch is being edited",
+        ),
+        (
+            chamfering,
+            None,
+            "the chamfer tool laying a new chamfer: nothing laid is held",
+        ),
+    ] {
+        assert_eq!(chamfer_to_swap(&document, &editor), shows, "{what}");
+    }
+}
+
+#[test]
+fn the_swap_sides_panel_s_button_swaps_the_sides() {
+    let mut document = a_plate_cut_four_ways();
+    let mut editor = holding(vec![Selection::Cut(CornerCutId(0))]);
+    let (mut extrusion, lang) = (ExtrusionState::default(), Catalogue::french());
+    let laid_before = document.history.applied_operations().len();
+    let mut context = SketchContext {
+        document: &mut document,
+        editor: &mut editor,
+        extrusion: &mut extrusion,
+        lang: &lang,
+    };
+
+    crate::commands::run(
+        cao_prefs::Command::SwapChamferSides,
+        &mut context,
+        &mut crate::screens::ribbon::Ribbon::default(),
+        &mut crate::screens::viewport::ViewportState::default(),
+        &mut crate::screens::blend::BlendState::default(),
+    );
+
+    assert_eq!(
+        document.sketches()[0].corner_cuts()[0].sides,
+        [CutSide::Trait(SegmentId(1)), CutSide::Trait(SegmentId(0))],
+        "the side the chamfer was measured from first is now the second"
+    );
+    assert_eq!(
+        document.history.applied_operations().len(),
+        laid_before + 1,
+        "swapped as one step, undone in one"
     );
 }

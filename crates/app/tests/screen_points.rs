@@ -91,6 +91,13 @@ const WINDOW_POSITIONS: &[WindowPosition] = &[
               nothing is aimed from it",
     },
     WindowPosition {
+        file: "crates/app/tests/swapping_a_chamfer_s_sides.rs",
+        written: "driver::canvas(&app)",
+        why: "the view read only to check that the chamfer's panel stands over it, in \
+              its top-left quarter, where the step panel opens: nothing is aimed from \
+              it, its button clicked by its label",
+    },
+    WindowPosition {
         file: "crates/app/tests/the_history.rs",
         written: "driver::canvas(&app)",
         why: "the view read only to check that unfolding the history leaves it where \
