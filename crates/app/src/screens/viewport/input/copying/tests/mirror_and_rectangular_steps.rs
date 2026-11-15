@@ -44,7 +44,11 @@
 //!   They replace what #738 held these two tools to and this issue changes,
 //!   `the_mirror_and_the_rectangular_pattern_still_ask_what_they_asked` and
 //!   `a_row_clicked_in_the_mirror_s_or_the_rectangular_pattern_s_panel_leaves_the_message_as_it_was`,
-//!   which leave `steps.rs` beside this file, their bullet there with them
+//!   which left `steps.rs` beside this file, their bullet there rewritten.
+//!   Decided on the way: each step says its own name, as the issue's two do,
+//!   « éléments » and « direction » for the two the issue does not quote; a
+//!   copy laid brings the message back to step 1 with the panel; and the axis,
+//!   the mirror's last step, goes on saying step 2 once it is clicked
 //! - Both tools are laid out by `tool_panel` in numbered steps; the `slots`
 //!   and `panel_row` rows of `render/copy_panel.rs` are gone. The controls of
 //!   `ui/` already there (`step_dot`, `chip`, `number_field`,
@@ -111,6 +115,7 @@ use cao_prefs::Command;
 use cao_sketch::{ChosenAxis, SegmentId};
 use glam::DVec2;
 
+use super::super::activate_in_the_panel;
 use super::bench::Bench;
 use crate::screens::sketch::{CopySlot, CopyStep, StepState};
 
@@ -118,6 +123,12 @@ const ON_THE_TRAIT_TO_COPY: DVec2 = DVec2::new(-10.0, 0.0);
 const ON_THE_UPRIGHT: DVec2 = DVec2::new(2.0, 0.0);
 const TRAIT_TO_COPY: SegmentId = SegmentId(0);
 const UPRIGHT: SegmentId = SegmentId(1);
+
+const MIRROR_STEP_1: &str = "Symétrie — étape 1 : éléments";
+const MIRROR_STEP_2: &str = "Symétrie — étape 2 : axe";
+const GRID_STEP_1: &str = "Réseau rectangulaire — étape 1 : éléments";
+const GRID_STEP_2: &str = "Réseau rectangulaire — étape 2 : direction";
+const GRID_STEP_3: &str = "Réseau rectangulaire — étape 3 : nombre et pas";
 
 /// A trait to copy, ten units tall, and an upright clear of it to mirror it
 /// across or to repeat it along.
@@ -436,4 +447,106 @@ fn enter_on_the_rectangular_pattern_s_last_step_with_its_direction_empty_brings_
         "the direction, the first step still empty, is asked for again"
     );
     assert_eq!(bench.panel().marked(), Some(CopySlot::Target));
+}
+
+/// What the message pill at the top of the screen reads.
+fn said(bench: &Bench) -> Option<&str> {
+    bench.editor.message.as_deref()
+}
+
+#[test]
+fn the_message_pill_follows_the_step_of_the_mirror() {
+    let mut bench = a_trait_and_an_upright();
+
+    bench.take(Command::ToolMirror);
+    assert_eq!(said(&bench), Some(MIRROR_STEP_1));
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    assert_eq!(
+        said(&bench),
+        Some(MIRROR_STEP_1),
+        "a trait clicked is held, and the elements stay the step asked for"
+    );
+    bench.enter();
+    assert_eq!(said(&bench), Some(MIRROR_STEP_2));
+    bench.click(ON_THE_UPRIGHT);
+    assert_eq!(
+        said(&bench),
+        Some(MIRROR_STEP_2),
+        "the axis clicked, the panel waits on it, its last step, for ↵"
+    );
+    bench.enter();
+    assert_eq!(
+        said(&bench),
+        Some(MIRROR_STEP_1),
+        "the mirror laid, the panel is back on its elements"
+    );
+}
+
+#[test]
+fn the_message_pill_follows_the_step_of_the_rectangular_pattern() {
+    let mut bench = a_trait_and_an_upright();
+
+    bench.take(Command::ToolRectangularPattern);
+    assert_eq!(said(&bench), Some(GRID_STEP_1));
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    assert_eq!(said(&bench), Some(GRID_STEP_2));
+    bench.click(ON_THE_UPRIGHT);
+    assert_eq!(said(&bench), Some(GRID_STEP_3));
+    for field in 1..4 {
+        bench.enter();
+        assert_eq!(
+            said(&bench),
+            Some(GRID_STEP_3),
+            "the numbers and the steps of both ways are one step: field {field} \
+             says what the first said"
+        );
+    }
+    bench.enter();
+    assert_eq!(
+        said(&bench),
+        Some(GRID_STEP_1),
+        "the pattern laid, the panel is back on its elements"
+    );
+}
+
+#[test]
+fn a_step_clicked_in_the_mirror_s_or_the_rectangular_pattern_s_panel_takes_the_message_pill_with_it()
+ {
+    for (command, clicked) in [
+        (
+            Command::ToolMirror,
+            vec![
+                (CopySlot::Target, MIRROR_STEP_2),
+                (CopySlot::Elements, MIRROR_STEP_1),
+            ],
+        ),
+        (
+            Command::ToolRectangularPattern,
+            vec![
+                (CopySlot::Target, GRID_STEP_2),
+                (CopySlot::Value(2), GRID_STEP_3),
+                (CopySlot::Elements, GRID_STEP_1),
+            ],
+        ),
+    ] {
+        let mut bench = a_trait_and_an_upright();
+        bench.take(command);
+        bench.click(ON_THE_TRAIT_TO_COPY);
+
+        for (slot, step) in clicked {
+            activate_in_the_panel(&mut bench.context(), slot);
+
+            assert_eq!(
+                said(&bench),
+                Some(step),
+                "{command:?}: {slot:?} clicked in the panel"
+            );
+            assert_eq!(
+                bench.active(),
+                slot,
+                "{command:?}: the click makes that step current"
+            );
+        }
+    }
 }

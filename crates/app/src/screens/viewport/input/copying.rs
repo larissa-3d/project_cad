@@ -14,8 +14,8 @@ use super::{ViewScale, ViewportState, pick};
 mod asking;
 mod opening;
 mod preview;
-pub(crate) use asking::activate_in_the_panel;
 use asking::say_what_is_asked;
+pub(crate) use asking::{activate_in_the_panel, command_of};
 pub(crate) use preview::previewed;
 
 /// One click of a tool that lays a copy down — the mirror, or either pattern.

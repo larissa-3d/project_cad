@@ -3,9 +3,7 @@
 //! marked. The circular pattern's is laid out in numbered steps, in
 //! `circular`.
 
-use cao_prefs::Command;
-
-use super::super::input::copying::{activate_in_the_panel, enter_in_the_panel};
+use super::super::input::copying::{activate_in_the_panel, command_of, enter_in_the_panel};
 use super::live_fields::value_field;
 use crate::screens::SketchContext;
 use crate::screens::sketch::{CopySlot, CopyValue, Rotation, Tool};
@@ -35,12 +33,7 @@ pub(crate) fn paint_copy_panel(
     let Some(active) = context.editor.copy_panel().map(|panel| panel.active()) else {
         return (false, None);
     };
-    let command = match context.editor.tool {
-        Tool::CircularPattern => Command::ToolCircularPattern,
-        Tool::RectangularPattern => Command::ToolRectangularPattern,
-        _ => Command::ToolMirror,
-    };
-    let title = crate::wording::command::label(context.lang, command);
+    let title = crate::wording::command::label(context.lang, command_of(context.editor.tool));
     let fallback = view.min + egui::vec2(SPACING_XXL, SPACING_XXL);
     let left_at = left_at.map_or(fallback, |[x, y]| egui::pos2(x, y));
     let id = egui::Id::new("copy_panel");

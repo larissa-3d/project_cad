@@ -36,25 +36,33 @@ pub enum Target {
     Direction,
 }
 
-/// What a numbered step of the circular pattern asks for.
+/// What a numbered step of a copy tool's panel asks for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Asked {
     Elements,
     Centre,
-    Count,
+    Axis,
+    Direction,
+    CountAndStep,
     Rotation,
 }
 
-/// The message over the drawing while a step of the circular pattern is
-/// current: the tool, the step's number, and what it asks for.
-pub fn circular_step(lang: &Catalogue, number: usize, asked: Asked) -> String {
+/// The message over the drawing while a step of a copy tool's panel is
+/// current: the tool, the step's number, and what it asks for. The circular
+/// pattern names its elements and its number at more length.
+pub fn step_asks(lang: &Catalogue, tool: Command, number: usize, asked: Asked) -> String {
+    let circular = tool == Command::ToolCircularPattern;
     let asked = lang.t(match asked {
+        Asked::Elements if circular => "copy_panel.asks_elements_to_copy",
         Asked::Elements => "copy_panel.asks_elements",
         Asked::Centre => "copy_panel.asks_centre",
-        Asked::Count => "copy_panel.asks_count",
+        Asked::Axis => "copy_panel.asks_axis",
+        Asked::Direction => "copy_panel.asks_direction",
+        Asked::CountAndStep if circular => "copy_panel.asks_count",
+        Asked::CountAndStep => "copy_panel.asks_count_and_step",
         Asked::Rotation => "copy_panel.asks_rotation",
     });
-    let tool = command::label(lang, Command::ToolCircularPattern);
+    let tool = command::label(lang, tool);
     lang.t_with(
         "copy_panel.step_asks",
         &[
