@@ -1,8 +1,8 @@
-//! What the rows of the copy tools' panel say, and what the drawing says the
+//! What the steps of the copy tools' panel say, and what the drawing says the
 //! panel's current step asks for.
 
 use cao_prefs::Command;
-use cao_sketch::Element;
+use cao_sketch::{ChosenAxis, Element, SketchAxis};
 
 use crate::lang::Catalogue;
 use crate::wording::command;
@@ -29,11 +29,14 @@ pub fn centre_at(lang: &Catalogue, (x, y): (f64, f64)) -> String {
     )
 }
 
-/// What the target slot of the panel names, depending on the tool.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Target {
-    Axis,
-    Direction,
+/// The axis or the direction chosen: a trait by the name its row in the part
+/// goes by, or one of the sketch's own two axes.
+pub fn axis(lang: &Catalogue, axis: ChosenAxis) -> String {
+    match axis {
+        ChosenAxis::Trait(segment) => element(lang, Element::Segment(segment)),
+        ChosenAxis::Sketch(SketchAxis::U) => lang.t("copy_panel.horizontal_axis"),
+        ChosenAxis::Sketch(SketchAxis::V) => lang.t("copy_panel.vertical_axis"),
+    }
 }
 
 /// What a numbered step of a copy tool's panel asks for.
@@ -72,21 +75,3 @@ pub fn step_asks(lang: &Catalogue, tool: Command, number: usize, asked: Asked) -
         ],
     )
 }
-
-/// The elements row: how many are held.
-pub fn elements(lang: &Catalogue, count: usize) -> String {
-    lang.t_with("copy_panel.elements", &[("count", &count.to_string())])
-}
-
-/// The target row, chosen or still to be clicked in the drawing.
-pub fn target(lang: &Catalogue, target: Target, chosen: bool) -> String {
-    lang.t(match (target, chosen) {
-        (Target::Axis, true) => "copy_panel.axis_chosen",
-        (Target::Axis, false) => "copy_panel.axis_to_click",
-        (Target::Direction, true) => "copy_panel.direction_chosen",
-        (Target::Direction, false) => "copy_panel.direction_to_click",
-    })
-}
-
-#[cfg(test)]
-mod tests;

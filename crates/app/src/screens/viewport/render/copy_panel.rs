@@ -1,17 +1,15 @@
-//! The panel of the mirror and the rectangular pattern: its slots top to
-//! bottom, the active one shown as such, and the one `Entrée` found empty
-//! marked. The circular pattern's is laid out in numbered steps, in
-//! `circular`.
+//! The panel of the mirror and the two patterns: the tool's numbered steps
+//! under its title, laid out in `steps`, the fields of a pattern's number and
+//! step in `values`.
 
 use super::super::input::copying::{activate_in_the_panel, command_of, enter_in_the_panel};
-use super::live_fields::value_field;
 use crate::screens::SketchContext;
-use crate::screens::sketch::{CopySlot, CopyValue, Rotation, Tool};
-use crate::ui::floating_panel::{floating_panel, panel_row, tool_panel};
+use crate::screens::sketch::{CopySlot, Rotation};
+use crate::ui::floating_panel::tool_panel;
 use crate::ui::theme::tokens::SPACING_XXL;
-use crate::wording::copy_panel::{self as said, Target};
 
-mod circular;
+mod steps;
+mod values;
 
 /// What a gesture in the panel asked for this frame.
 #[derive(Default)]
@@ -43,19 +41,12 @@ pub(crate) fn paint_copy_panel(
         before != Some(active)
     });
     let close = context.lang.t("panel.close");
-    let floated = match context.editor.tool {
-        Tool::CircularPattern => {
-            let sketch = context.editor.active_sketch().unwrap_or_default();
-            let named = crate::wording::sketch::name(context.lang, context.document, sketch);
-            let heading = (title.as_str(), named.as_str(), close.as_str());
-            tool_panel(ui.ctx(), id, heading, (left_at, view), |ui| {
-                circular::steps(ui, context, arrived)
-            })
-        }
-        _ => floating_panel(ui.ctx(), id, (&title, &close), (left_at, view), |ui| {
-            slots(ui, context, arrived)
-        }),
-    };
+    let sketch = context.editor.active_sketch().unwrap_or_default();
+    let named = crate::wording::sketch::name(context.lang, context.document, sketch);
+    let heading = (title.as_str(), named.as_str(), close.as_str());
+    let floated = tool_panel(ui.ctx(), id, heading, (left_at, view), |ui| {
+        steps::steps(ui, context, arrived)
+    });
     let let_go_at = floated.let_go_at.map(|at| [at.x, at.y]);
 
     let asked = floated.inner;
@@ -72,91 +63,4 @@ pub(crate) fn paint_copy_panel(
     let bare_enter = ui.input(|input| input.key_pressed(egui::Key::Enter));
     let laid = (asked.enter || bare_enter) && enter_in_the_panel(context);
     (laid, let_go_at)
-}
-
-fn slots(ui: &mut egui::Ui, context: &mut SketchContext<'_>, arrived: bool) -> Asked {
-    let mut asked = Asked::default();
-    let (lang, tool) = (context.lang, context.editor.tool);
-    let Some(panel) = context.editor.copy_panel() else {
-        return asked;
-    };
-    let (active, marked, kinds) = (panel.active(), panel.marked(), panel.value_kinds());
-    let shown = |slot: CopySlot, said: String| Row {
-        slot,
-        said,
-        active: active == slot,
-        marked: marked == Some(slot),
-    };
-
-    let target = match tool {
-        Tool::RectangularPattern => Target::Direction,
-        _ => Target::Axis,
-    };
-    let chosen = panel.target().is_some();
-    for row in [
-        shown(
-            CopySlot::Elements,
-            said::elements(lang, panel.elements().len()),
-        ),
-        shown(CopySlot::Target, said::target(lang, target, chosen)),
-    ] {
-        asked.activate = row.show(ui).or(asked.activate);
-    }
-
-    let variables = context.document.variables();
-    let live = &mut context.editor.live;
-    for (rank, kind) in kinds.iter().enumerate() {
-        let here = CopySlot::Value(rank);
-        let (named, unit) = match kind {
-            CopyValue::StepInMillimetres => ("copy_panel.step", "mm"),
-            CopyValue::StepInDegrees => ("copy_panel.step", "°"),
-            CopyValue::Count => ("copy_panel.count", "×"),
-        };
-        let named = lang.t(named);
-        ui.horizontal(|ui| {
-            asked.activate = shown(here, named).show(ui).or(asked.activate);
-            let id = egui::Id::new(("copy_panel_value", rank));
-            let focus = arrived && active == here;
-            let field = value_field(ui, id, &mut live.field(rank).text, "", focus, variables);
-            let response = field.response.response;
-            ui.label(unit);
-            if response.gained_focus() {
-                asked.activate = Some(here);
-            }
-            if response.changed() {
-                live.take(rank, variables, None);
-                ui.ctx().request_repaint();
-            }
-            asked.enter |= response.lost_focus()
-                && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
-        });
-    }
-    if let Some(panel) = context.editor.copy_panel.as_mut() {
-        panel.unmark_if_filled(&context.editor.live);
-    }
-
-    ui.horizontal(|ui| {
-        let validate = shown(CopySlot::Validate, lang.t("copy_panel.validate"));
-        if validate.show(ui).is_some() {
-            asked.activate = Some(CopySlot::Validate);
-            asked.enter = true;
-        }
-        asked.cancel = ui.button(lang.t("copy_panel.cancel")).clicked();
-    });
-    asked
-}
-
-/// One slot of the panel, as a line that makes it active when clicked.
-struct Row {
-    slot: CopySlot,
-    said: String,
-    active: bool,
-    marked: bool,
-}
-
-impl Row {
-    fn show(self, ui: &mut egui::Ui) -> Option<CopySlot> {
-        let clicked = panel_row(ui, self.said, self.active, self.marked).clicked();
-        clicked.then_some(self.slot)
-    }
 }

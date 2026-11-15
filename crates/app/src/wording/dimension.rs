@@ -120,5 +120,10 @@ pub fn degrees(value: f64) -> String {
     format!("{}°", to_places(value, 4))
 }
 
+/// A length, as [`short`] writes it, with its unit.
+pub fn millimetres(value: f64) -> String {
+    format!("{} mm", short(value))
+}
+
 #[cfg(test)]
 mod tests;

@@ -6,8 +6,10 @@
 //!   **the trait and its two ends**, and shows all three as selected —
 //!   `a_trait_clicked_while_elements_is_active_is_held_with_its_two_ends_all_three_selected`;
 //!   the panel's row counting all three on screen, in
-//!   `crates/app/tests/copying_in_a_panel.rs`,
-//!   `a_trait_clicked_into_the_panel_is_counted_with_its_two_ends`
+//!   `crates/app/tests/copying_in_a_panel.rs` — since #739 the panel has no
+//!   such row: it shows what was picked, the trait by its own chip, its two
+//!   ends held unseen, by
+//!   `a_trait_clicked_into_the_panel_shows_as_its_own_chip_without_its_ends`
 //! - An end shared with another trait is taken as well —
 //!   `an_end_shared_with_another_trait_is_taken_as_well`
 //! - Clicking the trait again lets go of the trait and of the ends that no

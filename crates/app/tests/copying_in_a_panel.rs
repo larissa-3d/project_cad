@@ -121,11 +121,12 @@ fn escape_hands_what_the_panel_held_to_the_selection_tool() {
     );
     assert!(driver::a_sketch_is_open(&app), "the sketch stays open");
     driver::click(&mut app, "Symétrie");
+    let chips = driver::buttons_over_the_view(&app);
     assert!(
-        driver::shows(&app, "Éléments : 1"),
+        chips.contains(&"Trait 1".to_string())
+            && !chips.iter().any(|chip| chip.starts_with("Point ")),
         "the trait picked stayed selected without its ends, and the mirror \
-         starts with it alone: {:?}",
-        driver::on_screen(&app)
+         starts with it alone: {chips:?}"
     );
 }
 
@@ -367,7 +368,7 @@ fn click_the_step(app: &mut driver::App, title: &str) {
 }
 
 #[test]
-fn a_trait_clicked_into_the_panel_is_counted_with_its_two_ends() {
+fn a_trait_clicked_into_the_panel_shows_as_its_own_chip_without_its_ends() {
     let mut app = a_trait_drawn(
         "a_trait_clicked_into_the_panel",
         cao_prefs::Settings::default(),
@@ -376,10 +377,15 @@ fn a_trait_clicked_into_the_panel_is_counted_with_its_two_ends() {
 
     driver::click_at_sketch_point(&mut app, driver::ON_THE_SEGMENT);
 
+    let chips = driver::buttons_over_the_view(&app);
     assert!(
-        driver::shows(&app, "Éléments : 3"),
-        "the trait and its two ends are held: {:?}",
-        driver::on_screen(&app)
+        chips.contains(&"Trait 1".to_string()),
+        "the trait clicked shows in the panel by its name: {chips:?}"
+    );
+    assert!(
+        !chips.iter().any(|chip| chip.starts_with("Point ")),
+        "its two ends are held with it, and shown by no chip of their own: \
+         {chips:?}"
     );
 }
 
