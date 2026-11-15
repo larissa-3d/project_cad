@@ -103,11 +103,19 @@
 //! - What each tool produces, and what a capped pattern says, are unchanged;
 //!   a test per tool compares the result —
 //!   `the_mirror_laid_through_its_steps_is_the_one_laid_before`,
-//!   `the_rectangular_pattern_laid_through_its_steps_is_the_one_laid_before`;
-//!   the circular pattern, which this issue does not move, and what a capped
-//!   pattern says, by the tests already there, which stay green on this
-//!   branch: `steps.rs` and `panel.rs` beside this file, and the cap's, named
-//!   in the last bullet of `steps.rs`
+//!   `the_rectangular_pattern_laid_through_its_steps_is_the_one_laid_before`,
+//!   each against the operation and the places the tool laid before #739,
+//!   written out rather than read back from the code. The circular pattern,
+//!   which this issue does not move, by the tests already there, which stay
+//!   green on this branch: `steps.rs` and `panel.rs` beside this file. What a
+//!   capped pattern says is only the circular pattern's, and stays held by
+//!   the tests #738 left green: the count brought down, by
+//!   `a_count_typed_above_a_full_turn_is_brought_down_to_it` in
+//!   `copying/tests.rs`; the line under the fields and the history's, by
+//!   `a_count_brought_down_names_the_copy_that_would_land_on_the_original` and
+//!   `a_capped_step_says_how_many_it_lays_at_its_angle_and_how_many_were_asked`
+//!   in `wording/pattern/tests.rs`; the pattern stopped at a full turn, by
+//!   `crates/part/tests/a_circular_pattern_stops_at_a_full_turn.rs`
 
 use cao_part::history::RepeatsAsked;
 use cao_part::{Formula, Operation};
@@ -549,4 +557,106 @@ fn a_step_clicked_in_the_mirror_s_or_the_rectangular_pattern_s_panel_takes_the_m
             );
         }
     }
+}
+
+/// A copy is the original reflected or moved: no solver, a few products.
+const TOLERANCE: f64 = 1e-9;
+
+fn traits(bench: &Bench) -> usize {
+    bench.document.sketches()[0].segments().len()
+}
+
+/// The traits the drawing gained past the first `before`, each by where its
+/// start and its end stand.
+fn traits_gained(bench: &Bench, before: usize) -> Vec<(DVec2, DVec2)> {
+    let sketch = &bench.document.sketches()[0];
+    sketch.segments()[before..]
+        .iter()
+        .map(|side| (sketch.point(side.start), sketch.point(side.end)))
+        .collect()
+}
+
+fn stand_at(gained: &[(DVec2, DVec2)], expected: &[(DVec2, DVec2)]) -> bool {
+    gained.len() == expected.len()
+        && gained
+            .iter()
+            .zip(expected)
+            .all(|((start, end), (from, to))| {
+                (*start - *from).length() < TOLERANCE && (*end - *to).length() < TOLERANCE
+            })
+}
+
+#[test]
+fn the_mirror_laid_through_its_steps_is_the_one_laid_before() {
+    let mut bench = a_trait_and_an_upright();
+    let elements = bench.a_trait_and_its_ends(TRAIT_TO_COPY);
+    let before = traits(&bench);
+    bench.take(Command::ToolMirror);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    bench.click(ON_THE_UPRIGHT);
+
+    bench.enter();
+
+    assert_eq!(
+        bench.last_laid(),
+        Some(&Operation::Mirror {
+            sketch: 0,
+            elements,
+            axis: ChosenAxis::Trait(UPRIGHT),
+        }),
+        "the operation the mirror laid from its slots before #739"
+    );
+    let gained = traits_gained(&bench, before);
+    assert!(
+        stand_at(&gained, &[(DVec2::new(14.0, -5.0), DVec2::new(14.0, 5.0))]),
+        "the trait at x = -10, reflected across the upright at x = 2, stands at \
+         x = 14, end for end: {gained:?}"
+    );
+}
+
+#[test]
+fn the_rectangular_pattern_laid_through_its_steps_is_the_one_laid_before() {
+    let mut bench = a_trait_and_an_upright();
+    let elements = bench.a_trait_and_its_ends(TRAIT_TO_COPY);
+    let before = traits(&bench);
+    bench.take(Command::ToolRectangularPattern);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    bench.click(ON_THE_UPRIGHT);
+    for _ in 0..3 {
+        bench.enter();
+    }
+
+    bench.enter();
+
+    let opened = RepeatsAsked {
+        step: Formula::Number(10.0),
+        count: Formula::Number(2.0),
+    };
+    assert_eq!(
+        bench.last_laid(),
+        Some(&Operation::RectangularPattern {
+            sketch: 0,
+            elements,
+            direction: ChosenAxis::Trait(UPRIGHT),
+            along: opened.clone(),
+            across: opened,
+        }),
+        "the operation the rectangular pattern laid from its slots before #739, \
+         with the values its fields opened on"
+    );
+    let gained = traits_gained(&bench, before);
+    assert!(
+        stand_at(
+            &gained,
+            &[
+                (DVec2::new(-10.0, 5.0), DVec2::new(-10.0, 15.0)),
+                (DVec2::new(-20.0, -5.0), DVec2::new(-20.0, 5.0)),
+                (DVec2::new(-20.0, 5.0), DVec2::new(-20.0, 15.0)),
+            ]
+        ),
+        "two by two, ten apart: one copy up the upright's way, one a quarter \
+         turn to its left, and one both: {gained:?}"
+    );
 }
