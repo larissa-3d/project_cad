@@ -508,16 +508,19 @@ fn a_step_clicked_in_the_panel_takes_the_message_pill_with_it() {
 
 #[test]
 fn the_mirror_and_the_rectangular_pattern_still_ask_what_they_asked() {
-    for (command, elements, target) in [
+    const AXIS: &str = "Cliquez le trait ou l'axe de symétrie";
+    for (command, elements, target, once_clicked) in [
         (
             Command::ToolMirror,
             "Cliquez ou encadrez ce qui doit être miroité, puis Entrée",
-            "Cliquez le trait ou l'axe de symétrie",
+            AXIS,
+            Some(AXIS),
         ),
         (
             Command::ToolRectangularPattern,
             "Cliquez ou encadrez ce qui doit être répété, puis Entrée",
             "Cliquez le trait ou l'axe le long duquel répéter",
+            None,
         ),
     ] {
         let mut bench = a_trait_and_a_centre();
@@ -530,8 +533,10 @@ fn the_mirror_and_the_rectangular_pattern_still_ask_what_they_asked() {
         bench.click(THE_CENTRE + DVec2::new(0.0, 5.0));
         assert_eq!(
             said(&bench),
-            None,
-            "{command:?}: past its target, the panel says nothing above it"
+            once_clicked,
+            "{command:?}: past its target, the panel says nothing above it; the \
+             mirror's axis is its last step since #739, and the panel stays on \
+             it, still saying what it asks for"
         );
     }
 }

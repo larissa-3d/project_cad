@@ -48,8 +48,10 @@
 //!   `a_copy_tool_taken_with_a_selection_in_hand_opens_on_its_target`
 //! - once a slot is filled, the slot below it becomes active, whether or not
 //!   that one is already filled; picking the mirror's axis lands on Validate —
-//!   `picking_the_mirror_s_axis_lands_on_validate`,
-//!   `a_centre_picked_again_moves_onto_values_already_typed`
+//!   `picking_the_mirror_s_axis_leaves_the_panel_on_its_axis`,
+//!   `a_centre_picked_again_moves_onto_values_already_typed`. Since #739 the
+//!   axis is the mirror's last step and nothing stands below it: picking it
+//!   leaves the panel there, for ↵ to lay the mirror
 //! - `Entrée` also moves down one slot — `enter_moves_down_one_slot`
 //! - on Validate, `Entrée` lays the copy if everything is filled —
 //!   `enter_on_validate_lays_the_mirror_as_one_step`
@@ -302,9 +304,11 @@ fn each_copy_tool_has_the_values_it_needs_and_no_more() {
     let walked = |command: Command| {
         let mut bench = holding_the_trait_to_copy(command);
         let mut slots = vec![bench.active()];
-        let lays = |slot| matches!(slot, CopySlot::Validate | CopySlot::Rotation);
-        while !lays(bench.active()) && slots.len() < 8 {
+        while slots.len() < 8 {
             bench.enter();
+            if slots.contains(&bench.active()) {
+                break;
+            }
             slots.push(bench.active());
         }
         slots
@@ -312,7 +316,9 @@ fn each_copy_tool_has_the_values_it_needs_and_no_more() {
 
     assert_eq!(
         walked(Command::ToolMirror),
-        [CopySlot::Target, CopySlot::Validate]
+        [CopySlot::Target],
+        "the axis is the mirror's last step: ↵ on it, still empty, brings it \
+         back marked rather than moving on to a value (#739)"
     );
     assert_eq!(
         walked(Command::ToolCircularPattern),
@@ -331,9 +337,10 @@ fn each_copy_tool_has_the_values_it_needs_and_no_more() {
             CopySlot::Value(0),
             CopySlot::Value(1),
             CopySlot::Value(2),
-            CopySlot::Value(3),
-            CopySlot::Validate
-        ]
+            CopySlot::Value(3)
+        ],
+        "the rectangular pattern's last step is its four values, ↵ on the last \
+         of them laying or bringing an empty step back (#739)"
     );
 }
 
@@ -427,7 +434,12 @@ fn an_axis_already_picked_is_changed_by_clicking_its_slot_again() {
 
     bench.click_the_slot(CopySlot::Target);
     bench.click(ON_THE_CONSTRUCTION_TRAIT);
-    assert_eq!(bench.active(), CopySlot::Validate);
+    assert_eq!(
+        bench.active(),
+        CopySlot::Target,
+        "the axis is the mirror's last step: the panel stays on it, for ↵ to lay \
+         the mirror (#739)"
+    );
     bench.enter();
 
     assert_eq!(
@@ -463,7 +475,7 @@ fn a_copy_tool_taken_with_a_selection_in_hand_opens_on_its_target() {
 }
 
 #[test]
-fn picking_the_mirror_s_axis_lands_on_validate() {
+fn picking_the_mirror_s_axis_leaves_the_panel_on_its_axis() {
     let mut bench = three_traits();
     bench.take(Command::ToolMirror);
     bench.click(ON_THE_TRAIT_TO_COPY);
@@ -471,7 +483,12 @@ fn picking_the_mirror_s_axis_lands_on_validate() {
     bench.click_the_slot(CopySlot::Target);
     bench.click(ON_THE_ORDINARY_TRAIT);
 
-    assert_eq!(bench.active(), CopySlot::Validate);
+    assert_eq!(
+        bench.active(),
+        CopySlot::Target,
+        "the axis is the mirror's last step: nothing stands below it to move \
+         on to (#739)"
+    );
     assert_eq!(
         bench.elements(),
         bench.a_trait_and_its_ends(TRAIT_TO_COPY),

@@ -26,7 +26,15 @@
 //!   `crates/app/tests/copying_in_a_panel.rs` by
 //!   `escape_on_a_step_of_the_mirror_closes_its_panel_and_lays_nothing` and
 //!   `escape_on_a_step_of_the_rectangular_pattern_closes_its_panel_and_lays_nothing`,
-//!   under its own `Closes #739`
+//!   under its own `Closes #739`. Decided on the way: the axis is the mirror's
+//!   last step, so a click naming it leaves the panel on it, current, for ↵
+//!   to lay the mirror, as the circular pattern waits on its direction —
+//!   `the_mirror_waits_on_its_axis_once_the_axis_is_clicked`; the rectangular
+//!   pattern's last step holds four fields, ↵ moving from one to the next and
+//!   laying on the last; and, as #738 decided, ↵ on the last step with a step
+//!   left empty lays nothing and brings the first empty one back, marked —
+//!   `enter_on_the_mirror_s_axis_with_no_axis_lays_nothing_and_marks_it`,
+//!   `enter_on_the_rectangular_pattern_s_last_step_with_its_direction_empty_brings_it_back_marked`
 //! - The message pill follows the step (« Symétrie — étape 2 : axe »,
 //!   « Réseau rectangulaire — étape 3 : nombre et pas »); a test on the
 //!   wording checks it — `the_message_pill_follows_the_step_of_the_mirror`,
@@ -97,7 +105,10 @@
 //!   branch: `steps.rs` and `panel.rs` beside this file, and the cap's, named
 //!   in the last bullet of `steps.rs`
 
+use cao_part::history::RepeatsAsked;
+use cao_part::{Formula, Operation};
 use cao_prefs::Command;
+use cao_sketch::{ChosenAxis, SegmentId};
 use glam::DVec2;
 
 use super::bench::Bench;
@@ -105,6 +116,8 @@ use crate::screens::sketch::{CopySlot, CopyStep, StepState};
 
 const ON_THE_TRAIT_TO_COPY: DVec2 = DVec2::new(-10.0, 0.0);
 const ON_THE_UPRIGHT: DVec2 = DVec2::new(2.0, 0.0);
+const TRAIT_TO_COPY: SegmentId = SegmentId(0);
+const UPRIGHT: SegmentId = SegmentId(1);
 
 /// A trait to copy, ten units tall, and an upright clear of it to mirror it
 /// across or to repeat it along.
@@ -241,4 +254,186 @@ fn a_step_of_the_mirror_or_the_rectangular_pattern_skipped_while_empty_reads_to_
              tell the user they were picked"
         );
     }
+}
+
+#[test]
+fn enter_on_the_mirror_s_elements_validates_them_and_moves_on_to_its_axis() {
+    let mut bench = a_trait_and_an_upright();
+    bench.take(Command::ToolMirror);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    let laid_before = bench.laid();
+
+    bench.enter();
+
+    assert_eq!(
+        bench.active(),
+        CopySlot::Target,
+        "the elements held, ↵ moves on to the axis"
+    );
+    assert_eq!(bench.laid(), laid_before, "moving on lays nothing");
+}
+
+#[test]
+fn the_mirror_waits_on_its_axis_once_the_axis_is_clicked() {
+    let mut bench = a_trait_and_an_upright();
+    bench.take(Command::ToolMirror);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    let laid_before = bench.laid();
+
+    bench.click(ON_THE_UPRIGHT);
+
+    assert_eq!(
+        steps(&bench),
+        [
+            (CopyStep::Elements, StepState::Done),
+            (CopyStep::Axis, StepState::Current),
+        ],
+        "the axis is the last step: the click that names it leaves it current, \
+         for ↵ to lay the mirror"
+    );
+    assert_eq!(bench.laid(), laid_before, "the click lays nothing");
+}
+
+#[test]
+fn enter_on_the_mirror_s_axis_applies_the_mirror() {
+    let mut bench = a_trait_and_an_upright();
+    let elements = bench.a_trait_and_its_ends(TRAIT_TO_COPY);
+    bench.take(Command::ToolMirror);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    bench.click(ON_THE_UPRIGHT);
+    bench.click_the_slot(CopySlot::Target);
+    let laid_before = bench.laid();
+
+    bench.enter();
+
+    assert_eq!(
+        bench.laid(),
+        laid_before + 1,
+        "one ↵ on the axis, its last step, lays the mirror, with no Validate to \
+         reach first"
+    );
+    assert_eq!(
+        bench.last_laid(),
+        Some(&Operation::Mirror {
+            sketch: 0,
+            elements,
+            axis: ChosenAxis::Trait(UPRIGHT),
+        })
+    );
+}
+
+#[test]
+fn enter_on_the_mirror_s_axis_with_no_axis_lays_nothing_and_marks_it() {
+    let mut bench = a_trait_and_an_upright();
+    bench.take(Command::ToolMirror);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    let laid_before = bench.laid();
+
+    bench.enter();
+
+    assert_eq!(bench.laid(), laid_before, "nothing is laid with no axis");
+    assert_eq!(
+        bench.active(),
+        CopySlot::Target,
+        "the axis, still empty, is asked for again"
+    );
+    assert_eq!(bench.panel().marked(), Some(CopySlot::Target));
+}
+
+#[test]
+fn enter_validates_each_step_of_the_rectangular_pattern_and_moves_on_to_the_next() {
+    let mut bench = a_trait_and_an_upright();
+    bench.take(Command::ToolRectangularPattern);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    let laid_before = bench.laid();
+
+    bench.enter();
+    assert_eq!(
+        bench.active(),
+        CopySlot::Target,
+        "the elements held, ↵ moves on to the direction"
+    );
+    bench.click(ON_THE_UPRIGHT);
+    bench.click_the_slot(CopySlot::Target);
+    bench.enter();
+    assert_eq!(
+        bench.active(),
+        CopySlot::Value(0),
+        "the direction held, ↵ moves on to the number and the step"
+    );
+    for next in 1..4 {
+        bench.enter();
+        assert_eq!(
+            bench.active(),
+            CopySlot::Value(next),
+            "the numbers and the steps of both ways are fields of one step: ↵ \
+             moves on to the next of them"
+        );
+    }
+    assert_eq!(bench.laid(), laid_before, "moving on lays nothing");
+}
+
+#[test]
+fn enter_on_the_rectangular_pattern_s_last_step_applies_the_pattern() {
+    let mut bench = a_trait_and_an_upright();
+    let elements = bench.a_trait_and_its_ends(TRAIT_TO_COPY);
+    bench.take(Command::ToolRectangularPattern);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    bench.click(ON_THE_UPRIGHT);
+    for _ in 0..3 {
+        bench.enter();
+    }
+    let laid_before = bench.laid();
+
+    bench.enter();
+
+    assert_eq!(
+        bench.laid(),
+        laid_before + 1,
+        "↵ on the last field of the last step lays the pattern, with no \
+         Validate to reach first"
+    );
+    let opened = RepeatsAsked {
+        step: Formula::Number(10.0),
+        count: Formula::Number(2.0),
+    };
+    assert_eq!(
+        bench.last_laid(),
+        Some(&Operation::RectangularPattern {
+            sketch: 0,
+            elements,
+            direction: ChosenAxis::Trait(UPRIGHT),
+            along: opened.clone(),
+            across: opened,
+        }),
+        "laid with the values the panel opened on"
+    );
+}
+
+#[test]
+fn enter_on_the_rectangular_pattern_s_last_step_with_its_direction_empty_brings_it_back_marked() {
+    let mut bench = a_trait_and_an_upright();
+    bench.take(Command::ToolRectangularPattern);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.enter();
+    bench.click_the_slot(CopySlot::Value(3));
+    let laid_before = bench.laid();
+
+    bench.enter();
+
+    assert_eq!(
+        bench.laid(),
+        laid_before,
+        "nothing is laid with no direction"
+    );
+    assert_eq!(
+        bench.active(),
+        CopySlot::Target,
+        "the direction, the first step still empty, is asked for again"
+    );
+    assert_eq!(bench.panel().marked(), Some(CopySlot::Target));
 }

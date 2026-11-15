@@ -294,15 +294,17 @@ impl CopyPanel {
     }
 
     /// The slot below the active one becomes active, whether or not it is
-    /// filled already.
-    pub(crate) fn move_down(&mut self) {
+    /// filled already. False on the last slot of the last step and on
+    /// Validate, which stay active: nothing stands below them.
+    pub(crate) fn move_down(&mut self) -> bool {
         self.active = match self.active {
             CopySlot::Elements => CopySlot::Target,
             CopySlot::Target if !self.values.is_empty() => CopySlot::Value(0),
             CopySlot::Value(rank) if rank + 1 < self.values.len() => CopySlot::Value(rank + 1),
             CopySlot::Value(_) if self.steps.contains(&CopyStep::Rotation) => CopySlot::Rotation,
-            _ => CopySlot::Validate,
+            _ => return false,
         };
+        true
     }
 
     pub(crate) fn is_filled(&self, slot: CopySlot, live: &LiveInput) -> bool {
