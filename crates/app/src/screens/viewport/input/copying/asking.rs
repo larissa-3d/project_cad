@@ -5,15 +5,15 @@ use crate::screens::SketchContext;
 use crate::screens::sketch::{CopySlot, CopyStep, Tool};
 use crate::wording::copy_panel::{self as said, Asked};
 
-/// A slot clicked in the panel becomes active, and when it belongs to a step
-/// the drawing says what that step asks for. A panel laid out in no steps —
-/// the mirror's, the rectangular pattern's — leaves the message as it was.
+/// A slot clicked in the panel becomes active, and in the circular pattern's
+/// the drawing says what its step asks for. The mirror's and the rectangular
+/// pattern's leave the message as it was.
 pub(crate) fn activate_in_the_panel(context: &mut SketchContext<'_>, slot: CopySlot) {
     let Some(panel) = context.editor.copy_panel_mut() else {
         return;
     };
     panel.activate(slot);
-    if panel.current_step().is_some() {
+    if context.editor.tool == Tool::CircularPattern {
         say_what_is_asked(context);
     }
 }
@@ -23,13 +23,10 @@ pub(super) fn say_what_is_asked(context: &mut SketchContext<'_>) {
     let Some(panel) = context.editor.copy_panel() else {
         return;
     };
-    if let Some((rank, step)) = panel.current_step() {
-        let asked = match step {
-            CopyStep::Elements => Asked::Elements,
-            CopyStep::Centre => Asked::Centre,
-            CopyStep::CountAndStep => Asked::Count,
-            CopyStep::Rotation => Asked::Rotation,
-        };
+    if context.editor.tool == Tool::CircularPattern
+        && let Some((rank, step)) = panel.current_step()
+        && let Some(asked) = asked_in_the_circular_pattern(step)
+    {
         context.editor.message = Some(said::circular_step(context.lang, rank + 1, asked));
         return;
     }
@@ -44,4 +41,16 @@ pub(super) fn say_what_is_asked(context: &mut SketchContext<'_>) {
         }
     };
     context.editor.message = Some(context.lang.t(said));
+}
+
+/// What a step asks for, among the circular pattern's: an axis and a
+/// direction are none of its steps.
+fn asked_in_the_circular_pattern(step: CopyStep) -> Option<Asked> {
+    match step {
+        CopyStep::Elements => Some(Asked::Elements),
+        CopyStep::Centre => Some(Asked::Centre),
+        CopyStep::CountAndStep => Some(Asked::Count),
+        CopyStep::Rotation => Some(Asked::Rotation),
+        CopyStep::Axis | CopyStep::Direction => None,
+    }
 }

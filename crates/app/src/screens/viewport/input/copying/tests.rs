@@ -22,6 +22,7 @@ use super::*;
 
 pub(super) mod bench;
 mod ends;
+mod mirror_and_rectangular_steps;
 mod panel;
 mod steps;
 

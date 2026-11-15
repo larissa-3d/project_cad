@@ -28,6 +28,8 @@ pub enum CopySlot {
 pub enum CopyStep {
     Elements,
     Centre,
+    Axis,
+    Direction,
     CountAndStep,
     Rotation,
 }
@@ -108,6 +110,12 @@ impl CopyPanel {
                 CopyStep::CountAndStep,
                 CopyStep::Rotation,
             ],
+            Tool::Mirror => &[CopyStep::Elements, CopyStep::Axis],
+            Tool::RectangularPattern => &[
+                CopyStep::Elements,
+                CopyStep::Direction,
+                CopyStep::CountAndStep,
+            ],
             _ => &[],
         };
         let values: &[CopyValue] = match tool {
@@ -142,7 +150,7 @@ impl CopyPanel {
             .map_or(self.steps.len(), |(rank, _)| rank);
         let holds = |step: CopyStep| {
             self.slots()
-                .filter(|slot| step_of(*slot) == Some(step))
+                .filter(|slot| self.step_of(*slot) == Some(step))
                 .all(|slot| self.is_filled(slot, live))
         };
         self.steps
@@ -166,7 +174,27 @@ impl CopyPanel {
             .iter()
             .copied()
             .enumerate()
-            .find(|(_, step)| step_of(self.active) == Some(*step))
+            .find(|(_, step)| self.step_of(self.active) == Some(*step))
+    }
+
+    /// The step a slot belongs to; Validate stands below them all. The target
+    /// belongs to whichever of the tool's steps names it: the circular
+    /// pattern's centre, the mirror's axis, the rectangular pattern's
+    /// direction.
+    fn step_of(&self, slot: CopySlot) -> Option<CopyStep> {
+        let names_the_target = |step: &CopyStep| {
+            matches!(
+                step,
+                CopyStep::Centre | CopyStep::Axis | CopyStep::Direction
+            )
+        };
+        match slot {
+            CopySlot::Elements => Some(CopyStep::Elements),
+            CopySlot::Target => self.steps.iter().copied().find(names_the_target),
+            CopySlot::Value(_) => Some(CopyStep::CountAndStep),
+            CopySlot::Rotation => Some(CopyStep::Rotation),
+            CopySlot::Validate => None,
+        }
     }
 
     /// The slots that hold something to fill, top to bottom.
@@ -334,17 +362,6 @@ impl SketchEditor {
             return Vec::new();
         };
         panel.picked().map(Selection::Element).collect()
-    }
-}
-
-/// The step a slot belongs to; Validate stands below them all.
-fn step_of(slot: CopySlot) -> Option<CopyStep> {
-    match slot {
-        CopySlot::Elements => Some(CopyStep::Elements),
-        CopySlot::Target => Some(CopyStep::Centre),
-        CopySlot::Value(_) => Some(CopyStep::CountAndStep),
-        CopySlot::Rotation => Some(CopyStep::Rotation),
-        CopySlot::Validate => None,
     }
 }
 

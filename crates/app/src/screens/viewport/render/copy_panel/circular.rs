@@ -83,6 +83,7 @@ pub(super) fn steps(ui: &mut egui::Ui, context: &mut SketchContext<'_>, arrived:
                         count_and_step(ui, context, (&held, arrived), &mut asked);
                     }
                     CopyStep::Rotation => rotation(ui, lang, &held, &mut asked),
+                    CopyStep::Axis | CopyStep::Direction => {}
                 }
             });
         });
@@ -106,7 +107,7 @@ fn progress(state: StepState) -> Progress {
 fn first_slot(step: CopyStep) -> CopySlot {
     match step {
         CopyStep::Elements => CopySlot::Elements,
-        CopyStep::Centre => CopySlot::Target,
+        CopyStep::Centre | CopyStep::Axis | CopyStep::Direction => CopySlot::Target,
         CopyStep::CountAndStep => CopySlot::Value(COUNT),
         CopyStep::Rotation => CopySlot::Rotation,
     }
