@@ -7,11 +7,11 @@ use cao_sketch::{Area, Region, Sketch};
 use cao_solid::profile::{Frame, Profile};
 use cao_solid::turning::{Axis, Lie, Turn};
 use cao_solid::{Body, Declined};
-use glam::DVec2;
+use glam::{DVec2, DVec3};
 
 use crate::broken::Broken;
 use crate::formula::Formula;
-use crate::history::{ExtrusionMode, RevolutionAxis};
+use crate::history::{ExtrusionMode, Operation, RevolutionAxis};
 use crate::profile::profile;
 use crate::state::PartState;
 
@@ -149,47 +149,22 @@ impl PartState {
         distance: &Formula,
         mode: ExtrusionMode,
     ) {
-        let Some(distance) = self.size(distance, |travel| travel.abs() >= 1e-6) else {
+        let Some(distance) = self.size(distance, raises) else {
             return;
         };
         self.fix_a_unit_at_a_millimetre();
-        let scale = self.scale();
-        let Some(sketch) = self.sketches.get(index) else {
+        let Some(prism) = self.prism(index, areas, distance) else {
             return;
         };
-
-        let plane = sketch.plane;
-        let travel = plane.normal() * (distance / scale);
-        let regions = sketch.regions();
-
-        let (standing, lost) = self.all_standing_on(index, areas, &regions);
-        let triangles: Vec<_> = standing
-            .iter()
-            .map(|region| region.face_triangles())
-            .collect();
-        let profiles: Vec<Profile> = standing
-            .iter()
-            .zip(&triangles)
-            .map(|(region, triangles)| profile(region, triangles))
-            .collect();
-        let frame = Frame {
-            origin: plane.origin,
-            u: plane.u,
-            v: plane.v,
+        let profiles = prism.profiles();
+        let tool = match prism.tool(&self.body, &profiles) {
+            Ok(tool) => tool,
+            Err(reason) => return self.declined_with(reason, past_raises(&profiles)),
         };
-
-        let mut tool = Body::default();
-        for profile in &profiles {
-            let raised = self.body.tool_raised(profile, frame, travel);
-            match raised.and_then(|piece| tool.union(&piece)) {
-                Ok(joined) => tool = joined,
-                Err(reason) => return self.declined_with(reason, past_raises(&profiles)),
-            }
-        }
 
         // An area the drawing no longer encloses raises nothing, which is a
         // size that no longer holds.
-        if lost {
+        if prism.lost {
             self.broke(Broken::Operation(self.replaying));
         }
         if !self.shows(&tool, mode) {
@@ -198,6 +173,44 @@ impl PartState {
         if let Err(reason) = self.combine(tool, mode) {
             self.declined_with(reason, past_raises(&profiles));
         }
+    }
+
+    /// The matter a step would raise or take away, alone: the same for an
+    /// addition and a cut, neither joined to the part nor cut from it, and
+    /// nothing noted. Nothing for a size that raises nothing, or a tool the
+    /// kernel declines.
+    pub(crate) fn tool_of(&self, operation: &Operation) -> Option<Body> {
+        let Operation::Extrude {
+            sketch,
+            areas,
+            distance,
+            ..
+        } = operation
+        else {
+            return None;
+        };
+        let distance = distance
+            .value(&self.values)
+            .filter(|travel| raises(*travel))?;
+        let prism = self.prism(*sketch, areas, distance)?;
+        prism.tool(&self.body, &prism.profiles()).ok()
+    }
+
+    /// The areas of a sketch a raise of that distance stands on, and the way
+    /// it travels. The scale is read as a step fixes it: a unit at a
+    /// millimetre when the part has none yet.
+    fn prism(&self, index: usize, areas: &[Area], distance: f64) -> Option<Prism> {
+        let sketch = self.sketches.get(index)?;
+        let regions = sketch.regions();
+        let (standing, lost) = self.all_standing_on(index, areas, &regions);
+        let standing: Vec<Region> = standing.into_iter().cloned().collect();
+        Some(Prism {
+            triangles: standing.iter().map(Region::face_triangles).collect(),
+            standing,
+            lost,
+            frame: frame_of(sketch),
+            travel: sketch.plane.normal() * (distance / self.scale()),
+        })
     }
 
     /// A step the kernel declined: broken, named among the declined ones with
@@ -263,6 +276,38 @@ impl PartState {
         regions: &'a [Region],
     ) -> Option<&'a Region> {
         regions.get(self.area_rank(sketch, area, regions)?)
+    }
+}
+
+/// Whether a step travels far enough to raise anything.
+fn raises(travel: f64) -> bool {
+    travel.abs() >= 1e-6
+}
+
+/// What a raise is built from: the areas it stands on, with their triangles,
+/// whether one of them is lost, and the way it travels.
+struct Prism {
+    standing: Vec<Region>,
+    triangles: Vec<Vec<[DVec2; 3]>>,
+    lost: bool,
+    frame: Frame,
+    travel: DVec3,
+}
+
+impl Prism {
+    fn profiles(&self) -> Vec<Profile<'_>> {
+        self.standing
+            .iter()
+            .zip(&self.triangles)
+            .map(|(region, triangles)| profile(region, triangles))
+            .collect()
+    }
+
+    /// Every area raised against the part's matter and joined into one tool.
+    fn tool(&self, part: &Body, profiles: &[Profile]) -> Result<Body, Declined> {
+        profiles.iter().try_fold(Body::default(), |tool, profile| {
+            tool.union(&part.tool_raised(profile, self.frame, self.travel)?)
+        })
     }
 }
 
