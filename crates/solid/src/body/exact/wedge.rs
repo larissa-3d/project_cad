@@ -29,7 +29,7 @@ use std::collections::BTreeSet;
 
 use glam::DVec3;
 
-use super::{Exact, PIECES, root};
+use super::{Exact, PIECES, lineage, root};
 use crate::body::caught::caught;
 use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale, VertexId};
 use crate::profile::{Contour, Frame};
@@ -263,10 +263,11 @@ impl Exact {
     /// that is not square, on a face of the other edge, short of the third —
     /// or on the plane of one of `open`, where an edge laid after it completes
     /// it, and every face `before` held but the edges' and those numbered in
-    /// `taken` still there: no face, nor piece of a face, of the prism but
-    /// that one — but an overlap's, numbered from [`OVERLAPS`], which an edge
-    /// laid after it may cover, and [`Exact::overlaps_covered`] holds once
-    /// every edge is laid.
+    /// `taken` — or a piece an earlier cut parted from one of them, which the
+    /// edge takes as it would have taken it unparted — still there: no face,
+    /// nor piece of a face, of the prism but that one — but an overlap's,
+    /// numbered from [`OVERLAPS`], which an edge laid after it may cover, and
+    /// [`Exact::overlaps_covered`] holds once every edge is laid.
     fn cut_along(
         &self,
         wedges: &[&Wedge],
@@ -308,11 +309,13 @@ impl Exact {
             .flat_map(|wedge| wedge.numbers.iter().flatten().copied())
             .chain(taken.iter().copied())
             .collect();
+        let may_be_consumed =
+            |number: &u32| lineage(&before.roots, *number).any(|up| consumable.contains(&up));
         let kept = before
             .brep
             .face_ids()
             .flat_map(|face| numbers(&before.brep, face))
-            .filter(|number| !consumable.contains(number) && !(OVERLAPS..PIECES).contains(number))
+            .filter(|number| !may_be_consumed(number) && !(OVERLAPS..PIECES).contains(number))
             .all(|number| self.has_face(number as usize));
         !stray && !parted && self.has_face(made as usize) && on_a_side && kept
     }

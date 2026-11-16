@@ -208,8 +208,9 @@ impl Exact {
 
     pub fn parted_from(&self, face: usize) -> Option<usize> {
         let number = u32::try_from(face).ok()?;
-        let replaced = *self.roots.get(&number)?;
-        (replaced < number).then_some(replaced as usize)
+        lineage(&self.roots, number)
+            .nth(1)
+            .map(|replaced| replaced as usize)
     }
 
     /// The pieces of parted faces the body still holds.
@@ -322,14 +323,19 @@ impl Exact {
 }
 
 /// The number of the face a piece was parted from, followed back to the
-/// first: the number itself for a face no cut parted. Followed only while
-/// the number replaced is smaller, as every one the kernel writes is, so
-/// that roots edited by hand into a cycle cannot hang the part.
-fn root(roots: &BTreeMap<u32, u32>, mut number: u32) -> u32 {
-    while let Some(&replaced) = roots.get(&number).filter(|&&replaced| replaced < number) {
-        number = replaced;
-    }
-    number
+/// first: the number itself for a face no cut parted.
+fn root(roots: &BTreeMap<u32, u32>, number: u32) -> u32 {
+    lineage(roots, number).last().unwrap_or(number)
+}
+
+/// The number, then the number of each face it was parted from, back to
+/// the first. Followed only while the number replaced is smaller, as every
+/// one the kernel writes is, so that roots edited by hand into a cycle
+/// cannot hang the part.
+fn lineage(roots: &BTreeMap<u32, u32>, number: u32) -> impl Iterator<Item = u32> + '_ {
+    std::iter::successors(Some(number), |&piece| {
+        (roots.get(&piece).copied()).filter(|&replaced| replaced < piece)
+    })
 }
 
 /// The body with each face a cut left in pieces that no longer touch told
@@ -352,3 +358,6 @@ fn parted(mut body: brep::Body, pieces: &mut u32, roots: &mut BTreeMap<u32, u32>
     }
     body
 }
+
+#[cfg(test)]
+mod tests;
