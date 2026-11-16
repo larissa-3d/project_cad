@@ -284,11 +284,16 @@ impl Renumbering {
 /// every face with a loop — but a whole sphere or torus, which closes on
 /// itself holding every pole of its surface — and every loop closed: each
 /// use starting where the one before it ends, or a whole closed curve alone.
+/// A face of a sphere or a torus whose loops its surface cannot trace is
+/// declined as the trace declines: the poles it holds are read off them.
 fn verified(body: &Body) -> Result<(), Declined> {
     let mut runs = vec![[0_usize; 2]; body.edges.len()];
     for face in &body.faces {
         if face.loops.is_empty() && !whole(body, face) {
             return Err(Declined::Unverified);
+        }
+        if let Surface::Sphere(_) | Surface::Torus(_) = body.surface(face.surface) {
+            body.traces_of(face)?;
         }
         for lap in &face.loops {
             for coedge in lap {

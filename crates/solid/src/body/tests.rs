@@ -451,25 +451,19 @@ fn built_and_drawn(body: &Body, kept: f64, curved: f64, what: &str) {
 }
 
 /// The circle a slab at a slant leaves on the ball passes its chart's pole
-/// as near as its face does. Within a hundredth of the pole, the cut may be
-/// declined as #938 declines the one through it; further off, it is built;
-/// and built, it holds the matter the arithmetic leaves, its triangles
-/// closed and uncrossed.
+/// as near as its face does, through it where the face stands on it: near or
+/// through, the cut is built, holds the matter the arithmetic leaves, and its
+/// triangles are closed and uncrossed.
 #[test]
-fn a_ball_cut_at_a_slant_close_by_a_pole_of_its_chart_holds_the_matter_the_arithmetic_leaves_or_is_declined()
+fn a_ball_cut_at_a_slant_through_or_close_by_a_pole_of_its_chart_holds_the_matter_the_arithmetic_leaves()
  {
     let pole = 5.0 / 2f64.sqrt();
-    for off in [-0.5, -0.1, -0.05, -0.01, -1e-4, 1e-4, 0.01, 0.05, 0.1, 0.5] {
+    for off in [
+        -0.5, -0.1, -0.05, -0.01, -1e-4, 0.0, 1e-4, 0.01, 0.05, 0.1, 0.5,
+    ] {
         let (cut, kept) = cut_at_a_slant(pole + off);
         let what = format!("the ball cut at a slant {off} along the normal off its pole");
-        let body = match cut {
-            Ok(body) => body,
-            Err(declined) if off.abs() <= 0.01 => {
-                assert_eq!(declined, Declined::Unsupported, "{what}");
-                continue;
-            }
-            Err(declined) => panic!("{what}: declined, {declined:?}"),
-        };
+        let body = cut.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
         assert!(
             body.is_exact() && (body.volume() - kept).abs() <= 1e-9 * kept,
             "{what}: holds {}, where the arithmetic leaves {kept}",
@@ -1381,3 +1375,4 @@ fn a_tool_that_takes_nothing_hands_back_the_part_without_a_note() {
 mod chamfer;
 mod fillet;
 mod section;
+mod through_a_pole;

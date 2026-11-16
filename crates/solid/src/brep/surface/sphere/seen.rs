@@ -11,7 +11,9 @@
 //! circle's own angle about the pierce point, within a quarter turn of the
 //! circle's parameter, then that angle carried down the axis, which an
 //! affine map of the plane shifts by less than half a turn all round. A
-//! circle through a pole has no angle there, and is no circle this reads.
+//! circle through a pole has no angle there, and is no circle this reads:
+//! the boolean reads its sphere about the circle's own axis instead (#938,
+//! `combine/charted.rs`).
 
 use std::f64::consts::{PI, TAU};
 

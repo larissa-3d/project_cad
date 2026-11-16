@@ -59,9 +59,10 @@ It can:
   it at its equator, a groove cut in a shaft (#576); a sphere against a
   plane at a slant to its axis or off it, along a circle of another axis —
   a ball cut at a slant, the chamfer at the foot of a rib cut from a ball
-  (#805), short of a cut through a pole of its chart (#938), a plane within
-  the tolerance of touching it (#939) and a face bounded by circles of two
-  such axes, not drawn yet (#940); a plane against
+  (#805), through a pole of its chart too, the sphere read about the
+  circle's axis (#938) — short of a plane within the tolerance of touching
+  it (#939) and a face bounded by circles of two such axes, not drawn yet
+  (#940); a plane against
   a cylinder or a cone at any angle (#552); elliptic cylinders (#571)
   against planes at any angle and round or elliptic walls parallel or
   square to them; curves: lines, circles, ellipses, the
@@ -589,10 +590,10 @@ Known and still open:
   along latitude circles, a touch at a crest or a root, or its pole; a
   plane holding its axis along its meridians; and a coaxial cylinder, cone,
   sphere or torus along one or two rims. A sphere meets any other plane
-  along a circle of another axis (#805); a cut along one through a pole of
-  its chart (#938), a plane within the tolerance of touching it (#939), and
-  a face bounded by circles of two such axes, which is not drawn (#940),
-  are still declined. A cone within the
+  along a circle of another axis (#805), one through a pole of its chart
+  read about the circle's own axis (#938); a plane within the tolerance of
+  touching it (#939), and a face bounded by circles of two such axes, which
+  is not drawn (#940), are still declined. A cone within the
   tolerance of a plane or a cylinder of its axis all across the box, two
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another
@@ -845,12 +846,26 @@ The decisions, in the order taken, once per operation:
    unwrapped by where the axis pierces the circle's disc, once round a turn
    where it does and back within half a turn of the centre's angle where it
    does not; a circle within `EPS` of a pole has no angle there and is not
-   read so (#938). A sphere carries every circle lying on it, whatever its
-   axis, and any other circle crosses it where it crosses the circle its
-   own plane cuts the sphere along, the two in one plane (decision 4); the
-   flux through a face bounded by such a circle is integrated over panels
-   halving towards where it passes nearest each pole, round which its angle
-   about the axis turns fastest. A plane at a slant to a torus or off its axis, a wall or a round of
+   read so. The chart's axis is the one the sphere was turned about, an
+   artefact of how it was made: before the boolean reads its operands
+   (#938, `combine/charted.rs`), a sphere a plane of the other operand cuts
+   through a pole of its chart, their faces near enough to meet, is read
+   about that circle's own axis, where the circle is a latitude, and the
+   operand laid again on it, each face holding the poles of the new chart
+   it holds. It is read so only where every circle on its faces and every
+   circle the other operand's planes cut it along stands clear of the new
+   poles, and no surface but a plane, in either operand, meets it along
+   curves its axis decides — a coaxial knob keeps the axis, and the step
+   declines; the result carries the sphere so read. A face of a sphere or
+   a torus whose loops cannot be traced is declined when the body is
+   verified rather than read as holding no pole, which lost the cap of the
+   pole it held from its volume (#945, `assembly.rs`). A sphere carries
+   every circle lying on it, whatever its axis, and any other circle
+   crosses it where it crosses the circle its own plane cuts the sphere
+   along, the two in one plane (decision 4); the flux through a face
+   bounded by such a circle is integrated over panels halving towards
+   where it passes nearest each pole, round which its angle about the axis
+   turns fastest. A plane at a slant to a torus or off its axis, a wall or a round of
    another axis, and an elliptic wall are unsupported, and decline unless
    `clear` stands the two faces apart; none of them asks for a conic, so
    `at_a_slant` answers false.
@@ -1964,7 +1979,9 @@ covered once from each side.
    square to, or along, a wall's axis, or parallel to a plane, it leans a
    hair off (decision 11),
    moved onto a wall of its radius a hair off (decision 8), and onto a round
-   it stands a hair from touching, or a rim on it (decision 12).
+   it stands a hair from touching, or a rim on it (decision 12); and once
+   either operand's sphere that a plane of the other cuts through a pole of
+   its chart is read about that circle's axis (#938, `combine/charted.rs`).
 2. **Relations** of pairs whose faces' boxes overlap (2, 3).
 3. **Corners.** Every edge curve of one operand against every surface of the
    other, and the special points of the relations (4, 5). A curve can only
@@ -2064,7 +2081,9 @@ covered once from each side.
    to read again: an operand's edge inside a face of the other, a hair off
    whatever a later, larger tolerance takes the face's surface for.
 9. **Verification.** The listing is checked before the body is handed back.
-   What the kernel cannot verify it does not answer.
+   What the kernel cannot verify it does not answer: a face of a sphere or a
+   torus whose loops its surface cannot trace is declined, since the poles
+   it holds, and its volume, are read off them (#945).
 10. **A lean read unstably** (#552, `combine/unstable.rs`). Once decision 11
     has turned the second operand, a plane of one operand and a cylinder, a
     cone, an elliptic wall (#571), a sphere or a torus (#576) of the other,

@@ -652,22 +652,26 @@ fn a_ball_cut_at_a_slant_and_joined_to_a_coaxial_knob_at_its_pole_holds_both_in_
 
 /// A slab at a slant whose face runs through the ball's pole at h = 5: its
 /// circle passes through a pole of the sphere's chart, where θ has no value,
-/// and the cut and the join are declined until #938, though the sphere has
-/// no pole but its chart's. The slab half a unit further out cuts the cap
+/// and the cut and the join are built along it all the same (#938), the
+/// sphere having no pole but its chart's — the cut the ball less the cap past
+/// the plane, the join the slab and that ball, each listed sound, a disc and
+/// a piece of sphere about it. The slab half a unit further out cuts the cap
 /// past it.
 #[test]
-fn a_slab_at_a_slant_through_a_pole_of_a_ball_s_chart_is_declined_as_unsupported() {
+fn a_slab_at_a_slant_through_a_pole_of_a_ball_s_chart_cuts_and_joins_it_along_its_circle() {
     let through = 5.0 / 2f64.sqrt();
 
     let cut = turned(&ball(), 360.0).cut_by(&slab_at_a_slant(through));
     let joined = turned(&ball(), 360.0).joined(&slab_at_a_slant(through));
 
-    for (what, declined) in [("cut", cut.err()), ("join", joined.err())] {
-        assert_eq!(
-            declined,
-            Some(Declined::Unsupported),
-            "the {what} of a ball by a slab at a slant through its pole, which #938 is to build"
-        );
+    for (what, built, volume) in [
+        ("cut", cut, BALL - cap_above(through)),
+        ("join", joined, 16_000.0 + BALL - cap_above(through)),
+    ] {
+        let what = format!("the {what} of a ball by a slab at a slant through its pole");
+        let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        held_and_drawn(&body, volume, &what);
+        assert_eq!(rounds(&body).len(), 1, "{what}: one piece of sphere");
     }
     let past = through + 0.5;
     let cut = turned(&ball(), 360.0)

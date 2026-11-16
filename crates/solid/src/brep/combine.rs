@@ -5,6 +5,7 @@
 //! the operation says something different on its two sides.
 
 mod band;
+mod charted;
 mod clear;
 mod crossed;
 mod cut;
@@ -26,6 +27,7 @@ use super::canonical::{
 };
 use super::selection::selected;
 use super::topology::{Body, SurfaceId};
+use charted::charted;
 pub(super) use operands::Operands;
 use related::Special;
 use seamed::{reseamed, seamed};
@@ -83,7 +85,11 @@ pub(super) fn combine(first: &Body, second: &Body, operation: Operation) -> Resu
     let edged = edged(first, second, scale);
     let second = edged.as_ref().unwrap_or(second);
     let slid = slid(first, second, scale);
-    let operands = Operands::of(first, slid.as_ref().unwrap_or(second), scale);
+    let second = slid.as_ref().unwrap_or(second);
+    let [first_charted, second_charted] = charted(first, second, scale);
+    let first = first_charted.as_ref().unwrap_or(first);
+    let second = second_charted.as_ref().unwrap_or(second);
+    let operands = Operands::of(first, second, scale);
     let unstable = unstable(&operands);
     let mut arena = laid(&operands)?;
     seamed(&mut arena, &operands, operation);
