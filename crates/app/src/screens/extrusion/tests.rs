@@ -218,10 +218,10 @@ fn a_ball(document: &mut PartDocument, center: DVec3, radius: f64) {
     });
 }
 
-/// A ball of radius 8 about the origin, and over it a circle on a plane
-/// tilted 30° about X: raised down, its wall crosses the ball's sphere off
-/// its centre, which the exact kernel does not build.
-fn a_ball_under_a_slanted_circle() -> PartDocument {
+/// A ball of radius 8 about the origin, and over it an ellipse 4 across and
+/// 3 high on a plane tilted 30° about X: raised down, its elliptic wall
+/// crosses the ball's sphere, which the exact kernel does not build.
+fn a_ball_under_a_slanted_ellipse() -> PartDocument {
     let mut document = PartDocument::new("part", Utc::now());
     a_ball(&mut document, DVec3::ZERO, 8.0);
     let (sin, cos) = (std::f64::consts::PI / 6.0).sin_cos();
@@ -233,12 +233,19 @@ fn a_ball_under_a_slanted_circle() -> PartDocument {
         },
         on: None,
     });
-    document.apply(Operation::AddCircle {
+    document.apply(Operation::AddEllipse {
         sketch: 1,
         center: PointRef::New(DVec2::ZERO),
-        radius: 2.0,
-        rim: Vec::new(),
+        first: [
+            PointRef::New(DVec2::new(-2.0, 0.0)),
+            PointRef::New(DVec2::new(2.0, 0.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(0.0, -1.5)),
+            PointRef::New(DVec2::new(0.0, 1.5)),
+        ],
         construction: false,
+        drawn: None,
     });
     document
 }
@@ -350,7 +357,7 @@ fn a_shaft_and_a_rectangle_standing_on_its_axis() -> PartDocument {
 #[test]
 fn an_extrusion_not_built_or_unstable_is_an_alert_and_no_message() {
     let lang = Catalogue::french();
-    let mut declined = a_ball_under_a_slanted_circle();
+    let mut declined = a_ball_under_a_slanted_ellipse();
     let mut extrusion = ExtrusionState::default();
     extrusion.offer(1);
     extrusion.picks = vec![DVec2::ZERO];

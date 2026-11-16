@@ -491,9 +491,10 @@ fn a_ball(document: &mut PartDocument, center: DVec3, radius: f64) {
     });
 }
 
-/// A ball of radius 4 about (5, 10, 0), then a circle on a plane tilted 30°
-/// about X raised down across its sphere, three off its centre.
-fn a_ball_under_a_slanted_circle_raised() -> PartDocument {
+/// A ball of radius 4 about (5, 10, 0), then an ellipse 4 across and 3 high
+/// on a plane tilted 30° about X raised down across its sphere, three off its
+/// centre: an elliptic wall against a sphere, which the exact kernel declines.
+fn a_ball_under_a_slanted_ellipse_raised() -> PartDocument {
     let mut document = PartDocument::new("Test", at("2026-01-02T09:00:00Z"));
     a_ball(&mut document, DVec3::new(5.0, 10.0, 0.0), 4.0);
     let (sin, cos) = (std::f64::consts::PI / 6.0).sin_cos();
@@ -505,12 +506,19 @@ fn a_ball_under_a_slanted_circle_raised() -> PartDocument {
         },
         on: None,
     });
-    document.apply(Operation::AddCircle {
+    document.apply(Operation::AddEllipse {
         sketch: 1,
         center: PointRef::New(DVec2::ZERO),
-        radius: 2.0,
-        rim: Vec::new(),
+        first: [
+            PointRef::New(DVec2::new(-2.0, 0.0)),
+            PointRef::New(DVec2::new(2.0, 0.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(0.0, -1.5)),
+            PointRef::New(DVec2::new(0.0, 1.5)),
+        ],
         construction: false,
+        drawn: None,
     });
     document.apply(Operation::Extrude {
         sketch: 1,
@@ -523,13 +531,13 @@ fn a_ball_under_a_slanted_circle_raised() -> PartDocument {
 
 #[test]
 fn a_step_the_kernel_declines_is_marked_in_the_tree() {
-    let tree = PartTree::of(&a_ball_under_a_slanted_circle_raised(), &french());
+    let tree = PartTree::of(&a_ball_under_a_slanted_ellipse_raised(), &french());
 
     assert_eq!(
         tree.bodies[1].badge,
         Some(Problem::NotBuilt),
-        "a circle raised across the ball's sphere off its centre meets it \
-         where the exact kernel cannot follow, and declines",
+        "an ellipse raised across the ball's sphere meets it where the exact \
+         kernel cannot follow, and declines",
     );
     assert_eq!(tree.bodies[0].badge, None, "the ball itself was built");
 }
@@ -1116,7 +1124,7 @@ fn each_problem_is_a_badge_with_its_level() {
         });
         PartTree::of(&document, &lang)
     };
-    let not_built = PartTree::of(&a_ball_under_a_slanted_circle_raised(), &lang);
+    let not_built = PartTree::of(&a_ball_under_a_slanted_ellipse_raised(), &lang);
     let unstable = PartTree::of(
         &a_shaft_cut_by_a_slice_a_hundredth_of_a_degree_thin(),
         &lang,
