@@ -86,10 +86,16 @@ pub fn label(lang: &Catalogue, variables: &Variables, operation: &Operation) -> 
         Operation::Split { .. } => lang.t("history.split"),
         Operation::Chamfer { .. } => lang.t("history.chamfer"),
         Operation::Fillet { .. } => lang.t("history.fillet"),
-        Operation::Blend { shape, .. } => lang.t(match shape {
-            BlendShape::Chamfer => "history.edge_chamfered",
-            BlendShape::Fillet => "history.edge_rounded",
-        }),
+        Operation::Blend { edges, shape, .. } => match (edges.len(), shape) {
+            (0 | 1, BlendShape::Chamfer) => lang.t("history.edge_chamfered"),
+            (0 | 1, BlendShape::Fillet) => lang.t("history.edge_rounded"),
+            (count, BlendShape::Chamfer) => {
+                lang.t_with("history.edges_chamfered", &[("count", &count.to_string())])
+            }
+            (count, BlendShape::Fillet) => {
+                lang.t_with("history.edges_rounded", &[("count", &count.to_string())])
+            }
+        },
         Operation::CutChange(change) => cut_change::label(lang, change),
         Operation::EditMatter { to, .. } => lang.t(match **to {
             Operation::Revolve { .. } => "history.revolution_changed",

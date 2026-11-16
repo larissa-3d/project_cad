@@ -22,6 +22,8 @@
   "history.fillet": "Coin arrondi",
   "history.edge_chamfered": "Arête chanfreinée",
   "history.edge_rounded": "Arête arrondie",
+  "history.edges_chamfered": "{count} arêtes chanfreinées",
+  "history.edges_rounded": "{count} arêtes arrondies",
   "history.fillet_changed": "Congé modifié",
   "history.chamfer_changed": "Chanfrein modifié",
   "history.extrusion_changed": "Extrusion modifiée",

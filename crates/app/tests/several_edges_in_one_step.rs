@@ -48,6 +48,12 @@
 //!   the numbers it takes, written into every part saved after it, frozen in
 //!   `crates/part/tests/a_part_with_a_blend_of_several_edges_opens.rs` by
 //!   `a_part_saved_with_a_blend_of_several_edges_opens_with_its_sketch_on_the_face_it_was_laid_on`
+//! - found on rendered frames, beyond the issue's eight: the history line of
+//!   a step of several edges reads how many it holds, « 4 arêtes arrondies »
+//!   or « 3 arêtes chanfreinées », then « · 2 mm » as today — no test: held
+//!   in `crates/app/src/screens/part_tree/state/tests/history.rs`, where the
+//!   history's lines are read, by
+//!   `a_blend_of_several_edges_reads_how_many_edges_it_holds_then_its_size_or_both_values`
 //!
 //! What must not break, from the issue, where the criteria left it unheld:
 //! - A click in empty space still leaves the choice as it was —
