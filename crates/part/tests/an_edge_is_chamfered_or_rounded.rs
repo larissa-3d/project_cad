@@ -212,7 +212,7 @@ fn applied_on_the_top_front_edge(part: &mut PartDocument, shape: BlendShape, siz
 fn applied_on(part: &mut PartDocument, edge: EdgeName, shape: BlendShape, size: f64) -> u32 {
     let steps = part.history.steps().len();
     part.apply(Operation::Blend {
-        edge,
+        edges: vec![edge],
         shape,
         size: size.into(),
     });
@@ -516,7 +516,7 @@ fn a_chamfer_or_a_fillet_the_kernel_declines_records_nothing_and_says_why() {
         let what = format!("{shape:?} on the rim of a disc");
 
         let outcome = part.apply(Operation::Blend {
-            edge: rim,
+            edges: vec![rim],
             shape,
             size: 1.0.into(),
         });

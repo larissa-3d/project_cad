@@ -19,8 +19,9 @@ use super::super::{EDGE_REACH, ViewportState, to_ndc};
 const IN_FRONT: f64 = 1e-3;
 
 /// Lights the nearest edge in sight within reach of the hand, and hands it to
-/// the panel on a click; a click reaching none leaves the panel's edge as it
-/// was.
+/// the panel on a click, in place of those chosen, or added to them or taken
+/// out with Cmd or Shift held; a click reaching none leaves the panel's edges
+/// as they were.
 pub(crate) fn pick_an_edge(
     state: &mut ViewportState,
     response: &egui::Response,
@@ -34,7 +35,13 @@ pub(crate) fn pick_an_edge(
     if response.clicked()
         && let Some(name) = &under
     {
-        blend.choose(name.clone());
+        let adding = response
+            .ctx
+            .input(|input| input.modifiers.command || input.modifiers.shift);
+        match adding {
+            true => blend.toggle(name.clone()),
+            false => blend.choose(name.clone()),
+        }
     }
     state.edge_under_the_hand = under;
 }

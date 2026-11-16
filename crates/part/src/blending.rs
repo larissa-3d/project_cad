@@ -1,7 +1,7 @@
-//! An edge of the part chamfered or rounded by the kernel, at the size asked
-//! or at the most its two faces give.
+//! Edges of the part chamfered or rounded together by the kernel, at the size
+//! asked or at the most their faces give.
 
-use cao_solid::EdgeName;
+use cao_solid::{Declined, EdgeName};
 use serde::{Deserialize, Serialize};
 
 use crate::formula::Formula;
@@ -13,6 +13,24 @@ use crate::state::PartState;
 /// is rounding.
 const ONE_PLACE: f64 = 1e-9;
 
+/// The face numbers a step of several edges takes, per edge, built or not.
+/// The kernel numbers one face per edge, then the pieces closing its corners:
+/// a closing, an odd corner's piece and its held end take no more numbers at
+/// a corner than there are listed edges ending there, two per edge at most. A
+/// build laying more is declined `Unsupported`, a limit of the part rather
+/// than of the kernel, instead of shifting every face numbered after it.
+const NUMBERS_PER_EDGE: usize = 3;
+
+/// The face numbers a step of `edges` edges takes, so that the faces after it
+/// keep theirs whatever becomes of it. A step of one edge keeps the one number
+/// it always took, which parts saved before name the faces after it by.
+fn numbers_taken(edges: usize) -> usize {
+    match edges {
+        0 | 1 => 1,
+        several => NUMBERS_PER_EDGE * several,
+    }
+}
+
 /// A chamfer or a fillet the faces of its edge could not give the size it
 /// asked, laid at the most they give. In millimetres.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -22,40 +40,59 @@ pub struct Reduced {
 }
 
 impl PartState {
-    /// Chamfers or rounds an edge, noting the face it lays as a step of matter
-    /// notes its own, so that the faces after it are found again by their
-    /// numbers whatever becomes of it.
+    /// Chamfers or rounds edges together, noting the faces it lays as a step
+    /// of matter notes its own, so that the faces after it are found again by
+    /// their numbers whatever becomes of it.
     pub(crate) fn blend(
         &mut self,
-        edge: &EdgeName,
+        edges: &[EdgeName],
         shape: BlendShape,
         size: &Formula,
     ) -> Option<Outcome> {
         let mut outcome = None;
-        self.raising(|state| outcome = state.blended(edge, shape, size));
+        self.raising(|state| outcome = state.blended(edges, shape, size));
         outcome
     }
 
-    fn blended(&mut self, edge: &EdgeName, shape: BlendShape, size: &Formula) -> Option<Outcome> {
+    fn blended(
+        &mut self,
+        edges: &[EdgeName],
+        shape: BlendShape,
+        size: &Formula,
+    ) -> Option<Outcome> {
+        let from = self.body.faces_end();
+        let block = numbers_taken(edges.len());
         let Some(size) = self.size(size, |size| size >= 1e-6) else {
-            self.body.count_past_cut(1);
+            self.body.count_past_cut(block);
             return None;
         };
-        let edge = self.edge_named_by(edge, self.replaying);
+        let edges: Vec<EdgeName> = edges
+            .iter()
+            .map(|edge| self.edge_named_by(edge, self.replaying))
+            .collect();
         let scale = self.scale();
         let blended = match shape {
             BlendShape::Chamfer => self
                 .body
-                .chamfer(&edge, size / scale)
+                .chamfer_edges(&edges, size / scale)
                 .map(|cut| (cut.body, cut.taken)),
             BlendShape::Fillet => self
                 .body
-                .fillet(&edge, size / scale)
+                .fillet_edges(&edges, size / scale)
                 .map(|round| (round.body, round.taken)),
         };
+        let blended = blended.and_then(|(body, taken)| {
+            let laid = body.faces_end().saturating_sub(from);
+            match edges.len() > 1 && laid > block {
+                true => Err(Declined::Unsupported),
+                false => Ok((body, taken)),
+            }
+        });
         match blended {
             Ok((body, taken)) => {
                 self.body = body;
+                let short = (from + block).saturating_sub(self.body.faces_end());
+                self.body.count_past_cut(short);
                 let taken = taken * scale;
                 if size - taken > ONE_PLACE * size.max(1.0) {
                     self.reduced
@@ -64,7 +101,7 @@ impl PartState {
                 None
             }
             Err(reason) => {
-                self.declined_with(reason, |body| body.count_past_cut(1));
+                self.declined_with(reason, |body| body.count_past_cut(block));
                 Some(Outcome::BlendDeclined(reason))
             }
         }

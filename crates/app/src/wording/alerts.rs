@@ -32,15 +32,30 @@ pub fn why(lang: &Catalogue, problem: Problem, unstable: Option<&str>) -> String
     }
 }
 
-/// Why a chamfer or a fillet laid before is not built once the part replays:
-/// its edge gone, an edge it does not handle, or the computation failing.
-pub fn blend_not_built(lang: &Catalogue, shape: BlendShape, reason: Declined) -> String {
-    lang.t(match (reason, shape) {
-        (Declined::Lost(_), BlendShape::Chamfer) => "alerts.blend_lost_chamfer",
-        (Declined::Lost(_), BlendShape::Fillet) => "alerts.blend_lost_fillet",
-        (Declined::Unsupported, BlendShape::Chamfer) => "alerts.blend_unsupported_chamfer",
-        (Declined::Unsupported, BlendShape::Fillet) => "alerts.blend_unsupported_fillet",
-        (_, BlendShape::Chamfer) => "alerts.blend_failed_chamfer",
-        (_, BlendShape::Fillet) => "alerts.blend_failed_fillet",
+/// Why a chamfer or a fillet laid before on `edges` edges is not built once
+/// the part replays: an edge gone, an edge it does not handle, or the
+/// computation failing.
+pub fn blend_not_built(
+    lang: &Catalogue,
+    shape: BlendShape,
+    reason: Declined,
+    edges: usize,
+) -> String {
+    let several = edges > 1;
+    lang.t(match (reason, shape, several) {
+        (Declined::Lost(_), BlendShape::Chamfer, false) => "alerts.blend_lost_chamfer",
+        (Declined::Lost(_), BlendShape::Chamfer, true) => "alerts.blend_lost_chamfer_many",
+        (Declined::Lost(_), BlendShape::Fillet, false) => "alerts.blend_lost_fillet",
+        (Declined::Lost(_), BlendShape::Fillet, true) => "alerts.blend_lost_fillet_many",
+        (Declined::Unsupported, BlendShape::Chamfer, false) => "alerts.blend_unsupported_chamfer",
+        (Declined::Unsupported, BlendShape::Chamfer, true) => {
+            "alerts.blend_unsupported_chamfer_many"
+        }
+        (Declined::Unsupported, BlendShape::Fillet, false) => "alerts.blend_unsupported_fillet",
+        (Declined::Unsupported, BlendShape::Fillet, true) => "alerts.blend_unsupported_fillet_many",
+        (_, BlendShape::Chamfer, false) => "alerts.blend_failed_chamfer",
+        (_, BlendShape::Chamfer, true) => "alerts.blend_failed_chamfer_many",
+        (_, BlendShape::Fillet, false) => "alerts.blend_failed_fillet",
+        (_, BlendShape::Fillet, true) => "alerts.blend_failed_fillet_many",
     })
 }

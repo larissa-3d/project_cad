@@ -92,9 +92,18 @@
 //! not the same. The parts are those the tree's own tests are made
 //! of, in `crates/app/src/screens/part_tree/state/tests.rs`, written here so
 //! that two can be laid one after the other in a part.
+//!
+//! Closes #979 — the whole transcription is in
+//! `crates/app/tests/several_edges_in_one_step.rs`; found on the way, beyond
+//! the issue's eight:
+//! - a chamfer or a fillet holding several edges, not built once the part
+//!   replays, says so of its edges, in the plural, where one holding a single
+//!   edge speaks of « son arête » —
+//!   `a_blend_of_several_edges_not_built_speaks_of_its_edges_in_the_plural`
 
 use cao_part::history::{
-    ExtrusionMode, FaceAnchor, Operation, PointRef, RevolutionAxis, SectionAsked, SideDrawing,
+    BlendShape, ExtrusionMode, FaceAnchor, Operation, PointRef, RevolutionAxis, SectionAsked,
+    SideDrawing,
 };
 use cao_sketch::{DimensionTarget, Element, PointId, SegmentId, SketchAxis, WorkPlane};
 use chrono::{DateTime, Utc};
@@ -804,4 +813,106 @@ fn two_sections_one_off_its_face(document: &mut PartDocument) {
             pivot: DVec3::ZERO,
         }));
     }
+}
+
+/// A block 30 by 10 by 20 notched at its foot across its back, the edges at
+/// the foot and at the top of its front chamfered in one step, then the notch
+/// moved across the front: the foot's edge is parted in two, and the step,
+/// holding both edges, is not built.
+fn a_block_whose_chamfer_of_two_edges_lost_one(document: &mut PartDocument) {
+    let rectangle = |document: &mut PartDocument, sketch, corner: DVec2, opposite: DVec2| {
+        document.apply(Operation::AddRectangle {
+            sketch,
+            corner: PointRef::New(corner),
+            opposite: PointRef::New(opposite),
+            construction: false,
+        });
+    };
+    let on_xy = Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    };
+    document.apply(on_xy.clone());
+    rectangle(document, 0, DVec2::ZERO, DVec2::new(30.0, 10.0));
+    let areas = document.areas_at(0, &[DVec2::new(15.0, 5.0)]);
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas,
+        distance: 20.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    document.apply(on_xy);
+    rectangle(document, 1, DVec2::new(10.0, 7.0), DVec2::new(20.0, 13.0));
+    rectangle(document, 1, DVec2::new(10.0, -3.0), DVec2::new(20.0, 3.0));
+    let notch = |document: &PartDocument, at: DVec2| Operation::Extrude {
+        sketch: 1,
+        areas: document.areas_at(1, &[at]),
+        distance: 5.0.into(),
+        mode: ExtrusionMode::Cut,
+    };
+    document.apply(notch(document, DVec2::new(15.0, 10.0)));
+    let notched = document
+        .history
+        .steps()
+        .last()
+        .expect("the notch")
+        .operations()[0];
+    let along_the_front_at = |document: &PartDocument, height: f64| {
+        document
+            .body()
+            .drawn_edges()
+            .into_iter()
+            .find(|edge| {
+                edge.points
+                    .iter()
+                    .all(|point| point.y.abs() < 1e-9 && (point.z - height).abs() < 1e-9)
+            })
+            .expect("an edge along the front")
+            .name
+    };
+    let edges = vec![
+        along_the_front_at(document, 0.0),
+        along_the_front_at(document, 20.0),
+    ];
+    let outcome = document.apply(Operation::Blend {
+        edges,
+        shape: BlendShape::Chamfer,
+        size: 2.0.into(),
+    });
+    assert_eq!(outcome, None, "the fixture's chamfer of two edges is built");
+    document.apply(Operation::EditMatter {
+        raised_by: notched,
+        to: Box::new(notch(document, DVec2::new(15.0, 0.0))),
+    });
+}
+
+#[test]
+fn a_blend_of_several_edges_not_built_speaks_of_its_edges_in_the_plural() {
+    let lang = Catalogue::french();
+    let said = sentences_listed(&[a_block_whose_chamfer_of_two_edges_lost_one]);
+    let of_one_edge = [
+        crate::wording::alerts::blend_not_built(
+            &lang,
+            BlendShape::Chamfer,
+            cao_solid::Declined::Lost(cao_solid::Lost::Split { now: 2 }),
+            1,
+        ),
+        crate::wording::alerts::blend_not_built(
+            &lang,
+            BlendShape::Chamfer,
+            cao_solid::Declined::Unsupported,
+            1,
+        ),
+    ];
+
+    assert_eq!(
+        said.len(),
+        1,
+        "the chamfer of two edges not built is one alert: {said:?}"
+    );
+    assert!(
+        said[0].contains("arêtes") && !of_one_edge.contains(&said[0]),
+        "a chamfer of two edges not built speaks of one edge: « {} »",
+        said[0],
+    );
 }

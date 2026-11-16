@@ -6,7 +6,7 @@ use crate::lang::Catalogue;
 use crate::screens::blend::BlendState;
 use crate::screens::variables::{NAMING, offered};
 use crate::ui::formula_field::formula_field;
-use crate::wording::{command, outcome};
+use crate::wording::{blend as said, command, outcome};
 
 /// The size an edge is chamfered or rounded by, shown while the edge panel is
 /// open, in the place the extrusion's values take.
@@ -44,21 +44,24 @@ pub(super) fn blend_row(
             blend.close();
             return;
         }
-        match (blend.declined, &blend.edge) {
+        if !blend.edges.is_empty() {
+            ui.label(said::edges_chosen(lang, blend.edges.len()));
+        }
+        match (blend.declined, blend.edges.is_empty()) {
             (Some(reason), _) => {
                 ui.colored_label(
                     ui.visuals().error_fg_color,
-                    outcome::blend_declined(lang, shape, reason),
+                    outcome::blend_declined(lang, shape, reason, blend.edges.len()),
                 );
             }
-            (None, None) => {
+            (None, true) => {
                 let tool = match shape {
                     BlendShape::Chamfer => Command::ToolChamfer,
                     BlendShape::Fillet => Command::ToolFillet,
                 };
                 ui.weak(command::hint_on_the_part(lang, tool).unwrap_or_default());
             }
-            (None, Some(_)) => {}
+            (None, false) => {}
         }
     });
 }

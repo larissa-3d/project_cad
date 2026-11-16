@@ -11,6 +11,7 @@
 
 pub mod alerts;
 pub mod arc;
+pub mod blend;
 pub mod circle;
 pub mod command;
 pub mod constraints;

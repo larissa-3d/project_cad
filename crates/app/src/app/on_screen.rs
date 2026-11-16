@@ -51,11 +51,38 @@ impl CaoApp {
         part.viewport.edge_points(part.doc.body(), name)
     }
 
-    /// The points of the edge the edge panel holds as chosen.
+    /// The points of the edge the edge panel holds as chosen, while it holds
+    /// just one.
     pub fn the_edge_chosen(&self) -> Option<Vec<DVec3>> {
-        let part = self.part_opened()?;
-        let name = part.blend.edge.as_ref()?;
-        part.viewport.edge_points(part.doc.body(), name)
+        match <[Vec<DVec3>; 1]>::try_from(self.the_edges_chosen()) {
+            Ok([edge]) => Some(edge),
+            Err(_) => None,
+        }
+    }
+
+    /// The points of every edge the edge panel holds as chosen.
+    pub fn the_edges_chosen(&self) -> Vec<Vec<DVec3>> {
+        self.part_opened().map_or_else(Vec::new, |part| {
+            part.blend
+                .edges
+                .iter()
+                .filter_map(|name| part.viewport.edge_points(part.doc.body(), name))
+                .collect()
+        })
+    }
+
+    /// The points of every edge the view lights: those chosen and the one
+    /// under the hand.
+    pub fn the_edges_lit(&self) -> Vec<Vec<DVec3>> {
+        self.part_opened().map_or_else(Vec::new, |part| {
+            let viewport = &part.viewport;
+            viewport
+                .edges_chosen
+                .iter()
+                .chain(&viewport.edge_under_the_hand)
+                .filter_map(|name| viewport.edge_points(part.doc.body(), name))
+                .collect()
+        })
     }
 
     fn named(&self, part: &OpenPart, lit: Points) -> Option<LitRow> {

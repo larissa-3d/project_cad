@@ -40,6 +40,12 @@
 //! `with_no_side_opaque_no_edge_is_offered`. A section laid on a slanted face
 //! offers every edge of its rim, however the kernel rounded it, by
 //! `a_section_laid_on_a_slanted_face_offers_every_edge_of_its_rim`.
+//!
+//! Closes #979 — the whole transcription is in
+//! `several_edges_in_one_step.rs`; this is the section view's half.
+//! - Under the section view, Cmd + click on an edge on the hidden side adds
+//!   nothing —
+//!   `under_the_section_view_cmd_click_on_an_edge_on_the_hidden_side_adds_nothing`
 
 mod driver;
 
@@ -700,7 +706,7 @@ fn a_block_with_a_pocket_and_a_slanted_front() -> cao_part::PartDocument {
         .expect("the top front")
         .name;
     let declined = part.apply(Operation::Blend {
-        edge: top_front,
+        edges: vec![top_front],
         shape: BlendShape::Chamfer,
         size: THE_FRONT_CHAMFER.into(),
     });
@@ -779,5 +785,33 @@ fn a_section_laid_on_a_slanted_face_offers_every_edge_of_its_rim() {
         unlit.is_empty(),
         "on the slanted face the section lies on, these rim edges are not lit under the hand, \
          each with what is: {unlit:?}",
+    );
+}
+
+#[test]
+fn under_the_section_view_cmd_click_on_an_edge_on_the_hidden_side_adds_nothing() {
+    let mut app = chamfering_through_the_section("cmd_click_on_the_hidden_side_adds_nothing");
+    let chosen = |app: &driver::App| app.state().the_edges_chosen();
+    click_at_world_point(&mut app, ON_THE_UPRIGHT_BELOW);
+    assert!(
+        chosen(&app).len() == 1 && is_the_edge(chosen(&app).pop(), THE_FRONT_UPRIGHT),
+        "the fixture chooses the front upright below the cut, choosing {:?}",
+        chosen(&app),
+    );
+
+    clear_of_every_other_edge(
+        &app,
+        THE_TOP_FRONT,
+        ON_THE_TOP_FRONT,
+        "Cmd + click on the top front",
+    );
+    driver::hold_the_canvas(&mut app);
+    let at = on_the_view(&app, ON_THE_TOP_FRONT);
+    driver::click_with(&mut app, at, egui::Modifiers::COMMAND);
+
+    assert!(
+        chosen(&app).len() == 1 && is_the_edge(chosen(&app).pop(), THE_FRONT_UPRIGHT),
+        "Cmd + click on the top front, wholly on the side the section hides, left {:?} chosen",
+        chosen(&app),
     );
 }

@@ -130,7 +130,7 @@ fn a_chamfer_or_a_fillet_declined_says_why_in_the_user_s_words() {
         ),
     ] {
         assert_eq!(
-            blend_declined(&lang, shape, Declined::Unsupported),
+            blend_declined(&lang, shape, Declined::Unsupported, 1),
             not_yet,
             "{shape:?}",
         );
@@ -139,7 +139,7 @@ fn a_chamfer_or_a_fillet_declined_says_why_in_the_user_s_words() {
             Declined::Lost(Lost::Split { now: 2 }),
         ] {
             assert_eq!(
-                blend_declined(&lang, shape, reason),
+                blend_declined(&lang, shape, reason, 1),
                 lost,
                 "{shape:?} {reason:?}"
             );
@@ -154,7 +154,7 @@ fn a_chamfer_or_a_fillet_declined_says_why_in_the_user_s_words() {
             Declined::Panicked,
         ] {
             assert_eq!(
-                blend_declined(&lang, shape, reason),
+                blend_declined(&lang, shape, reason, 1),
                 failed,
                 "{shape:?} {reason:?}"
             );
@@ -184,7 +184,7 @@ fn a_chamfer_or_a_fillet_broken_on_a_later_replay_says_why_in_the_user_s_words()
             "Le calcul de ce congé n'a pas abouti : il n'est pas construit.",
         ),
     ] {
-        let said = |reason| crate::wording::alerts::blend_not_built(&lang, shape, reason);
+        let said = |reason| crate::wording::alerts::blend_not_built(&lang, shape, reason, 1);
         for reason in [
             Declined::Lost(Lost::Gone),
             Declined::Lost(Lost::Split { now: 2 }),

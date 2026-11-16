@@ -124,7 +124,7 @@ fn edge_between(body: &Body, first: usize, second: usize) -> EdgeName {
 /// Chamfers `edge` by [`SIZE`] and hands back the number of its step, built.
 fn chamfered(part: &mut PartDocument, edge: EdgeName) -> u32 {
     let outcome = part.apply(Operation::Blend {
-        edge,
+        edges: vec![edge],
         shape: BlendShape::Chamfer,
         size: SIZE.into(),
     });
