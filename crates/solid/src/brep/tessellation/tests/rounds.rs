@@ -7,8 +7,9 @@
 //! and one over a wide triangle whose corners stand eighty degrees from its
 //! middle, as a convex corner of sharp angles leaves its piece of sphere.
 //! The ball less such a sector leaves a face of the sphere that lies in
-//! front of no one direction, more than a hemisphere: it is left open, never
-//! drawn inside out.
+//! front of no one direction, more than a hemisphere, holding both poles:
+//! left open until #940, it is drawn as the face a ball cut by three flats of
+//! three axes leaves, closed and enclosing its volume.
 
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
@@ -335,9 +336,8 @@ fn both_meridians_of_a_partial_turn_are_sampled_on_the_same_rows_of_the_sphere()
 }
 
 /// What of the ball a fixture keeps: the sector over a triangle of great
-/// circles, or the ball less that sector. The rest's volume is not read: its
-/// face of the sphere holds both poles round a loop that winds round neither,
-/// a face no step builds, and the flux leaves out the ball they close.
+/// circles, or the ball less that sector, whose face of the sphere holds both
+/// poles round a loop that winds round neither.
 #[derive(Clone, Copy)]
 enum Kept {
     Sector,
@@ -580,14 +580,22 @@ fn the_sphere_face_of_a_sector_whose_corners_stand_a_hair_short_of_ninety_degree
     }
 }
 
+/// The ball less the sector over a near octant, its sphere read about two
+/// axes: the face of the sphere the three arcs bound lies in front of no one
+/// direction, holds both poles and is bounded by great circles of three axes
+/// — a face of #940's, drawn as a ball cut by three flats of three axes is.
+/// It is drawn closed at every tolerance, enclosing the ball less the sector,
+/// and none of it inside the sector.
 #[test]
-fn the_sphere_face_of_a_ball_less_a_sector_in_front_of_no_one_direction_is_left_open_and_never_drawn_inside_out()
+fn the_sphere_face_of_a_ball_less_a_sector_in_front_of_no_one_direction_is_drawn_closed_and_encloses_its_volume()
  {
     let corners = [
         DVec3::new(1.0, 0.1, 0.2),
         DVec3::new(0.2, 1.0, 0.1),
         DVec3::new(0.1, 0.2, 1.0),
     ];
+    let ways = counterclockwise(corners);
+    let rest = (4.0 * PI - spread(corners)) * SECTOR_RADIUS.powi(3) / 3.0;
     for axis in [DVec3::new(1.0, 2.0, -3.0), DVec3::new(-2.0, 1.0, 1.0)] {
         let body = wedge(
             SECTOR_CENTRE,
@@ -597,18 +605,33 @@ fn the_sphere_face_of_a_ball_less_a_sector_in_front_of_no_one_direction_is_left_
             Kept::Rest,
         );
         let what = format!("the ball less the sector over {corners:?} read about {axis}");
-        let piece = piece_of(&body, corners, &what);
+        let eps = body.scale().eps();
+        piece_of(&body, corners, &what);
+        assert!(
+            (body.volume() - rest).abs() <= 1e-9 * rest,
+            "{what}: holds {}, where the ball less its sector holds {rest}",
+            body.volume()
+        );
         for tolerance in TOLERANCES {
-            let cut = body.triangles_by_face(tolerance);
-            assert_eq!(
-                cut.uncut,
-                vec![piece],
-                "{what}: at {tolerance}, the sphere face alone is left open"
-            );
+            let cut = held(&body, tolerance);
+            let drawn = on_rounds(&body, &cut);
             assert!(
-                !cut.faces.contains(&piece),
-                "{what}: at {tolerance}, triangles came back for the sphere face"
+                !drawn.is_empty(),
+                "{what}: the sphere face is drawn at {tolerance}"
             );
+            for point in drawn.iter().flatten() {
+                let past = (0..3)
+                    .map(|at| {
+                        let outward = ways[(at + 1) % 3].cross(ways[at]).normalize();
+                        (*point - SECTOR_CENTRE).dot(outward)
+                    })
+                    .fold(f64::NEG_INFINITY, f64::max);
+                assert!(
+                    past >= -eps,
+                    "{what}: the sphere face is drawn at {tolerance} through {point}, inside the \
+                     sector, {past} behind its flat faces"
+                );
+            }
         }
     }
 }

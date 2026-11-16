@@ -409,37 +409,6 @@ fn boxed(low: DVec3, high: DVec3) -> Body {
         .expect("the kernel raises it")
 }
 
-/// The ball cut by x ≥ 4, then by z ≥ 4: the sphere's face holds both poles
-/// and is bounded by circles about two axes, X and Z, neither the ball's,
-/// which neither of #805's ways of drawing a sphere face takes. The body is
-/// sound, but its triangles do not close, and the step is declined until
-/// #940.
-#[test]
-fn a_ball_cut_by_two_flats_whose_planes_are_not_parallel_is_declined_as_undrawn() {
-    let cap = PI * (15.0 - 1.0) / 3.0;
-    let ball = ball_about_y();
-    let flat = ball
-        .difference(&boxed(DVec3::new(4.0, -10.0, -10.0), DVec3::splat(10.0)))
-        .expect("one flat cuts the ball");
-    let ball_volume = 500.0 * PI / 3.0;
-    assert!(
-        (flat.volume() - (ball_volume - cap)).abs() <= 1e-9 * ball_volume,
-        "the ball with one flat holds {}, where the arithmetic gives {}",
-        flat.volume(),
-        ball_volume - cap
-    );
-
-    let declined = flat
-        .difference(&boxed(DVec3::new(-10.0, -10.0, 4.0), DVec3::splat(10.0)))
-        .err();
-
-    assert_eq!(
-        declined,
-        Some(Declined::Undrawn),
-        "the ball cut by a second flat not parallel to the first, which #940 is to draw"
-    );
-}
-
 /// A slab 10 thick along `normal` from the plane `offset` along it, its
 /// sides 20 from the normal's line either way: past the plane, it holds all
 /// of a ball of radius 5 about the origin.
@@ -572,21 +541,26 @@ fn a_ball_sliced_between_two_parallel_planes_at_a_slant_is_built_and_drawn_withi
     );
 }
 
-/// What two caps of the ball 3 high hold in common, their planes 2 from its
-/// centre along two directions square to each other: over every place `a`
-/// along the first from 2 out to √21, the slice of the disc of radius
-/// c = √(25 − a²) past the chord 2 along the second, c² (π/2 − asin(2/c))
-/// − 2 √(c² − 4), summed by Simpson's rule with a = √21 − s², under which
-/// the slice's vanishing at √21 is smooth.
-fn two_caps_square_to_each_other_share() -> f64 {
+/// What two caps of the ball hold in common, their planes `offset` from its
+/// centre along two directions square to each other, nothing where they keep
+/// apart: over every place `a` along the first from `offset` out to
+/// e = √(25 − offset²), the slice of the disc of radius c = √(25 − a²) past
+/// the chord `offset` along the second, c² (π/2 − asin(offset/c))
+/// − offset √(c² − offset²), summed by Simpson's rule with a = e − s², under
+/// which the slice's vanishing at e is smooth.
+fn two_caps_square_to_each_other_share(offset: f64) -> f64 {
+    let reach = (25.0 - offset * offset).sqrt();
+    if reach <= offset {
+        return 0.0;
+    }
     let slice = |s: f64| {
-        let a = 21f64.sqrt() - s * s;
+        let a = reach - s * s;
         let square = 25.0 - a * a;
-        let across = square * (FRAC_PI_2 - (2.0 / square.sqrt()).min(1.0).asin())
-            - 2.0 * (square - 4.0).max(0.0).sqrt();
+        let across = square * (FRAC_PI_2 - (offset / square.sqrt()).min(1.0).asin())
+            - offset * (square - offset * offset).max(0.0).sqrt();
         across * 2.0 * s
     };
-    let (steps, end) = (1 << 12, (21f64.sqrt() - 2.0).sqrt());
+    let (steps, end) = (1 << 12, (reach - offset).sqrt());
     let step = end / f64::from(steps);
     let inner: f64 = (1..steps)
         .map(|index| slice(step * f64::from(index)) * if index % 2 == 1 { 4.0 } else { 2.0 })
@@ -610,31 +584,9 @@ fn a_ball_cut_by_two_flats_square_to_each_other_across_both_poles_is_built_and_d
     let body = cut.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
     built_and_drawn(
         &body,
-        BALL_OF_5 - 2.0 * cap_of_5(3.0) + two_caps_square_to_each_other_share(),
+        BALL_OF_5 - 2.0 * cap_of_5(3.0) + two_caps_square_to_each_other_share(2.0),
         70.0 * PI,
         what,
-    );
-}
-
-/// The ball cut by two flats at a slant whose circles do not meet, 2 from
-/// its centre along (1, 1, 0) and nearly against it: the sphere left is a
-/// band round the ball's axis between two circles of two axes, which no
-/// chart of #805 lays out, and the step is declined until #940.
-#[test]
-fn a_ball_cut_by_two_flats_whose_circles_turn_about_two_axes_round_its_own_is_declined_as_undrawn()
-{
-    let first = ball_about_y()
-        .difference(&slab_along(DVec3::new(1.0, 1.0, 0.0), 2.0))
-        .expect("one flat cuts the ball");
-
-    let declined = first
-        .difference(&slab_along(DVec3::new(-1.0, -1.0, 0.4), 2.0))
-        .err();
-
-    assert_eq!(
-        declined,
-        Some(Declined::Undrawn),
-        "a ball cut by two flats into a band round its axis, which #940 is to draw"
     );
 }
 
@@ -644,8 +596,13 @@ fn a_ball_cut_by_two_flats_whose_circles_turn_about_two_axes_round_its_own_is_de
 /// rim; the second 20° off the other, which it takes well inside. The sphere
 /// left holds neither pole, and its first circle passes two degrees by the
 /// pole the first cap took, nearer than the chart can lay a face out: the
-/// step is declined until #940 — whichever pole, and whichever plane holding
-/// the axis the two directions lie in.
+/// step is declined — whichever pole, and whichever plane holding the axis
+/// the two directions lie in. The limit is the chart's, not the face's: a
+/// chart about another axis stands that circle well off its poles. #940
+/// draws a face bounded by circles of several axes whatever poles of the
+/// chart it holds, not one an edge of which comes within the chart's reach
+/// of a pole, and leaves this one declined until #962 reads it about another
+/// axis.
 #[test]
 fn a_ball_cut_by_two_flats_whose_circle_passes_two_degrees_by_a_pole_of_its_chart_is_declined_as_undrawn()
  {
@@ -673,7 +630,8 @@ fn a_ball_cut_by_two_flats_whose_circle_passes_two_degrees_by_a_pole_of_its_char
             declined,
             Some(Declined::Undrawn),
             "a ball cut by two flats along {across} either side of its pole {pole}, the sphere \
-             left bounded by a circle two degrees by that pole, which #940 is to draw"
+             left bounded by a circle two degrees by that pole, which #962 is to draw about \
+             another axis"
         );
     }
 }
@@ -1691,6 +1649,7 @@ fn a_tool_that_takes_nothing_hands_back_the_part_without_a_note() {
 
 mod chamfer;
 mod fillet;
+mod planes_of_several_axes;
 mod section;
 mod through_a_pole;
 mod touching_a_ball;

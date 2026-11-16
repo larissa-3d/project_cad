@@ -1,6 +1,9 @@
 //! The rays a circle of a cone takes besides its grid: its cone's grid, and,
 //! where the cone stands close to another wall, the rays of every wall
-//! standing with it.
+//! standing with it. A circle lying on a sphere about another line takes
+//! the places it crosses the rays of the sphere's grid at (#940): a face of
+//! the sphere going round its axis between two such circles is cut open at
+//! an angle of that grid, which every loop must pass at a sample.
 //!
 //! A circle lying on a cone takes the cone's grid and the angles of its
 //! vertices ([`cone`]). That leaves a cone's narrow rim with angles of its
@@ -228,10 +231,11 @@ impl Axes {
     }
 
     /// What a circle of `wall` takes besides its grid, `contact`: the rays
-    /// of every cone, sphere or torus it lies on, and those of the wall's
-    /// group if it stands in one. None for a circle lying on none and standing in no group,
-    /// which takes `contact` alone. A ray of the group is left out where
-    /// `kept` says no sample stands, and at a step of the circle's grid
+    /// of every cone, sphere or torus it lies on, the places it crosses
+    /// those of a sphere it lies on tilted, and the rays of the wall's group
+    /// if it stands in one. None for a circle lying on none and standing in
+    /// no group, which takes `contact` alone. A ray of the group is left out
+    /// where `kept` says no sample stands, and at a step of the circle's grid
     /// `contact` withholds there.
     pub(super) fn widened(
         &self,
@@ -246,6 +250,14 @@ impl Axes {
             .iter()
             .filter(|(spun, _)| spun.holds(circle, eps))
             .flat_map(|(_, rays)| rays.iter().copied());
+        let across_spheres = (self.cones.iter())
+            .filter(|(spun, _)| match spun {
+                Spun::Round(round) => round.carries(circle, eps) && !round.holds(circle, eps),
+                Spun::Cone(_) => false,
+            })
+            .flat_map(|(spun, rays)| {
+                (rays.iter()).flat_map(|way| crossings(circle, (spun.origin(), spun.axis()), *way))
+            });
         let group = self.of_wall.get(&wall).map(|group| &self.groups[*group]);
         let steps = divisions_in(circle.radius, tolerance, span);
         let step = TAU / steps as f64;
@@ -270,6 +282,7 @@ impl Axes {
             .iter()
             .copied()
             .chain(on_cones)
+            .chain(across_spheres)
             .chain(in_group)
             .collect();
         if rays.len() == contact.rays.len() {
@@ -286,7 +299,29 @@ impl Axes {
     }
 }
 
+/// The directions from the centre of `circle` to where it crosses the
+/// half-plane from the line through `origin` along `axis` out along `way`,
+/// square to it: none where it passes it by or only touches it.
+fn crossings(circle: &Circle, (origin, axis): (DVec3, DVec3), way: DVec3) -> Vec<DVec3> {
+    let across = axis.cross(way);
+    let (along_u, along_v) = (circle.u.dot(across), circle.v.dot(across));
+    let off = (circle.center - origin).dot(across) / circle.radius;
+    let reach = along_u.hypot(along_v);
+    if reach <= off.abs() {
+        return Vec::new();
+    }
+    let (crest, spread) = (along_v.atan2(along_u), (-off / reach).acos());
+    [crest - spread, crest + spread]
+        .into_iter()
+        .map(|at| circle.u * at.cos() + circle.v * at.sin())
+        .filter(|ray| (circle.center + *ray * circle.radius - origin).dot(way) > 0.0)
+        .collect()
+}
+
 /// How close two rays of a group stand, in angle, to be one: far under any
 /// gap a circle tells apart, so that two rays a circle would sample apart
 /// are both kept.
 const ROUNDING: f64 = 1e-14;
+
+#[cfg(test)]
+mod tests;

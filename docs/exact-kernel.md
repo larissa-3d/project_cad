@@ -60,10 +60,12 @@ It can:
   plane at a slant to its axis or off it, along a circle of another axis —
   a ball cut at a slant, the chamfer at the foot of a rib cut from a ball
   (#805), through a pole of its chart too, the sphere read about the
-  circle's axis (#938) — or at the one point it touches within the
-  tolerance (#939), short of a face bounded by circles of two such axes,
-  not drawn yet (#940); a plane against
-  a cylinder or a cone at any angle (#552); elliptic cylinders (#571)
+  circle's axis (#938), or at the one point it touches within the
+  tolerance (#939), and a ball cut by flats whose planes are not
+  parallel, whatever poles of its chart the sphere left holds (#940) —
+  short of a circle passing within some 3° of a pole of its chart
+  (#962); a plane against a cylinder or a cone at any angle (#552);
+  elliptic cylinders (#571)
   against planes at any angle and round or elliptic walls parallel or
   square to them; curves: lines, circles, ellipses, the
   conics a plane cuts a wall along at a slant — an ellipse, a parabola, a
@@ -614,8 +616,10 @@ Known and still open:
   sphere or torus along one or two rims. A sphere meets any other plane
   along a circle of another axis (#805), one through a pole of its chart
   read about the circle's own axis (#938), or at the point it touches
-  within the tolerance (#939); a face bounded by circles of two such axes,
-  which is not drawn (#940), is still declined. So is a plane a hair `δ`
+  within the tolerance (#939), and a face bounded by circles of several
+  such axes is drawn whatever poles of its chart it holds (#940); a face
+  one such circle of which passes within some 3° of a pole of its chart
+  (#962) is still declined. So is a plane a hair `δ`
   inside a sphere whose small circle, `√(2rδ)` across, crosses an edge of
   either face (#960): a block whose edge stands at x = 5 − `EPS` against a
   ball of radius 5 is not drawn, the exact join being listed `Backwards`
@@ -2709,7 +2713,7 @@ pointed cone's flank waits on #711.
   reaching no pole and standing within some 87° of the equator, is laid out
   in the sphere's own `(θ, φ)`, each sample of such a circle where it is
   read, swept, and refined as the central chart refines, each point added
-  lifted onto the sphere from `(θ, φ)`. Any other is left open still.
+  lifted onto the sphere from `(θ, φ)`. Any other falls to the next.
   A point added inside a face of a sphere — a lattice point, a point a
   refinement adds — standing within `EPS` of a plane of the body within
   `EPS` of touching the sphere is laid on the plane (#939,
@@ -2718,20 +2722,25 @@ pointed cone's flank waits on #711.
   crossed the plane's face by more than the rules allow. A touch at a pole
   needs none of it, decision 12 having moved the plane onto the pole, a
   vertex; one off the poles is not moved, for the reason decision 12 gives.
-- **The curve a cylinder meets a sphere along** (#805,
-  `outline/pierced.rs`). A face of a sphere such a curve bounds that the
-  charts above cannot cut — a ball bored or notched off its axis, which
-  holds both poles, or a band of a sphere the curve winds round — is laid
-  out in the sphere's own `(θ, φ)` as the strips lay it, each sample of the
-  curve and of a circle of another axis where it is read, each pole the
-  face holds along its floor, a face going round cut open at an angle of
-  the grid and its walls split at the grid's rows on lattice points both
-  walls share; then swept and refined as the central chart refines. A
-  triangle with two corners on a floor stands for its pole twice and is
-  dropped, as on a cone. A face whose curves come within some 87° of a pole
-  is left open. On the cylinder the curve is sampled on the cylinder's grid
-  as the curve of two walls is; on the sphere, which has no grid it must
-  stand on, between those wherever a chord would leave it.
+- **The curve a cylinder meets a sphere along, and circles of several
+  axes** (#805, #940, `outline/pierced.rs`). A face of a sphere such a curve
+  or such circles bound that the charts above cannot cut — a ball bored or
+  notched off its axis, or cut by flats whose planes are not parallel,
+  which holds either pole or both, or a band of a sphere the curve or two
+  circles wind round — is laid out in the sphere's own `(θ, φ)` as the
+  strips lay it, each sample of those curves where it is read, each pole
+  the face holds along its floor, a face going round cut open at an angle
+  of the grid every loop passes at a sample and its walls split at the
+  grid's rows on lattice points both walls share; then swept and refined as
+  the central chart refines. A triangle with two corners on a floor stands
+  for its pole twice and is dropped, as on a cone. A face whose curves come
+  within some 3° of a pole is left open (#962). On the cylinder the curve
+  is sampled on the cylinder's grid as the curve of two walls is; on the
+  sphere, which has no grid it must stand on, between those wherever a
+  chord would leave it. A circle of another axis is sampled besides its own
+  grid where it crosses each angle of the sphere's (#940, `sampling/axis.rs`):
+  a band two flats leave round the axis is cut open along an angle both its
+  circles pass at a sample.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

@@ -32,10 +32,11 @@
 //! rays, then between them wherever a chord would leave it ([`conic`]); on a
 //! cone, it widens the cone's grid to the furthest it stands from the axis.
 //! A latitude circle of a sphere or a torus is sampled on the round's grid
-//! as a cone's rim is, and a meridian arc on the round's rows along the
-//! meridian ([`round`]), where the faces of the round are cut in strips; the
-//! lattice points those strips add inside a face are numbered on past every
-//! edge's samples.
+//! as a cone's rim is, a circle lying on a sphere about another line also
+//! where it crosses each angle of the sphere's grid ([`axis`]), and a
+//! meridian arc on the round's rows along the meridian ([`round`]), where the
+//! faces of the round are cut in strips; the lattice points those strips add
+//! inside a face are numbered on past every edge's samples.
 
 mod abreast;
 mod axis;
