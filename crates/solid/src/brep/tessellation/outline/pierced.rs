@@ -1,13 +1,15 @@
-//! A face of a sphere bounded by the curve a cylinder of another axis meets
-//! it along (#805) that neither the strips nor the central chart can cut: a
-//! ball bored or notched off its axis, which holds both poles, or a band of a
-//! sphere one such curve winds round.
+//! A face of a sphere no other chart cuts, bounded by the curve a cylinder of
+//! another axis meets it along (#805) or by circles of several axes (#940):
+//! a ball bored or notched off its axis, or cut by flats whose planes are not
+//! parallel, which holds either pole or both, or a band of a sphere such a
+//! curve or two such circles wind round.
 //!
 //! It is laid out in the sphere's own `(θ, φ)` as the strips lay it — each
-//! sample of that curve, and of a circle of another axis, where it is read,
-//! each pole the face holds along its floor, a face going round cut open at
-//! an angle of the grid, its walls split at the grid's rows on lattice points
-//! both walls share — then swept and refined as the central chart is
+//! sample of those curves where it is read, each pole the face holds along
+//! its floor, a face going round cut open at an angle of the grid every loop
+//! passes at a sample, as a circle of another axis is sampled where it
+//! crosses one, its walls split at the grid's rows on lattice points both
+//! walls share — then swept and refined as the central chart is
 //! ([`super::central`]), each point added lifted onto the sphere from
 //! `(θ, φ)`. A triangle with two corners on a floor stands for its pole twice
 //! and is dropped, as on a cone, leaving a fan from the pole. Only a face
@@ -45,10 +47,10 @@ pub(super) fn pierces(curve: &Curve, read: Read, round: &Rounded, eps: f64) -> b
 impl Outline {
     /// The face `id` of `sphere` laid out in its `(θ, φ)`, cut and refined
     /// within `tolerance`: the outline, its points inside added to
-    /// `samples`, and its triangles. None for a face with no curve a
-    /// cylinder meets it along, one a sample of which stands nearer a pole
-    /// than the module's rule allows, and one the sweep or the refinement
-    /// cannot cut.
+    /// `samples`, and its triangles. None for a face with an edge neither a
+    /// circle nor a curve a cylinder meets it along, one a curve of which
+    /// comes nearer a pole than the module's rule allows, and one the sweep
+    /// or the refinement cannot cut.
     pub(super) fn pierced(
         body: &Body,
         samples: &mut Samples,
@@ -60,7 +62,6 @@ impl Outline {
         let eps = body.scale().eps();
         let round = Rounded::Sphere(*sphere);
         let steep = (1.0 - FRONT * FRONT).sqrt();
-        let mut met = false;
         for coedge in face.loops.iter().flatten() {
             let edge = body.edge(coedge.edge);
             let curve = body.curve(edge.curve);
@@ -71,7 +72,6 @@ impl Outline {
                         && highest(sphere, circle, edge.from, edge.to) > steep
                 }
                 _ if pierces(curve, Read::Tilted, &round, eps) => {
-                    met = true;
                     samples.edge(coedge.edge).iter().any(|&sample| {
                         let from = samples.point(sample) - sphere.middle();
                         from.dot(sphere.axis).abs() > steep * sphere.radius
@@ -82,9 +82,6 @@ impl Outline {
             if near {
                 return None;
             }
-        }
-        if !met {
-            return None;
         }
         let laps = laps(body, samples, id)?;
         let grid = (samples.steps(face.surface)?, samples.rows(face.surface)?);

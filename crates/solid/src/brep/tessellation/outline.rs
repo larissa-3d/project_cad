@@ -41,9 +41,9 @@ impl Outline {
     /// The outline of a face and its triangles. A face of a sphere its
     /// `(θ, φ)` chart cannot lay out, for whatever reason, is laid out and
     /// cut on a chart of its own ([`central`]), with points added inside it,
-    /// or, with a circle of another axis, as [`charted`] lays it; one the
-    /// chart lays out is cut there or not at all. None when the face can be
-    /// neither laid out nor cut.
+    /// or, with a circle of another axis, as [`charted`] lays it, and
+    /// failing those as [`pierced`] does; one the chart lays out is cut there
+    /// or not at all. None when the face can be neither laid out nor cut.
     pub(super) fn cut_of(
         body: &Body,
         samples: &mut Samples,

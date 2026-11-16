@@ -114,10 +114,13 @@ impl Grid {
     /// The directions from the axis a circle of the surface is sampled along:
     /// the grid's, then the vertices'.
     pub(super) fn rays(&self) -> impl Iterator<Item = DVec3> + '_ {
-        (0..self.steps)
-            .map(|step| TAU * step as f64 / self.steps as f64)
-            .chain(self.angles.iter().copied())
-            .map(|angle| self.spun.radial(angle))
+        self.on_steps()
+            .chain(self.angles.iter().map(|angle| self.spun.radial(*angle)))
+    }
+
+    /// The directions from the axis of the grid's steps alone.
+    pub(super) fn on_steps(&self) -> impl Iterator<Item = DVec3> + '_ {
+        (0..self.steps).map(|step| self.spun.radial(TAU * step as f64 / self.steps as f64))
     }
 
     /// The angles of the vertices lying on the surface but at its apex or

@@ -129,9 +129,9 @@ fn slab(normal: DVec3, off: f64) -> Body {
     Body::raised(&side, &[], frame, normal * 10.0).expect("a slab stands on its own")
 }
 
-/// How many triangles the fallback for a sphere face bounded by a
-/// cylinder's curve cuts the sphere face of `body` into, none where it
-/// refuses the face.
+/// How many triangles the fallback for a sphere face no other chart cuts,
+/// [`Outline::pierced`], cuts the first sphere face of `body` into, none
+/// where it refuses the face.
 fn by_the_fallback(body: &Body) -> Option<usize> {
     let tolerance = 1e-3 * body.scale().reach();
     let (id, sphere) = body
@@ -183,13 +183,18 @@ fn the_curve_a_cylinder_meets_a_ball_along_pierces_it_only_on_its_own_sphere_rea
 /// The fallback lays out a ball bored or notched off its axis, the bead
 /// whose loops wind round the axis, a notch whose curve passes a twentieth
 /// of the radius off a pole and a hair more, a ball cut at a slant well off
-/// a pole and notched, and one with a cap cut about its axis a twenty-fifth
-/// of the radius off a pole and notched, the cap's circle one of its axis.
-/// It refuses a notch whose curve passes nearer a pole, a ball cut at a slant
-/// whose circle passes nearer a pole and notched, and a face with no
-/// cylinder's curve at all.
+/// a pole, alone or notched, and one with a cap cut about its axis a
+/// twenty-fifth of the radius off a pole and notched, the cap's circle one of
+/// its axis; and a ball cut by flats of two axes or three, bounded by their
+/// circles alone (#940): x and z ≥ 4, whose sphere holds both poles and two
+/// holes, x and z ≥ 2, one loop of two arcs, and x, y and z ≥ 2, one loop of
+/// three holding one pole. It refuses a notch whose curve passes nearer a
+/// pole, and a ball cut at a slant whose circle passes nearer a pole, alone
+/// or notched: between circles and the curve a cylinder meets the sphere
+/// along, what it lays out is told by how near a pole they come, not by which
+/// of the two they are. A face with any other curve it refuses still.
 #[test]
-fn the_fallback_lays_out_a_ball_bored_off_its_axis_unless_a_curve_comes_within_a_twentieth_of_its_radius_of_a_pole()
+fn the_fallback_lays_out_a_sphere_face_unless_a_curve_comes_within_a_twentieth_of_its_radius_of_a_pole()
  {
     let ball = ball_turned_about_y();
     let notch = bore(DVec3::X, DVec3::Z, 1.5, 4.5);
@@ -211,6 +216,26 @@ fn the_fallback_lays_out_a_ball_bored_off_its_axis_unless_a_curve_comes_within_a
             "a cap about the axis",
             cut(&slab(DVec3::Y, 4.996)).cut_by(&notch).expect("notched"),
         ),
+        ("a slant alone", cut(&slab(tilted, 4.0))),
+        (
+            "x and z ≥ 4",
+            cut(&slab(DVec3::X, 4.0))
+                .cut_by(&slab(DVec3::Z, 4.0))
+                .expect("cut twice"),
+        ),
+        (
+            "x and z ≥ 2",
+            cut(&slab(DVec3::X, 2.0))
+                .cut_by(&slab(DVec3::Z, 2.0))
+                .expect("cut twice"),
+        ),
+        (
+            "x, y and z ≥ 2",
+            cut(&slab(DVec3::X, 2.0))
+                .cut_by(&slab(DVec3::Y, 2.0))
+                .and_then(|twice| twice.cut_by(&slab(DVec3::Z, 2.0)))
+                .expect("cut three times"),
+        ),
     ];
     for (what, body) in &laid {
         let triangles = by_the_fallback(body);
@@ -228,7 +253,7 @@ fn the_fallback_lays_out_a_ball_bored_off_its_axis_unless_a_curve_comes_within_a
             "a slant near a pole",
             cut(&slab(tilted, 4.75)).cut_by(&notch).expect("notched"),
         ),
-        ("a slant alone", cut(&slab(tilted, 4.0))),
+        ("a slant near a pole alone", cut(&slab(tilted, 4.75))),
     ];
     for (what, body) in &refused {
         assert_eq!(by_the_fallback(body), None, "{what}");
