@@ -7,7 +7,7 @@
 //!   aside, each with its value —
 //!   `the_start_of_a_name_at_the_cursor_lists_the_variables_it_begins`,
 //!   `a_name_begun_in_capitals_lists_the_same_variables`,
-//!   `the_start_of_a_name_in_the_extrusion_row_is_completed_too`,
+//!   `the_start_of_a_name_in_the_extrusion_panel_is_completed_too`,
 //!   `the_start_of_a_name_in_the_panel_is_completed_too`
 //! - Entrée or Tab puts the chosen name in place of what was typed, a click on
 //!   one does too, and the arrows move the choice —
@@ -192,8 +192,8 @@ fn a_click_on_a_name_in_a_dimensions_field_puts_it_in() {
 }
 
 #[test]
-fn the_start_of_a_name_in_the_extrusion_row_is_completed_too() {
-    let mut app = a_part_with_three_variables("the_extrusion_row_is_completed");
+fn the_start_of_a_name_in_the_extrusion_panel_is_completed_too() {
+    let mut app = a_part_with_three_variables("the_extrusion_panel_is_completed");
     driver::start_a_sketch(&mut app);
     driver::click(&mut app, "Rectangle (R)");
     driver::click_at_sketch_point(&mut app, driver::A_POINT_ABOVE_THE_ORIGIN);
@@ -202,7 +202,7 @@ fn the_start_of_a_name_in_the_extrusion_row_is_completed_too() {
     driver::click_the_button(&mut app, "1");
     driver::click(&mut app, "Ajout de matière");
     driver::click_at_sketch_point(&mut app, driver::INSIDE_THE_RECTANGLE);
-    driver::type_over(&mut app, "10", "he");
+    driver::type_the_depth(&mut app, "he");
 
     driver::press(&mut app, egui::Key::Enter);
 

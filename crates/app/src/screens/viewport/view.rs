@@ -3,15 +3,18 @@
 //!
 //! What it decides lives in [`super::state`].
 
+use cao_prefs::Command;
 use cao_prefs::config::LengthUnit;
 use cao_render::SceneFrame;
 use glam::DVec3;
 
 use crate::screens::SketchContext;
 use crate::screens::blend::BlendState;
+use crate::screens::extrusion::paint_extrusion_panel;
 use crate::screens::sketch::Tool;
 
 use super::finish::advance_on_enter;
+use super::input::chamfer_to_swap;
 use super::input::{handle_sketch_input, pick_an_edge, pick_areas, point_the_section};
 use super::matter::seen;
 use super::navigation::{advance_transition, handle_navigation};
@@ -31,6 +34,8 @@ pub struct Shown {
     pub changed: bool,
     /// Where the copy tools' panel was let go this frame, to be kept.
     pub copy_panel_let_go_at: Option<[f32; 2]>,
+    /// What was asked in the extrusion's panel this frame.
+    pub extrusion_asked: Option<Command>,
     /// The point of the part under the pointer, while no sketch is open.
     pub on_the_part: Option<DVec3>,
     /// The unit the scale bar says its step in, once the canvas is laid.
@@ -109,6 +114,18 @@ pub fn show(
     changed |= laid;
     changed |= paint_section_panel(ui, state, rect, sketch);
     changed |= paint_chamfer_sides_panel(ui, rect, sketch);
+    // The sketches to extrude are offered while no other panel holds the
+    // top left: the edge panel, a copy tool's, the section view's, a
+    // chamfer's sides.
+    let taken = blend.is_active()
+        || sketch.editor.copy_panel().is_some()
+        || state.section().is_some()
+        || chamfer_to_swap(sketch.document, sketch.editor).is_some();
+    let read = match taken {
+        true => Vec::new(),
+        false => state.sketches_read(sketch.document),
+    };
+    let extrusion_asked = paint_extrusion_panel(ui, rect, &read, sketch);
 
     // A measure read a moment ago is about a drawing that has just moved, so
     // it goes with the change rather than staying on screen being wrong.
@@ -175,6 +192,7 @@ pub fn show(
     Shown {
         changed: changed | paint_dimension_field(ui, state, rect, sketch),
         copy_panel_let_go_at,
+        extrusion_asked,
         on_the_part,
         unit: Some(state.config.unit.unit_for(scale.step_millimeters)),
     }

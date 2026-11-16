@@ -48,8 +48,6 @@ pub struct Ribbon {
     /// Whether the part is read to an earlier step than its last, which
     /// greys what would land at its end, out of sight.
     pub read_to_an_earlier_step: bool,
-    /// The sketches the part is read through, the ones the extrusion offers.
-    pub sketches_read: Vec<usize>,
     /// The command last picked from each menu, by group, for the session.
     last_used: HashMap<String, Command>,
     /// How wide what a floating bar holds came out last frame.
@@ -70,7 +68,6 @@ impl Ribbon {
             section_delete_confirm: None,
             section_on: false,
             read_to_an_earlier_step: false,
-            sketches_read: Vec::new(),
             last_used: HashMap::new(),
             floating_width: 0.0,
         }

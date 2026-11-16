@@ -6,7 +6,6 @@ use cao_part::{ExtrusionMode, Formula, Operation, PartDocument, RevolutionAxis};
 use super::{ExtrusionState, Shape};
 
 /// What the panel of a step of matter holds.
-#[cfg_attr(not(test), expect(dead_code))]
 pub struct Panel {
     pub shape: Shape,
     pub sketch: usize,
@@ -22,7 +21,6 @@ pub struct Panel {
 /// How far the step goes, by what the value comes to as typed: nothing when
 /// it does not read.
 #[derive(Debug, PartialEq)]
-#[cfg_attr(not(test), expect(dead_code))]
 pub enum Extent {
     Depth {
         millimetres: Option<f64>,
@@ -42,7 +40,6 @@ pub struct Preview {
 
 impl ExtrusionState {
     /// The panel of the step being set, once the tool is armed on a sketch.
-    #[cfg_attr(not(test), expect(dead_code))]
     pub fn panel(&self, document: &PartDocument) -> Option<Panel> {
         let (Some(sketch), Some(matter)) = (self.sketch, self.mode) else {
             return None;

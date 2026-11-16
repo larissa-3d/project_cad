@@ -19,6 +19,16 @@ pub const MESSAGE_HEIGHT: f32 = 28.0;
 const DOT: f32 = 7.0;
 const DOT_GAP: f32 = 9.0;
 
+/// How wide the border of a pill floating over a view is drawn.
+const FLOATING_STROKE: f32 = 1.0;
+
+/// How far below a view's top edge the bottom of a pill floating over it
+/// stands, its row `row_height` tall: its margin, its frame and its row. What
+/// is set at the top of the view and clear of it stands below that.
+pub const fn bottom_below_the_edge(row_height: f32) -> f32 {
+    SPACING_XXL + 2.0 * (SPACING_S + FLOATING_STROKE) + row_height
+}
+
 /// A short run of text on a rounded patch of its own, set apart from what
 /// stands beside it on a bar.
 pub fn pill(ui: &mut Ui, text: &str) -> Response {
@@ -60,7 +70,7 @@ pub fn floating_pill<R>(
         .constrain_to(view)
         .show(ctx, |ui| {
             Frame::popup(ui.style())
-                .stroke(Stroke::new(1.0, BORDER_CONTROL))
+                .stroke(Stroke::new(FLOATING_STROKE, BORDER_CONTROL))
                 .corner_radius(RADIUS_PILL)
                 .inner_margin(Margin {
                     left: SPACING_XXL as i8,

@@ -11,9 +11,7 @@ use crate::lang::Catalogue;
 
 mod panel;
 
-#[cfg_attr(not(test), expect(unused_imports))]
-use panel::Extent;
-use panel::Preview;
+pub use panel::{Extent, Panel, Preview};
 
 /// How the matter is made from the chosen areas.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
