@@ -9,6 +9,12 @@ use glam::DVec2;
 
 use crate::lang::Catalogue;
 
+mod panel;
+
+#[cfg_attr(not(test), expect(unused_imports))]
+use panel::Extent;
+use panel::Preview;
+
 /// How the matter is made from the chosen areas.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Shape {
@@ -214,51 +220,16 @@ impl ExtrusionState {
         }
     }
 
-    /// The step applying would record now, as the view draws it while the
-    /// panel is open: nothing until the tool is armed on a sketch and ready.
-    pub fn preview(&self, document: &PartDocument) -> Option<Preview> {
-        let (Some(sketch), Some(mode)) = (self.sketch, self.mode) else {
-            return None;
-        };
-        let variables = document.variables();
-        if !self.is_ready(variables) {
-            return None;
-        }
-        // The areas are named here and never worked out again: what the click
-        // meant is what the drawing said at the moment of the click.
-        let areas = match &self.reopened {
+    /// The areas the picks name: the reopened step's own while the picks are
+    /// where it was picked at, the drawing's under them otherwise. Named here
+    /// and never worked out again: what the click meant is what the drawing
+    /// said at the moment of the click.
+    fn chosen_areas(&self, document: &PartDocument, sketch: usize) -> Vec<Area> {
+        match &self.reopened {
             Some(reopened) if reopened.is_picked_at(&self.picks) => reopened.areas.clone(),
             _ => document.areas_at(sketch, &self.picks),
-        };
-        let operation = if self.is_revolving() {
-            Operation::Revolve {
-                sketch,
-                areas,
-                axis: self.axis,
-                angle: self
-                    .angle(variables)
-                    .map_or(Formula::Number(0.0), |(written, _)| written),
-                mode,
-            }
-        } else {
-            Operation::Extrude {
-                sketch,
-                areas,
-                distance: self
-                    .distance(variables)
-                    .map_or(Formula::Number(0.0), |(written, _)| written),
-                mode,
-            }
-        };
-        Some(Preview { operation, mode })
+        }
     }
-}
-
-/// A step of matter as applying would record it, and whether it adds matter
-/// or takes it away.
-pub struct Preview {
-    pub operation: Operation,
-    pub mode: ExtrusionMode,
 }
 
 impl Reopened {

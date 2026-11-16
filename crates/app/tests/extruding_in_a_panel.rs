@@ -26,7 +26,7 @@
 //!   does not reach. The volume alone is held in
 //!   `crates/part/tests/previewing_a_step_of_matter.rs`, and its colour by
 //!   the mode and its following every keystroke in
-//!   `crates/app/src/screens/extrusion/tests.rs`, each under its own block for
+//!   `crates/app/src/screens/extrusion/state/tests.rs`, each under its own block for
 //!   #740; the see-through drawing itself is checked by eye, the renderer
 //!   having no test but the `offscreen` example
 //! - The extrusion row under the ribbon is gone —

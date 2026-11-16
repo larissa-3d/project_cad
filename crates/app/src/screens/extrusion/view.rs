@@ -11,7 +11,7 @@ use crate::wording::{self, constraints};
 ///
 /// These are not commands: they are numbers being typed, and a toolbar entry
 /// cannot stand for a field the user is in the middle of filling in.
-pub(super) fn extrusion_row(
+pub(in crate::screens) fn extrusion_row(
     ui: &mut egui::Ui,
     document: &PartDocument,
     extrusion: &mut ExtrusionState,

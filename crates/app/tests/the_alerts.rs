@@ -88,7 +88,7 @@
 //!   and for a cut at an unstable lean alike, the pill handed nothing and the
 //!   alert saying what the pill used to, by
 //!   `an_extrusion_not_built_or_unstable_is_an_alert_and_no_message`, in
-//!   `crates/app/src/screens/extrusion/tests.rs`
+//!   `crates/app/src/screens/extrusion/state/tests.rs`
 //! - and stays while it is true — through a message said since, until the
 //!   circle is turned the right way and built, and back with the undo of that
 //!   turn — `an_alert_stays_while_its_problem_holds_and_goes_with_it`
@@ -141,7 +141,7 @@
 //!   in `crates/app/src/screens/title_bar/state/tests.rs`; the panel reopened
 //!   on an extrusion's or a revolution's values, and « Appliquer » changing
 //!   the step rather than raising another, in
-//!   `crates/app/src/screens/extrusion/tests.rs`; and the volume's row reading
+//!   `crates/app/src/screens/extrusion/state/tests.rs`; and the volume's row reading
 //!   its new values, by `a_volume_changed_after_it_was_raised_reads_its_new_values`,
 //!   in `crates/app/src/screens/part_tree/state/tests.rs`. Through the alert
 //!   only the extrusion is driven: a revolution reopens through the same panel
@@ -151,7 +151,7 @@
 //!   compaction — since the step it names may no longer be the one in effect —
 //!   `the_panel_reopened_on_a_step_closes_when_the_history_moves`. What applying
 //!   one left open anyway does is held in
-//!   `crates/app/src/screens/extrusion/tests.rs`, and what the part does with a
+//!   `crates/app/src/screens/extrusion/state/tests.rs`, and what the part does with a
 //!   change of a step undone since in `crates/part/tests/changing_an_extrusion.rs`
 //! - decided by Tom when the work opened: « Montrer » on a volume's alert
 //!   selects the volume and lights it in the view — its row in the tree stands

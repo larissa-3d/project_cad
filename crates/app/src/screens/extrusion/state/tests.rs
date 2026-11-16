@@ -66,9 +66,24 @@
 //! direction reversed, which is how the panel wrote it.
 //!
 //! Closes #740 — the whole transcription is in
-//! `crates/app/tests/extruding_in_a_panel.rs`; this is the half of criterion 5
-//! the presenter answers, the volume itself being the part's, held in
+//! `crates/app/tests/extruding_in_a_panel.rs`; these are the halves the
+//! presenter answers, with no window: what the panel holds as named cases,
+//! the words being the view's, and what the view is to preview, the volume
+//! itself being the part's, held in
 //! `crates/part/tests/previewing_a_step_of_matter.rs`.
+//! - Extruding a sketch opens a step panel titled « Extrusion droite »
+//!   (« Révolution » for a revolution), context the sketch, with the sections
+//!   « Aires », « Matière », « Profondeur », « Autour d'un axe », « Inverser le
+//!   sens » and « Annuler » / « Appliquer ↵ » — the presenter's half: armed on
+//!   a sketch, the panel is the straight one on that sketch, holding the areas
+//!   chosen in the order they were, the matter, the depth with what it comes
+//!   to, both switches and whether it applies; not armed, there is none —
+//!   `the_panel_holds_the_step_as_set_and_turns_into_a_revolution_around_an_axis`
+//! - « Autour d'un axe » replaces the depth with an angle and an axis (U, V or
+//!   a clicked trait) — the presenter's half: the switch on, the panel is the
+//!   revolution's, its angle with what it comes to and its axis in place of
+//!   the depth —
+//!   `the_panel_holds_the_step_as_set_and_turns_into_a_revolution_around_an_axis`
 //! - The view draws the extruded volume alone, not fused into the part,
 //!   see-through, green for an addition and red for a cut, and redraws it at
 //!   every keystroke — the presenter's half: what the view is to draw is the
@@ -79,7 +94,7 @@
 use std::path::Path;
 
 use cao_part::{Operation, PartDocument, PointRef, RevolutionAxis};
-use cao_sketch::{PointId, SketchAxis, WorkPlane};
+use cao_sketch::{PointId, SegmentId, SketchAxis, WorkPlane};
 use chrono::Utc;
 use glam::DVec3;
 
@@ -775,5 +790,121 @@ fn the_preview_follows_the_depth_and_the_mode_and_waits_for_the_step_to_be_ready
     assert!(
         previewed(&extrusion, &document).is_none(),
         "a step with no area chosen is previewed",
+    );
+}
+
+const IN_THE_LEFT_SQUARE: DVec2 = DVec2::new(5.0, 5.0);
+const IN_THE_RIGHT_SQUARE: DVec2 = DVec2::new(25.0, 5.0);
+
+/// A side of the right square, clicked as the axis to turn about.
+const A_CLICKED_TRAIT: RevolutionAxis = RevolutionAxis::Segment(SegmentId(5));
+
+/// `a_part_with_a_square`, and a second sketch on XY holding two squares 10
+/// wide side by side, (0, 0)–(10, 10) and (20, 0)–(30, 10).
+fn a_second_sketch_with_two_squares() -> PartDocument {
+    let mut document = a_part_with_a_square();
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    for (corner, opposite) in [
+        (DVec2::ZERO, DVec2::splat(10.0)),
+        (DVec2::new(20.0, 0.0), DVec2::new(30.0, 10.0)),
+    ] {
+        document.apply(Operation::AddRectangle {
+            sketch: 1,
+            corner: PointRef::New(corner),
+            opposite: PointRef::New(opposite),
+            construction: false,
+        });
+    }
+    document
+}
+
+#[test]
+fn the_panel_holds_the_step_as_set_and_turns_into_a_revolution_around_an_axis() {
+    let document = a_second_sketch_with_two_squares();
+    let mut extrusion = ExtrusionState::default();
+    assert!(
+        extrusion.panel(&document).is_none(),
+        "a panel stands with no extrusion begun",
+    );
+    extrusion.offer(1);
+    assert!(
+        extrusion.panel(&document).is_none(),
+        "a sketch offered to extrude, the tool not taken, opens a panel",
+    );
+
+    extrusion.arm(ExtrusionMode::Add);
+    extrusion.picks = vec![IN_THE_RIGHT_SQUARE, IN_THE_LEFT_SQUARE];
+    extrusion.distance_input = "15 * 2".to_string();
+    let chosen = document.areas_standing(
+        1,
+        &document.areas_at(1, &[IN_THE_RIGHT_SQUARE, IN_THE_LEFT_SQUARE]),
+    );
+    assert!(
+        chosen.len() == 2 && chosen[0] != chosen[1],
+        "the fixture wants two areas apart, not {chosen:?}",
+    );
+
+    let straight = extrusion
+        .panel(&document)
+        .expect("armed on a sketch, a panel");
+    assert_eq!(straight.shape, Shape::Straight, "the title");
+    assert_eq!(straight.sketch, 1, "the sketch it extrudes");
+    assert_eq!(straight.areas, chosen, "the chips, in the order chosen");
+    assert_eq!(straight.matter, ExtrusionMode::Add, "the matter");
+    assert_eq!(
+        straight.extent,
+        Extent::Depth {
+            millimetres: Some(30.0)
+        },
+        "the depth, by what « 15 * 2 » comes to",
+    );
+    assert!(!straight.around_an_axis, "« Autour d'un axe » is on");
+    assert!(!straight.reversed, "« Inverser le sens » is on");
+    assert!(
+        straight.applies,
+        "two areas and a depth that reads do not apply"
+    );
+
+    extrusion.shape = Shape::Revolution;
+    extrusion.angle_input = "90 * 2".to_string();
+    extrusion.axis = A_CLICKED_TRAIT;
+    extrusion.reversed = true;
+
+    let turned = extrusion.panel(&document).expect("armed to turn, a panel");
+    assert_eq!(turned.shape, Shape::Revolution, "the title, around an axis");
+    assert!(turned.around_an_axis, "« Autour d'un axe » is off, turning");
+    assert!(turned.reversed, "« Inverser le sens » is off, reversed");
+    assert_eq!(
+        turned.extent,
+        Extent::Turn {
+            degrees: Some(180.0),
+            axis: A_CLICKED_TRAIT,
+        },
+        "the angle, by what « 90 * 2 » as typed comes to, and the trait clicked, in place of \
+         the depth",
+    );
+    assert_eq!(turned.areas, chosen, "the chips, turning");
+
+    extrusion.angle_input = "turn * 2".to_string();
+    let unreadable = extrusion
+        .panel(&document)
+        .expect("a panel, whatever is typed");
+    assert_eq!(
+        unreadable.extent,
+        Extent::Turn {
+            degrees: None,
+            axis: A_CLICKED_TRAIT,
+        },
+        "an angle that does not read comes to something",
+    );
+    assert!(!unreadable.applies, "an angle that does not read applies");
+
+    extrusion.close();
+    assert!(
+        extrusion.panel(&document).is_none(),
+        "a panel stands once the extrusion is closed",
     );
 }
