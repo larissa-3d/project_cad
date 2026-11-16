@@ -22,8 +22,17 @@
 //!   1, and both backs flush with the block's back; on a first boss shaped as
 //!   an L, whose top runs on past the edge's end behind the second boss; and
 //!   on the two halves of a block's top either side of a slot across it,
-//!   their front one face. At the part's level, the issue's own probe, a boss
-//!   put in before the chamfered one as high as it —
+//!   their front one face; and, the bosses only 2 apart, the issue's two rows
+//!   and the fronts flush, on the part drawn along X and turned in plan by 30
+//!   and 45 degrees. Where the first boss's end wall leans out over the
+//!   second, the second is never touched: the step is declined `Unsupported`,
+//!   or laid with the second boss as it was —
+//!   `a_chamfer_and_a_fillet_on_a_boss_whose_end_wall_leans_out_past_a_second_boss_never_touch_the_second`.
+//!   Named in one step, the two bosses' top front edges are each laid as its
+//!   own step would lay it, in either order —
+//!   `a_chamfer_and_a_fillet_on_the_top_front_edges_of_two_level_bosses_in_one_step_lay_each_as_it_alone_would`.
+//!   At the part's level, the issue's own probe, a boss put in before the
+//!   chamfered one as high as it —
 //!   `a_step_put_in_before_a_chamfer_while_the_part_is_read_earlier_leaves_it_on_its_edge`
 //!   in `crates/part/tests/a_chamfer_moves_nothing_raised_or_laid_after_it.rs`
 //! - Existing chamfer and fillet tests still pass — no test: their own suites,
@@ -39,7 +48,7 @@ use std::f64::consts::PI;
 
 use cao_solid::profile::{Contour, Frame, Profile};
 use cao_solid::soundness::{closed, enclosed, uncrossed};
-use cao_solid::{Body, Chamfered, EdgeName, Filleted, Loop};
+use cao_solid::{Body, Chamfered, Declined, EdgeName, Filleted, Loop};
 use glam::{DVec2, DVec3};
 
 /// How far a corner may stand from where the arithmetic puts it, on a plane
@@ -59,9 +68,11 @@ const BLOCK: [f64; 3] = [30.0, 10.0, 20.0];
 /// How high both bosses stand, raised from the ground through the block.
 const HIGH: f64 = 30.0;
 
-/// Where each boss stands along X.
+/// Where each boss stands along X, and where the second stands when only 2
+/// lie between them.
 const FIRST: [f64; 2] = [5.0, 10.0];
 const SECOND: [f64; 2] = [20.0, 25.0];
+const CLOSE: [f64; 2] = [12.0, 17.0];
 
 /// The value every chamfer and fillet here is asked: a distance or a radius
 /// both of an edge's faces give whole.
@@ -80,19 +91,12 @@ const FIRST_BACK: u32 = 10;
 const SECOND_TOP: u32 = 13;
 const SECOND_FRONT: u32 = 14;
 
-/// The box round the first boss's place and the second's, a unit wider along
-/// X on either side, and holding the block's depth and the bosses' height.
-fn round_the_first() -> [DVec3; 2] {
+/// The box round a boss standing `across` along X, a unit wider on either
+/// side, and holding the block's depth and the bosses' height.
+fn round_the(across: [f64; 2]) -> [DVec3; 2] {
     [
-        DVec3::new(FIRST[0] - 1.0, -1.0, -1.0),
-        DVec3::new(FIRST[1] + 1.0, BLOCK[1] + 1.0, HIGH + 1.0),
-    ]
-}
-
-fn round_the_second() -> [DVec3; 2] {
-    [
-        DVec3::new(SECOND[0] - 1.0, -1.0, -1.0),
-        DVec3::new(SECOND[1] + 1.0, BLOCK[1] + 1.0, HIGH + 1.0),
+        DVec3::new(across[0] - 1.0, -1.0, -1.0),
+        DVec3::new(across[1] + 1.0, BLOCK[1] + 1.0, HIGH + 1.0),
     ]
 }
 
@@ -147,16 +151,31 @@ fn area(corners: &[DVec2]) -> f64 {
 /// sketch on the ground raises them, of the outlines `first` and `second`;
 /// and the matter the part holds. Their tops lie in one plane, apart.
 fn two_bosses(first: &[DVec2], second: &[DVec2]) -> (Body, f64) {
+    two_bosses_turned(first, second, DVec2::X)
+}
+
+/// The [`two_bosses`] of the outlines `first` and `second`, the whole part
+/// drawn turned about the vertical through the origin by the turn `turn`
+/// holds, its cosine and its sine.
+fn two_bosses_turned(first: &[DVec2], second: &[DVec2], turn: DVec2) -> (Body, f64) {
     let [length, breadth, height] = BLOCK;
+    let drawn = |outline: &[DVec2]| {
+        Contour::straight(outline.iter().map(|corner| turn.rotate(*corner)).collect())
+    };
     let block = joined_to(
         &Body::default(),
-        Contour::rectangle(DVec2::ZERO, DVec2::new(length, breadth)),
+        drawn(&rectangle([0.0, length], [0.0, breadth])),
         height,
     );
-    let with_the_first = joined_to(&block, Contour::straight(first.to_vec()), HIGH);
-    let part = joined_to(&with_the_first, Contour::straight(second.to_vec()), HIGH);
+    let with_the_first = joined_to(&block, drawn(first), HIGH);
+    let part = joined_to(&with_the_first, drawn(second), HIGH);
     let volume = length * breadth * height + (area(first) + area(second)) * (HIGH - height);
     (part, volume)
+}
+
+/// A point or a way turned about the vertical by the turn `turn` holds.
+fn spun(turn: DVec2, point: DVec3) -> DVec3 {
+    turn.rotate(point.truncate()).extend(point.z)
 }
 
 /// Two blocks 15 by 10 by 10 on the ground with nothing under them, the
@@ -211,10 +230,10 @@ fn slotted() -> Body {
 /// between answers to, and, where two edges lie between those, one a face
 /// at its end answers to; the edge's two ends, the way the wall faces, and
 /// the way the face at each end faces, out of the boss; and the box round
-/// the other boss, with the numbers its faces answer to, where nothing may
-/// change.
+/// the other boss, drawn as the part was before it was turned by `turn`,
+/// with the numbers its faces answer to, where nothing may change.
 struct TopEdge {
-    what: &'static str,
+    what: String,
     part: Body,
     volume: f64,
     sides: [u32; 2],
@@ -223,6 +242,7 @@ struct TopEdge {
     outward: DVec3,
     end_faces: [DVec3; 2],
     other: [DVec3; 2],
+    turn: DVec2,
     other_faces: Vec<u32>,
 }
 
@@ -259,9 +279,65 @@ impl TopEdge {
         section * (self.length() + longer)
     }
 
+    /// The matter a chamfer of [`VALUE`] takes off along the edge.
+    fn chamfered_off(&self) -> f64 {
+        self.taken(VALUE * VALUE / 2.0, VALUE / 3.0)
+    }
+
+    /// The matter a fillet of [`VALUE`] takes off along the edge: the corner
+    /// of the square on its radius a quarter disc leaves, whose centre stands
+    /// `r (5/6 − π/4) / (1 − π/4)` from both faces.
+    fn rounded_off(&self) -> f64 {
+        let section = (1.0 - PI / 4.0) * VALUE * VALUE;
+        self.taken(section, VALUE * (5.0 / 6.0 - PI / 4.0) / (1.0 - PI / 4.0))
+    }
+
     /// Whether a point stands between the planes of the edge's two end faces.
     fn between_its_ends(&self, point: DVec3) -> bool {
         (0..2).all(|end| self.end_faces[end].dot(point - self.ends[end]) <= PLACE)
+    }
+
+    /// The same edge on its part drawn turned by `turn`, the part given
+    /// turned already: its ends and the ways its faces face turned with it.
+    fn turned(self, turn: DVec2) -> TopEdge {
+        TopEdge {
+            ends: self.ends.map(|end| spun(turn, end)),
+            outward: spun(turn, self.outward),
+            end_faces: self.end_faces.map(|facing| spun(turn, facing)),
+            turn,
+            ..self
+        }
+    }
+}
+
+/// The first boss's top front edge, its front at `front`, on the part and
+/// the matter it holds given, the second boss standing [`SECOND`] along X.
+fn first_s_front(what: &str, (part, volume): (Body, f64), front: f64) -> TopEdge {
+    let at = |x: f64| DVec3::new(x, front, HIGH);
+    TopEdge {
+        what: what.to_string(),
+        part,
+        volume,
+        sides: [FIRST_TOP, FIRST_FRONT],
+        ending_on: None,
+        ends: [at(FIRST[0]), at(FIRST[1])],
+        outward: -DVec3::Y,
+        end_faces: [-DVec3::X, DVec3::X],
+        other: round_the(SECOND),
+        turn: DVec2::X,
+        other_faces: SECOND_FACES.to_vec(),
+    }
+}
+
+/// The second boss's top front edge, its front at `front`, on the part and
+/// the matter it holds given, the first boss standing [`FIRST`] along X.
+fn second_s_front(what: &str, (part, volume): (Body, f64), front: f64) -> TopEdge {
+    TopEdge {
+        sides: [SECOND_TOP, SECOND_FRONT],
+        ends: [SECOND[0], SECOND[1]].map(|x| DVec3::new(x, front, HIGH)),
+        other: round_the(FIRST),
+        other_faces: FIRST_FACES.to_vec(),
+        ..first_s_front(what, (part, volume), front)
     }
 }
 
@@ -283,19 +359,7 @@ fn top_edges() -> Vec<TopEdge> {
     let bosses = |first: [f64; 2], second: [f64; 2]| {
         two_bosses(&rectangle(FIRST, first), &rectangle(SECOND, second))
     };
-    let first_s_front = |what, (part, volume): (Body, f64), front: f64| TopEdge {
-        what,
-        part,
-        volume,
-        sides: [FIRST_TOP, FIRST_FRONT],
-        ending_on: None,
-        ends: [at(FIRST[0], front), at(FIRST[1], front)],
-        outward: -DVec3::Y,
-        end_faces: [-DVec3::X, DVec3::X],
-        other: round_the_second(),
-        other_faces: SECOND_FACES.to_vec(),
-    };
-    let first_s_back = |what, (part, volume): (Body, f64), back: f64| TopEdge {
+    let first_s_back = |what: &str, (part, volume): (Body, f64), back: f64| TopEdge {
         sides: [FIRST_TOP, FIRST_BACK],
         ends: [at(FIRST[0], back), at(FIRST[1], back)],
         outward: DVec3::Y,
@@ -331,17 +395,11 @@ fn top_edges() -> Vec<TopEdge> {
             bosses([2.0, 8.0], [2.0, 8.0]),
             8.0,
         ),
-        TopEdge {
-            sides: [SECOND_TOP, SECOND_FRONT],
-            ends: [at(SECOND[0], 2.0), at(SECOND[1], 2.0)],
-            other: round_the_first(),
-            other_faces: FIRST_FACES.to_vec(),
-            ..first_s_front(
-                "the second boss's top front edge, the first's front in line with it",
-                bosses([2.0, 8.0], [2.0, 8.0]),
-                2.0,
-            )
-        },
+        second_s_front(
+            "the second boss's top front edge, the first's front in line with it",
+            bosses([2.0, 8.0], [2.0, 8.0]),
+            2.0,
+        ),
         TopEdge {
             sides: [FIRST_TOP, FIRST_RIGHT],
             ends: [at(FIRST[1], 2.0), at(FIRST[1], 8.0)],
@@ -355,7 +413,8 @@ fn top_edges() -> Vec<TopEdge> {
         },
         TopEdge {
             what: "the top front edge of a block standing apart from a second in line with it, \
-                   nothing under either",
+                   nothing under either"
+                .to_string(),
             part: two_blocks_in_line(),
             volume: 2.0 * 15.0 * 10.0 * 10.0,
             sides: [1, 2],
@@ -364,6 +423,7 @@ fn top_edges() -> Vec<TopEdge> {
             outward: -DVec3::Y,
             end_faces: [-DVec3::X, DVec3::X],
             other: [DVec3::new(19.0, -1.0, -1.0), DVec3::new(36.0, 11.0, 11.0)],
+            turn: DVec2::X,
             other_faces: (6..12).collect(),
         },
         TopEdge {
@@ -404,7 +464,7 @@ fn top_edges() -> Vec<TopEdge> {
             )
         },
         TopEdge {
-            what: "the top front edge left of a slot across a block's top",
+            what: "the top front edge left of a slot across a block's top".to_string(),
             part: slotted(),
             volume: 30.0 * 10.0 * HIGH - 4.0 * 10.0 * 10.0,
             sides: [1, 2],
@@ -416,9 +476,77 @@ fn top_edges() -> Vec<TopEdge> {
                 DVec3::new(16.0, -1.0, -1.0),
                 DVec3::new(31.0, 11.0, HIGH + 1.0),
             ],
+            turn: DVec2::X,
             other_faces: vec![1, 2, 3, 4, 9],
         },
     ]
+}
+
+/// The issue's two rows and the fronts flush with the block's, the bosses
+/// only 2 apart, the second across [`CLOSE`], on the part drawn along X, and
+/// turned in plan by 30 and 45 degrees: there the box round an end wall
+/// square to the edge reaches past the wall along it, by half the wall's
+/// depth at 45 degrees, further than the gap.
+fn turned_edges() -> Vec<TopEdge> {
+    let rows = [
+        (
+            "the first boss's top front edge, the second's front in line with it",
+            [2.0, 8.0],
+            [2.0, 8.0],
+            2.0,
+        ),
+        (
+            "the first boss's top front edge, the second's front set back by 1",
+            [2.0, 8.0],
+            [3.0, 8.0],
+            2.0,
+        ),
+        (
+            "the first boss's top front edge, both fronts flush with the block's",
+            [0.0, 8.0],
+            [0.0, 8.0],
+            0.0,
+        ),
+    ];
+    [0.0_f64, 30.0, 45.0]
+        .into_iter()
+        .flat_map(|degrees| {
+            let turn = DVec2::from_angle(degrees.to_radians());
+            rows.map(|(what, first, second, front)| {
+                let part =
+                    two_bosses_turned(&rectangle(FIRST, first), &rectangle(CLOSE, second), turn);
+                let what = format!("{what}, 2 apart, the part turned by {degrees} degrees");
+                TopEdge {
+                    other: round_the(CLOSE),
+                    ..first_s_front(&what, part, front)
+                }
+                .turned(turn)
+            })
+        })
+        .collect()
+}
+
+/// The first boss drawn through (5, 2), (10, 2), (22, 8) and (5, 8), its
+/// right wall leaning out in plan by 2 along X for every unit back, and the
+/// second from x = 16.5 to 18.5 and y = 2 to 5, in front of that wall and
+/// half a unit clear of it at y = 5: the chamfer's set-back lines meet the
+/// wall at x = 10 and 14, short of the second boss, but the wall's own box
+/// reaches x = 22, past it.
+fn leaning_over_the_second() -> TopEdge {
+    let first = [(5.0, 2.0), (10.0, 2.0), (22.0, 8.0), (5.0, 8.0)].map(DVec2::from);
+    let second = rectangle([16.5, 18.5], [2.0, 5.0]);
+    TopEdge {
+        end_faces: [-DVec3::X, DVec3::new(6.0, -12.0, 0.0).normalize()],
+        other: [
+            DVec3::new(16.0, 1.5, -1.0),
+            DVec3::new(19.0, 5.25, HIGH + 1.0),
+        ],
+        ..first_s_front(
+            "the first boss's top front edge, its right wall leaning out over the second",
+            two_bosses(&first, &second),
+            2.0,
+        )
+    }
 }
 
 /// The name of the one edge between a face answering to `first` and one
@@ -528,7 +656,11 @@ fn sound_drawn_within(body: &Body, promised: f64, drawn: f64, what: &str) {
 /// by its name after.
 fn untouched(part: &Body, body: &Body, edge: &TopEdge, taken: &EdgeName, what: &str) {
     let [low, high] = edge.other;
-    let inside = |point: &DVec3| point.cmpge(low - PLACE).all() && point.cmple(high + PLACE).all();
+    let back = DVec2::new(edge.turn.x, -edge.turn.y);
+    let inside = |point: &DVec3| {
+        let drawn = spun(back, *point);
+        drawn.cmpge(low - PLACE).all() && drawn.cmple(high + PLACE).all()
+    };
     let before = numbers(part);
     for &face in &before {
         let corners_inside = |body: &Body| -> Vec<DVec3> {
@@ -610,68 +742,206 @@ fn on_the_round(body: &Body, face: usize, edge: &TopEdge, what: &str) {
     }
 }
 
+/// Holds that the face numbered `face` is the flat a chamfer of [`VALUE`]
+/// lays on `edge`: set back by it along the top and down the wall, from one
+/// end face to the other.
+fn flat_laid_on(body: &Body, face: usize, edge: &TopEdge, what: &str) {
+    assert!(
+        body.is_flat(face),
+        "{what}: the face the chamfer lays is flat"
+    );
+    let (on_top, on_wall) = (-edge.outward * VALUE, -DVec3::Z * VALUE);
+    corners_are(
+        body,
+        face,
+        &[
+            edge.crossing(0, on_top),
+            edge.crossing(1, on_top),
+            edge.crossing(1, on_wall),
+            edge.crossing(0, on_wall),
+        ],
+        &format!("{what}: the chamfer, set back by {VALUE} along the top and the wall"),
+    );
+}
+
+/// Holds that the face numbered `face` is the round a fillet of [`VALUE`]
+/// lays on `edge`.
+fn round_laid_on(body: &Body, face: usize, edge: &TopEdge, what: &str) {
+    assert!(
+        !body.is_flat(face) && body.plane_of(face).is_none(),
+        "{what}: the face the fillet lays is curved, and offers no plane to draw on"
+    );
+    on_the_round(body, face, edge, what);
+}
+
+/// What the triangles of a body may enclose apart from its matter, where a
+/// step on `part` laid rounds of [`VALUE`] along edges `length` long in all:
+/// the drawing's tolerance at the part's reach, over their area.
+fn drawn_within(part: &Body, length: f64) -> f64 {
+    let (low, high) = part.bounds().expect("a part has a box");
+    let reach = low.abs().max(high.abs()).max_element();
+    DRAWN * reach * PI / 2.0 * VALUE * length
+}
+
+/// Holds that `chamfered` is the chamfer of [`VALUE`] on `edge`, named
+/// `name`, alone on its part: taken whole, the body sound and holding the
+/// matter arithmetic leaves, the other boss untouched, and one flat more,
+/// set back along the edge's two faces.
+fn cut_as_it_should_be(edge: &TopEdge, name: &EdgeName, chamfered: &Chamfered) {
+    let (what, part) = (&edge.what[..], &edge.part);
+    chamfer_taken_whole(chamfered, what);
+    let body = &chamfered.body;
+    let promised = edge.volume - edge.chamfered_off();
+    sound_drawn_within(body, promised, EXACT * promised, what);
+    untouched(part, body, edge, name, what);
+    let chamfer = one_face_more(part, body, what);
+    flat_laid_on(body, chamfer, edge, what);
+}
+
+/// Holds that `filleted` is the fillet of [`VALUE`] on `edge`, named `name`,
+/// alone on its part, as [`cut_as_it_should_be`] holds a chamfer: one round
+/// more, tangent to the edge's two faces.
+fn rounded_as_it_should_be(edge: &TopEdge, name: &EdgeName, filleted: &Filleted) {
+    let (what, part) = (&edge.what[..], &edge.part);
+    fillet_taken_whole(filleted, what);
+    let body = &filleted.body;
+    let promised = edge.volume - edge.rounded_off();
+    sound_drawn_within(body, promised, drawn_within(part, edge.length()), what);
+    untouched(part, body, edge, name, what);
+    let fillet = one_face_more(part, body, what);
+    round_laid_on(body, fillet, edge, what);
+}
+
 #[test]
 fn a_chamfer_on_a_top_edge_of_one_of_two_bosses_level_with_each_other_is_cut_leaving_the_other_untouched()
  {
-    for edge in top_edges() {
-        let (what, part) = (edge.what, &edge.part);
-        let name = edge_between(part, edge.sides, edge.ending_on);
+    for edge in top_edges().into_iter().chain(turned_edges()) {
+        let name = edge_between(&edge.part, edge.sides, edge.ending_on);
 
-        let chamfered = part
-            .chamfer(&name, VALUE)
-            .unwrap_or_else(|declined| panic!("{what}: the chamfer is declined, {declined:?}"));
+        let chamfered = edge.part.chamfer(&name, VALUE).unwrap_or_else(|declined| {
+            panic!("{}: the chamfer is declined, {declined:?}", edge.what)
+        });
 
-        chamfer_taken_whole(&chamfered, what);
-        let body = &chamfered.body;
-        let promised = edge.volume - edge.taken(VALUE * VALUE / 2.0, VALUE / 3.0);
-        sound_drawn_within(body, promised, EXACT * promised, what);
-        untouched(part, body, &edge, &name, what);
-        let chamfer = one_face_more(part, body, what);
-        assert!(
-            body.is_flat(chamfer),
-            "{what}: the face the chamfer lays is flat"
-        );
-        let (on_top, on_wall) = (-edge.outward * VALUE, -DVec3::Z * VALUE);
-        corners_are(
-            body,
-            chamfer,
-            &[
-                edge.crossing(0, on_top),
-                edge.crossing(1, on_top),
-                edge.crossing(1, on_wall),
-                edge.crossing(0, on_wall),
-            ],
-            &format!("{what}: the chamfer, set back by {VALUE} along the top and the wall"),
-        );
+        cut_as_it_should_be(&edge, &name, &chamfered);
     }
 }
 
 #[test]
 fn a_fillet_on_a_top_edge_of_one_of_two_bosses_level_with_each_other_is_laid_leaving_the_other_untouched()
  {
-    for edge in top_edges() {
-        let (what, part) = (edge.what, &edge.part);
-        let name = edge_between(part, edge.sides, edge.ending_on);
+    for edge in top_edges().into_iter().chain(turned_edges()) {
+        let name = edge_between(&edge.part, edge.sides, edge.ending_on);
 
+        let filleted = edge.part.fillet(&name, VALUE).unwrap_or_else(|declined| {
+            panic!("{}: the fillet is declined, {declined:?}", edge.what)
+        });
+
+        rounded_as_it_should_be(&edge, &name, &filleted);
+    }
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_on_a_boss_whose_end_wall_leans_out_past_a_second_boss_never_touch_the_second()
+ {
+    let edge = leaning_over_the_second();
+    let name = edge_between(&edge.part, edge.sides, edge.ending_on);
+    let what = &edge.what;
+
+    match edge.part.chamfer(&name, VALUE) {
+        Err(Declined::Unsupported) => {}
+        Err(declined) => panic!("{what}: the chamfer is declined, {declined:?}"),
+        Ok(chamfered) => cut_as_it_should_be(&edge, &name, &chamfered),
+    }
+    match edge.part.fillet(&name, VALUE) {
+        Err(Declined::Unsupported) => {}
+        Err(declined) => panic!("{what}: the fillet is declined, {declined:?}"),
+        Ok(filleted) => rounded_as_it_should_be(&edge, &name, &filleted),
+    }
+}
+
+/// Holds that a step on the edges `named`, `edges` in the order named, laid
+/// each as its own step would: its body sound and holding the matter both
+/// take off, every face of the part kept and one more for each edge,
+/// numbered from where the steps' numbers ended in the order named and each
+/// laid on its edge by `laid_on`, and every other edge of the part found by
+/// its name after.
+fn laid_each_as_alone(
+    part: &Body,
+    body: &Body,
+    (named, edges): (&[EdgeName], &[&TopEdge]),
+    (promised, drawn): (f64, f64),
+    laid_on: fn(&Body, usize, &TopEdge, &str),
+    what: &str,
+) {
+    sound_drawn_within(body, promised, drawn, what);
+    let (before, after) = (numbers(part), numbers(body));
+    let made: Vec<usize> = (part.faces_end()..part.faces_end() + edges.len()).collect();
+    assert!(
+        before.is_subset(&after) && after.difference(&before).eq(made.iter()),
+        "{what}: every face kept and one more for each edge, from {}: {before:?} became \
+         {after:?}",
+        part.faces_end()
+    );
+    for (face, edge) in made.into_iter().zip(edges) {
+        laid_on(body, face, edge, &format!("{what}, {}", edge.what));
+    }
+    for name in part.edge_names() {
+        if !named.contains(&name) {
+            assert_eq!(
+                body.lost(&name),
+                None,
+                "{what}: the edge between {:?} is no longer found",
+                name.between
+            );
+        }
+    }
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_on_the_top_front_edges_of_two_level_bosses_in_one_step_lay_each_as_it_alone_would()
+ {
+    let bosses = || {
+        two_bosses(
+            &rectangle(FIRST, [2.0, 8.0]),
+            &rectangle(SECOND, [2.0, 8.0]),
+        )
+    };
+    let first = first_s_front("the first boss's top front edge", bosses(), 2.0);
+    let second = second_s_front("the second boss's top front edge", bosses(), 2.0);
+    let part = &first.part;
+    let both = |edges: [&TopEdge; 2]| edges.map(|edge| edge_between(part, edge.sides, None));
+
+    for edges in [[&first, &second], [&second, &first]] {
+        let named = both(edges);
+        let what = format!("both top front edges, {} named first", edges[0].what);
+
+        let chamfered = part
+            .chamfer_edges(&named, VALUE)
+            .unwrap_or_else(|declined| panic!("{what}: the chamfer is declined, {declined:?}"));
         let filleted = part
-            .fillet(&name, VALUE)
+            .fillet_edges(&named, VALUE)
             .unwrap_or_else(|declined| panic!("{what}: the fillet is declined, {declined:?}"));
 
-        fillet_taken_whole(&filleted, what);
-        let body = &filleted.body;
-        let section = (1.0 - PI / 4.0) * VALUE * VALUE;
-        let centre = VALUE * (5.0 / 6.0 - PI / 4.0) / (1.0 - PI / 4.0);
-        let promised = edge.volume - edge.taken(section, centre);
-        let (low, high) = part.bounds().expect("a part has a box");
-        let reach = low.abs().max(high.abs()).max_element();
-        let area = PI / 2.0 * VALUE * edge.length();
-        sound_drawn_within(body, promised, DRAWN * reach * area, what);
-        untouched(part, body, &edge, &name, what);
-        let fillet = one_face_more(part, body, what);
-        assert!(
-            !body.is_flat(fillet) && body.plane_of(fillet).is_none(),
-            "{what}: the face the fillet lays is curved, and offers no plane to draw on"
+        chamfer_taken_whole(&chamfered, &what);
+        let promised = first.volume - first.chamfered_off() - second.chamfered_off();
+        laid_each_as_alone(
+            part,
+            &chamfered.body,
+            (&named, &edges),
+            (promised, EXACT * promised),
+            flat_laid_on,
+            &format!("{what}, chamfered"),
         );
-        on_the_round(body, fillet, &edge, what);
+        fillet_taken_whole(&filleted, &what);
+        let promised = first.volume - first.rounded_off() - second.rounded_off();
+        let drawn = drawn_within(part, first.length() + second.length());
+        laid_each_as_alone(
+            part,
+            &filleted.body,
+            (&named, &edges),
+            (promised, drawn),
+            round_laid_on,
+            &format!("{what}, filleted"),
+        );
     }
 }

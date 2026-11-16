@@ -16,6 +16,7 @@ use glam::DVec3;
 use super::corners::Beside;
 use super::end::{beyond, end_face, end_faces};
 use super::overlap::{ENDS, Overlap, STRIDE, overlap};
+use super::reading::reaching;
 use super::{Prism, Wedge};
 use crate::body::exact::Exact;
 use crate::brep::{self, Declined, EdgeId, FaceId, Plane, Scale, Surface, VertexId};
@@ -197,36 +198,35 @@ impl<'a> Flush<'a> {
     }
 
     /// The box round the stretch of the edge's line its prism, read as
-    /// `wedge`, is carried over. Past an end a cut is carried past, it
-    /// reaches as far as the faces meeting the edge there but its own two —
-    /// what its section takes past that end lies behind them — and no
-    /// further: matter standing on along its line, a second boss as high, is
-    /// no part of the cut, though the edge's own faces run on to it (#924).
-    /// Past an end the prism is trimmed at, a cut's [`Trim`] or either end
-    /// of a fill, it reaches as far as the box from `lowest` to `highest`,
-    /// the body's it is laid on, and the trim decides where it ends: its
-    /// section must reach the plane it is trimmed on, which runs on past the
-    /// end where it leans — over an L's arm, past its stem's foot on it.
-    /// None where the edge has no ends.
+    /// `wedge`, is carried over. Past an end a cut is carried past, the
+    /// stretch reaches as far along the edge as the faces meeting it there
+    /// but its own two reach, read off their edges, poles and bulges — what
+    /// its section takes past that end lies behind them — and no further:
+    /// matter standing on along its line, a second boss as high, is no part
+    /// of the cut, though the edge's own faces run on to it (#924). Past an
+    /// end the prism is trimmed at — a cut's [`Trim`], either end of a fill —
+    /// it reaches as far as the box from `lowest` to `highest`, the body's it
+    /// is laid on, and the trim decides where it ends: its section must reach
+    /// the plane it is trimmed on, which runs on past the end where it leans
+    /// — over an L's arm, past its stem's foot on it. None where the edge has
+    /// no ends.
     pub fn carried_over(
         &self,
         wedge: &Wedge,
         (lowest, highest): (DVec3, DVec3),
     ) -> Option<(DVec3, DVec3)> {
         let body = self.on;
-        let furthest = |[low, high]: [DVec3; 2], past: DVec3| {
-            past.dot(DVec3::select(past.cmpge(DVec3::ZERO), high, low) - wedge.point)
-        };
         let reached: Vec<DVec3> = (self.endings(wedge).into_iter())
             .map(|(end, past, trim)| {
+                let corner = body.vertex(end).point;
                 let reach = if wedge.inwards || trim.is_some() {
-                    furthest([lowest, highest], past)
+                    past.dot(DVec3::select(past.cmpge(DVec3::ZERO), highest, lowest))
                 } else {
                     (end_faces(body, end, wedge.faces))
-                        .map(|face| furthest(body.boxed(face, 0.0), past))
-                        .fold(past.dot(body.vertex(end).point - wedge.point), f64::max)
+                        .map(|face| reaching(body, face, past))
+                        .fold(past.dot(corner), f64::max)
                 };
-                wedge.point + past * reach
+                corner + past * (reach - past.dot(corner))
             })
             .collect();
         let [from, to] = reached[..] else {

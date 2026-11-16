@@ -178,10 +178,15 @@ It can:
   the edge's two faces, each face pushed out by a margin, an eighth of the
   distance; capped a margin above the edge where the faces meet so sharply
   that the cap is wider than the margin, as on a knife; and carried along
-  the edge's line a margin past the faces it meets at either end but its
-  own two, behind which lies all the matter its section takes past that
-  end, and no further: a second boss standing in line as high is left
-  alone, though the edge's own faces run on to it (#924). Where the
+  the edge's line. Past an end it is carried past, it goes a margin beyond
+  the furthest the faces meeting the edge there but its own two reach
+  along the line, read off their edges, poles and bulges rather than a box
+  round them, so that how the part is turned changes nothing — all the
+  matter its section takes past that end lies behind them — and no
+  further: a second boss standing in line as high is left alone, though
+  the edge's own faces run on to it (#924). Past an end it stops flush at
+  (below) or is held at, and at either end of a fill, it goes a margin
+  beyond the body's box, the trim deciding where it ends. Where the
   chamfer's plane lies nearly flush with a face, as on an edge bent a
   degree off flat, the face is pushed out by less, so that the prism's run
   on the chamfer's plane ends no further than the distance past its
