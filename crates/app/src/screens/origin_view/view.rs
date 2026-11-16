@@ -8,7 +8,7 @@ use super::state::OriginViewButton;
 pub fn show(ctx: &egui::Context, view: egui::Rect, button: &OriginViewButton) -> Option<Asked> {
     let id = egui::Id::new("origin_view");
     floating_row(ctx, id, view, (button.pivot, button.at), |ui| {
-        offered_button(ui, &button.offered)
+        offered_button(ui, &button.offered, true)
             .clicked()
             .then_some(Asked::Command(button.offered.command))
     })

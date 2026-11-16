@@ -17,7 +17,8 @@ use crate::ui::theme::tokens::{
 /// The bar's measures in points, as `docs/redesign/source/part.html` draws
 /// them and the tokens do not carry: its corners, its border, its padding and
 /// the gap between what it holds; a button's height, its padding across and the gap
-/// between its icon and its name; the size of a key; a separator's height.
+/// between its icon and its name; the size of a key; a separator's height and
+/// width.
 const RADIUS: u8 = 8;
 const STROKE: f32 = 1.0;
 const PADDING: i8 = 3;
@@ -27,6 +28,7 @@ const BUTTON_PADDING: f32 = 10.0;
 const BUTTON_GAP: f32 = 7.0;
 const KEY_SIZE: f32 = 10.0;
 const SEPARATOR_HEIGHT: f32 = 18.0;
+const SEPARATOR_WIDTH: f32 = 1.0 + 2.0 * SPACING_M;
 
 /// How far above a view's bottom edge the top of the bar stands: its margin,
 /// its frame and its row. What is set in that corner stands above it.
@@ -37,6 +39,44 @@ pub const FRAME_INSET: f32 = STROKE + PADDING as f32;
 
 /// What a menu button wears after its name to say that it opens.
 const OPENS: &str = "⌄";
+
+/// How much of what it says a bar wears: its buttons' names and keys beside
+/// their icons, and its reading.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BarForm {
+    Worded,
+    IconsAndReading,
+    IconsAlone,
+}
+
+impl BarForm {
+    /// The fullest form whose row, its margin to the view's edges included,
+    /// fits across `view`: `buttons` icons, the `words` their names and keys
+    /// add to them, and a `reading` that many points wide. Measured rather
+    /// than read off the row drawn last, so that one width always gives one
+    /// form.
+    pub fn fitting(view: Rect, buttons: usize, words: f32, reading: f32) -> Self {
+        let icons = buttons as f32 * (2.0 * BUTTON_PADDING + IconSize::Small.points())
+            + buttons.saturating_sub(1) as f32 * GAP
+            + 2.0 * (FRAME_INSET + SPACING_XXL);
+        let reading = GAP + reading;
+        if icons + words + reading <= view.width() {
+            Self::Worded
+        } else if icons + reading <= view.width() {
+            Self::IconsAndReading
+        } else {
+            Self::IconsAlone
+        }
+    }
+
+    pub fn is_worded(self) -> bool {
+        self == Self::Worded
+    }
+
+    pub fn reads(self) -> bool {
+        self != Self::IconsAlone
+    }
+}
 
 /// A bar standing over a view, against its bottom right corner, holding a row
 /// laid left to right.
@@ -91,24 +131,23 @@ pub fn floating_row<R>(
     shown.inner
 }
 
-/// A button of the bar: its icon, its name, and the key bound to it in a
-/// quieter ink when there is one. Framed only under the pointer — or, when it
-/// switches something, while that is on.
+/// A button of the bar: its icon, and when `worded` its name and the key bound
+/// to it in a quieter ink when there is one. Framed only under the pointer —
+/// or, when it switches something, while that is on.
 pub fn bar_button(
     ui: &mut Ui,
     enabled: bool,
     on: Option<bool>,
     icon: Icon,
-    name: &str,
-    key: Option<&str>,
+    (name, key): (&str, Option<&str>),
+    worded: bool,
 ) -> Response {
-    let mut atoms = (icon.image(IconSize::Small), name).into_atoms();
-    if let Some(key) = key {
-        atoms.push_right(
-            RichText::new(key)
-                .font(FontId::monospace(KEY_SIZE))
-                .color(TEXT_QUIET),
-        );
+    let mut atoms = icon.image(IconSize::Small).alt_text(name).into_atoms();
+    if worded {
+        atoms.push_right(name);
+        if let Some(key) = key {
+            atoms.push_right(key_text(key));
+        }
     }
     let mut button = Button::new(atoms).frame_when_inactive(on == Some(true));
     if let Some(on) = on {
@@ -118,16 +157,25 @@ pub fn bar_button(
 }
 
 /// A button of the bar that opens a menu of `entries`, the current one marked,
-/// and says which was picked, by its rank.
+/// and says which was picked, by its rank. Its icon alone unless `worded`,
+/// its name then said under the pointer.
 pub fn bar_menu(
     ui: &mut Ui,
     enabled: bool,
-    icon: Icon,
-    name: &str,
+    (icon, name): (Icon, &str),
     entries: &[(&str, bool)],
+    worded: bool,
 ) -> Option<usize> {
-    let button = Button::new((icon.image(IconSize::Small), name, OPENS)).frame_when_inactive(false);
-    let response = ui.add_enabled(enabled, dressed(button));
+    let mut atoms = icon.image(IconSize::Small).alt_text(name).into_atoms();
+    if worded {
+        atoms.push_right(name);
+        atoms.push_right(OPENS);
+    }
+    let button = Button::new(atoms).frame_when_inactive(false);
+    let mut response = ui.add_enabled(enabled, dressed(button));
+    if !worded {
+        response = response.on_hover_text(name);
+    }
     let mut picked = None;
     Popup::menu(&response).show(|ui| {
         hovered_menu_rows_stand_out(ui);
@@ -142,7 +190,7 @@ pub fn bar_menu(
 
 /// A thin upright line between two runs of the bar.
 pub fn bar_separator(ui: &mut Ui) {
-    let size = vec2(1.0 + 2.0 * SPACING_M, SEPARATOR_HEIGHT);
+    let size = vec2(SEPARATOR_WIDTH, SEPARATOR_HEIGHT);
     let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
     ui.painter().vline(
         rect.center().x,
@@ -157,11 +205,7 @@ pub fn bar_separator(ui: &mut Ui) {
 /// before it does not move as the text changes length.
 pub fn bar_reading(ui: &mut Ui, text: &str, room_for: &str) -> Response {
     let laid = |text: &str| {
-        let read = RichText::new(text)
-            .monospace()
-            .size(TYPOGRAPHY_SIZES_DETAIL)
-            .color(TEXT_SUBDUED);
-        WidgetText::from(read).into_galley(
+        reading_text(text).into_galley(
             ui,
             Some(TextWrapMode::Extend),
             f32::INFINITY,
@@ -175,6 +219,49 @@ pub fn bar_reading(ui: &mut Ui, text: &str, room_for: &str) -> Response {
     let read = ui.put(at, Label::new(galley));
     ui.add_space(SPACING_L - GAP);
     read
+}
+
+/// What a button's name and key add to its icon, across.
+pub fn bar_button_words(ui: &Ui, name: &str, key: Option<&str>) -> f32 {
+    let named = BUTTON_GAP + width(ui, name.into());
+    named + key.map_or(0.0, |key| BUTTON_GAP + width(ui, key_text(key).into()))
+}
+
+/// What a menu button's name and its mark add to its icon, across.
+pub fn bar_menu_words(ui: &Ui, name: &str) -> f32 {
+    2.0 * BUTTON_GAP + width(ui, name.into()) + width(ui, OPENS.into())
+}
+
+/// How wide a separator and the reading after it stand, as `bar_reading`
+/// lays it.
+pub fn bar_reading_width(ui: &Ui, text: &str, room_for: &str) -> f32 {
+    let room = width(ui, reading_text(text)).max(width(ui, reading_text(room_for)));
+    SEPARATOR_WIDTH + GAP + room + SPACING_L
+}
+
+fn width(ui: &Ui, text: WidgetText) -> f32 {
+    text.into_galley(
+        ui,
+        Some(TextWrapMode::Extend),
+        f32::INFINITY,
+        TextStyle::Body,
+    )
+    .size()
+    .x
+}
+
+fn key_text(key: &str) -> RichText {
+    RichText::new(key)
+        .font(FontId::monospace(KEY_SIZE))
+        .color(TEXT_QUIET)
+}
+
+fn reading_text(text: &str) -> WidgetText {
+    RichText::new(text)
+        .monospace()
+        .size(TYPOGRAPHY_SIZES_DETAIL)
+        .color(TEXT_SUBDUED)
+        .into()
 }
 
 fn dressed(button: Button<'_>) -> Button<'_> {
