@@ -242,6 +242,36 @@
 //! enough. `Rounded::carries` turned `true`: equivalent, every circle
 //! bounding a sphere face lies on it, and no face of a torus has a circle of
 //! another axis.
+//!
+//! Closes #941.
+//! - A fill trimmed flush on a sphere ten times the part's size leaves the
+//!   part's scale (its eps) as it was before the step —
+//!   `a_chamfer_trimmed_flush_on_a_sphere_ten_times_the_part_s_size_leaves_the_part_s_tolerance_as_it_was_before_the_step`.
+//!   Read as: a rib on the plate whose front is cut from a ball of radius
+//!   400, ten times the 40 the plate reaches, by a solid turned about the
+//!   ball's own axis and standing no further out than the plate, so that
+//!   before the step the part decides at the tolerance its own box asks; the
+//!   chamfer at the foot of the rib's right side, which runs out of the
+//!   sphere at the rib's front, taken whole; the body exact, closed and
+//!   uncrossed, holding the part's matter and the flat's prism from the
+//!   sphere back to the rib's back; one flat face more; the sphere one face
+//!   still, drawn on its sphere; no corner of the flat outside the ball; and
+//!   the tolerance the body decides at the same to the bit as before the
+//!   step. The eps is read through `Body::on_a_plane`, the kernel's one
+//!   tolerance, a billionth of the reach the body carries — the larger of
+//!   its operands', carried rather than computed, so that as it was means
+//!   to the bit. The fill is the chamfer: the fillet on a sphere is #805's
+//!   second slice's, and stays declined until then
+//! - #805's sphere tests keep their bodies — no test: the tests above of the
+//!   rib cut from a ball,
+//!   `a_chamfer_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flush_on_its_sphere`,
+//!   `a_chamfer_at_the_foot_of_a_rib_cut_from_a_ball_whose_circle_passes_by_a_pole_of_its_chart_is_trimmed_flush_and_drawn`,
+//!   `a_rib_cut_from_a_ball_chamfered_at_its_foot_written_to_step_writes_every_face_on_its_true_surface`
+//!   and
+//!   `a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported`,
+//!   pin each body's matter, its faces and their numbers, its edges and
+//!   corners, and what its file writes; running them, left as they were, is
+//!   the answer
 
 mod step_reader;
 
@@ -2631,6 +2661,232 @@ fn a_rib_cut_from_a_ball_chamfered_at_its_foot_written_to_step_writes_every_face
         "{what}: the flat's two edges on the sphere are written as arcs of the circle of radius \
          {across} about {about} its plane cuts the sphere along: {:?}",
         solid.circles
+    );
+}
+
+/// The radius of the [`rib_ending_on_a_dome`]'s sphere: ten times the 40 the
+/// plate reaches, which is the part's own reach.
+const DOME_RADIUS: f64 = 400.0;
+
+/// Where the [`rib_ending_on_a_dome`]'s sphere has its centre: on the ground,
+/// under the middle of the rib's width, [`DOME_RADIUS`] behind its pole at
+/// (20, 5, 0), which stands on the ground in front of the rib.
+const DOME_CENTRE: DVec3 = DVec3::new(20.0, 5.0 + DOME_RADIUS, 0.0);
+
+/// The number the [`rib_ending_on_a_dome`]'s front answers to: the sphere,
+/// the second run of the profile its front is cut by, after the run along
+/// the axis, which makes no face.
+const DOME: usize = 13;
+
+/// How far from the [`rib_ending_on_a_dome`]'s axis the solid its front is
+/// cut by reaches: past the rib's top corners, some 14.1 off it.
+const DOME_CUT: f64 = 15.0;
+
+/// The plate with a rib on its top whose front is a dome ten times the
+/// part's size: 4 wide from x = 18 to its right side at 22, from y = 4 to
+/// its back at 22, raised 10 and numbered as [`on_the_plate`] numbers it,
+/// cut away outside the sphere of [`DOME_RADIUS`] about [`DOME_CENTRE`], and
+/// joined. Its front lies on the sphere, bowed back from the plane of the
+/// pole by a fiftieth at the foot of its middle and a quarter at its top
+/// corners. What cuts it is turned a whole turn about the sphere's own
+/// axis, the line along Y through the centre: the profile bounded by the
+/// axis from y = 3 to the pole, the sphere from the pole out to
+/// [`DOME_CUT`] off the axis, and straight lines from there forward to
+/// y = 3 and back in to the axis, in front of the rib. That solid stands no
+/// further from the origin than the plate,
+/// so the part carries the plate's reach alone, though the ball is ten
+/// times its size. The rib's sides and top and the plate's top stand along
+/// the axis and off it, and meet the sphere along circles of other axes
+/// than its own (#805). The edge at the foot of the right side runs out of
+/// the sphere at its front, where the matter lies inside it, as the foot of
+/// the [`rib_cut_from_a_ball`] does.
+fn rib_ending_on_a_dome() -> Body {
+    let plate = plate(PLATE);
+    let on_the_top = Frame {
+        origin: DVec3::Z * PLATE,
+        ..ground()
+    };
+    let rib = plate
+        .tool_raised(
+            &profile(Contour::rectangle(
+                DVec2::new(18.0, 4.0),
+                DVec2::new(RIB_SIDE, RIB_ENDS[1]),
+            )),
+            on_the_top,
+            DVec3::Z * 10.0,
+        )
+        .expect("the rib raises");
+    let pole = DOME_CENTRE.y - DOME_RADIUS;
+    let cut = Contour {
+        corners: vec![
+            DVec2::new(3.0, 0.0),
+            DVec2::new(pole, 0.0),
+            DVec2::new(
+                DOME_CENTRE.y - (DOME_RADIUS * DOME_RADIUS - DOME_CUT * DOME_CUT).sqrt(),
+                DOME_CUT,
+            ),
+            DVec2::new(3.0, DOME_CUT),
+        ],
+        runs: vec![
+            Run::Straight,
+            Run::Round {
+                center: DVec2::new(DOME_CENTRE.y, 0.0),
+                turn: -(DOME_CUT / DOME_RADIUS).asin(),
+            },
+            Run::Straight,
+            Run::Straight,
+        ],
+    };
+    let sampled: &'static [DVec2] = Box::leak(cut.corners.clone().into_boxed_slice());
+    let outline = Profile {
+        exact: Some((cut, Vec::new())),
+        sampled: Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    let on_the_axis = Frame {
+        origin: DVec3::new(DOME_CENTRE.x, 0.0, DOME_CENTRE.z),
+        u: DVec3::Y,
+        v: -DVec3::X,
+    };
+    let along_y = Axis {
+        origin: DVec2::ZERO,
+        direction: DVec2::X,
+    };
+    let tool = rib
+        .tool_turned(
+            &outline,
+            on_the_axis,
+            &Turn::of(along_y, TAU, 1e-4, &outline),
+        )
+        .expect("the dome's cut turns");
+    let domed = rib.difference(&tool).expect("the dome is cut");
+    plate.union(&domed).expect("the rib is joined")
+}
+
+/// Where the [`rib_ending_on_a_dome`]'s sphere crosses the line along Y
+/// through `x` and `z`, in front of its centre.
+fn on_the_dome(x: f64, z: f64) -> f64 {
+    let off = DVec2::new(x - DOME_CENTRE.x, z - DOME_CENTRE.z);
+    DOME_CENTRE.y - (DOME_RADIUS * DOME_RADIUS - off.length_squared()).sqrt()
+}
+
+/// How far a point stands outside the [`rib_ending_on_a_dome`]'s sphere.
+fn off_the_dome(point: DVec3) -> f64 {
+    point.distance(DOME_CENTRE) - DOME_RADIUS
+}
+
+/// The matter the [`rib_ending_on_a_dome`] holds: the plate's 40 × 30 × 4,
+/// and over the rib's section, 4 × 10, how far it runs from the sphere back
+/// to y = 22, summed by Simpson's rule each way: what it sums is smooth.
+fn dome_rib_volume() -> f64 {
+    let rib = simpson(
+        |x| {
+            simpson(
+                |z| RIB_ENDS[1] - on_the_dome(x, z),
+                [PLATE, PLATE + 10.0],
+                UP_STEPS,
+            )
+        },
+        [18.0, RIB_SIDE],
+        UP_STEPS,
+    );
+    4800.0 + rib
+}
+
+/// The area the drawing of the [`rib_ending_on_a_dome`]'s sphere is held
+/// over, rounded up: the rib's section, 4 × 10, which a dome bulging a
+/// quarter at most stretches by under a thousandth.
+const DOME_AREA: f64 = 41.0;
+
+/// How long a fill at the foot of the [`rib_ending_on_a_dome`]'s right side
+/// runs, `out` from that side and `up` over the plate's top: from the
+/// sphere back to the rib's back.
+fn along_the_domed_rib(out: f64, up: f64) -> f64 {
+    RIB_ENDS[1] - on_the_dome(RIB_SIDE + out, PLATE + up)
+}
+
+/// Holds that the face numbered `face` is the [`rib_ending_on_a_dome`]'s
+/// sphere: curved, and every corner of its triangles on the sphere.
+fn drawn_on_the_dome(body: &Body, face: usize, what: &str) {
+    assert!(
+        body.has_face(face) && !body.is_flat(face),
+        "{what}: face {face} is a round"
+    );
+    let corners: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+    assert!(!corners.is_empty(), "{what}: the sphere is drawn");
+    for corner in corners {
+        assert!(
+            off_the_dome(corner).abs() < PLACE,
+            "{what}: the sphere is drawn through {corner}, {} off it",
+            off_the_dome(corner)
+        );
+    }
+}
+
+#[test]
+fn a_chamfer_trimmed_flush_on_a_sphere_ten_times_the_part_s_size_leaves_the_part_s_tolerance_as_it_was_before_the_step()
+ {
+    let value = 2.0;
+    let part = rib_ending_on_a_dome();
+    let before_the_step = "the rib ending on a dome ten times the part's size, before the step";
+    drawn_on_the_dome(&part, DOME, before_the_step);
+    sound_drawn_within(
+        &part,
+        dome_rib_volume(),
+        drawn_within(&part, DOME_AREA),
+        before_the_step,
+    );
+    let before = part.on_a_plane(0.0);
+    let own = Scale::of(reach_of(&part)).eps();
+    assert_eq!(
+        before, own,
+        "{before_the_step}: the part decides at a tolerance of {before}, where its own box asks \
+         {own}"
+    );
+    let foot = edge_between(&part, TOP, RIB_RIGHT);
+
+    let chamfered = part.chamfer(&foot, value).unwrap_or_else(|declined| {
+        panic!(
+            "the chamfer at the foot of the rib ending on a dome ten times the part's size: \
+             declined, {declined:?}"
+        )
+    });
+
+    let what = "the chamfer at the foot of the rib ending on a dome ten times the part's size";
+    taken_whole(chamfered.asked, chamfered.taken, value, what);
+    let body = &chamfered.body;
+    let height = |out: f64| chamfer_height(value, out);
+    sound_drawn_within(
+        body,
+        dome_rib_volume() + fill_matter(value, height, along_the_domed_rib),
+        drawn_within(&part, DOME_AREA + value * value),
+        what,
+    );
+    let chamfer = one_flat_face_more(&part, body, what);
+    drawn_on_the_dome(body, DOME, what);
+    let itself = [vec![DOME as u32], vec![DOME as u32]];
+    assert!(
+        !body.edge_names().iter().any(|name| name.between == itself),
+        "{what}: the sphere is one face, with no edge between it and itself"
+    );
+    for corner in body.triangles_of(chamfer).flatten() {
+        assert!(
+            off_the_dome(corner) <= PLACE,
+            "{what}: the flat is drawn through {corner}, {} outside the sphere: past it",
+            off_the_dome(corner)
+        );
+    }
+    let after = body.on_a_plane(0.0);
+    assert_eq!(
+        after,
+        before,
+        "{what}: the part decides at a tolerance of {after}, a share of a reach of {}, where \
+         before the step it decided at {before}, its own box's reach of {} — the trim carried \
+         a solid of the ball's size into the part, and every later step would be decided and \
+         drawn coarser than the part's size asks",
+        after / Scale::RELATIVE,
+        before / Scale::RELATIVE
     );
 }
 

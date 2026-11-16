@@ -388,11 +388,15 @@ It can:
   its wall at a few degrees, which the fill runs on into. The round stays one
   face and takes in the fill's section. A sphere end the edge runs out of
   trims a chamfer's prism by the box past where its long edges leave the
-  sphere, raised as a plane's end is, less the ball turned about the
-  sphere's own axis, so that the fill's end lies on the very sphere of the
-  face it merges into (#805, `fill/ball.rs`); the ball carries its own
-  reach, which a dome far larger than its part would pass on to every later
-  step. A fillet on a sphere end, which meets it along a cylinder of
+  sphere, raised as a plane's end is, less the piece of the ball that box
+  takes in, turned about the sphere's own axis, so that the fill's end lies
+  on the very sphere of the face it merges into (#805, `fill/ball.rs`). The
+  piece is bounded round the box, a little past it, as a cone's is (#941):
+  between planes square to the axis, out to a cylinder about it, and round
+  it between planes through it from a cylinder inside the box — or a whole
+  turn from the axis out where the box stands round it — so that a dome far
+  larger than its part leaves the part's reach its own. A fillet on a
+  sphere end, which meets it along a cylinder of
   another axis, and a torus end are still declined. The trimmed prism is
   joined to the body. Its ends merge into
   the faces at the edge's ends, which a join would leave answering to the
