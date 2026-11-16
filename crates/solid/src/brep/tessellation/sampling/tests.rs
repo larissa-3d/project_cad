@@ -11,6 +11,7 @@ use crate::brep::surface::Surface;
 use crate::brep::topology::{Body, EdgeId};
 
 mod conic;
+mod touching;
 
 const CLOSE: f64 = 1e-12;
 

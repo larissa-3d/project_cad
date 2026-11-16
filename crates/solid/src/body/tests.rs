@@ -313,6 +313,12 @@ fn an_exact_body_behind_a_plane_keeps_only_what_is_behind_it() {
 
 /// A ball of radius 5 about the origin: a half disc turned whole about Y.
 fn ball_about_y() -> Body {
+    ball_turned_about_y(TAU)
+}
+
+/// The half disc of radius 5 on the side x ≥ 0 of the plane z = 0, turned
+/// `turn` about Y.
+fn ball_turned_about_y(turn: f64) -> Body {
     let sampled: &'static [DVec2] = Box::leak(
         (0..=32)
             .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * 5.0)
@@ -336,7 +342,7 @@ fn ball_about_y() -> Body {
         triangles: &[],
     };
     Body::default()
-        .tool_turned(&profile, FLAT, &about_v(&profile, TAU))
+        .tool_turned(&profile, FLAT, &about_v(&profile, turn))
         .expect("the exact kernel turns the ball")
 }
 

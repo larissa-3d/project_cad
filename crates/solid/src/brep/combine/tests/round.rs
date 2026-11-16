@@ -916,10 +916,11 @@ fn a_slanted_wall_cut_from_a_quarter_torus_past_its_quarter_leaves_the_quarter_w
 /// (seeds 5576502870, 5576400540): a whole ball's face has no edge to read
 /// its reach off. Once #805 meets the two along the circle about the foot of
 /// the centre, the cut keeps the ball beside the plane and the join adds the
-/// block to it; a hair inside the crest, the cut and the join are built
-/// sound or declined, and never a body whose faces cross. Two hairs inside
-/// and more, the circle is built however small: two hairs inside, its radius
-/// is √(2r × 2 eps), under half a thousandth.
+/// block to it; a hair inside the crest, where the plane touches the ball
+/// at a point (#939), the cut and the join are built sound, and never a
+/// body whose faces cross. Two hairs inside and more, the circle is built
+/// however small: two hairs inside, its radius is √(2r × 2 eps), under half
+/// a thousandth.
 #[test]
 fn a_block_whose_side_crosses_a_ball_off_its_axis_cuts_and_joins_it_along_a_circle() {
     let eps = Scale::of(10.0).eps();
@@ -946,13 +947,8 @@ fn a_block_whose_side_crosses_a_ball_off_its_axis_cuts_and_joins_it_along_a_circ
                 400.0 * (10.0 - low) + kept,
             ),
         ] {
-            match built {
-                Ok(body) => held(&body, volume, &what),
-                Err(declined) if low == 5.0 - eps => {
-                    assert_eq!(declined, Declined::Unsupported, "{what}");
-                }
-                Err(declined) => panic!("{what}: declined, {declined:?}"),
-            }
+            let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            held(&body, volume, &what);
         }
     }
 }
