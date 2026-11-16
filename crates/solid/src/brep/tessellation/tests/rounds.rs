@@ -9,7 +9,10 @@
 //! The ball less such a sector leaves a face of the sphere that lies in
 //! front of no one direction, more than a hemisphere, holding both poles:
 //! left open until #940, it is drawn as the face a ball cut by three flats of
-//! three axes leaves, closed and enclosing its volume.
+//! three axes leaves, closed and enclosing its volume. A circle of another
+//! axis on a sphere is sampled where it crosses the angles of the sphere's
+//! grid, which a face going round is cut open at (#940), and neither a hair
+//! from a corner it ends at nor at the angle of a corner off that grid.
 
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
@@ -19,9 +22,10 @@ use super::super::sampling::{Samples, divisions_in};
 use super::fixtures::Build;
 use crate::brep::Declined;
 use crate::brep::curve::{Circle, Curve};
+use crate::brep::scale::Scale;
 use crate::brep::surface::{Sphere, Surface};
 use crate::brep::tessellation::Cut;
-use crate::brep::topology::{Body, Coedge, FaceId, VertexId};
+use crate::brep::topology::{Body, Coedge, EdgeId, FaceId, VertexId};
 use crate::brep::turned::tests::round::{
     apple, ball, ball_at_the_origin, bent, cap, grooved_bore, lemon, ring, rounded_shaft, turned,
     zone,
@@ -631,6 +635,226 @@ fn the_sphere_face_of_a_ball_less_a_sector_in_front_of_no_one_direction_is_drawn
                     "{what}: the sphere face is drawn at {tolerance} through {point}, inside the \
                      sector, {past} behind its flat faces"
                 );
+            }
+        }
+    }
+}
+
+/// A slab 10 thick past the plane `off` from the origin along `normal`.
+fn slab(normal: DVec3, off: f64) -> Body {
+    let normal = normal.normalize();
+    let u = normal.any_orthonormal_vector();
+    let frame = crate::profile::Frame {
+        origin: normal * off,
+        u,
+        v: normal.cross(u),
+    };
+    let side =
+        crate::profile::Contour::rectangle(glam::DVec2::splat(-20.0), glam::DVec2::splat(20.0));
+    Body::raised(&side, &[], frame, normal * 10.0).expect("a slab stands on its own")
+}
+
+/// The ball of radius 5 about the origin, turned about Y, cut in half at
+/// y = 0 — the dome above kept, or the bowl below — then by each of `flats`.
+fn half_ball_cut_by(above: bool, flats: &[Body]) -> Body {
+    let floor = if above { DVec3::NEG_Y } else { DVec3::Y };
+    let half = turned(&ball(), 360.0)
+        .cut_by(&slab(floor, 0.0))
+        .expect("a plane square to its axis cuts the ball in half");
+    flats.iter().fold(half, |body, flat| {
+        body.cut_by(flat).expect("a flat cuts the half ball")
+    })
+}
+
+/// The tolerances the samples of a half ball are read at, from a
+/// twentieth of a thousandth of its reach to half of it: the grid of the
+/// sphere, and with it the angles its circles cross, at each.
+const SAMPLED_AT: [f64; 7] = [1e-3, 4e-3, 1.6e-2, 6.4e-2, 0.2, 1.0, 10.0];
+
+/// The circles of `body` lying on its sphere about another line than the
+/// sphere's own, neither a latitude nor a meridian, with their edges.
+fn tilted_circles(body: &Body) -> Vec<(EdgeId, Circle, Sphere)> {
+    let eps = body.scale().eps();
+    let spheres: Vec<Sphere> = body
+        .face_ids()
+        .filter_map(|face| match body.surface(body.face(face).surface) {
+            Surface::Sphere(sphere) => Some(*sphere),
+            _ => None,
+        })
+        .collect();
+    body.edge_ids()
+        .filter_map(|edge| {
+            let Curve::Circle(circle) = body.curve(body.edge(edge).curve) else {
+                return None;
+            };
+            let sphere = spheres.iter().find(|sphere| {
+                sphere.carries(circle, eps)
+                    && !sphere.holds(circle, eps)
+                    && !sphere.meridian(circle, eps)
+            })?;
+            Some((edge, *circle, *sphere))
+        })
+        .collect()
+}
+
+/// The dome and the bowl cut by x ≥ 3: the circle x = 3 ends on the rim at
+/// (3, 0, ±4), where it stands square to the rim and touches the half-plane
+/// of the sphere's grid through that corner. It takes no sample between its
+/// ends within a hair of either, at any fineness: a sample there is a chord
+/// a hair long at a corner the flat, the floor and the sphere share. Beside
+/// them, x ≤ −3 and a flat 3 along (1, 0, 1), which touch theirs alike.
+#[test]
+fn a_circle_square_to_a_half_ball_s_rim_takes_no_sample_a_hair_from_the_corner_it_ends_at() {
+    for (body, what) in [
+        (
+            half_ball_cut_by(true, &[slab(DVec3::X, 3.0)]),
+            "the dome cut by x ≥ 3",
+        ),
+        (
+            half_ball_cut_by(false, &[slab(DVec3::X, 3.0)]),
+            "the bowl cut by x ≥ 3",
+        ),
+        (
+            half_ball_cut_by(true, &[slab(DVec3::NEG_X, 3.0)]),
+            "the dome cut by x ≤ −3",
+        ),
+        (
+            half_ball_cut_by(true, &[slab(DVec3::new(1.0, 0.0, 1.0), 3.0)]),
+            "the dome cut by a flat 3 along (1, 0, 1)",
+        ),
+    ] {
+        let hair = Scale::HAIR * body.scale().eps();
+        let circles = tilted_circles(&body);
+        assert_eq!(
+            circles.len(),
+            1,
+            "{what}: the flat's circle alone is tilted"
+        );
+        for tolerance in SAMPLED_AT {
+            let samples = Samples::of(&body, tolerance);
+            for &(edge, _, _) in &circles {
+                let ids = samples.edge(edge);
+                let ends = [ids[0], ids[ids.len() - 1]].map(|id| samples.point(id));
+                for &id in &ids[1..ids.len() - 1] {
+                    let point = samples.point(id);
+                    let near = ends
+                        .map(|end| point.distance(end))
+                        .into_iter()
+                        .fold(f64::INFINITY, f64::min);
+                    assert!(
+                        near > hair,
+                        "{what}, at {tolerance}: the flat's circle takes {point}, {near:e} from \
+                         the corner it ends at, within a hair, {hair:e}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Where the arc of `circle` from `from` to `to` crosses the half-plane from
+/// the axis of `sphere` out along `way`: each change of side along a dense
+/// run of its points, halved down to rounding, where it stands out along
+/// `way`.
+fn arc_crossings(circle: &Circle, [from, to]: [f64; 2], sphere: &Sphere, way: DVec3) -> Vec<DVec3> {
+    let across = sphere.axis.cross(way);
+    let side = |t: f64| (circle.point(t) - sphere.middle()).dot(across);
+    let steps = 1 << 14;
+    let at = |step: u32| from + (to - from) * f64::from(step) / f64::from(steps);
+    (0..steps)
+        .filter(|&step| side(at(step)) * side(at(step + 1)) < 0.0)
+        .map(|step| {
+            let (mut low, mut high) = (at(step), at(step + 1));
+            for _ in 0..64 {
+                let middle = (low + high) / 2.0;
+                if side(low) * side(middle) <= 0.0 {
+                    high = middle;
+                } else {
+                    low = middle;
+                }
+            }
+            circle.point((low + high) / 2.0)
+        })
+        .filter(|point| (*point - sphere.middle()).dot(way) > 0.0)
+        .collect()
+}
+
+/// The angle about the sphere's axis of `point`, read in `[0, 2π)`.
+fn angle_about(sphere: &Sphere, point: DVec3) -> f64 {
+    sphere.parameters(point).x.rem_euclid(TAU)
+}
+
+/// The dome cut by x ≥ 3, alone and then notched by a cap six degrees wide
+/// about (0.48, 0.6, 0.64), whose direction stands in the half-plane through
+/// the corner (3, 0, 4) and whose circle crosses it twice, well off the
+/// corner. A circle of another axis on the sphere takes a sample wherever it
+/// crosses the half-plane of an angle of the sphere's grid — the only angles
+/// a face going round is cut open at — and none where it crosses the
+/// half-plane through a corner off that grid, which opens nothing.
+#[test]
+fn a_circle_of_another_axis_on_a_sphere_takes_the_angles_of_its_grid_it_crosses_and_none_of_a_corner_off_it()
+ {
+    let notch = slab(DVec3::new(0.48, 0.6, 0.64), 5.0 * 6f64.to_radians().cos());
+    for (body, what) in [
+        (
+            half_ball_cut_by(true, &[slab(DVec3::X, 3.0)]),
+            "the dome cut by x ≥ 3",
+        ),
+        (
+            half_ball_cut_by(true, &[slab(DVec3::X, 3.0), notch]),
+            "the dome cut by x ≥ 3 and notched beside its corner",
+        ),
+    ] {
+        let eps = body.scale().eps();
+        let circles = tilted_circles(&body);
+        for tolerance in SAMPLED_AT {
+            let samples = Samples::of(&body, tolerance);
+            for &(edge, circle, sphere) in &circles {
+                let surface = (body.face_ids())
+                    .map(|face| body.face(face).surface)
+                    .find(|&surface| *body.surface(surface) == Surface::Sphere(sphere))
+                    .expect("the circle's sphere bounds a face");
+                let steps = samples.steps(surface).expect("a sphere has a grid");
+                let ids = samples.edge(edge);
+                let points: Vec<DVec3> = ids.iter().map(|&id| samples.point(id)).collect();
+                let arc = [body.edge(edge).from, body.edge(edge).to];
+                let ends = [points[0], points[points.len() - 1]];
+                for step in 0..steps {
+                    let angle = TAU * step as f64 / steps as f64;
+                    for crossing in arc_crossings(&circle, arc, &sphere, sphere.radial(angle)) {
+                        if ends.iter().any(|end| end.distance(crossing) <= 1e-6) {
+                            continue;
+                        }
+                        assert!(
+                            points.iter().any(|point| point.distance(crossing) <= 1e-6),
+                            "{what}, at {tolerance}: the circle about {} crosses the grid's \
+                             angle {angle} at {crossing} and takes no sample there",
+                            circle.axis
+                        );
+                    }
+                }
+                let corners = (body.vertex_ids())
+                    .map(|vertex| body.vertex(vertex).point)
+                    .filter(|&corner| {
+                        sphere.distance(corner).abs() <= eps
+                            && (corner - sphere.middle()).reject_from(sphere.axis).length() > eps
+                    });
+                for corner in corners {
+                    let angle = angle_about(&sphere, corner);
+                    let rank = angle * steps as f64 / TAU;
+                    if (rank - rank.round()).abs() <= 1e-9 {
+                        continue;
+                    }
+                    for point in &points[1..points.len() - 1] {
+                        let off = (angle_about(&sphere, *point) - angle + PI).rem_euclid(TAU) - PI;
+                        assert!(
+                            off.abs() > 1e-12,
+                            "{what}, at {tolerance}: the circle about {} takes {point} at the \
+                             angle {angle} of the corner {corner}, off the grid's {steps} steps",
+                            circle.axis
+                        );
+                    }
+                }
             }
         }
     }

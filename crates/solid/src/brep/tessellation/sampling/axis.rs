@@ -1,9 +1,15 @@
 //! The rays a circle of a cone takes besides its grid: its cone's grid, and,
 //! where the cone stands close to another wall, the rays of every wall
 //! standing with it. A circle lying on a sphere about another line takes
-//! the places it crosses the rays of the sphere's grid at (#940): a face of
+//! the places it crosses the steps of the sphere's grid at (#940): a face of
 //! the sphere going round its axis between two such circles is cut open at
-//! an angle of that grid, which every loop must pass at a sample.
+//! one of those angles, which every loop must pass at a sample. Not at the
+//! angles of the sphere's vertices, which open nothing: a circle ending at
+//! one, square to the rim it ends on, touches that angle's half-plane there.
+//! Nor where it only touches a step's half-plane, which rounding reads as
+//! two crossings a hair apart; nor on a circle standing in a group, whose
+//! other circles would not take them, nor where a ray of the group would
+//! not be taken.
 //!
 //! A circle lying on a cone takes the cone's grid and the angles of its
 //! vertices ([`cone`]). That leaves a cone's narrow rim with angles of its
@@ -63,6 +69,8 @@ use glam::DVec3;
 use super::super::contact::{self, Contact, Wall};
 use super::cone::{Grid, Spun};
 use super::divisions_in;
+use super::round::Rounded;
+use crate::brep::Scale;
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::topology::{Body, SurfaceId};
 use joined::{Joined, along, beside};
@@ -99,6 +107,8 @@ impl Group {
 /// and, once [`Axes::gathered`], the rays its walls take in contact.
 pub(super) struct Axes {
     cones: Vec<(Spun, Vec<DVec3>)>,
+    /// Each round with the directions from its axis of its grid's steps.
+    steps: Vec<(Rounded, Vec<DVec3>)>,
     groups: Vec<Group>,
     of_wall: BTreeMap<SurfaceId, usize>,
 }
@@ -120,9 +130,13 @@ impl Axes {
             })
             .collect();
         let mut cones = Vec::new();
+        let mut steps = Vec::new();
         let mut rims: Vec<(Vec<SurfaceId>, Vec<SurfaceId>, &Grid)> = Vec::new();
         for grid in grids.values() {
             cones.push((grid.spun, grid.rays().collect()));
+            if let Spun::Round(round) = grid.spun {
+                steps.push((round, grid.on_steps().collect()));
+            }
             let walls_of = |within: &dyn Fn(&Circle) -> bool| -> Vec<SurfaceId> {
                 circles
                     .iter()
@@ -167,6 +181,7 @@ impl Axes {
         }
         let mut axes = Axes {
             cones,
+            steps,
             groups: Vec::new(),
             of_wall: BTreeMap::new(),
         };
@@ -231,12 +246,12 @@ impl Axes {
     }
 
     /// What a circle of `wall` takes besides its grid, `contact`: the rays
-    /// of every cone, sphere or torus it lies on, the places it crosses
-    /// those of a sphere it lies on tilted, and the rays of the wall's group
-    /// if it stands in one. None for a circle lying on none and standing in
-    /// no group, which takes `contact` alone. A ray of the group is left out
-    /// where `kept` says no sample stands, and at a step of the circle's grid
-    /// `contact` withholds there.
+    /// of every cone, sphere or torus it lies on, and those of the wall's
+    /// group if it stands in one, or else the places it crosses the steps of
+    /// a sphere it lies on about another line. None for a circle lying on
+    /// none and standing in no group, which takes `contact` alone. A ray of
+    /// the group or a crossing is left out where `kept` says no sample
+    /// stands, and at a step of the circle's grid `contact` withholds there.
     pub(super) fn widened(
         &self,
         contact: &Contact,
@@ -250,14 +265,6 @@ impl Axes {
             .iter()
             .filter(|(spun, _)| spun.holds(circle, eps))
             .flat_map(|(_, rays)| rays.iter().copied());
-        let across_spheres = (self.cones.iter())
-            .filter(|(spun, _)| match spun {
-                Spun::Round(round) => round.carries(circle, eps) && !round.holds(circle, eps),
-                Spun::Cone(_) => false,
-            })
-            .flat_map(|(spun, rays)| {
-                (rays.iter()).flat_map(|way| crossings(circle, (spun.origin(), spun.axis()), *way))
-            });
         let group = self.of_wall.get(&wall).map(|group| &self.groups[*group]);
         let steps = divisions_in(circle.radius, tolerance, span);
         let step = TAU / steps as f64;
@@ -277,6 +284,15 @@ impl Axes {
             .flat_map(|group| group.rays.iter())
             .filter(|way| !withheld(way) && kept(circle.center + **way * circle.radius))
             .copied();
+        let across_spheres = (self.steps.iter())
+            .filter(|(round, _)| {
+                group.is_none() && round.carries(circle, eps) && !round.holds(circle, eps)
+            })
+            .flat_map(|(round, steps)| {
+                let line = (round.origin(), round.axis());
+                (steps.iter()).flat_map(move |way| crossings(circle, line, *way))
+            })
+            .filter(|way| !withheld(way) && kept(circle.center + *way * circle.radius));
         let rays: Vec<DVec3> = contact
             .rays
             .iter()
@@ -301,13 +317,16 @@ impl Axes {
 
 /// The directions from the centre of `circle` to where it crosses the
 /// half-plane from the line through `origin` along `axis` out along `way`,
-/// square to it: none where it passes it by or only touches it.
+/// square to it: none where it passes it by or only touches it, reaching
+/// past the half-plane's plane by no more than the kernel's relative
+/// tolerance of its radius. Read with rounding, a touch would cross it
+/// twice, the square root of a rounding apart.
 fn crossings(circle: &Circle, (origin, axis): (DVec3, DVec3), way: DVec3) -> Vec<DVec3> {
     let across = axis.cross(way);
     let (along_u, along_v) = (circle.u.dot(across), circle.v.dot(across));
     let off = (circle.center - origin).dot(across) / circle.radius;
     let reach = along_u.hypot(along_v);
-    if reach <= off.abs() {
+    if reach - off.abs() <= Scale::RELATIVE {
         return Vec::new();
     }
     let (crest, spread) = (along_v.atan2(along_u), (-off / reach).acos());

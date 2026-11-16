@@ -2738,9 +2738,21 @@ pointed cone's flank waits on #711.
   is sampled on the cylinder's grid as the curve of two walls is; on the
   sphere, which has no grid it must stand on, between those wherever a
   chord would leave it. A circle of another axis is sampled besides its own
-  grid where it crosses each angle of the sphere's (#940, `sampling/axis.rs`):
-  a band two flats leave round the axis is cut open along an angle both its
-  circles pass at a sample.
+  grid where it crosses each step of the sphere's grid (#940,
+  `sampling/axis.rs`): a band two flats leave round the axis is cut open
+  along an angle both its circles pass at a sample. Not at the angles of
+  the sphere's vertices, which open nothing — a circle ending at one on a
+  rim it stands square to touches that angle's half-plane there, and
+  rounding would leave a sample a hair from the corner —, not where it only
+  touches a step's half-plane, and not on a circle whose wall stands in a
+  group of walls close about one axis, whose other circles would not take
+  those places; a crossing is left out, as a ray of the group is, where the
+  circle's contact withholds the step or another wall crowds it. Faces drawn
+  before #940 along such a circle — a ball cut at a slant, a sector of
+  great-circle arcs, the flat beside them — gain those samples: on the
+  tests that draw them, a few in a hundred more triangles for most, about a
+  tenth more for a sector, and an extra one in a hundred over all of
+  them.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near
