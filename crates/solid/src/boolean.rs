@@ -96,7 +96,7 @@ impl Mesh {
 /// `f32`, and needed a millionth of slack; it now keeps sixteen, so a
 /// billionth leaves the same margin over the noise with far less of the
 /// geometry blurred away.
-const ON_PLANE: f64 = 1e-9;
+pub(crate) const ON_PLANE: f64 = 1e-9;
 
 fn tolerance(scale: f64) -> f64 {
     ON_PLANE * scale.abs().max(1.0)

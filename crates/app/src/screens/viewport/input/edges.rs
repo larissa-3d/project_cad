@@ -97,7 +97,8 @@ impl Offered {
     fn by(section: &Section, body: &Body) -> Option<Self> {
         let plane = section.cutting_plane();
         let towards = plane.normal();
-        let offset = towards.dot(plane.origin) + body.on_a_plane();
+        let offset = towards.dot(plane.origin);
+        let offset = offset + body.on_a_plane(offset);
         match (section.behind, section.in_front) {
             (MatterInFront::Opaque, MatterInFront::Opaque) => Some(Self::Everywhere),
             (MatterInFront::Opaque, _) => Some(Self::Below { towards, offset }),
