@@ -451,9 +451,9 @@
 //!   each, the value taken whole, closed and uncrossed —
 //!   `a_chamfer_whose_corner_triangle_takes_whole_the_flat_of_an_upright_running_to_no_other_closed_corner_is_declined_as_unsupported_whatever_the_order`.
 //!   In the three orders naming the upright after the top's front edge, the
-//!   step is declined before the corner is closed: those two edges alone at 3
-//!   are declined in that order and built in the other, on `main` too, #912.
-//!   The fillet at 3 on
+//!   step was declined on `main` before the corner was closed, as those two
+//!   edges alone at 3 were declined in that order and built in the other;
+//!   #912, below, lays those two alike in both. The fillet at 3 on
 //!   the same list is declined `Unsupported` in every order whether or not
 //!   its corner may take the upright's round whole, so it holds nothing of
 //!   this rule — no test
@@ -541,6 +541,67 @@
 //! then the cell on the upright's corner's side of the planes through the
 //! centre square to its three edges taken away, and the ball's sector over it,
 //! `r³β/3`, given back.
+//!
+//! The block 30 by 30 notched under its front upright, as #837's second slice
+//! builds it, chamfered at 3 on two of the three edges meeting at the top
+//! corner over the notch: the top's front edge and the upright, which ends on
+//! the notch's ceiling. The value is bounded by the notch's corner at
+//! (27, 0, 7), where the set-backs of both edges cross on the front and the
+//! ceiling meets them, and comes back a hair short of 3. `main` laid the two
+//! flats, mitred, when the upright is named first, and declined the step
+//! `Unsupported` when the top's front edge is.
+//!
+//! Closes #912.
+//! - The top's front edge and the upright at 3 should give one body in both
+//!   orders. It should be the body the other order builds, if that body is
+//!   sound: exact, closed, uncrossed, holding the volume the arithmetic
+//!   gives. If it is not sound, both orders should be declined —
+//!   `a_chamfer_on_the_top_s_front_edge_and_the_upright_ending_on_the_notch_lays_one_mitred_body_whichever_is_named_first`.
+//!   Read as: the body the upright-first order builds is sound and is the
+//!   one the arithmetic below gives, so both orders lay it: in each, the
+//!   step reporting 3 asked and taking it within a point's placing, the body
+//!   exact, closed, uncrossed, holding `8937 − 17d² + 4d³/9`, 8796, which the
+//!   booleans give too, and its triangles enclosing that; the upright's flat
+//!   the triangle (27, 0, 7), (30, 3, 7), (30, 3, 10), the front edge's flat
+//!   the strip (0, 0, 7), (27, 0, 7), (30, 3, 10), (0, 3, 10), each answering
+//!   to its own edge's rank, the two meeting on the mitre from the notch's
+//!   corner to the top's edge across the end; and the two orders laying one
+//!   body, their faces meeting alike, each flat read by the edge it was laid
+//!   on. A tenth under, at 2.9, the same of both orders but the flats'
+//!   corners, the volume 8804.8696, as on `main`. Not in the issue's wording:
+//!   the same with the top's edge across the end instead of its front edge,
+//!   the mirror image across the vertical plane x + y = 30, which `main`
+//!   already lays alike in both orders —
+//!   `a_chamfer_on_the_top_s_edge_across_the_end_and_the_upright_ending_on_the_notch_lays_one_mitred_body_whichever_is_named_first`
+//! - Out of scope, kept: the three edges at 3, declined by #837's rule that a
+//!   corner's triangle takes no flat whole unless that flat's edge runs to
+//!   another corner the step closes —
+//!   `a_chamfer_whose_corner_triangle_takes_whole_the_flat_of_an_upright_running_to_no_other_closed_corner_is_declined_as_unsupported_whatever_the_order`
+//!
+//! The notch takes from the block the column under its ceiling,
+//! `z = 6 + (30 − x + y)/3`, 7 high on average over its 3 by 3: the notched
+//! block holds `LWH − 63`, 8937. Chamfered at `d`, the top's front edge's flat
+//! takes the triangle `d²/2` along the whole 30 of its edge; none of it lies
+//! in the notch, the flat's plane `z = y + 10 − d` standing over the ceiling
+//! wherever `x + 2y ≥ 18 + 3d`, which `x ≥ 27` gives for `d ≤ 3`. The
+//! upright's flat takes, over the triangle `d²/2` of the plan past
+//! `x − y = 30 − d`, the matter between the ceiling and the top: the ceiling
+//! stands at `6 + (30 − u)/3` for `u = x − y`, `6 + 2d/9` on average over
+//! that triangle, so the flat takes `(d²/2)(4 − 2d/9)`. What both take lies
+//! over that same triangle, above the front flat's plane, which stands over
+//! the ceiling there: `∫ (d − y)` over it, `d³/3`, given back as #699 gives
+//! back a mitred corner. The body holds `8937 − 17d² + 4d³/9`: 8796 at 3, and
+//! 8804.8696 at 2.9, the volumes `main` measures in the order it lays. The
+//! two flats meet on the line `x = y + 27 = z + 20`, from the notch's corner
+//! (27, 0, 7) to (30, 3, 10) on the top's edge across the end. The upright's
+//! flat keeps the triangle under that line, its lower side on the ceiling,
+//! which crosses the flat's plane along z = 7; the front, the end and the top
+//! are cut back to the flats. The booleans give it as well, the slab beyond
+//! each flat's plane cut from the notched block. The notched block is its own
+//! mirror image across the vertical plane x + y = 30, through the upright
+//! and the notch's far corner, which swaps the front and the end: the top's
+//! edge across the end and the upright give the mirror body, of the same
+//! volume.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::{PI, SQRT_2};
@@ -4788,6 +4849,205 @@ fn a_chamfer_whose_corner_triangle_takes_whole_the_flat_of_an_upright_running_to
          taken whole, closed and uncrossed; not so:\n{}",
         not_as_held.join("\n")
     );
+}
+
+/// The top edge chamfered with the upright ending on the notch: the front's,
+/// or the edge across the end, its mirror image across the vertical plane
+/// x + y = [`LENGTH`], through the upright and the notch's far corner.
+#[derive(Clone, Copy)]
+enum TopEdge {
+    Front,
+    AcrossTheEnd,
+}
+
+impl TopEdge {
+    /// The edge, as the two faces it lies between, and what it is called.
+    fn edge(self) -> ([usize; 2], &'static str) {
+        match self {
+            TopEdge::Front => (TOP_FRONT, "the top's front edge"),
+            TopEdge::AcrossTheEnd => END_EDGE,
+        }
+    }
+
+    /// The point standing beside this edge where `point` stands beside the
+    /// front's: itself for the front, mirrored across x + y = [`LENGTH`] for
+    /// the edge across the end.
+    fn at(self, point: DVec3) -> DVec3 {
+        match self {
+            TopEdge::Front => point,
+            TopEdge::AcrossTheEnd => DVec3::new(LENGTH - point.y, LENGTH - point.x, point.z),
+        }
+    }
+
+    /// The way that points from this edge as `way` points from the front's.
+    fn way(self, way: DVec3) -> DVec3 {
+        self.at(way) - self.at(DVec3::ZERO)
+    }
+}
+
+/// What the block notched under its front upright keeps once a top edge
+/// beside the upright and the upright are chamfered at `d`, their flats
+/// mitred, as the module's documentation derives it.
+fn notched_and_mitred_keeps(d: f64) -> f64 {
+    8937.0 - 17.0 * d * d + 4.0 * d.powi(3) / 9.0
+}
+
+/// What the booleans leave of the block notched under its front upright once
+/// the slab beyond the plane of each flat the chamfer at `d` on `top_edge`
+/// and the upright lays is cut away.
+fn notched_and_mitred_by_booleans(part: &Body, top_edge: TopEdge, d: f64) -> f64 {
+    [
+        (DVec3::new(0.0, 0.0, HEIGHT - d), DVec3::new(0.0, -1.0, 1.0)),
+        (DVec3::new(LENGTH - d, 0.0, 0.0), DVec3::new(1.0, -1.0, 0.0)),
+    ]
+    .into_iter()
+    .fold(part.clone(), |left, (through, away)| {
+        left.difference(&beyond(
+            &left,
+            top_edge.at(through),
+            top_edge.way(away),
+            100.0,
+        ))
+        .expect("a flat's plane cuts the notched block")
+    })
+    .volume()
+}
+
+/// Holds that the chamfer on `top_edge` and the upright ending on the notch,
+/// at [`RADIUS`] and a tenth under, lays one body whichever is named first:
+/// in each order the value taken, the body exact, closed and uncrossed,
+/// holding what the arithmetic and the booleans give and its triangles
+/// enclosing that; at [`RADIUS`] each flat answering to its edge's rank, the
+/// upright's the triangle under the mitre and the top edge's the strip up to
+/// it; and the two orders' faces meeting alike, each flat read by its edge.
+fn mitred_on_the_notched_block_whichever_is_named_first(top_edge: TopEdge) {
+    let part = notched_under_its_front_upright();
+    let start = part.faces_end();
+    let listed = [
+        top_edge.edge(),
+        (FRONT_UPRIGHT, "the upright ending on the notch"),
+    ];
+    let named: Vec<EdgeName> = listed
+        .iter()
+        .map(|&([one, other], _)| edge_between(&part, one, other))
+        .collect();
+    let d = RADIUS;
+    let mitre_low = DVec3::new(LENGTH - d, 0.0, HEIGHT - d);
+    let mitre_high = DVec3::new(LENGTH, d, HEIGHT);
+    let flats = [
+        vec![
+            DVec3::new(0.0, 0.0, HEIGHT - d),
+            mitre_low,
+            mitre_high,
+            DVec3::new(0.0, d, HEIGHT),
+        ],
+        vec![mitre_low, DVec3::new(LENGTH, d, HEIGHT - d), mitre_high],
+    ]
+    .map(|corners| -> Vec<DVec3> { corners.into_iter().map(|at| top_edge.at(at)).collect() });
+
+    let mut not_so: Vec<String> = Vec::new();
+    for (value, measured, flats) in [
+        (RADIUS, 8796.0, Some(&flats)),
+        (RADIUS - 0.1, 8804.8696, None),
+    ] {
+        let promised = notched_and_mitred_keeps(value);
+        assert!(
+            (promised - measured).abs() <= AS_MEASURED,
+            "at {value}, the arithmetic gives {promised}, where main measures {measured}"
+        );
+        let by_booleans = notched_and_mitred_by_booleans(&part, top_edge, value);
+        assert!(
+            (by_booleans - promised).abs() <= EXACT * promised,
+            "at {value}, the slabs beyond the two flats' planes, cut from the notched block by \
+             the booleans, leave {by_booleans}, where arithmetic promises {promised}"
+        );
+        let mut laid: Vec<(Vec<usize>, Body)> = Vec::new();
+        for order in every_order(listed.len()) {
+            let names: Vec<EdgeName> = order.iter().map(|&edge| named[edge].clone()).collect();
+            let called: Vec<&str> = order.iter().map(|&edge| listed[edge].1).collect();
+            let what = format!("at {value}, the chamfer on {}", called.join(", then "));
+            let chamfered = match part.chamfer_edges(&names, value) {
+                Ok(chamfered) => chamfered,
+                Err(declined) => {
+                    not_so.push(format!("{what}: declined, {declined:?}"));
+                    continue;
+                }
+            };
+            let body = &chamfered.body;
+            let triangles = body.triangles();
+            if (chamfered.asked - value).abs() >= PLACE || (chamfered.taken - value).abs() >= PLACE
+            {
+                not_so.push(format!(
+                    "{what}: asked {} and took {}",
+                    chamfered.asked, chamfered.taken
+                ));
+            } else if !body.is_exact() {
+                not_so.push(format!("{what}: not computed by the exact kernel"));
+            } else if let Err(fault) = closed(&triangles) {
+                not_so.push(format!("{what}: not closed, {fault:?}"));
+            } else if let Err(fault) = uncrossed(&triangles) {
+                not_so.push(format!("{what}: crossed, {fault:?}"));
+            } else if (body.volume() - promised).abs() > EXACT * promised {
+                not_so.push(format!(
+                    "{what}: holds {}, where arithmetic promises {promised}",
+                    body.volume()
+                ));
+            } else if (enclosed(&triangles) - promised).abs() > EXACT * promised {
+                not_so.push(format!(
+                    "{what}: its triangles enclose {}, where arithmetic promises {promised}",
+                    enclosed(&triangles)
+                ));
+            }
+            if let Some(flats) = flats {
+                for (edge, corners) in flats.iter().enumerate() {
+                    let rank = ranks_of(start, &order, &[edge])[0];
+                    let drawn = body.plane_of(rank).map(|plane| plane.corners);
+                    if !drawn
+                        .as_ref()
+                        .is_some_and(|drawn| same_points(drawn, corners))
+                    {
+                        not_so.push(format!(
+                            "{what}: {}'s flat, face {rank}, has its corners at {drawn:?}, where \
+                             they are {corners:?}",
+                            listed[edge].1
+                        ));
+                    }
+                }
+            }
+            laid.push((order, chamfered.body));
+        }
+        if let [(one_order, one), (other_order, other)] = &laid[..] {
+            for otherwise in met_otherwise(start, other_order, other, one_order, one, &[]) {
+                not_so.push(format!(
+                    "at {value}, named in the order {other_order:?} against {one_order:?}: \
+                     {otherwise}"
+                ));
+            }
+        }
+    }
+    assert!(
+        not_so.is_empty(),
+        "on the block notched under its front upright, the chamfer on {} and the upright ending \
+         on the notch lays one body whichever is named first — at {RADIUS}, the value bounded a \
+         hair short by the notch's corner, as a tenth under: the value taken, exact, closed, \
+         uncrossed, holding what arithmetic and the booleans give, at {RADIUS} its flats mitred \
+         from the notch's corner to the top's corner over it, and both orders' faces meeting \
+         alike; not so:\n{}",
+        listed[0].1,
+        not_so.join("\n")
+    );
+}
+
+#[test]
+fn a_chamfer_on_the_top_s_front_edge_and_the_upright_ending_on_the_notch_lays_one_mitred_body_whichever_is_named_first()
+ {
+    mitred_on_the_notched_block_whichever_is_named_first(TopEdge::Front);
+}
+
+#[test]
+fn a_chamfer_on_the_top_s_edge_across_the_end_and_the_upright_ending_on_the_notch_lays_one_mitred_body_whichever_is_named_first()
+ {
+    mitred_on_the_notched_block_whichever_is_named_first(TopEdge::AcrossTheEnd);
 }
 
 #[cfg(feature = "campaigns")]
