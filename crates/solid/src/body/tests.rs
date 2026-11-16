@@ -436,6 +436,13 @@ fn built_and_drawn(body: &Body, kept: f64, curved: f64, what: &str) {
         "{what}: holds {}, where the arithmetic leaves {kept}",
         body.volume()
     );
+    drawn_within(body, kept, curved, what);
+}
+
+/// Holds that a body's triangles are closed, uncrossed and enclose `kept`
+/// within what the drawing promises over its curved faces, `curved` in all,
+/// at the reach of the body's own box.
+fn drawn_within(body: &Body, kept: f64, curved: f64, what: &str) {
     let triangles = body.triangles();
     assert_eq!(crate::soundness::closed(&triangles), Ok(()), "{what}");
     assert_eq!(crate::soundness::uncrossed(&triangles), Ok(()), "{what}");

@@ -16,7 +16,16 @@
 //!   declines — never a wrong volume (#945's note: a sphere face whose loop
 //!   no trace reads is taken as holding no pole, and its volume loses that
 //!   pole's cap) —
-//!   `the_side_a_cut_at_a_slant_through_one_pole_leaves_holding_the_other_holds_all_of_its_matter_at_any_tilt_about_either_axis`
+//!   `the_side_a_cut_at_a_slant_through_one_pole_leaves_holding_the_other_holds_all_of_its_matter_at_any_tilt_about_either_axis`,
+//!   `a_piece_of_sphere_laid_again_on_a_chart_whose_pole_its_loop_runs_through_is_declined_never_short_of_the_other_pole_s_cap`
+//!
+//! Reading a sphere about another axis is a step's own business: a step
+//! whose plane through a pole cuts nothing of the sphere leaves its chart as
+//! it was, for the steps after it that turn about that axis; the sphere as
+//! the second operand is read so as well as the first; and where no other
+//! axis lays every circle off its poles, or another surface of the part
+//! meets the sphere along circles its own axis decides, the step declines as
+//! it did before #938.
 
 use super::*;
 use crate::brep::Surface;
@@ -26,14 +35,21 @@ use crate::soundness::listed;
 /// `axis`, its sphere's chart laid about that axis, its poles 5 along it
 /// either way.
 fn ball_about(axis: DVec3) -> Body {
+    ball_of(&Body::default(), DVec3::ZERO, axis, 5.0)
+}
+
+/// A ball of `radius` about `center`, a tool of `part`: a half disc turned
+/// whole about the line through `center` along `axis`, its sphere's chart
+/// laid about that line.
+fn ball_of(part: &Body, center: DVec3, axis: DVec3, radius: f64) -> Body {
     let sampled: &'static [DVec2] = Box::leak(
         (0..=32)
-            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * 5.0)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * radius)
             .collect::<Vec<_>>()
             .into_boxed_slice(),
     );
     let half = Contour {
-        corners: vec![DVec2::new(0.0, -5.0), DVec2::new(0.0, 5.0)],
+        corners: vec![DVec2::new(0.0, -radius), DVec2::new(0.0, radius)],
         runs: vec![
             Run::Round {
                 center: DVec2::ZERO,
@@ -49,12 +65,11 @@ fn ball_about(axis: DVec3) -> Body {
         triangles: &[],
     };
     let frame = Frame {
-        origin: DVec3::ZERO,
+        origin: center,
         u: axis.any_orthonormal_vector(),
         v: axis,
     };
-    Body::default()
-        .tool_turned(&profile, frame, &about_v(&profile, TAU))
+    part.tool_turned(&profile, frame, &about_v(&profile, TAU))
         .expect("the exact kernel turns the ball")
 }
 
@@ -115,16 +130,22 @@ impl Side {
     }
 }
 
-/// Holds that a body cut from the ball by one plane is listed sound on its
-/// geometry, and is bounded by a disc on the plane and the piece of sphere
-/// round it, as a cut by a plane anywhere else leaves it.
-fn a_disc_and_a_piece_of_sphere(body: &Body, what: &str) {
-    let exact = body.brep().expect("the exact kernel computed the cut");
+/// Holds that a body is listed sound on its geometry.
+fn listed_sound(body: &Body, what: &str) {
+    let exact = body.brep().expect("the exact kernel computed the step");
     assert_eq!(
         listed(&exact.listing(), exact.scale().reach()),
         Ok(()),
         "{what}: listed sound"
     );
+}
+
+/// Holds that a body cut from the ball by one plane is listed sound on its
+/// geometry, and is bounded by a disc on the plane and the piece of sphere
+/// round it, as a cut by a plane anywhere else leaves it.
+fn a_disc_and_a_piece_of_sphere(body: &Body, what: &str) {
+    listed_sound(body, what);
+    let exact = body.brep().expect("the exact kernel computed the cut");
     let surfaces: Vec<&Surface> = exact
         .face_ids()
         .map(|face| exact.surface(exact.face(face).surface))
@@ -175,39 +196,52 @@ fn a_ball_turned_about_z_cut_at_a_slant_through_its_pole_at_minus_r_leaves_eithe
     either_side_of_each_cut_through(&ball_about(DVec3::Z), -DVec3::Z, "the ball about z");
 }
 
-/// How far off the pole, as a share of the cut's tolerance or outright, the
-/// planes a hair from it stand, either way along their normal: half the
-/// tolerance, a few, a hair ([`crate::brep::Scale::HAIR`]), and a millionth.
-fn hairs(eps: f64) -> [f64; 8] {
+/// How far from the closed form a cut whose circle passes a few tolerances
+/// to a millionth off a pole of the sphere's chart may hold, against a ball
+/// of radius 5: what the flux of a tilted trace loses as its circle closes on
+/// the pole, where `θ` swings round faster the nearer it passes (#947) —
+/// measured up to some 5.5e-7 on these cuts — until #958 brings it to the
+/// kernel's billionth of the volume. Within the tolerance of the pole the
+/// circle is through it, and the sphere read about the circle's axis; from a
+/// ten-thousandth off, the tilted trace holds the billionth.
+const NEAR_A_POLE: f64 = 1e-6;
+
+/// The planes a hair off the pole along their normal, leaning `tilt` from
+/// the axis, `eps` the cut's tolerance, each with the bar its volume is held
+/// to against the closed form at its offset: those whose circle passes half
+/// a tolerance from the pole, which is through it, and those a
+/// ten-thousandth off, to the billionth of what they hold; those a few
+/// tolerances, a hair ([`crate::brep::Scale::HAIR`]) and a millionth off, to
+/// [`NEAR_A_POLE`].
+fn hairs(eps: f64, tilt: f64) -> Vec<(f64, Option<f64>)> {
+    let within = eps * tilt.to_radians().sin() / 2.0;
     let hair = crate::brep::Scale::HAIR * eps;
-    [
-        eps / 2.0,
-        -eps / 2.0,
-        3.0 * eps,
-        -3.0 * eps,
-        hair,
-        -hair,
-        1e-6,
-        -1e-6,
-    ]
+    [within, 1e-4]
+        .into_iter()
+        .map(|off| (off, None))
+        .chain([3.0 * eps, hair, 1e-6].map(|off| (off, Some(NEAR_A_POLE))))
+        .flat_map(|(off, bar)| [(off, bar), (-off, bar)])
+        .collect()
 }
 
 /// The ball about z cut through either pole by a plane leaning 45° towards X,
-/// and 20° towards Y, then by the same plane moved a hair off the pole along
-/// its normal, either side kept. Each is built, a disc and a piece of sphere,
-/// drawn within the drawing's tolerance of what it holds; the pole's cut holds
-/// what the arithmetic says to the bit, and the hair's what it says at the
-/// plane's own offset within the disc's area times the cut's tolerance — the
-/// furthest two places the kernel reads as one may stand apart — and so no
-/// further from the pole's than that and the hair besides.
+/// 20° towards Y and 70° towards X, then by the same plane moved a hair off
+/// the pole along its normal, either side kept. Each is built, a disc and a
+/// piece of sphere, drawn within the drawing's tolerance of what the closed
+/// form says it holds. The pole's cut holds that to the bit, and each moved
+/// one within its bar of [`hairs`]: no further from the pole's than what the
+/// closed form moves between the two, and that bar besides.
 #[test]
 fn a_ball_cut_at_a_slant_a_hair_off_a_pole_of_its_chart_is_the_body_the_cut_through_the_pole_leaves_within_the_tolerance()
  {
     let ball = ball_about(DVec3::Z);
-    for (pole, tilt, towards) in [(DVec3::Z, 45.0, DVec3::X), (-DVec3::Z, 20.0, DVec3::Y)] {
+    for (pole, tilt, towards) in [
+        (DVec3::Z, 45.0, DVec3::X),
+        (-DVec3::Z, 20.0, DVec3::Y),
+        (DVec3::Z, 70.0, DVec3::X),
+    ] {
         let normal = leaning(pole, tilt, towards);
         let through = 5.0 * normal.dot(pole);
-        let disc = PI * (25.0 - through * through);
         for side in SIDES {
             let slab = side.slab(normal, through);
             let eps = slab.brep().expect("an exact slab").scale().eps();
@@ -226,30 +260,31 @@ fn a_ball_cut_at_a_slant_a_hair_off_a_pole_of_its_chart_is_the_body_the_cut_thro
                 &at_the_pole,
             );
             a_disc_and_a_piece_of_sphere(&cut, &at_the_pole);
-            for off in hairs(eps) {
+            for (off, bar) in hairs(eps, tilt) {
                 let offset = through + off;
-                let what = format!("{at_the_pole}, moved {off} along its normal");
+                let what = format!("{at_the_pole}, moved {off:e} along its normal");
+                let kept = side.holds(offset);
 
                 let moved = ball
                     .difference(&side.slab(normal, offset))
                     .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
 
-                built_and_drawn(&moved, moved.volume(), side.curved(offset), &what);
                 a_disc_and_a_piece_of_sphere(&moved, &what);
-                let kept = side.holds(offset);
-                let promised = disc * eps + 1e-9 * kept;
+                drawn_within(&moved, kept, side.curved(offset), &what);
+                let bar = bar.unwrap_or(1e-9 * kept);
                 assert!(
-                    (moved.volume() - kept).abs() <= promised,
-                    "{what}: holds {}, where the arithmetic leaves {kept}, off by more than the \
-                     {promised} the tolerance moves",
-                    moved.volume()
+                    moved.is_exact() && (moved.volume() - kept).abs() <= bar,
+                    "{what}: holds {}, where the arithmetic leaves {kept}, off by {:e}, more \
+                     than the {bar:e} it is held to",
+                    moved.volume(),
+                    moved.volume() - kept
                 );
                 let apart = (moved.volume() - cut.volume()).abs();
-                let within = disc * (off.abs() + eps) + 2e-9 * kept;
+                let within = (kept - side.holds(through)).abs() + bar + 1e-9 * side.holds(through);
                 assert!(
                     apart <= within,
-                    "{what}: holds {}, {apart} from the {} the cut through the pole holds, \
-                     more than the {within} the hair and the tolerance move",
+                    "{what}: holds {}, {apart:e} from the {} the cut through the pole holds, \
+                     more than the {within:e} the hair and the bar move",
                     moved.volume(),
                     cut.volume()
                 );
@@ -299,4 +334,252 @@ fn the_side_a_cut_at_a_slant_through_one_pole_leaves_holding_the_other_holds_all
             }
         }
     }
+}
+
+/// The wedge standing beside the top of the ball of radius 5 about z, a tool
+/// of `part`: a prism over the triangle (x, z) = (1, 4), (6, 6), (5, 0), from
+/// y = 4 to 6, its slanted face on x + z = 5 — the plane through the ball's
+/// top, (0, 0, 5), leaning 45° from z towards x — and its other two faces
+/// through no pole of the ball. From y = 4 on the ball reaches no further
+/// than 3 from its axis, and x + z = 5 stands 5/√2 from it: the wedge stands
+/// clear of the ball, inside its box. It holds 28.
+fn wedge_beside_the_top(part: &Body) -> Body {
+    part.tool_raised(
+        &exact(
+            Contour::straight(vec![
+                DVec2::new(4.0, 1.0),
+                DVec2::new(6.0, 6.0),
+                DVec2::new(0.0, 5.0),
+            ]),
+            vec![],
+        ),
+        Frame {
+            origin: DVec3::Y * 4.0,
+            u: DVec3::Z,
+            v: DVec3::X,
+        },
+        DVec3::Y * 2.0,
+    )
+    .expect("the wedge raises")
+}
+
+/// A bore of radius 1 along z through the origin, from z = −10 to 10, a tool
+/// of `part`.
+fn bore_along_z(part: &Body) -> Body {
+    part.tool_raised(
+        &exact(disc(DVec2::ZERO, 1.0), vec![]),
+        Frame {
+            origin: DVec3::Z * -10.0,
+            ..FLAT
+        },
+        DVec3::Z * 20.0,
+    )
+    .expect("the bore raises")
+}
+
+/// The axes of the spheres a body's faces lie on.
+fn sphere_axes(body: &Body) -> Vec<DVec3> {
+    let exact = body.brep().expect("the exact kernel computed the step");
+    exact
+        .face_ids()
+        .filter_map(|face| match exact.surface(exact.face(face).surface) {
+            Surface::Sphere(sphere) => Some(sphere.axis),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The ball about z, joined to a wedge beside its top whose slanted face lies
+/// on a plane through its pole and stands clear of it, then bored along z
+/// through its centre: three steps, each built, sound and holding the
+/// arithmetic's matter — the ball, the ball and the wedge, then less what a
+/// bore of radius 1 takes from a ball of 5, 4π/3 (5³ − 24^{3/2}). The wedge
+/// cuts nothing of the ball, and leaves the ball's sphere read about z, the
+/// axis the bore turns about.
+#[test]
+fn a_wedge_beside_a_ball_s_top_on_a_plane_through_its_pole_leaves_its_chart_as_it_was_and_a_bore_along_its_axis_still_goes_through()
+ {
+    let ball = ball_about(DVec3::Z);
+    built_and_drawn(&ball, BALL_OF_5, 100.0 * PI, "the ball about z");
+
+    let what = "the ball about z joined to a wedge beside its top";
+    let joined = ball
+        .union(&wedge_beside_the_top(&ball))
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    built_and_drawn(&joined, BALL_OF_5 + 28.0, 100.0 * PI, what);
+    listed_sound(&joined, what);
+    let axes = sphere_axes(&joined);
+    assert!(
+        matches!(axes[..], [axis] if axis.cross(DVec3::Z).length() <= 1e-12),
+        "{what}: its sphere read about z as the ball's was, where it is read about {axes:?}"
+    );
+
+    let what = "the ball about z joined to a wedge beside its top, then bored along z";
+    let bored = joined
+        .difference(&bore_along_z(&joined))
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    let root = 24f64.sqrt();
+    let taken = 4.0 * PI / 3.0 * (125.0 - 24.0 * root);
+    let curved = 100.0 * PI - 2.0 * TAU * 5.0 * (5.0 - root) + TAU * 2.0 * root;
+    built_and_drawn(&bored, BALL_OF_5 + 28.0 - taken, curved, what);
+    listed_sound(&bored, what);
+}
+
+/// The ball about z as the second operand of a slab at a slant whose face
+/// runs through a pole of its chart, from either pole at 20° and 70° towards
+/// X: joined to it, the slab and the ball less the cap past the face; cut
+/// from it, a pocket the shape of that cap in the slanted face. Each built,
+/// sound, drawn within the drawing's tolerance and holding the arithmetic's
+/// matter.
+#[test]
+fn a_ball_after_a_slab_at_a_slant_through_its_pole_is_joined_to_it_or_cut_from_it_as_a_pocket_in_its_face()
+ {
+    for pole in [DVec3::Z, -DVec3::Z] {
+        for tilt in [20.0, 70.0] {
+            let normal = leaning(pole, tilt, DVec3::X);
+            let offset = 5.0 * normal.dot(pole);
+            let slab = Side::Rest.slab(normal, offset);
+            let ball = ball_of(&slab, DVec3::ZERO, DVec3::Z, 5.0);
+            let cap = cap_of_5(5.0 - offset);
+            for (way, built, kept, curved) in [
+                (
+                    "joined to",
+                    slab.union(&ball),
+                    16_000.0 + BALL_OF_5 - cap,
+                    Side::Rest.curved(offset),
+                ),
+                (
+                    "cut from",
+                    slab.difference(&ball),
+                    16_000.0 - cap,
+                    Side::Cap.curved(offset),
+                ),
+            ] {
+                let what = format!(
+                    "the ball about z {way} a slab whose face runs through its pole at {}, \
+                     leaning {tilt}° towards X",
+                    pole * 5.0
+                );
+                let body =
+                    built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+                built_and_drawn(&body, kept, curved, &what);
+                listed_sound(&body, &what);
+            }
+        }
+    }
+}
+
+/// A ball turned about the normal of a plane through (0, 0, 5) leaning 45°
+/// from z towards X, cut by that plane, keeping the side holding (0, 0, −5):
+/// its circle a latitude of its chart. Its sphere is then read about z
+/// instead, as a ball turned about z is, and the body laid again on it. Its
+/// piece of sphere's loop runs through a pole of that chart, where no trace
+/// reads it, and the poles a face holds are read off its loops: the body is
+/// declined, never handed back holding no pole, short of the cap of the one
+/// at (0, 0, −5).
+#[test]
+fn a_piece_of_sphere_laid_again_on_a_chart_whose_pole_its_loop_runs_through_is_declined_never_short_of_the_other_pole_s_cap()
+ {
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let offset = 5.0 * normal.dot(DVec3::Z);
+    let cut = ball_about(normal)
+        .difference(&Side::Rest.slab(normal, offset))
+        .expect("a plane square to the ball's axis cuts it");
+    let about_z = *ball_about(DVec3::Z)
+        .brep()
+        .expect("an exact ball")
+        .surfaces
+        .iter()
+        .find(|surface| matches!(surface, Surface::Sphere(_)))
+        .expect("the ball lies on a sphere");
+    let mut read_about_z = cut.brep().expect("an exact cut").clone();
+    let spheres: Vec<usize> = (read_about_z.surfaces.iter().enumerate())
+        .filter(|(_, surface)| matches!(surface, Surface::Sphere(_)))
+        .map(|(rank, _)| rank)
+        .collect();
+    let [sphere] = spheres[..] else {
+        panic!("the cut lies on one sphere: {spheres:?}");
+    };
+    read_about_z.surfaces[sphere] = about_z;
+
+    let laid = read_about_z.rejoined_at(&[]);
+
+    assert!(
+        laid.is_err(),
+        "the cut laid again on its sphere read about z is handed back holding {}, where the \
+         side kept holds {}",
+        laid.map_or(f64::NAN, |body| body.volume()),
+        Side::Rest.holds(offset)
+    );
+}
+
+/// A ball about z joined to a coaxial knob of radius 1 at its pole at
+/// (0, 0, −5), then cut through its pole at (0, 0, 5) by a plane leaning 45°
+/// towards X, either side kept: the knob's sphere meets the ball's along
+/// circles its axis decides, the ball's sphere is not read about another
+/// axis, and the cut is declined as it was before #938.
+#[test]
+fn a_ball_with_a_coaxial_knob_cut_at_a_slant_through_its_other_pole_is_declined_as_unsupported() {
+    let ball = ball_about(DVec3::Z);
+    let knobbed = ball
+        .union(&ball_of(&ball, DVec3::Z * -5.0, DVec3::Z, 1.0))
+        .expect("a coaxial knob joins the ball");
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let offset = 5.0 * normal.dot(DVec3::Z);
+    for side in SIDES {
+        let declined = knobbed.difference(&side.slab(normal, offset)).err();
+
+        assert_eq!(
+            declined,
+            Some(Declined::Unsupported),
+            "a ball with a coaxial knob at one pole, cut at a slant through the other, keeping \
+             its {side:?}"
+        );
+    }
+}
+
+/// A prism along y over the triangle (x, z) = (2.5, 2.5), (20, 20),
+/// (20, −15), a tool of `part`: its faces on x + z = 5, through the ball's
+/// pole at (0, 0, 5) at 45° from z, and on x = z, through the centre and
+/// through the poles (±5/√2, 0, ±5/√2) of the chart read about the first
+/// plane's circle; its third face and its ends clear of the ball.
+fn prism_through_a_pole_and_the_poles_of_its_circle(part: &Body) -> Body {
+    part.tool_raised(
+        &exact(
+            Contour::straight(vec![
+                DVec2::new(2.5, 2.5),
+                DVec2::new(20.0, 20.0),
+                DVec2::new(-15.0, 20.0),
+            ]),
+            vec![],
+        ),
+        Frame {
+            origin: DVec3::Y * -20.0,
+            u: DVec3::Z,
+            v: DVec3::X,
+        },
+        DVec3::Y * 40.0,
+    )
+    .expect("the prism raises")
+}
+
+/// The ball about z cut by a prism one face of which runs through its pole
+/// at (0, 0, 5), at a slant, and another through the poles of the chart
+/// read about the first face's circle: no axis lays both circles off its
+/// poles, and the cut is declined as it was before #938.
+#[test]
+fn a_ball_cut_by_a_tool_whose_second_face_runs_through_the_poles_its_first_face_s_circle_lays_is_declined_as_unsupported()
+ {
+    let ball = ball_about(DVec3::Z);
+
+    let declined = ball
+        .difference(&prism_through_a_pole_and_the_poles_of_its_circle(&ball))
+        .err();
+
+    assert_eq!(
+        declined,
+        Some(Declined::Unsupported),
+        "a ball cut through its pole by one face of a prism, and through the poles that face's \
+         circle lays by another"
+    );
 }

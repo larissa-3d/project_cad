@@ -25,6 +25,7 @@ use super::assembly::assembled;
 use super::canonical::{
     Apart, Place, Planes, Pool, Registry, closed, edged, flush, squared, tangent,
 };
+use super::scale::Scale;
 use super::selection::selected;
 use super::topology::{Body, SurfaceId};
 use charted::charted;
@@ -72,6 +73,11 @@ impl Body {
     }
 }
 
+/// The boolean of two bodies, once the canonical decisions have moved the
+/// second. Declined `Unsupported`, it is asked once more of the operands
+/// with every sphere a plane of the other cuts through a pole of its chart
+/// read about that circle's axis (#938, `charted.rs`), so that a step that
+/// builds is never read so; where no sphere is read so, it stays declined.
 pub(super) fn combine(first: &Body, second: &Body, operation: Operation) -> Result<Body, Declined> {
     let scale = first.scale().joined(second.scale());
     let squared = squared(first, second, scale);
@@ -86,9 +92,28 @@ pub(super) fn combine(first: &Body, second: &Body, operation: Operation) -> Resu
     let second = edged.as_ref().unwrap_or(second);
     let slid = slid(first, second, scale);
     let second = slid.as_ref().unwrap_or(second);
-    let [first_charted, second_charted] = charted(first, second, scale);
-    let first = first_charted.as_ref().unwrap_or(first);
-    let second = second_charted.as_ref().unwrap_or(second);
+    match combined(first, second, scale, operation) {
+        Err(Declined::Unsupported) => {}
+        answered => return answered,
+    }
+    match charted(first, second, scale) {
+        [None, None] => Err(Declined::Unsupported),
+        [first_charted, second_charted] => combined(
+            first_charted.as_ref().unwrap_or(first),
+            second_charted.as_ref().unwrap_or(second),
+            scale,
+            operation,
+        ),
+    }
+}
+
+/// The boolean of the two operands as they are laid.
+fn combined(
+    first: &Body,
+    second: &Body,
+    scale: Scale,
+    operation: Operation,
+) -> Result<Body, Declined> {
     let operands = Operands::of(first, second, scale);
     let unstable = unstable(&operands);
     let mut arena = laid(&operands)?;

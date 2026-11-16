@@ -2,16 +2,19 @@
 //! was turned about, an artefact of how it was made: the sphere is round
 //! about every line through its centre. A plane of the other operand at a
 //! slant through a pole of that chart cuts it along a circle where `θ` has
-//! no value, which no trace reads; the sphere is read instead about the
-//! circle's own axis, where that circle is a latitude, before the boolean
-//! reads the operand, and the result carries it so.
+//! no value, which no trace reads where an arc of it is kept; a boolean so
+//! declined is asked again of the operands with the sphere read about the
+//! circle's own axis, where that circle is a latitude, and the result
+//! carries it so. Only a boolean declined is asked again: a plane through a
+//! pole whose arcs are all left out, a wedge beside a ball's top, declined
+//! nothing, and the ball keeps the axis a later bore along it turns about.
 //!
 //! The operand is laid again whole on the sphere so read, each face holding
 //! the poles of the new chart it holds. A sphere is read so only where every
 //! circle on its faces, and every circle a plane of the other operand cuts
 //! it along, stands clear of the new poles, and no surface but a plane, in
 //! either operand, meets it along curves its axis decides; anywhere else it
-//! is left as it is, and the step declines as it did.
+//! is left as it is, and the step stays declined.
 
 use crate::brep::assembly::tidied;
 use crate::brep::curve::{Circle, Curve};
@@ -98,7 +101,7 @@ fn about(
         .iter()
         .flat_map(|&face| body.face(face).loops.iter().flatten())
         .map(|coedge| *body.curve(body.edge(coedge.edge).curve));
-    let about = Sphere::through(sphere.middle(), through.axis, 0.0, sphere.radius);
+    let about = sphere.about(through.axis);
     circles(cut.chain(edged).collect())?
         .iter()
         .all(|circle| !about.through_a_pole(circle, eps))

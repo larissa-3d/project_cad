@@ -54,6 +54,13 @@ impl Sphere {
         }
     }
 
+    /// The same sphere read about the line through its centre along `axis`:
+    /// the points it holds unchanged, its chart's poles where that line
+    /// pierces it (#938).
+    pub fn about(&self, axis: DVec3) -> Sphere {
+        Sphere::through(self.middle(), axis, 0.0, self.radius)
+    }
+
     fn round(&self) -> Round {
         Round {
             origin: self.origin,

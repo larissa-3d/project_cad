@@ -569,7 +569,17 @@ Known and still open:
   tangent line, the same ellipse turned a hair beside a block's planes, two
   touches at the ends of a half-axis beside a third wall, a third surface
   through a node of a meet, and a round bar touching an elliptic hole at a
-  point, named in `exact-kernel-failures.md`, "#571: elliptic walls".
+  point, named in `exact-kernel-failures.md`, "#571: elliptic walls";
+- a sphere read about a circle's axis (#938) keeps that axis: a ball cut at
+  a slant through its pole and then given a knob or a bore coaxial with the
+  axis it was turned about is declined at that later step, the two spheres
+  of one centre and radius, read about two axes, not one surface, and no
+  axis laying both the slanted circle and the old one off its poles (#956);
+- a cut at a slant a few tolerances off a pole, past where the sphere is
+  read again, is built along the tilted circle, its volume off by up to a
+  few units of 1e-7 there, held to 1e-6, where elsewhere it is good to a
+  billionth of what it holds: the flux the angle about the axis sweeps
+  round the pole is large, and cancels (#958).
 
 ## Scope
 
@@ -847,16 +857,19 @@ The decisions, in the order taken, once per operation:
    where it does and back within half a turn of the centre's angle where it
    does not; a circle within `EPS` of a pole has no angle there and is not
    read so. The chart's axis is the one the sphere was turned about, an
-   artefact of how it was made: before the boolean reads its operands
-   (#938, `combine/charted.rs`), a sphere a plane of the other operand cuts
-   through a pole of its chart, their faces near enough to meet, is read
-   about that circle's own axis, where the circle is a latitude, and the
-   operand laid again on it, each face holding the poles of the new chart
-   it holds. It is read so only where every circle on its faces and every
-   circle the other operand's planes cut it along stands clear of the new
-   poles, and no surface but a plane, in either operand, meets it along
-   curves its axis decides — a coaxial knob keeps the axis, and the step
-   declines; the result carries the sphere so read. A face of a sphere or
+   artefact of how it was made: a boolean declined unsupported is asked
+   again (#938, `combine/charted.rs`) with a sphere a plane of the other
+   operand cuts through a pole of its chart, their faces near enough to
+   meet, read about that circle's own axis, where the circle is a latitude,
+   and the operand laid again on it, each face holding the poles of the new
+   chart it holds. A step that builds is never read so: a plane through a
+   pole whose arcs on the sphere are all left out — a wedge beside a ball's
+   top — leaves the ball's axis to the bore along it. It is read so only
+   where every circle on its faces and every circle the other operand's
+   planes cut it along stands clear of the new poles, and no surface but a
+   plane, in either operand, meets it along curves its axis decides — a
+   coaxial knob keeps the axis, and the step declines; the result carries
+   the sphere so read (#956). A face of a sphere or
    a torus whose loops cannot be traced is declined when the body is
    verified rather than read as holding no pole, which lost the cap of the
    pole it held from its volume (#945, `assembly.rs`). A sphere carries
@@ -1979,9 +1992,10 @@ covered once from each side.
    square to, or along, a wall's axis, or parallel to a plane, it leans a
    hair off (decision 11),
    moved onto a wall of its radius a hair off (decision 8), and onto a round
-   it stands a hair from touching, or a rim on it (decision 12); and once
-   either operand's sphere that a plane of the other cuts through a pole of
-   its chart is read about that circle's axis (#938, `combine/charted.rs`).
+   it stands a hair from touching, or a rim on it (decision 12). A boolean
+   declined unsupported is asked once more with either operand's sphere
+   that a plane of the other cuts through a pole of its chart read about
+   that circle's axis (#938, `combine/charted.rs`).
 2. **Relations** of pairs whose faces' boxes overlap (2, 3).
 3. **Corners.** Every edge curve of one operand against every surface of the
    other, and the special points of the relations (4, 5). A curve can only
