@@ -32,13 +32,13 @@ pub(super) fn meet_and_surface(meet: &Meet, surface: &Surface, scale: Scale) -> 
             Wall::Cylinder(own) => {
                 matches!(cylinders(own, cylinder, scale), Relation::Same { .. })
             }
-            Wall::Elliptic(_) | Wall::Cone(_) => false,
+            Wall::Elliptic(_) | Wall::Cone(_) | Wall::Sphere(_) => false,
         }),
         Surface::Elliptic(oval) => [meet.first, meet.second].iter().any(|own| match own {
             Wall::Elliptic(own) => {
                 matches!(walls(own, oval, scale), Relation::Same { .. })
             }
-            Wall::Cylinder(_) | Wall::Cone(_) => false,
+            Wall::Cylinder(_) | Wall::Cone(_) | Wall::Sphere(_) => false,
         }),
         Surface::Cone(cone) => [meet.first, meet.second]
             .iter()

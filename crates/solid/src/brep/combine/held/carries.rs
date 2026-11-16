@@ -21,8 +21,9 @@ use crate::brep::surface::Surface;
 /// block's top, and stands twenty tolerances off it at the cut's floor
 /// (5541239472). A cone carries its rulings and its circles about its axis,
 /// an elliptic wall its rulings and the curves it meets a wall square to it
-/// along, a sphere every circle lying on it whatever its axis (#805), a
-/// torus its latitude circles and its meridians. A conic is carried by a
+/// along, a sphere every circle lying on it whatever its axis and the curve
+/// a cylinder of another axis meets it along (#805), a torus its latitude
+/// circles and its meridians. A conic is carried by a
 /// surface decided one with its plane or with its wall, and by nothing else.
 pub(in crate::brep::combine) fn carries(surface: &Surface, curve: &Curve, scale: Scale) -> bool {
     let eps = scale.eps();
@@ -56,10 +57,14 @@ pub(in crate::brep::combine) fn carries(surface: &Surface, curve: &Curve, scale:
         }
         (Surface::Elliptic(_), Curve::Circle(_)) => false,
         (Surface::Sphere(sphere), Curve::Circle(circle)) => sphere.carries(circle, eps),
+        (Surface::Sphere(sphere), Curve::Meet(meet)) => {
+            meet.own(&Wall::Sphere(*sphere), eps).is_some()
+        }
         (Surface::Torus(torus), Curve::Circle(circle)) => {
             torus.holds(circle, eps) || torus.meridian(circle, eps)
         }
-        (Surface::Sphere(_) | Surface::Torus(_), Curve::Line(_) | Curve::Meet(_)) => false,
+        (Surface::Sphere(_), Curve::Line(_))
+        | (Surface::Torus(_), Curve::Line(_) | Curve::Meet(_)) => false,
         (_, Curve::Conic(conic)) => {
             let own = match (surface, conic.round) {
                 (Surface::Plane(_), _) => Surface::Plane(conic.plane),

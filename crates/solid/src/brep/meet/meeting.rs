@@ -113,7 +113,10 @@ pub(in crate::brep) fn moved_instead(
     other: &Wall,
     scale: Scale,
 ) -> Option<(usize, Wall)> {
-    if matches!(one, Wall::Cone(_)) || matches!(other, Wall::Cone(_)) {
+    if [one, other]
+        .iter()
+        .any(|wall| matches!(wall, Wall::Cone(_) | Wall::Sphere(_)))
+    {
         return None;
     }
     let (first, second, rank) = match ordered(one, other) {
@@ -138,7 +141,7 @@ pub(in crate::brep) fn moved_instead(
                     widened(&moved, pair.axes[1], kept)
                 })
             }
-            Wall::Cone(_) => *first,
+            Wall::Cone(_) | Wall::Sphere(_) => *first,
         },
     ))
 }
@@ -218,7 +221,7 @@ fn snapped(first: &Wall, second: &Wall, eps: f64) -> Wall {
                 widened(&moved, pair.axes[1], half)
             })
         }
-        (None, _) | (_, Wall::Cone(_)) => *second,
+        (None, _) | (_, Wall::Cone(_) | Wall::Sphere(_)) => *second,
     }
 }
 
@@ -263,12 +266,14 @@ fn widened(oval: &EllipticCylinder, along: DVec3, half: f64) -> EllipticCylinder
     EllipticCylinder::about(oval.origin, oval.axis, first, second)
 }
 
-/// Which of two walls goes first: two cylinders as they always have; with
-/// an elliptic wall among them, the larger by its radius or major
-/// half-axis, then by where it stands and which way it runs.
+/// Which of two walls goes first: two cylinders as they always have; a
+/// sphere second; with an elliptic wall among them, the larger by its radius
+/// or major half-axis, then by where it stands and which way it runs.
 fn ordered(one: &Wall, other: &Wall) -> Ordering {
     match (one, other) {
         (Wall::Cylinder(one), Wall::Cylinder(other)) => goes_first(one, other),
+        (_, Wall::Sphere(_)) => Ordering::Less,
+        (Wall::Sphere(_), _) => Ordering::Greater,
         _ => size(other)
             .total_cmp(&size(one))
             .then_with(|| lexicographic(one.origin(), other.origin()))
@@ -281,6 +286,7 @@ fn size(wall: &Wall) -> f64 {
         Wall::Cylinder(cylinder) => cylinder.radius,
         Wall::Elliptic(oval) => oval.major,
         Wall::Cone(cone) => cone.foot.y.abs(),
+        Wall::Sphere(sphere) => sphere.radius,
     }
 }
 

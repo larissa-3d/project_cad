@@ -145,7 +145,7 @@ impl Outline {
 /// its height over the centre runs as a constant and a cosine of its
 /// parameter, highest or lowest at the stretch's ends or at the cosine's
 /// crests.
-fn highest(sphere: &Sphere, circle: &Circle, from: f64, to: f64) -> f64 {
+pub(super) fn highest(sphere: &Sphere, circle: &Circle, from: f64, to: f64) -> f64 {
     let axis = sphere.axis;
     let over = (circle.center - sphere.middle()).dot(axis);
     let (along_u, along_v) = (circle.u.dot(axis), circle.v.dot(axis));

@@ -25,11 +25,15 @@
 //!   (a torus taking matter away, tangent to the shaft's wall)
 //! - a sphere or a torus against anything else is a broken step with its
 //!   reason —
-//!   `a_hole_drilled_off_axis_through_a_ball_is_a_broken_step_with_its_reason`
+//!   `a_hole_drilled_off_axis_through_a_ring_is_a_broken_step_with_its_reason`
 //!   (`Declined::Unsupported` read through `declined_because`, the part as
-//!   before the step, and still exact). A plane at a slant through a ball was
-//!   the second such step until #805 met the two along a circle, and is built
-//!   now — `a_plane_at_a_slant_through_a_ball_cuts_it_into_half_a_ball`
+//!   before the step, and still exact; a torus against a wall of another axis
+//!   is #805's third slice). A plane at a slant through a ball was the second
+//!   such step until #805 met the two along a circle, and is built now —
+//!   `a_plane_at_a_slant_through_a_ball_cuts_it_into_half_a_ball`; a hole
+//!   drilled off axis through a ball was the first until #805's second slice
+//!   met a cylinder of another axis with a sphere, and is built now —
+//!   `a_hole_drilled_off_axis_through_a_ball_holds_the_ball_less_what_the_bore_takes_inside_it`
 //! - every face keeps the number the flats give it today, so a drawing laid
 //!   on a face keeps it —
 //!   `a_ball_knob_and_a_rounded_shaft_number_their_faces_as_the_flats_do`
@@ -643,8 +647,83 @@ fn a_round_bottomed_groove_cut_into_a_shaft_holds_the_arithmetics_volume() {
     );
 }
 
+/// What two discs of radii `one` and `other` share, their centres `apart`.
+fn shared_by_two_discs(one: f64, other: f64, apart: f64) -> f64 {
+    if apart >= one + other {
+        return 0.0;
+    }
+    if apart <= (one - other).abs() {
+        return PI * one.min(other).powi(2);
+    }
+    [(one, other), (other, one)]
+        .map(|(near, far)| {
+            let angle = ((apart * apart + near * near - far * far) / (2.0 * apart * near))
+                .clamp(-1.0, 1.0)
+                .acos();
+            near * near * (angle - angle.sin() * angle.cos())
+        })
+        .iter()
+        .sum()
+}
+
+/// The matter a cylinder of `radius` whose axis passes `off` from the centre
+/// of a ball of radius `ball` holds inside the ball: over each plane square
+/// to the cylinder's axis, `t` from the centre's foot, what its section
+/// shares with the ball's, of radius √(ball² − t²), summed by Simpson's rule
+/// between the heights where the two sections start or stop crossing, each
+/// run laid along t = from + (to − from)(1 − cos πu)/2, under which the
+/// share's kinks there are smooth.
+fn bore_inside_a_ball(radius: f64, off: f64, ball: f64) -> f64 {
+    let shared = |t: f64| shared_by_two_discs((ball * ball - t * t).max(0.0).sqrt(), radius, off);
+    let mut heights: Vec<f64> = [off + radius, (off - radius).abs()]
+        .into_iter()
+        .filter(|&reach| reach < ball)
+        .map(|reach| (ball * ball - reach * reach).sqrt())
+        .chain([0.0, ball])
+        .collect();
+    heights.sort_by(f64::total_cmp);
+    let steps: u32 = 1 << 12;
+    let step = 1.0 / f64::from(steps);
+    let half: f64 = heights
+        .windows(2)
+        .map(|run| {
+            let (from, to) = (run[0], run[1]);
+            let at = |u: f64| {
+                let t = from + (to - from) * (1.0 - (PI * u).cos()) / 2.0;
+                shared(t) * (to - from) * PI * (PI * u).sin() / 2.0
+            };
+            let inner: f64 = (1..steps)
+                .map(|index| at(step * f64::from(index)) * if index % 2 == 1 { 4.0 } else { 2.0 })
+                .sum();
+            (at(0.0) + inner + at(1.0)) * step / 3.0
+        })
+        .sum();
+    2.0 * half
+}
+
+/// A bore of radius 1 drilled from y = −10 to y = 10 across the round turned
+/// before it, along its axis and `at` along the sketch's first direction
+/// from it.
+fn a_hole_drilled_along_the_axis_at(history: &mut History, at: f64) {
+    let hole = sketch_on(
+        history,
+        WorkPlane {
+            origin: DVec3::Y * -10.0,
+            ..WorkPlane::XZ
+        },
+    );
+    circle(history, hole, DVec2::new(at, 0.0), 1.0);
+    raise(
+        history,
+        hole,
+        DVec2::new(at, 0.0),
+        -20.0,
+        ExtrusionMode::Cut,
+    );
+}
+
 #[test]
-fn a_hole_drilled_off_axis_through_a_ball_is_a_broken_step_with_its_reason() {
+fn a_hole_drilled_off_axis_through_a_ball_holds_the_ball_less_what_the_bore_takes_inside_it() {
     let mut history = History::default();
     let sketch = sketch_on(&mut history, WorkPlane::XY);
     a_half_disc(&mut history, sketch, 5.0);
@@ -656,32 +735,40 @@ fn a_hole_drilled_off_axis_through_a_ball_is_a_broken_step_with_its_reason() {
         360.0,
         ExtrusionMode::Add,
     );
-    let hole = sketch_on(
-        &mut history,
-        WorkPlane {
-            origin: DVec3::Y * -10.0,
-            ..WorkPlane::XZ
-        },
+    a_hole_drilled_along_the_axis_at(&mut history, 2.0);
+
+    built_exactly(
+        &history,
+        500.0 * PI / 3.0 - bore_inside_a_ball(1.0, 2.0, 5.0),
+        "a ball of radius 5 bored right through by a hole of radius 1 two off its axis",
     );
-    circle(&mut history, hole, DVec2::new(2.0, 0.0), 1.0);
-    raise(
+}
+
+#[test]
+fn a_hole_drilled_off_axis_through_a_ring_is_a_broken_step_with_its_reason() {
+    let mut history = History::default();
+    let sketch = sketch_on(&mut history, WorkPlane::XY);
+    a_ring(&mut history, sketch, DVec2::new(6.0, 3.0), 2.0);
+    turn(
         &mut history,
-        hole,
-        DVec2::new(2.0, 0.0),
-        -20.0,
-        ExtrusionMode::Cut,
+        sketch,
+        DVec2::new(6.0, 3.0),
+        ABOUT_V,
+        360.0,
+        ExtrusionMode::Add,
     );
+    a_hole_drilled_along_the_axis_at(&mut history, 6.0);
 
     let part = applied_live(&history);
     assert_eq!(
         part.declined_because(last_step(&history)),
         Some(Declined::Unsupported),
-        "a bore two off the ball's axis crosses its surface where the kernel cannot follow",
+        "a bore through a ring's tube, off its axis, crosses the torus where the kernel cannot follow",
     );
     assert_near(
         part.body().volume(),
-        500.0 * PI / 3.0,
-        "the ball, as it stood before",
+        2.0 * PI * PI * 6.0 * 4.0,
+        "the ring, as it stood before",
     );
     assert!(part.body().is_exact(), "the part stays exact");
 }

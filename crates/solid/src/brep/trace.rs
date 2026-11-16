@@ -27,7 +27,8 @@ pub enum Trace {
     /// The curve two perpendicular cylinders meet along, seen on the first of
     /// them or on the second, between two of its parameters — or on a
     /// cylinder `beside` one of them, a hair off it, whose arc it was taken
-    /// for.
+    /// for; or the curve a cylinder meets a sphere along seen on the sphere
+    /// (#805).
     Graph {
         meet: Meet,
         on_first: bool,

@@ -231,7 +231,10 @@ fn whole_round(pole: &Pole, turns: f64, flipped: bool) -> Vec<Trace> {
 /// Whether a face bounded by `loops` holds a pole within it: not where a
 /// trace ends at the pole, which a corner holds already, and otherwise by
 /// parity along the meridian from the middle of a trace running round the
-/// axis, which keeps the face on its left seen from outside the matter: the
+/// axis — or, where every trace runs along the meridian at its middle, as a
+/// loop round a bore along the axis does at its middle (#805), from a quarter
+/// of the way along one, then three quarters — which keeps the face on its
+/// left seen from outside the matter: the
 /// face lies above it where it runs forwards and its surface's normal points
 /// out, below it on a `flipped` face, and the pole is inside where the other
 /// traces are crossed an even number of times on the way. A face with no
@@ -244,12 +247,13 @@ pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -
     {
         return false;
     }
-    let Some([place, pace, _]) = loops
-        .iter()
-        .flatten()
-        .map(|trace| trace.at(0.5))
-        .find(|[_, pace, _]| pace.x.abs() > ACROSS * pace.length())
-    else {
+    let Some([place, pace, _]) = [0.5, 0.25, 0.75].into_iter().find_map(|along| {
+        loops
+            .iter()
+            .flatten()
+            .map(|trace| trace.at(along))
+            .find(|[_, pace, _]| pace.x.abs() > ACROSS * pace.length())
+    }) else {
         return loops.is_empty();
     };
     let tiny = pole.room;

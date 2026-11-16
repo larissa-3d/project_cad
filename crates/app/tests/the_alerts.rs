@@ -546,7 +546,7 @@ fn show_on_a_volume_s_alert_selects_its_row_and_leaves_the_list_open() {
     for (test, laid, volume, alert) in [
         (
             "show_on_a_volume_not_built",
-            a_ball_under_a_slanted_circle_raised as fn(&mut PartDocument),
+            a_ring_under_a_slanted_circle_raised as fn(&mut PartDocument),
             "Extrusion 2",
             "Extrusion 2 · non construite",
         ),
@@ -593,9 +593,9 @@ fn show_on_a_volume_s_alert_selects_its_row_and_leaves_the_list_open() {
 #[test]
 fn modify_on_an_extrusion_s_alert_reopens_it_with_its_values() {
     let test = "modify_on_an_extrusion_s_alert_reopens_it_with_its_values";
-    let mut app = a_part_opened_from(test, a_ball_under_a_slanted_circle_raised);
+    let mut app = a_part_opened_from(test, a_ring_under_a_slanted_circle_raised);
     let mut as_written = PartDocument::new("Platine", chrono::Utc::now());
-    a_ball_under_a_slanted_circle_raised(&mut as_written);
+    a_ring_under_a_slanted_circle_raised(&mut as_written);
     let steps = as_written.history.steps().len();
     let raised = as_written
         .history
@@ -603,7 +603,7 @@ fn modify_on_an_extrusion_s_alert_reopens_it_with_its_values() {
         .expect("the circle is raised");
     assert!(
         the_button_reading(&app, "1 alerte").is_some(),
-        "the ball under the slanted circle does not open on one alert: {:?}",
+        "the ring under the slanted circle does not open on one alert: {:?}",
         the_title_bar(&app),
     );
 
@@ -680,7 +680,7 @@ fn modify_on_an_extrusion_s_alert_reopens_it_with_its_values() {
 fn an_alert_stays_while_its_problem_holds_and_goes_with_it() {
     let mut app = a_part_opened_from(
         "an_alert_stays_while_its_problem_holds",
-        a_ball_under_a_slanted_circle_raised,
+        a_ring_under_a_slanted_circle_raised,
     );
     let mut wrong = Vec::new();
     wrong.extend(alerted_as_wanted(&app, "opened", true));
@@ -732,7 +732,7 @@ fn an_alert_stays_while_its_problem_holds_and_goes_with_it() {
 fn an_extrusion_that_changes_nothing_still_says_so_in_the_pill() {
     let mut app = a_part_opened_from(
         "an_extrusion_that_changes_nothing_still_says_so",
-        a_ball_under_a_slanted_circle_raised,
+        a_ring_under_a_slanted_circle_raised,
     );
 
     reopen_the_circle(&mut app);
@@ -752,7 +752,7 @@ fn an_extrusion_that_changes_nothing_still_says_so_in_the_pill() {
         .collect();
     assert!(
         said.iter().any(|at| bar.y_range().contains(at.center().y)),
-        "the circle turned into a cut up and away from the ball, applied, does not say « \
+        "the circle turned into a cut up and away from the ring, applied, does not say « \
          {NOTHING_REMOVED} … » on the title bar's row, at {bar:?}; it is said at {said:?}, the \
          screen saying {:?}",
         driver::said(&app),
@@ -765,7 +765,7 @@ fn show_with_the_part_panel_closed_opens_it_on_the_row_selected() {
     let sketch = a_part_with_two_alerts("show_with_the_part_panel_closed_on_a_sketch");
     let volume = a_part_opened_from(
         "show_with_the_part_panel_closed_on_a_volume",
-        a_ball_under_a_slanted_circle_raised,
+        a_ring_under_a_slanted_circle_raised,
     );
     for (mut app, count, alert, row) in [
         (sketch, "2 alertes", SKETCH_OFF_ITS_FACE, "Esquisse 2"),
@@ -819,7 +819,7 @@ const DECLINED: &str = "Le noyau exact ne sait pas encore construire";
 fn the_panel_reopened_on_a_step_closes_when_the_history_moves() {
     let mut app = a_part_opened_from(
         "the_panel_reopened_on_a_step_closes_when_the_history_moves",
-        a_ball_under_a_slanted_circle_raised,
+        a_ring_under_a_slanted_circle_raised,
     );
     driver::open_the_history(&mut app);
     reopen_the_circle(&mut app);
@@ -877,7 +877,7 @@ fn the_panel_reopened_on_a_step_closes_when_the_history_moves() {
 const NOT_BUILT: &str = "Extrusion 2 · non construite";
 
 /// Where the slanted circle is raised in the history of
-/// `a_ball_under_a_slanted_circle_raised`.
+/// `a_ring_under_a_slanted_circle_raised`.
 const THE_SLANTED_CIRCLE: usize = 6;
 
 /// « Modifier » on the slanted circle's alert, the list opened for it.
@@ -929,11 +929,14 @@ fn a_part_opened_from(test: &str, laid: fn(&mut PartDocument)) -> driver::App {
     app
 }
 
-/// A ball of radius 4 about (5, 10, 0), turned whole from a half disc, then a
-/// circle of radius 2 on a plane tilted 30° about X, through (5, 10, 6),
-/// raised 10 down across the ball's sphere off its centre: the kernel
-/// declines it, and the circle's step is « Extrusion 2 · non construite ».
-fn a_ball_under_a_slanted_circle_raised(document: &mut PartDocument) {
+/// A ring of tube radius 1.5 about the circle of radius 3 about the upright
+/// line through (5, 10, 0), turned whole from two half circles, then a circle
+/// of radius 2 on a plane tilted 30° about X, through (5, 10, 6), raised 10
+/// down across the ring's tube off its axis: the kernel declines it, a torus
+/// against a wall of another axis being #805's third slice, and the circle's
+/// step is « Extrusion 2 · non construite ». A ball stood under the circle
+/// until #805's second slice met the two.
+fn a_ring_under_a_slanted_circle_raised(document: &mut PartDocument) {
     document.apply(Operation::CreateSketch {
         plane: WorkPlane {
             origin: DVec3::new(5.0, 10.0, 0.0),
@@ -945,20 +948,21 @@ fn a_ball_under_a_slanted_circle_raised(document: &mut PartDocument) {
     let first = document.sketches()[0].points().len();
     document.apply(Operation::AddArc {
         sketch: 0,
-        center: PointRef::New(DVec2::ZERO),
-        start: PointRef::New(DVec2::new(0.0, -4.0)),
-        end: PointRef::New(DVec2::new(0.0, 4.0)),
+        center: PointRef::New(DVec2::new(3.0, 0.0)),
+        start: PointRef::New(DVec2::new(3.0, 1.5)),
+        end: PointRef::New(DVec2::new(3.0, -1.5)),
         construction: false,
     });
-    document.apply(Operation::AddSegment {
+    document.apply(Operation::AddArc {
         sketch: 0,
+        center: PointRef::New(DVec2::new(3.0, 0.0)),
         start: PointRef::Existing(PointId(first + 2)),
         end: PointRef::Existing(PointId(first + 1)),
         construction: false,
     });
     document.apply(Operation::Revolve {
         sketch: 0,
-        areas: document.areas_at(0, &[DVec2::new(1.0, 0.0)]),
+        areas: document.areas_at(0, &[DVec2::new(3.0, 0.0)]),
         axis: RevolutionAxis::Sketch(SketchAxis::V),
         angle: 360.0.into(),
         mode: ExtrusionMode::Add,

@@ -51,8 +51,9 @@ pub(super) fn circle(
 /// The wall whose section a plane is read through when it carries a stretch
 /// of the curve two walls meet along: the first wall, for two cylinders, as
 /// it always was; with an elliptic wall among them, the one square to the
-/// plane, whose section it cuts.
-pub(super) fn round(meet: &Meet, plane: &Plane) -> Round {
+/// plane, whose section it cuts. None for a sphere, which is no wall's
+/// section.
+pub(super) fn round(meet: &Meet, plane: &Plane) -> Option<Round> {
     let elliptic =
         matches!(meet.first, Wall::Elliptic(_)) || matches!(meet.second, Wall::Elliptic(_));
     let wall = if elliptic && parallel(meet.second.axis(), plane.normal) {
@@ -61,8 +62,9 @@ pub(super) fn round(meet: &Meet, plane: &Plane) -> Round {
         meet.first
     };
     match wall {
-        Wall::Cylinder(cylinder) => Round::Cylinder(cylinder),
-        Wall::Elliptic(oval) => Round::Elliptic(oval),
-        Wall::Cone(cone) => Round::Cone(cone),
+        Wall::Cylinder(cylinder) => Some(Round::Cylinder(cylinder)),
+        Wall::Elliptic(oval) => Some(Round::Elliptic(oval)),
+        Wall::Cone(cone) => Some(Round::Cone(cone)),
+        Wall::Sphere(_) => None,
     }
 }

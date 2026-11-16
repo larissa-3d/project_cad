@@ -40,6 +40,7 @@ impl Quadric {
                 halves: [(cone.u, 1.0), (cone.v, 1.0)],
                 cone: Some(*cone),
             },
+            Wall::Sphere(_) => unreachable!("a cone's rulings are never read against a sphere"),
         }
     }
 

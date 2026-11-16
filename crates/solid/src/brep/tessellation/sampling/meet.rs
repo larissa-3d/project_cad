@@ -263,12 +263,13 @@ fn alone(
                 .collect()
         }
         Wall::Cone(cone) => grid(&cone).map_or_else(Vec::new, |grid| grid.vertex_angles().to_vec()),
+        Wall::Sphere(_) => Vec::new(),
     });
     let planes = carried.map(|wall| match wall {
         Wall::Cylinder(cylinder) => {
             touching_planes(body, cylinder.origin, cylinder.axis, cylinder.radius)
         }
-        Wall::Elliptic(_) | Wall::Cone(_) => Vec::new(),
+        Wall::Elliptic(_) | Wall::Cone(_) | Wall::Sphere(_) => Vec::new(),
     });
     let grazed = grazing_ends(
         body,
@@ -289,7 +290,7 @@ fn alone(
                                 on_a_plane(plane, cylinder.origin, cylinder.axis, point, eps)
                             })
                     }
-                    Wall::Elliptic(_) | Wall::Cone(_) => true,
+                    Wall::Elliptic(_) | Wall::Cone(_) | Wall::Sphere(_) => true,
                 })
     };
     on_meet_by(
@@ -319,25 +320,28 @@ fn on_ray(wall: &Wall, angle: f64, end: DVec3, eps: f64) -> bool {
             let own = oval.parameters(end);
             [oval.point(DVec2::new(angle, own.y)), oval.point(own)]
         }
-        Wall::Cone(_) => return false,
+        Wall::Cone(_) | Wall::Sphere(_) => return false,
     };
     at.distance(there) <= eps
 }
 
-/// The angle round `wall` of the ray through `point`: none on a cone.
+/// The angle round `wall` of the ray through `point`: none on a cone or a
+/// sphere.
 fn angle(wall: &Wall, point: DVec3) -> Option<f64> {
     match wall {
         Wall::Cylinder(cylinder) => Some(cylinder.parameters(point).x),
         Wall::Elliptic(oval) => Some(oval.parameters(point).x),
-        Wall::Cone(_) => None,
+        Wall::Cone(_) | Wall::Sphere(_) => None,
     }
 }
 
-/// What a wall is divided as: a cylinder its radius, an elliptic wall the
-/// circle of its major half-axis, a cone the widest the curve reaches on it.
+/// What a wall is divided as: a cylinder or a sphere its radius, an
+/// elliptic wall the circle of its major half-axis, a cone the widest the
+/// curve reaches on it.
 pub(super) fn size(wall: &Wall, meet: &Meet) -> f64 {
     match wall {
         Wall::Cylinder(cylinder) => cylinder.radius,
+        Wall::Sphere(sphere) => sphere.radius,
         Wall::Elliptic(oval) => oval.major,
         Wall::Cone(cone) => (0..64)
             .map(|step| cone.off_axis(meet.point(TAU * step as f64 / 64.0)))
@@ -365,7 +369,7 @@ fn grazing_ends<'a>(
             let shortest = match wall {
                 Wall::Cylinder(cylinder) => cylinder.radius,
                 Wall::Elliptic(oval) => oval.minor,
-                Wall::Cone(_) => size,
+                Wall::Cone(_) | Wall::Sphere(_) => size,
             };
             TAU * shortest / steps as f64
         })

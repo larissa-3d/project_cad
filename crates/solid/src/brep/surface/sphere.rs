@@ -9,7 +9,9 @@
 //! meets the very circle a cylinder or a cone of the axis has there. A
 //! surface of another axis through its centre is exact mathematics: the
 //! circle a plane at a slant cuts it along is read in this chart as `seen.rs`
-//! reads it (#805), and a wall or a round of another axis is declined.
+//! reads it (#805), a cylinder of another axis meets it along the loops of
+//! `meet/pierced.rs` (#805), and a cone or a round of another axis is
+//! declined.
 
 mod seen;
 

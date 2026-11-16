@@ -8,6 +8,7 @@ use super::super::{Relation, relation};
 use super::cone::line_and_cone;
 use super::cut::Cut;
 use super::elliptic::line_and_elliptic;
+use super::round::line_and_sphere;
 use super::{Solved, Touches, line_and_cylinder};
 use crate::brep::curve::{Curve, Line, Meet, Wall};
 use crate::brep::scale::Scale;
@@ -38,7 +39,7 @@ pub(super) fn through_lines(
         })?;
     let cut = match (surface, &own) {
         (Surface::Plane(plane), Wall::Cylinder(cylinder)) => Some(Cut { cylinder, plane }),
-        (Surface::Plane(_), Wall::Elliptic(_) | Wall::Cone(_))
+        (Surface::Plane(_), Wall::Elliptic(_) | Wall::Cone(_) | Wall::Sphere(_))
         | (
             Surface::Cylinder(_)
             | Surface::Cone(_)
@@ -56,6 +57,7 @@ pub(super) fn through_lines(
             Wall::Cylinder(other) => line_and_cylinder(&line, &other, scale, touching, cut),
             Wall::Elliptic(other) => line_and_elliptic(&line, &other, scale, touching),
             Wall::Cone(other) => line_and_cone(&line, &other, scale, touching),
+            Wall::Sphere(other) => line_and_sphere(&line, &other, scale, touching),
         };
         let Solved::At(crossed) = crossed else {
             continue;
@@ -88,5 +90,6 @@ fn relation_with(own: &Wall, surface: &Surface, scale: Scale) -> Relation {
             Relation::Unsupported
         }
         (Wall::Cone(own), _) => relation(&Surface::Cone(*own), surface, scale),
+        (Wall::Sphere(own), _) => relation(&Surface::Sphere(*own), surface, scale),
     }
 }

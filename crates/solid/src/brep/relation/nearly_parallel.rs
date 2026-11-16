@@ -84,6 +84,7 @@ pub(in crate::brep) fn too_near_to_build(
         Wall::Cylinder(cylinder) => cylinder.radius,
         Wall::Elliptic(oval) => oval.support(way),
         Wall::Cone(_) => 0.0,
+        Wall::Sphere(sphere) => sphere.radius,
     };
     let between = second.origin() - first.origin();
     let rate = along / along.dot(axis) - axis;
@@ -185,6 +186,7 @@ pub(in crate::brep) fn grazing(
         Wall::Cylinder(cylinder) => cylinder.radius,
         Wall::Elliptic(oval) => oval.major,
         Wall::Cone(cone) => cone.off_axis(point),
+        Wall::Sphere(sphere) => sphere.radius,
     };
     nearest_approaches(&cone, &wall)
         .into_iter()
@@ -228,6 +230,7 @@ fn closer_than_a_sag(
                     Wall::Cylinder(cylinder) => cylinder.radius,
                     Wall::Elliptic(oval) => oval.major,
                     Wall::Cone(cone) => cone.radius_at(along_the_ruling(cone, height)).max(0.0),
+                    Wall::Sphere(sphere) => sphere.radius,
                 };
                 let steps = divisions_in(size(from).max(size(to)), tolerance, scale.reach());
                 (0..HEIGHTS).any(|rank| {
@@ -241,6 +244,7 @@ fn closer_than_a_sag(
                             Wall::Cone(cone) => {
                                 cone.point(DVec2::new(angle, along_the_ruling(cone, height)))
                             }
+                            Wall::Sphere(_) => return true,
                         };
                         gap(other, point) <= sag
                     };
@@ -273,6 +277,7 @@ fn gap(wall: &Wall, point: DVec3) -> f64 {
     match wall {
         Wall::Cylinder(cylinder) => cylinder.distance(point).abs(),
         Wall::Cone(cone) => cone.distance(point).abs(),
+        Wall::Sphere(sphere) => sphere.distance(point).abs(),
         Wall::Elliptic(oval) => {
             let from = point - oval.origin;
             let [x, y] = [from.dot(oval.u), from.dot(oval.v)];

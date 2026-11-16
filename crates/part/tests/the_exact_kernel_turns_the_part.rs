@@ -85,10 +85,13 @@
 //!   a band of a torus since #576 —
 //!   `a_part_turned_from_an_arc_stays_exact_from_that_step_on`
 //! - a revolution the exact kernel declines is a broken step, with its reason kept —
-//!   `a_turn_crossing_a_raised_cylinder_off_its_sphere_s_centre_is_a_broken_step_with_its_reason`
+//!   `a_bowed_turn_crossing_an_elliptic_shaft_is_a_broken_step_with_its_reason`
 //!   (`declined_because(step) == Some(Declined::Unsupported)`, volume unchanged;
 //!   the turn crossing the cylinder at a skew angle is built since #577,
-//!   `a_turn_crossing_a_raised_cylinder_at_a_skew_angle_is_built`),
+//!   `a_turn_crossing_a_raised_cylinder_at_a_skew_angle_is_built`, and the bowed
+//!   turn whose sphere crosses the cylinder off its centre since #805's second
+//!   slice, `a_turn_crossing_a_raised_cylinder_off_its_sphere_s_centre_is_built`,
+//!   which leaves the shaft elliptic to keep the step declined),
 //!   `a_step_after_a_declined_turn_numbers_its_faces_as_if_it_had_stood`; a part opened
 //!   on its cache keeps it, held beside the cache by
 //!   `a_declined_step_keeps_its_reason_once_the_part_opens_on_its_cache`
@@ -815,8 +818,39 @@ fn a_turn_crossing_a_raised_cylinder_at_a_skew_angle_is_built() {
 /// The cylinder of `a_turn_at_thirty_degrees_beside_a_cylinder_at`, then
 /// the same turn, its run nearest the axis bowed along an arc whose centre
 /// stands on the axis: turned, a sphere, which crosses the raised cylinder
-/// off its centre where the exact kernel cannot follow.
+/// off its centre along a loop (#805).
 fn a_bowed_turn_at_thirty_degrees_beside_a_cylinder_at(at: f64) -> History {
+    a_bowed_turn_at_thirty_degrees_beside(at, |history| {
+        circle(history, 0, DVec2::new(at, 0.0), 2.0);
+    })
+}
+
+/// The same turn beside an elliptic shaft raised as the cylinder is, reaching
+/// 2 along X and 1.5 along Z: the turn's sphere crosses an elliptic wall,
+/// which the exact kernel cannot follow.
+fn a_bowed_turn_at_thirty_degrees_beside_an_elliptic_shaft_at(at: f64) -> History {
+    a_bowed_turn_at_thirty_degrees_beside(at, |history| {
+        let center = DVec2::new(at, 0.0);
+        history.push(Operation::AddEllipse {
+            sketch: 0,
+            center: PointRef::New(center),
+            first: [
+                PointRef::New(center - DVec2::X * 2.0),
+                PointRef::New(center + DVec2::X * 2.0),
+            ],
+            second: [
+                PointRef::New(center - DVec2::Y * 1.5),
+                PointRef::New(center + DVec2::Y * 1.5),
+            ],
+            construction: false,
+            drawn: None,
+        });
+    })
+}
+
+/// The bowed turn beside the shaft `outline` draws about `(at, 0)` on XZ and
+/// that is raised 20 along Y from y = 10.
+fn a_bowed_turn_at_thirty_degrees_beside(at: f64, outline: impl FnOnce(&mut History)) -> History {
     let mut history = History::default();
     sketch_on(
         &mut history,
@@ -825,7 +859,7 @@ fn a_bowed_turn_at_thirty_degrees_beside_a_cylinder_at(at: f64) -> History {
             ..WorkPlane::XZ
         },
     );
-    circle(&mut history, 0, DVec2::new(at, 0.0), 2.0);
+    outline(&mut history);
     raise(
         &mut history,
         0,
@@ -878,21 +912,82 @@ fn a_bowed_turn_at_thirty_degrees_beside_a_cylinder_at(at: f64) -> History {
     history
 }
 
+/// What the bowed turn of `a_bowed_turn_at_thirty_degrees_beside_a_cylinder_at(0)`
+/// shares with the cylinder, Ø4 about Y from y = −10 to 10: over the
+/// cylinder's section, the stretch along Y of each line square to XZ that
+/// stands between the turn's two end planes, h = 1 and h = 6 along its axis
+/// at 30° in XY, inside its outer wall, s = 3, and outside its sphere, of
+/// radius √7.25 about h = 3.5, summed in polar coordinates by the midpoint
+/// rule. Where a line grazes the sphere its stretch vanishes as a square
+/// root, which leaves the rule within a ten-millionth of its limit at this
+/// many rings, not to the bit: on the turn whose run is straight, s = 1, the
+/// same rule meets the kernel's volume within a billionth.
+fn the_bowed_turn_inside_the_cylinder() -> f64 {
+    let (sin, cos) = (PI / 6.0).sin_cos();
+    let stretch = |x: f64, z: f64| {
+        let wide = (9.0 - z * z).sqrt();
+        let from = ((1.0 - x * cos) / sin).max((x * sin - wide) / cos);
+        let to = ((6.0 - x * cos) / sin).min((x * sin + wide) / cos);
+        let inside = 7.25 - z * z - (x - 3.5 * cos).powi(2);
+        let hollowed = if inside > 0.0 {
+            let half = inside.sqrt();
+            (to.min(3.5 * sin + half) - from.max(3.5 * sin - half)).max(0.0)
+        } else {
+            0.0
+        };
+        (to - from).max(0.0) - hollowed
+    };
+    let rings: u32 = 2000;
+    let mut sum = 0.0;
+    for ring in 0..rings {
+        let r = 2.0 * (f64::from(ring) + 0.5) / f64::from(rings);
+        for turn in 0..rings {
+            let angle = TAU * (f64::from(turn) + 0.5) / f64::from(rings);
+            sum += stretch(r * angle.cos(), r * angle.sin()) * r;
+        }
+    }
+    sum * (2.0 / f64::from(rings)) * (TAU / f64::from(rings))
+}
+
+/// The cylinder, 80π, joined to the bowed turn, which holds by Pappus
+/// π ∫ (9 − 7.25 + (h − 3.5)²) dh from h = 1 to 6, 115π/6, less what the two
+/// share, within what the quadrature of that share promises.
 #[test]
-fn a_turn_crossing_a_raised_cylinder_off_its_sphere_s_centre_is_a_broken_step_with_its_reason() {
+fn a_turn_crossing_a_raised_cylinder_off_its_sphere_s_centre_is_built() {
     let history = a_bowed_turn_at_thirty_degrees_beside_a_cylinder_at(0.0);
 
     let part = applied_live(&history);
 
     assert_eq!(
         part.declined_because(last_step(&history)),
+        None,
+        "the turn's sphere crosses the raised cylinder off its centre, met along a loop since #805",
+    );
+    assert!(part.body().is_exact(), "the part stays exact");
+    assert_eq!(closed(&part.body().triangles()), Ok(()));
+    let arithmetic = 80.0 * PI + 115.0 * PI / 6.0 - the_bowed_turn_inside_the_cylinder();
+    let volume = part.body().volume();
+    assert!(
+        (volume - arithmetic).abs() <= 1e-6 * arithmetic,
+        "the cylinder and the bowed turn sharing some of it: {volume} where the arithmetic gives {arithmetic}",
+    );
+}
+
+#[test]
+fn a_bowed_turn_crossing_an_elliptic_shaft_is_a_broken_step_with_its_reason() {
+    let history = a_bowed_turn_at_thirty_degrees_beside_an_elliptic_shaft_at(0.0);
+
+    let part = applied_live(&history);
+
+    assert_eq!(
+        part.declined_because(last_step(&history)),
         Some(Declined::Unsupported),
-        "the turn's sphere crosses the raised cylinder off its centre",
+        "the turn's sphere crosses the elliptic shaft",
     );
     assert_near(
         part.body().volume(),
-        PI * 4.0 * 20.0,
-        "the cylinder, as it stood before",
+        PI * 2.0 * 1.5 * 20.0,
+        "the elliptic shaft, as it stood before",
     );
     assert!(part.body().is_exact(), "the part stays exact");
 }
@@ -900,7 +995,7 @@ fn a_turn_crossing_a_raised_cylinder_off_its_sphere_s_centre_is_a_broken_step_wi
 #[test]
 fn a_step_after_a_declined_turn_numbers_its_faces_as_if_it_had_stood() {
     let with_a_plate_after = |at: f64| {
-        let mut history = a_bowed_turn_at_thirty_degrees_beside_a_cylinder_at(at);
+        let mut history = a_bowed_turn_at_thirty_degrees_beside_an_elliptic_shaft_at(at);
         sketch_on(&mut history, WorkPlane::XY);
         rectangle(
             &mut history,
@@ -917,8 +1012,8 @@ fn a_step_after_a_declined_turn_numbers_its_faces_as_if_it_had_stood() {
         );
         history
     };
-    // The cylinder's floor, top and wall; the turn's four runs, an arc among
-    // them, none on its axis; then the plate's floor and top.
+    // The elliptic shaft's floor, top and wall; the turn's four runs, an arc
+    // among them, none on its axis; then the plate's floor and top.
     let plates_top = 3 + 4 + 1;
     let declined = with_a_plate_after(0.0);
     let stood = with_a_plate_after(50.0);

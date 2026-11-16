@@ -5,13 +5,14 @@
 //! at a pole the angle is rounding, its `φ` run on from its start the way the
 //! circle turns, a whole circle a whole turn; any other circle a sphere
 //! carries through neither pole as itself, read in the sphere's `(θ, φ)`
-//! (#805, `surface/sphere/seen.rs`).
+//! (#805, `surface/sphere/seen.rs`). The curve a cylinder meets a sphere
+//! along is read there too (#805, `meet/seen/ball.rs`).
 
 use glam::{DVec2, DVec3};
 
 use super::chord;
 use crate::brep::Declined;
-use crate::brep::curve::{Circle, Curve};
+use crate::brep::curve::{Circle, Curve, Meet, Wall};
 use crate::brep::surface::{Sphere, Surface, Torus};
 use crate::brep::trace::Trace;
 
@@ -152,4 +153,26 @@ pub(super) fn traced(
         });
     }
     chord(&Curve::Circle(*circle), surface, from, to, eps)
+}
+
+/// The stretch of `meet`, the curve a cylinder meets `sphere` along, from
+/// `from` to `to`, seen in the sphere's `(θ, φ)`: declined where the curve
+/// does not run on this sphere, or its component cannot be read there.
+pub(super) fn pierced(
+    meet: &Meet,
+    sphere: &Sphere,
+    from: f64,
+    to: f64,
+    eps: f64,
+) -> Result<Trace, Declined> {
+    if meet.own(&Wall::Sphere(*sphere), eps) != Some(false) || !meet.charted_on_the_ball() {
+        return Err(Declined::Unsupported);
+    }
+    Ok(Trace::Graph {
+        meet: *meet,
+        on_first: false,
+        beside: None,
+        from,
+        to,
+    })
 }

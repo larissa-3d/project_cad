@@ -64,7 +64,8 @@ pub enum Relation {
     /// crossing off it, or a plane cutting a sphere at a slant to its axis or
     /// off it (#805).
     Circle(Circle),
-    /// Two walls not parallel, circular or elliptic.
+    /// Two walls not parallel, circular or elliptic, or a cylinder and a
+    /// sphere whose centre its axis does not hold (#805).
     Meet(Meeting),
     /// A plane through a cone's apex steeper than its slope, holding its axis
     /// or at a slant to it: the two rulings it cuts, and the apex they cross

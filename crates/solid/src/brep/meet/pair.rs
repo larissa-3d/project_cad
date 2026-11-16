@@ -14,7 +14,7 @@ use crate::brep::scale::Scale;
 /// decision. The decision within the kernel's tolerance is taken once, by
 /// `Meeting::of`, which moves the second wall onto what it decided: what
 /// is left here is the rounding of that move.
-const ROUNDING: f64 = 256.0 * f64::EPSILON;
+pub(super) const ROUNDING: f64 = 256.0 * f64::EPSILON;
 
 /// How two walls meet.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -70,6 +70,9 @@ pub(super) struct Slant {
 
 impl Pair {
     pub fn of(first: &Wall, second: &Wall) -> Pair {
+        if let (Wall::Cylinder(cylinder), Wall::Sphere(ball)) = (first, second) {
+            return Pair::pierced(cylinder, ball);
+        }
         let third = first.axis();
         let along = second.axis();
         let cos = third.dot(along);
@@ -215,7 +218,11 @@ impl Pair {
             half * angles.cos,
         ];
         let x = root(self.x_gaps, half, &angles);
-        let z = root(self.z_gaps, half, &angles);
+        let z = match self.sections[1] {
+            Section::Ball => towards_low(self.z_gaps[0], half, &angles)
+                .map(|value| value * (2.0 * self.d).sqrt()),
+            Section::Round | Section::Oval { .. } => root(self.z_gaps, half, &angles),
+        };
         let [sx, sz] = signs;
         (y, [x.map(|value| sx * value), z.map(|value| sz * value)])
     }
@@ -227,7 +234,7 @@ impl Pair {
     /// on an ellipse.
     pub fn reach_across(&self, wall: usize, room: f64, [low, high]: [f64; 2]) -> [f64; 2] {
         match self.sections[wall] {
-            Section::Round => [-room, room],
+            Section::Round | Section::Ball => [-room, room],
             Section::Oval { shear, scale } => {
                 let [one, other] = [shear * low, shear * high];
                 let spread = scale * room + self.rounding;
@@ -239,11 +246,11 @@ impl Pair {
     /// The point of the curve at the height `y`, where both roots vanish.
     pub fn at_end(&self, y: f64) -> DVec3 {
         let x = match self.sections[0] {
-            Section::Round => 0.0,
+            Section::Round | Section::Ball => 0.0,
             Section::Oval { shear, .. } => shear * y,
         };
         let z = match self.sections[1] {
-            Section::Round => self.e,
+            Section::Round | Section::Ball => self.e,
             Section::Oval { shear, .. } => self.e + shear * (y - self.d),
         };
         self.world(DVec3::new(x, y, z))
@@ -326,14 +333,26 @@ fn root(gaps: [f64; 2], half: f64, angles: &Angles) -> [f64; 3] {
     } else {
         smooth(gaps[1] + 2.0 * half * c * c, -half * sin, -half * cos)
     };
-    let towards_low = if gaps[0] == 0.0 {
+    let [p, p1, p2] = towards_high;
+    let [q, q1, q2] = towards_low(gaps[0], half, angles);
+    [p * q, p1 * q + p * q1, p2 * q + 2.0 * p1 * q1 + p * q2]
+}
+
+/// The factor `√(g_lo + y − lo)` of a root, signed so that it runs on through
+/// the low end where its gap vanishes, with its two derivatives.
+fn towards_low(gap: f64, half: f64, angles: &Angles) -> [f64; 3] {
+    let k = (2.0 * half).sqrt();
+    let Angles {
+        sin,
+        cos,
+        half_sin: s,
+        half_cos: c,
+    } = *angles;
+    if gap == 0.0 {
         [k * s, k * c / 2.0, -k * s / 4.0]
     } else {
-        smooth(gaps[0] + 2.0 * half * s * s, half * sin, half * cos)
-    };
-    let [p, p1, p2] = towards_high;
-    let [q, q1, q2] = towards_low;
-    [p * q, p1 * q + p * q1, p2 * q + 2.0 * p1 * q1 + p * q2]
+        smooth(gap + 2.0 * half * s * s, half * sin, half * cos)
+    }
 }
 
 /// The square root of a positive function, from its value and derivatives.
