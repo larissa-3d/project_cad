@@ -3981,3 +3981,58 @@ fn the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere() {
     ));
     assert_eq!(none, plain, "no edge chosen, and something is drawn of one");
 }
+
+#[test]
+fn the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane() {
+    let mut document = a_block();
+    let edge = document
+        .body()
+        .drawn_edges()
+        .into_iter()
+        .find(|edge| {
+            edge.points
+                .iter()
+                .all(|point| point.x.abs() < 1e-9 && point.y.abs() < 1e-9)
+        })
+        .expect("the upright at the origin");
+    assert!(
+        edge.points
+            .iter()
+            .any(|point| point.z < f64::from(MID_HEIGHT))
+            && edge
+                .points
+                .iter()
+                .any(|point| point.z > f64::from(MID_HEIGHT)),
+        "the fixture's upright does not cross the section at mid-height: {:?}",
+        edge.points,
+    );
+    let through: BTreeSet<[[u32; 3]; 2]> = edge
+        .points
+        .windows(2)
+        .map(|pair| {
+            let mut ends = [pair[0], pair[1]].map(|end| end.as_vec3().to_array().map(f32::to_bits));
+            ends.sort();
+            ends
+        })
+        .collect();
+    let mut state = sectioned(|_| {});
+    let plain = every_segment_of(&a_frame_of(
+        &state,
+        &mut document,
+        &mut SketchEditor::default(),
+    ));
+
+    state.edge_chosen = Some(edge.name.clone());
+    let chosen = every_segment_of(&a_frame_of(
+        &state,
+        &mut document,
+        &mut SketchEditor::default(),
+    ));
+    let added: BTreeSet<_> = chosen.difference(&plain).copied().collect();
+
+    assert_eq!(
+        added, through,
+        "the section on, what the frame adds for the upright chosen is not the upright whole, \
+         its part on the hidden side included",
+    );
+}

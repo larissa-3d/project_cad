@@ -6,6 +6,8 @@ use glam::{DVec2, DVec3};
 use super::drawn::DRAWN;
 use super::exact::Exact;
 use super::{Body, Matter};
+use crate::boolean::ON_PLANE;
+use crate::brep::Scale;
 use crate::profile::{Contour, Frame};
 
 impl Body {
@@ -41,6 +43,19 @@ impl Body {
     /// [`Body::in_front`] does.
     pub fn parted(&self, normal: DVec3, offset: f64) -> (Body, Body) {
         (self.behind(normal, offset), self.in_front(normal, offset))
+    }
+
+    /// How far in front of the plane `normal · p = offset`, `normal` of unit
+    /// length, a place of the body still lies on it, and so goes behind it
+    /// with [`Body::behind`]: the kernel's one tolerance, a share of how far
+    /// the body reaches; for flats, no more than their clip grants every
+    /// corner on that plane, whose largest coordinate is at least
+    /// `|offset| / √3`.
+    pub fn on_a_plane(&self, offset: f64) -> f64 {
+        match &self.matter {
+            Matter::Exact(exact) => Scale::of(exact.reach()).eps(),
+            Matter::Flats(_) => ON_PLANE * (offset.abs() / 3f64.sqrt()).max(1.0),
+        }
     }
 }
 
