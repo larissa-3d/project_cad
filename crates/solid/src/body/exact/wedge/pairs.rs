@@ -47,13 +47,25 @@ pub(in crate::body::exact) enum Together {
 /// reads it of them alone.
 pub(super) type Pair = (usize, usize, f64);
 
-/// Each two edges parallel within [`TANGENT`] that face each other across a
-/// face they share, the earlier first, and the distance across it from one
-/// to the other. Two that do not face each other across it, or are not
-/// parallel, bound nothing here: [`super::set_backs::bound`] reads where
-/// their set-backs would meet, and they are laid in turn.
-pub(super) fn facing(wedges: &[Wedge]) -> Vec<(usize, usize, f64)> {
+/// Each two of `edges`, read on `body` as `wedges`, parallel within
+/// [`TANGENT`], that face each other across a face they share, the earlier
+/// first, and the least distance across it from one to the other, at the
+/// points they are read at or at an end of either: where they part by a
+/// hair along it — a riser turned by one — the narrowest the face gets
+/// between them, whichever end that is. Two that do not face each other
+/// across it, or are not parallel, bound nothing here:
+/// [`super::set_backs::bound`] reads where their set-backs would meet, and
+/// they are laid in turn.
+pub(super) fn facing(
+    body: &brep::Body,
+    edges: &[EdgeId],
+    wedges: &[Wedge],
+) -> Vec<(usize, usize, f64)> {
     let sides = |wedge: &Wedge| wedge.faces.into_iter().zip(wedge.into);
+    let ends = |rank: usize| {
+        let ends = body.edge(edges[rank]).ends.into_iter().flatten();
+        ends.map(|end| body.vertex(end).point)
+    };
     let mut facing = Vec::new();
     for (rank, one) in wedges.iter().enumerate() {
         for (later, other) in wedges.iter().enumerate().skip(rank + 1) {
@@ -62,7 +74,10 @@ pub(super) fn facing(wedges: &[Wedge]) -> Vec<(usize, usize, f64)> {
                     let parallel = one.along.cross(other.along).length() <= TANGENT;
                     let across = into.dot(other.point - one.point);
                     if parallel && across > 0.0 && into.dot(towards) < 0.0 {
-                        facing.push((rank, later, across));
+                        let narrowest = (ends(later).map(|end| into.dot(end - one.point)))
+                            .chain(ends(rank).map(|end| towards.dot(end - other.point)))
+                            .fold(across, f64::min);
+                        facing.push((rank, later, narrowest));
                     }
                 }
             }

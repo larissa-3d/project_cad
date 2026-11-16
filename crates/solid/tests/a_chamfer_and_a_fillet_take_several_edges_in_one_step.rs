@@ -727,7 +727,8 @@
 //!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order`.
 //!   The four, the [`straying_flights`]: the [`stair_with_its_riser_turned_by`]
 //!   1e-9 and 1e-7, the [`stair_with_its_riser_tipped_back`], and the stair
-//!   whose riser stands [`RISER_RISE`], 1e-7, higher than its tread is deep.
+//!   whose riser stands [`RISER_RISE`], 1e-7, higher than its tread is deep;
+//!   the turned ones either way, as decided below.
 //!   Read as: on each, in each of the six orders, asked 5 and 8: the value
 //!   asked reported and taken within the stray of 5 — [`MEETING_HAIR`] and
 //!   how far the riser strays from the [`stair`]'s, as far as its two ends
@@ -752,10 +753,27 @@
 //!   tread, the foot along the tread and up the riser, the second nose down
 //!   the riser and back on the top, at either end, up and down the riser
 //!   read along it from where the slope crosses it, the tipped one leaning
-//!   back. Held alike first, as a
-//!   control, on the exact flight, the [`stair`], which `main` builds.
-//!   [`ramp_corners`], [`ramp_matter_under`] and [`KERNEL_TOLERANCE`] are
-//!   #928's, copied as they stand there while #982 is in review
+//!   back. Held alike first, as a control, on the exact flight, the
+//!   [`stair`], which `main` builds. [`ramp_corners`], [`ramp_matter_under`]
+//!   and [`KERNEL_TOLERANCE`] are #928's, which this branch sits on
+//! - Decided on the way, after the review (2026-11-16): beyond the issue's
+//!   wording, the riser turned the other way, by −1e-9 and −1e-7, is one
+//!   slope too, the edges it turns crossing the stair's middle from the
+//!   other side — in the same test, where the turned stairs are the
+//!   [`straying_flights`] either way; and so is every one of them drawn
+//!   from its bottom step, the lower block raised first so that the first
+//!   nose's faces answer to the lower numbers, as a user who draws the low
+//!   step first numbers them, where the [`stair`] gives them to the second
+//!   nose's —
+//!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_drawn_from_its_bottom_step_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order`.
+//!   Read as: the [`flights_drawn_from_the_bottom`] — the exact flight drawn
+//!   so, as a control, the riser turned by 1e-9 and 1e-7 either way, tipped
+//!   back, and 1e-7 higher — each held to every check of the first
+//!   criterion, its numbers those [`FROM_THE_BOTTOM_TREAD`] names. A probe
+//!   of the branch built the control, the risers turned by 1e-9 and 1e-7,
+//!   the tipped and the higher one under every check, and declined the
+//!   riser turned by −1e-7 `Unsupported` in every order however it is
+//!   drawn, and by −1e-9 where it is drawn from its bottom step
 //!
 //! Closes #814.
 //! - The right upright: `stair()`, the nose, the foot and the front's
@@ -7255,12 +7273,14 @@ const RISER_RISE: f64 = 1e-7;
 
 /// A stair whose riser strays from the flight's one plane by a hair, and
 /// what a chamfer across its first nose, its foot and its second nose reads
-/// on it: the numbers its top and its riser answer to, its two ends', the
-/// height its top stands at, where its foot and its riser's top edge stand
-/// across it at x, how far its riser strays from the [`stair`]'s, and what
-/// it is called.
+/// on it: the numbers its tread, the first nose's front, its top and its
+/// riser answer to, its two ends', the height its top stands at, where its
+/// foot and its riser's top edge stand across it at x, how far its riser
+/// strays from the [`stair`]'s, and what it is called.
 struct StrayingFlight {
     part: Body,
+    tread: usize,
+    front: usize,
     top: usize,
     riser: usize,
     ends: [Vec<u32>; 2],
@@ -7272,58 +7292,52 @@ struct StrayingFlight {
 }
 
 /// The four stairs #929 asks the flight of: the riser turned by 1e-9 and by
-/// 1e-7, tipped back by [`RISER_TIP`] at its top, and standing
-/// [`RISER_RISE`] higher than its tread is deep. Each strays from the
-/// [`stair`]'s riser by as much as its two ends part, its tip, or its rise.
-fn straying_flights() -> [StrayingFlight; 4] {
+/// 1e-7 — either way about the upright, beyond the issue's wording, the
+/// way it turns leaving its first nose's edge and its second's crossing the
+/// stair's middle from either side — tipped back by [`RISER_TIP`] at its
+/// top, and standing [`RISER_RISE`] higher than its tread is deep. Each
+/// strays from the [`stair`]'s riser by as much as its two ends part, its
+/// tip, or its rise. The riser turned by −1e-7 comes last.
+fn straying_flights() -> [StrayingFlight; 6] {
     let ends = [STAIR_RIGHT.to_vec(), STAIR_LEFT.to_vec()];
+    let turned = |turn: f64, riser: fn(f64) -> f64| StrayingFlight {
+        part: stair_with_its_riser_turned_by(turn),
+        tread: TREAD_TOP,
+        front: NOSE,
+        top: TOP,
+        riser: RISER,
+        ends: ends.clone(),
+        height: HEIGHT,
+        foot: riser,
+        top_edge: riser,
+        strays: LENGTH * turn.abs(),
+        called: format!("the stair whose riser is turned by {turn}"),
+    };
     [
-        StrayingFlight {
-            part: stair_with_its_riser_turned_by(HAIR_TURN),
-            top: TOP,
-            riser: RISER,
-            ends: ends.clone(),
-            height: HEIGHT,
-            foot: |x| riser_turned_by_at(HAIR_TURN, x),
-            top_edge: |x| riser_turned_by_at(HAIR_TURN, x),
-            strays: LENGTH * HAIR_TURN,
-            called: format!("the stair whose riser is turned by {HAIR_TURN}"),
-        },
-        StrayingFlight {
-            part: stair_with_its_riser_turned_by(RISER_TURN),
-            top: TOP,
-            riser: RISER,
-            ends: ends.clone(),
-            height: HEIGHT,
-            foot: turned_riser_at,
-            top_edge: turned_riser_at,
-            strays: LENGTH * RISER_TURN,
-            called: format!("the stair whose riser is turned by {RISER_TURN}"),
-        },
+        turned(HAIR_TURN, |x| riser_turned_by_at(HAIR_TURN, x)),
+        turned(-HAIR_TURN, |x| riser_turned_by_at(-HAIR_TURN, x)),
+        turned(RISER_TURN, turned_riser_at),
         StrayingFlight {
             part: stair_with_its_riser_tipped_back(),
             top: TIPPED_TOP,
             riser: TIPPED_RISER,
             ends: [TIPPED_END.to_vec(), TIPPED_START.to_vec()],
-            height: HEIGHT,
             foot: |_| tipped_riser_at(TREAD_HEIGHT),
             top_edge: |_| tipped_riser_at(HEIGHT),
             strays: RISER_TIP,
             called: format!("the stair whose riser is tipped back by {RISER_TIP} at its top"),
+            ..turned(0.0, |_| TREAD)
         },
         StrayingFlight {
             part: stair_of(TREAD, TREAD_HEIGHT + RISER_RISE),
-            top: TOP,
-            riser: RISER,
-            ends,
             height: HEIGHT + RISER_RISE,
-            foot: |_| TREAD,
-            top_edge: |_| TREAD,
             strays: RISER_RISE,
             called: format!(
                 "the stair whose riser stands {RISER_RISE} higher than its tread is deep"
             ),
+            ..turned(0.0, |_| TREAD)
         },
+        turned(-RISER_TURN, |x| riser_turned_by_at(-RISER_TURN, x)),
     ]
 }
 
@@ -7373,17 +7387,150 @@ fn flight_never_nearer_than(
     }
 }
 
-#[test]
-fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order()
- {
+/// Holds that a chamfer on `flight`'s first nose, foot and second nose,
+/// named in each of their six orders and asked half the tread's depth and
+/// more, lays one slope across the flight: the value asked reported and
+/// taken within the stray — [`MEETING_HAIR`] and how far the riser strays;
+/// the tread and the riser gone and every other face kept; one flat face
+/// answering to the three numbers, meeting the first nose's front, the top
+/// and the stair's two ends by one edge each; its four corners within the
+/// stray of the exact flight's, on one plane to one of the kernel's hairs,
+/// the same in every order; the body exact, closed, uncrossed, holding the
+/// matter under those corners, which is the exact flight's within the
+/// slope's footprint times twice the stray; and no edge of the chain nearer
+/// the slope than the distance taken.
+fn lays_one_slope_across_the_flight_in_every_order(flight: &StrayingFlight) {
     let half = TREAD / 2.0;
     let exact = [
         [0.0, LENGTH].map(|x| DVec3::new(x, 0.0, TREAD_HEIGHT - half)),
         [0.0, LENGTH].map(|x| DVec3::new(x, 1.5 * TREAD, HEIGHT)),
     ];
     let flight_slope = flight_matter(2);
+    let stair = &flight.part;
+    let stray = MEETING_HAIR + flight.strays;
+    let start = stair.faces_end();
+    let laid = [start, start + 1, start + 2];
+    let edges = [
+        edge_between(stair, flight.tread, flight.front),
+        edge_between(stair, flight.riser, flight.tread),
+        edge_between(stair, flight.top, flight.riser),
+    ];
+    let met = [
+        &flight.ends[..],
+        &[vec![flight.front as u32], vec![flight.top as u32]],
+    ]
+    .concat();
+
+    for asked in [half, MORE_THAN_HALF] {
+        let mut first: Option<[[DVec3; 2]; 2]> = None;
+        for order in every_order(&[0, 1, 2]) {
+            let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+            let what = format!(
+                "{}, its first nose, foot and second nose named in the order {order:?}, \
+                 asked {asked}",
+                flight.called
+            );
+
+            let chamfered = stair
+                .chamfer_edges(&names, asked)
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+            assert!(
+                (chamfered.asked - asked).abs() < PLACE && (chamfered.taken - half).abs() <= stray,
+                "{what}: asked {} and took {}, where the three flats meet within {stray} of \
+                 {half}",
+                chamfered.asked,
+                chamfered.taken
+            );
+            let body = &chamfered.body;
+            let mut kept_and_laid = numbers(stair);
+            for gone in [flight.tread, flight.riser] {
+                assert!(!body.has_face(gone), "{what}: face {gone} is gone");
+                kept_and_laid.remove(&gone);
+            }
+            kept_and_laid.extend(laid);
+            assert_eq!(
+                numbers(body),
+                kept_and_laid,
+                "{what}: every face of the stair but its tread and its riser, and the slope \
+                 answering to {laid:?}"
+            );
+            assert_eq!(
+                body.faces_end(),
+                start + laid.len(),
+                "{what}: the next step numbers its faces past every number the slope answers \
+                 to"
+            );
+            one_flat_face_answers_to(body, &laid, &what);
+            for (rank, &one) in laid.iter().enumerate() {
+                for &other in &laid[rank + 1..] {
+                    assert!(
+                        body.edge_names()
+                            .iter()
+                            .all(|name| !lies_between(name, one, other)),
+                        "{what}: no edge stands between {one} and {other}: they are one face"
+                    );
+                }
+            }
+            assert_eq!(
+                sides_met_by(body, &laid),
+                sides_by(&met),
+                "{what}: the slope meets the first nose's front, the top and the stair's two \
+                 ends, by one edge each"
+            );
+            let corners = ramp_corners(body, laid[0], flight.height, &what);
+            for (corner, flat) in corners.iter().flatten().zip(exact.iter().flatten()) {
+                assert!(
+                    corner.distance(*flat) <= stray,
+                    "{what}: the slope's corner at {corner}, where the exact flight's is at \
+                     {flat}, to {stray}"
+                );
+            }
+            let normal = body
+                .plane_of(laid[0])
+                .unwrap_or_else(|| panic!("{what}: the body offers no plane on the slope"))
+                .normal;
+            for corner in corners.iter().flatten() {
+                let off = (*corner - corners[0][0]).dot(normal);
+                assert!(
+                    off.abs() <= ONE_HAIR,
+                    "{what}: the slope's corner at {corner} stands {off} off its plane, \
+                     beyond one of the kernel's hairs, {ONE_HAIR}"
+                );
+            }
+            let promised = ramp_matter_under(corners, flight.height);
+            let within = 2.0 * LENGTH * 1.5 * TREAD * stray;
+            assert!(
+                (promised - flight_slope).abs() <= within,
+                "{what}: under the slope the stair holds {promised}, where the exact flight's \
+                 holds {flight_slope}, to {within}"
+            );
+            sound_drawn_within(
+                body,
+                promised,
+                EXACT * promised,
+                &format!("{what}: the matter under the slope's own corners"),
+            );
+            flight_never_nearer_than(corners, flight, chamfered.taken, &what);
+            match first {
+                None => first = Some(corners),
+                Some(seen) => same_corners(
+                    seen,
+                    corners,
+                    &format!("{what}: the slope the first order laid"),
+                ),
+            }
+        }
+    }
+}
+
+#[test]
+fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order()
+ {
     let exact_flight = StrayingFlight {
         part: stair(),
+        tread: TREAD_TOP,
+        front: NOSE,
         top: TOP,
         riser: RISER,
         ends: [STAIR_RIGHT.to_vec(), STAIR_LEFT.to_vec()],
@@ -7395,123 +7542,145 @@ fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_whose_ris
     };
 
     for flight in [exact_flight].into_iter().chain(straying_flights()) {
-        let stair = &flight.part;
-        let stray = MEETING_HAIR + flight.strays;
-        let start = stair.faces_end();
-        let laid = [start, start + 1, start + 2];
-        let edges = [
-            edge_between(stair, TREAD_TOP, NOSE),
-            edge_between(stair, flight.riser, TREAD_TOP),
-            edge_between(stair, flight.top, flight.riser),
-        ];
-        let met = [
-            &flight.ends[..],
-            &[vec![NOSE as u32], vec![flight.top as u32]],
-        ]
-        .concat();
+        lays_one_slope_across_the_flight_in_every_order(&flight);
+    }
+}
 
-        for asked in [half, MORE_THAN_HALF] {
-            let mut first: Option<[[DVec3; 2]; 2]> = None;
-            for order in every_order(&[0, 1, 2]) {
-                let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
-                let what = format!(
-                    "{}, its first nose, foot and second nose named in the order {order:?}, \
-                     asked {asked}",
-                    flight.called
-                );
+/// The numbers the faces of a stair drawn from its bottom step answer to:
+/// the lower block raised first, its floor nought, its top — the tread — one,
+/// its front — the first nose's — two, its right three and its left five,
+/// its back gone inside the taller block; then the taller block, its floor
+/// six, its top seven, its front — the riser — eight, its right nine and its
+/// left eleven, the two blocks' floors and ends merged. The first nose's
+/// faces answer to the lower numbers, where the [`stair`] gives them to the
+/// second nose's.
+const FROM_THE_BOTTOM_TREAD: usize = 1;
+const FROM_THE_BOTTOM_FRONT: usize = 2;
+const FROM_THE_BOTTOM_TOP: usize = 7;
+const FROM_THE_BOTTOM_RISER: usize = 8;
+const FROM_THE_BOTTOM_RIGHT: [u32; 2] = [3, 9];
+const FROM_THE_BOTTOM_LEFT: [u32; 2] = [5, 11];
 
-                let chamfered = stair
-                    .chamfer_edges(&names, asked)
-                    .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+/// The numbers the [`stair_drawn_from_its_bottom_tipped_back`]'s taller
+/// block answers to, raised along X after the lower block: its start six,
+/// its end seven, its floor eight, its back nine, its top ten and its riser
+/// eleven, its start and end merged with the lower block's left and right.
+const FROM_THE_BOTTOM_TIPPED_TOP: usize = 10;
+const FROM_THE_BOTTOM_TIPPED_RISER: usize = 11;
+const FROM_THE_BOTTOM_TIPPED_RIGHT: [u32; 2] = [3, 7];
+const FROM_THE_BOTTOM_TIPPED_LEFT: [u32; 2] = [5, 6];
 
-                assert!(
-                    (chamfered.asked - asked).abs() < PLACE
-                        && (chamfered.taken - half).abs() <= stray,
-                    "{what}: asked {} and took {}, where the three flats meet within {stray} of \
-                     {half}",
-                    chamfered.asked,
-                    chamfered.taken
-                );
-                let body = &chamfered.body;
-                let mut kept_and_laid = numbers(stair);
-                for gone in [TREAD_TOP, flight.riser] {
-                    assert!(!body.has_face(gone), "{what}: face {gone} is gone");
-                    kept_and_laid.remove(&gone);
-                }
-                kept_and_laid.extend(laid);
-                assert_eq!(
-                    numbers(body),
-                    kept_and_laid,
-                    "{what}: every face of the stair but its tread and its riser, and the slope \
-                     answering to {laid:?}"
-                );
-                assert_eq!(
-                    body.faces_end(),
-                    start + laid.len(),
-                    "{what}: the next step numbers its faces past every number the slope answers \
-                     to"
-                );
-                one_flat_face_answers_to(body, &laid, &what);
-                for (rank, &one) in laid.iter().enumerate() {
-                    for &other in &laid[rank + 1..] {
-                        assert!(
-                            body.edge_names()
-                                .iter()
-                                .all(|name| !lies_between(name, one, other)),
-                            "{what}: no edge stands between {one} and {other}: they are one face"
-                        );
-                    }
-                }
-                assert_eq!(
-                    sides_met_by(body, &laid),
-                    sides_by(&met),
-                    "{what}: the slope meets the first nose's front, the top and the stair's two \
-                     ends, by one edge each"
-                );
-                let corners = ramp_corners(body, laid[0], flight.height, &what);
-                for (corner, flat) in corners.iter().flatten().zip(exact.iter().flatten()) {
-                    assert!(
-                        corner.distance(*flat) <= stray,
-                        "{what}: the slope's corner at {corner}, where the exact flight's is at \
-                         {flat}, to {stray}"
-                    );
-                }
-                let normal = body
-                    .plane_of(laid[0])
-                    .unwrap_or_else(|| panic!("{what}: the body offers no plane on the slope"))
-                    .normal;
-                for corner in corners.iter().flatten() {
-                    let off = (*corner - corners[0][0]).dot(normal);
-                    assert!(
-                        off.abs() <= ONE_HAIR,
-                        "{what}: the slope's corner at {corner} stands {off} off its plane, \
-                         beyond one of the kernel's hairs, {ONE_HAIR}"
-                    );
-                }
-                let promised = ramp_matter_under(corners, flight.height);
-                let within = 2.0 * LENGTH * 1.5 * TREAD * stray;
-                assert!(
-                    (promised - flight_slope).abs() <= within,
-                    "{what}: under the slope the stair holds {promised}, where the exact flight's \
-                     holds {flight_slope}, to {within}"
-                );
-                sound_drawn_within(
-                    body,
-                    promised,
-                    EXACT * promised,
-                    &format!("{what}: the matter under the slope's own corners"),
-                );
-                flight_never_nearer_than(corners, &flight, chamfered.taken, &what);
-                match first {
-                    None => first = Some(corners),
-                    Some(seen) => same_corners(
-                        seen,
-                        corners,
-                        &format!("{what}: the slope the first order laid"),
-                    ),
-                }
-            }
-        }
+/// The lower block of a stair drawn from its bottom step, from y = 0 to 15,
+/// [`TREAD_HEIGHT`] high, reaching in under the taller block to come.
+fn bottom_step() -> Body {
+    joined_to(
+        &Body::default(),
+        [DVec2::ZERO, DVec2::new(LENGTH, 1.5 * TREAD)],
+        TREAD_HEIGHT,
+    )
+}
+
+/// The [`stair_with_its_riser_turned_by_up_to`] `turn` and `height`, drawn
+/// from its bottom step: the same matter, its faces numbered as
+/// [`FROM_THE_BOTTOM_TREAD`] says.
+fn stair_drawn_from_its_bottom_turned_by(turn: f64, height: f64) -> Body {
+    let shift = LENGTH / 2.0 * turn;
+    raised_with(
+        &bottom_step(),
+        Contour::straight(vec![
+            DVec2::new(0.0, TREAD - shift),
+            DVec2::new(LENGTH, TREAD + shift),
+            DVec2::new(LENGTH, 2.0 * TREAD),
+            DVec2::new(0.0, 2.0 * TREAD),
+        ]),
+        height,
+    )
+}
+
+/// The [`stair_with_its_riser_tipped_back`] drawn from its bottom step, its
+/// taller block's faces numbered as [`FROM_THE_BOTTOM_TIPPED_TOP`] says.
+fn stair_drawn_from_its_bottom_tipped_back() -> Body {
+    let lower = bottom_step();
+    lower
+        .union(&raised_along_x(
+            &lower,
+            vec![
+                DVec2::new(TREAD, 0.0),
+                DVec2::new(2.0 * TREAD, 0.0),
+                DVec2::new(2.0 * TREAD, HEIGHT),
+                DVec2::new(TREAD + RISER_TIP, HEIGHT),
+            ],
+            [0.0, LENGTH],
+        ))
+        .expect("the taller block is built")
+}
+
+/// The [`straying_flights`] drawn from their bottom step, first the exact
+/// flight drawn so, as a control, and the risers turned by −1e-9 and −1e-7
+/// last.
+fn flights_drawn_from_the_bottom() -> [StrayingFlight; 7] {
+    let ends = [
+        FROM_THE_BOTTOM_RIGHT.to_vec(),
+        FROM_THE_BOTTOM_LEFT.to_vec(),
+    ];
+    let turned = |turn: f64, riser: fn(f64) -> f64| StrayingFlight {
+        part: stair_drawn_from_its_bottom_turned_by(turn, HEIGHT),
+        tread: FROM_THE_BOTTOM_TREAD,
+        front: FROM_THE_BOTTOM_FRONT,
+        top: FROM_THE_BOTTOM_TOP,
+        riser: FROM_THE_BOTTOM_RISER,
+        ends: ends.clone(),
+        height: HEIGHT,
+        foot: riser,
+        top_edge: riser,
+        strays: LENGTH * turn.abs(),
+        called: format!("the stair drawn from its bottom step, its riser turned by {turn}"),
+    };
+    [
+        StrayingFlight {
+            called: "the stair drawn from its bottom step, its riser on the flight's one plane"
+                .into(),
+            ..turned(0.0, |_| TREAD)
+        },
+        turned(HAIR_TURN, |x| riser_turned_by_at(HAIR_TURN, x)),
+        turned(RISER_TURN, turned_riser_at),
+        StrayingFlight {
+            part: stair_drawn_from_its_bottom_tipped_back(),
+            top: FROM_THE_BOTTOM_TIPPED_TOP,
+            riser: FROM_THE_BOTTOM_TIPPED_RISER,
+            ends: [
+                FROM_THE_BOTTOM_TIPPED_RIGHT.to_vec(),
+                FROM_THE_BOTTOM_TIPPED_LEFT.to_vec(),
+            ],
+            foot: |_| tipped_riser_at(TREAD_HEIGHT),
+            top_edge: |_| tipped_riser_at(HEIGHT),
+            strays: RISER_TIP,
+            called: format!(
+                "the stair drawn from its bottom step, its riser tipped back by {RISER_TIP} at its \
+                 top"
+            ),
+            ..turned(0.0, |_| TREAD)
+        },
+        StrayingFlight {
+            part: stair_drawn_from_its_bottom_turned_by(0.0, HEIGHT + RISER_RISE),
+            height: HEIGHT + RISER_RISE,
+            strays: RISER_RISE,
+            called: format!(
+                "the stair drawn from its bottom step, its riser {RISER_RISE} higher than its \
+                 tread is deep"
+            ),
+            ..turned(0.0, |_| TREAD)
+        },
+        turned(-HAIR_TURN, |x| riser_turned_by_at(-HAIR_TURN, x)),
+        turned(-RISER_TURN, |x| riser_turned_by_at(-RISER_TURN, x)),
+    ]
+}
+
+#[test]
+fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_drawn_from_its_bottom_step_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order()
+ {
+    for flight in flights_drawn_from_the_bottom() {
+        lays_one_slope_across_the_flight_in_every_order(&flight);
     }
 }
 

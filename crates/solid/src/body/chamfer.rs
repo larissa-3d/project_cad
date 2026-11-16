@@ -52,9 +52,9 @@ impl Body {
     /// its faces, never from [`Chamfered::taken`]. Where the slope takes the
     /// riser whole, it runs through the riser's top edge (#928). The distance
     /// taken is the nearest a slope stands to any of its edges, along either
-    /// face at either end: down the nose's front at one end of a ramp whose
-    /// riser is turned by a hair, down a flight's riser where it strays from
-    /// the flight's one plane (#929). Two edges
+    /// face at either end: down the nose's front, or along the tread, at one
+    /// end of a ramp whose riser is turned by a hair or of a flight whose
+    /// riser strays from its one plane (#929). Two edges
     /// meeting at a convex corner are mitred there, the corner's third edge
     /// left sharp, and three are
     /// closed there by a triangle, cut off at a convex corner and filled in at

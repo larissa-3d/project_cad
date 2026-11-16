@@ -78,7 +78,7 @@ impl Exact {
         for (wedge, reach) in wedges.iter_mut().zip(reaches) {
             wedge.reach = reach;
         }
-        let facing = pairs::facing(&wedges);
+        let facing = pairs::facing(&self.brep, &edges, &wedges);
         Ok(Step {
             edges,
             wedges,
