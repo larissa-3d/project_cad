@@ -177,8 +177,11 @@ It can:
   section square to the edge, the corner between the chamfer's plane and
   the edge's two faces, each face pushed out by a margin, an eighth of the
   distance; capped a margin above the edge where the faces meet so sharply
-  that the cap is wider than the margin, as on a knife; and carried over the
-  body's box along the edge's line and a margin past either end. Where the
+  that the cap is wider than the margin, as on a knife; and carried along
+  the edge's line a margin past the faces it meets at either end but its
+  own two, behind which lies all the matter its section takes past that
+  end, and no further: a second boss standing in line as high is left
+  alone, though the edge's own faces run on to it (#924). Where the
   chamfer's plane lies nearly flush with a face, as on an edge bent a
   degree off flat, the face is pushed out by less, so that the prism's run
   on the chamfer's plane ends no further than the distance past its
@@ -302,7 +305,7 @@ It can:
   chamfer's section is topped with (`Side::top`, `wedge/section.rs`), back
   along the second face's margin, and square down to the round. The margin
   is the chamfer's — an eighth of the set-back, never under the least margin
-  — and the prism is carried over the body's box as the chamfer's is. The
+  — and the prism is carried along the edge as far as the chamfer's is. The
   round's cylinder touches each face along the line its side lies on, which
   the cut reads as a tangency (`Relation::Tangent`), as it reads a hole
   bored flush against a wall; the prism's wall off the round, square to the
@@ -355,7 +358,8 @@ It can:
   a chamfer of 7.5 on a wall 8 wide — and the step was declined. A value the
   faces cannot give is reduced to the nearer face's reach, as for a cut, and
   that face is taken whole, the new face meeting the face beyond it. The prism
-  is raised over the body's box as the cut's is, then trimmed flush at each of
+  is raised over the body's box, for at a sharp corner its section reaches
+  the plane it ends on well past the edge's end, then trimmed flush at each of
   the edge's ends by the plane of the one face, besides the edge's two, that
   meets the edge there, square to it or leaning: a box standing on that plane
   over what of the prism stands past it, an eighth of the section's reach

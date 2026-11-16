@@ -358,7 +358,7 @@ fn a_chamfer_declined_on_a_later_replay_leaves_the_next_chamfer_on_its_edge() {
 }
 
 /// The boss put in stands as high as the chamfered one, both tops in one
-/// plane: the kernel declined that chamfer until #924.
+/// plane, and the chamfer leaves it whole.
 const THE_BOSS_PUT_IN: f64 = 30.0;
 
 #[test]
