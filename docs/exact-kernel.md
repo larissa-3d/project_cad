@@ -504,9 +504,11 @@ Left, in the order #497 set:
 - revolutions of ellipses: the exact kernel has no surface an ellipse turns
   into. Those of straight runs and arcs are done: parallel or square to the
   axis (#533), slanted (#536), and an arc into a sphere or a torus (#576);
-- a torus against a plane at a slant or off its axis, a sphere or a torus
-  against a wall or a round of another axis, or an elliptic wall: declined
-  as unsupported where the faces may cross;
+- a torus against a plane at a slant or off its axis, a torus against a
+  wall or a round of another axis, a sphere against a cone or a round of
+  another axis, either against an elliptic wall: declined as unsupported
+  where the faces may cross — a sphere and a cylinder of another axis meet
+  along the loops its rulings pierce it in, and are built (#805);
 - a few pairs of walls at any angle that the kernel still declines (see
   "Two walls at any angle"): two walls nearly parallel, a cone whose
   rulings run along the other wall's axis, a hole in the flank of a
@@ -623,8 +625,9 @@ Known and still open:
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another
   wall" names (#577), a plane at a slant
-  through a torus, a wall or a round of
-  another axis, and an elliptic wall against a round, are declined where
+  through a torus, a wall of another axis against a torus, a cone or a
+  round of another axis against a round, and an elliptic wall against a
+  round, are declined where
   their faces may cross: the operation gives no answer, which
   the harness counts as such rather than as a wrong solid. Where the faces stand clear of each other — a
   bore square into one side of a hexagonal prism, beside the next side, or
@@ -895,10 +898,22 @@ The decisions, in the order taken, once per operation:
    along, the two in one plane (decision 4); the flux through a face
    bounded by such a circle is integrated over panels halving towards
    where it passes nearest each pole, round which its angle about the axis
-   turns fastest. A plane at a slant to a torus or off its axis, a wall or a round of
-   another axis, and an elliptic wall are unsupported, and decline unless
-   `clear` stands the two faces apart; none of them asks for a conic, so
-   `at_a_slant` answers false.
+   turns fastest. A cylinder whose axis does not hold a
+   sphere's centre (#805) meets it along the loops its rulings pierce it in,
+   one where it takes in part of the ball, two where it passes right through
+   it — `Relation::Meet`, read as a pair of walls is with the sphere second
+   (`meet/pierced.rs`): on the cylinder `(z − e)² = 2d (y − y₀)`, a root
+   vanishing at the low end of the span alone; apart where it misses the
+   ball or holds it inside; within `EPS` of a touch from outside or inside,
+   of a figure of eight, or of its axis holding the centre, unsupported. On
+   the sphere the curve is seen in its `(θ, φ)`, its angle about the axis
+   unwrapped once along each loop (`meet/seen/ball.rs`), and a loop that
+   passes too near a pole to be read so is declined. A plane at a slant to
+   a torus or off its axis, a wall or a round of another axis against a
+   torus, a cone or a round of another axis against a sphere, and an
+   elliptic wall are unsupported, and decline unless `clear` stands the two
+   faces apart; none of them asks for a conic, so `at_a_slant` answers
+   false.
    A plane at a slant to a wall (#552) — neither square to a cylinder's
    axis nor along it, neither square to a cone's axis nor holding it — is
    decided by `relation/sliced.rs` alone, once the rows above have passed
@@ -2703,6 +2718,20 @@ pointed cone's flank waits on #711.
   crossed the plane's face by more than the rules allow. A touch at a pole
   needs none of it, decision 12 having moved the plane onto the pole, a
   vertex; one off the poles is not moved, for the reason decision 12 gives.
+- **The curve a cylinder meets a sphere along** (#805,
+  `outline/pierced.rs`). A face of a sphere such a curve bounds that the
+  charts above cannot cut — a ball bored or notched off its axis, which
+  holds both poles, or a band of a sphere the curve winds round — is laid
+  out in the sphere's own `(θ, φ)` as the strips lay it, each sample of the
+  curve and of a circle of another axis where it is read, each pole the
+  face holds along its floor, a face going round cut open at an angle of
+  the grid and its walls split at the grid's rows on lattice points both
+  walls share; then swept and refined as the central chart refines. A
+  triangle with two corners on a floor stands for its pole twice and is
+  dropped, as on a cone. A face whose curves come within some 87° of a pole
+  is left open. On the cylinder the curve is sampled on the cylinder's grid
+  as the curve of two walls is; on the sphere, which has no grid it must
+  stand on, between those wherever a chord would leave it.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

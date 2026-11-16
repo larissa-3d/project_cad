@@ -265,7 +265,8 @@ fn meet_distance(meet: &Meet, point: DVec3) -> f64 {
 }
 
 /// Two walls of a meet one within `eps`: cylinders as `alike` reads them,
-/// elliptic walls as `EllipticCylinder::within` does.
+/// elliptic walls as `EllipticCylinder::within` does, spheres by their
+/// centres and radii and the axes their charts turn about (#805).
 fn walls_alike(one: &Wall, other: &Wall, scale: Scale, eps: f64) -> bool {
     match (one, other) {
         (Wall::Cylinder(one), Wall::Cylinder(other)) => alike(one, other, scale, eps),
@@ -273,7 +274,15 @@ fn walls_alike(one: &Wall, other: &Wall, scale: Scale, eps: f64) -> bool {
             parallel(one.axis, other.axis, scale) && one.within(other, eps)
         }
         (Wall::Cone(one), Wall::Cone(other)) => one.within(other, eps),
-        _ => false,
+        (Wall::Sphere(one), Wall::Sphere(other)) => {
+            parallel(one.axis, other.axis, scale)
+                && one.middle().distance(other.middle()) <= eps
+                && (one.radius - other.radius).abs() <= eps
+        }
+        (Wall::Cylinder(_), Wall::Elliptic(_) | Wall::Cone(_) | Wall::Sphere(_))
+        | (Wall::Elliptic(_), Wall::Cylinder(_) | Wall::Cone(_) | Wall::Sphere(_))
+        | (Wall::Cone(_), Wall::Cylinder(_) | Wall::Elliptic(_) | Wall::Sphere(_))
+        | (Wall::Sphere(_), Wall::Cylinder(_) | Wall::Elliptic(_) | Wall::Cone(_)) => false,
     }
 }
 

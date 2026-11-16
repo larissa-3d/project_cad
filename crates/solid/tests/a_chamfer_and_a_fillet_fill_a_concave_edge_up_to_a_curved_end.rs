@@ -301,7 +301,7 @@
 //! sphere and the fillet. The relation the slice stands on, and where its
 //! curve crosses a sphere face's other curves and bounds a face, are answered
 //! with the kernel's tests, in `src/brep/relation/tests/round.rs`,
-//! `src/brep/relation/tests/crossing/round.rs` and `src/body/tests.rs`, each
+//! `src/brep/relation/tests/crossing/pierced.rs` and `src/body/tests.rs`, each
 //! file with its own criteria; the third slice, the torus, and the fourth, a
 //! rib joined to a dome whose axis its sides do not hold, come on branches of
 //! their own.

@@ -147,9 +147,9 @@ impl Meet {
         } else {
             &self.first
         };
-        Some(
-            ruled(&self.first, &self.second).unwrap_or_else(|| Rc::new(Ruled::unread(cone, other))),
-        )
+        Some(ruled(&self.first, &self.second).unwrap_or_else(|| {
+            Rc::new(Ruled::unread(cone, other).unwrap_or_else(|| Ruled::declined(cone)))
+        }))
     }
 
     /// The lap this component runs on the curve `read`, none where the

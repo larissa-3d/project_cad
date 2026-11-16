@@ -86,7 +86,7 @@ impl Outline {
     /// Lays out the loops `laps` of `face` on `round` as [`Outline::rounded`]
     /// does, short of the strips, read as `read` says, and hands back the
     /// lattice they would be cut along. None as there, and where a face read
-    /// [`Read::Tilted`] has no circle of another axis.
+    /// [`Read::Tilted`] has no circle of another axis and no cylinder's curve.
     pub(super) fn laid_out(
         &mut self,
         body: &Body,

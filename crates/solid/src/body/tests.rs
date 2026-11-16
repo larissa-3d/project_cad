@@ -3,7 +3,7 @@
 //!
 //! Closes #805 — its second slice's faces only. The relation and the
 //! crossings they stand on are answered in `brep/relation/tests/round.rs` and
-//! `brep/relation/tests/crossing/round.rs`, each file with its own criteria.
+//! `brep/relation/tests/crossing/pierced.rs`, each file with its own criteria.
 //! - A face of the sphere or of the cylinder bounded by the curve a cylinder
 //!   of another axis meets a sphere along is traced and drawn (tessellated,
 //!   closed outline) — where the cylinder passes right through the ball,
@@ -25,6 +25,14 @@
 //! `cao_part`'s `changing_an_extrusion.rs` and `cao_app`'s `the_alerts.rs`,
 //! and as the broken step of `the_exact_kernel_turns_an_arc.rs`; the bowed
 //! turn's broken step is kept beside an elliptic shaft.
+//!
+//! Beside the two criteria's balls, the review's cases: a bead drilled a
+//! little off its centre, whose loops wind round the ball's axis; a bore
+//! counterbored about its own axis or touching it along a ruling that ends
+//! on the equator; a shell and two balls of one radius bored by one hole,
+//! whose spheres share a centre or a radius and none of each other's loops;
+//! and the same hole bored twice, and the plug a bore takes out joined back,
+//! which meet the bore's loops a second time.
 
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
@@ -344,14 +352,26 @@ fn ball_about_y() -> Body {
 /// The half disc of radius 5 on the side x ≥ 0 of the plane z = 0, turned
 /// `turn` about Y.
 fn ball_turned_about_y(turn: f64) -> Body {
+    ball_turned_about_y_of(5.0, DVec3::ZERO, turn)
+}
+
+/// A ball of `radius` about `at`: a half disc turned whole about the line
+/// through `at` along Y.
+fn ball_about_y_of(radius: f64, at: DVec3) -> Body {
+    ball_turned_about_y_of(radius, at, TAU)
+}
+
+/// The half disc of `radius` on the side x ≥ 0 about `at`, turned `turn`
+/// about the line through `at` along Y.
+fn ball_turned_about_y_of(radius: f64, at: DVec3, turn: f64) -> Body {
     let sampled: &'static [DVec2] = Box::leak(
         (0..=32)
-            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * 5.0)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * radius)
             .collect::<Vec<_>>()
             .into_boxed_slice(),
     );
     let half = Contour {
-        corners: vec![DVec2::new(0.0, -5.0), DVec2::new(0.0, 5.0)],
+        corners: vec![DVec2::new(0.0, -radius), DVec2::new(0.0, radius)],
         runs: vec![
             Run::Round {
                 center: DVec2::ZERO,
@@ -367,7 +387,11 @@ fn ball_turned_about_y(turn: f64) -> Body {
         triangles: &[],
     };
     Body::default()
-        .tool_turned(&profile, FLAT, &about_v(&profile, turn))
+        .tool_turned(
+            &profile,
+            Frame { origin: at, ..FLAT },
+            &about_v(&profile, turn),
+        )
         .expect("the exact kernel turns the ball")
 }
 
@@ -711,10 +735,15 @@ fn bore_inside_a_ball(radius: f64, off: f64, ball: f64) -> f64 {
 /// A bore of `radius` along `axis`, its axis `off` from the origin towards
 /// `out`, from 10 before the origin's foot on it to 10 past.
 fn bore_off_the_centre(axis: DVec3, out: DVec3, radius: f64, off: f64) -> Body {
+    bore_between(axis, out, radius, off, [-10.0, 10.0])
+}
+
+/// The same bore, from `from` to `to` along `axis` past the origin's foot.
+fn bore_between(axis: DVec3, out: DVec3, radius: f64, off: f64, [from, to]: [f64; 2]) -> Body {
     let axis = axis.normalize();
     let u = out.reject_from(axis).normalize();
     let frame = Frame {
-        origin: u * off - axis * 10.0,
+        origin: u * off + axis * from,
         u,
         v: axis.cross(u),
     };
@@ -722,7 +751,7 @@ fn bore_off_the_centre(axis: DVec3, out: DVec3, radius: f64, off: f64) -> Body {
         .tool_raised(
             &exact(disc(DVec2::ZERO, radius), vec![]),
             frame,
-            axis * 20.0,
+            axis * (to - from),
         )
         .expect("a bore stands on its own")
 }
@@ -773,6 +802,135 @@ fn a_ball_notched_by_a_cylinder_off_its_axis_is_built_and_drawn_within_the_drawi
             format!("the ball notched along {axis}, of radius {radius}, {off} off its centre");
         bored_off_the_centre(axis, out, radius, off, &what);
     }
+}
+
+/// A bead drilled a little off its centre: a bore of radius 1 along the
+/// ball's own axis and 0.5 off it, which holds the axis and both poles of the
+/// ball's chart, each of its two loops winding round the axis.
+#[test]
+fn a_ball_bored_along_its_axis_a_little_off_its_centre_is_built_and_drawn_within_the_drawing_s_tolerance()
+ {
+    bored_off_the_centre(
+        DVec3::Y,
+        DVec3::X,
+        1.0,
+        0.5,
+        "the ball bored along its own axis, of radius 1, 0.5 off it",
+    );
+}
+
+/// The ball bored along X, of radius 1, 1.5 off its centre towards Z, then
+/// counterbored from x = 0 on, of radius 2: about the bore's own axis, or
+/// about the line 1 below it, the counterbore's wall then touching the
+/// bore's along its top ruling, whose ends on the sphere stand on the
+/// equator of the ball's chart. The ball keeps all but the bore's half
+/// inside it on one side and the counterbore's on the other.
+#[test]
+fn a_ball_bored_off_its_axis_then_counterbored_about_its_bore_or_touching_it_is_built_and_drawn_within_the_drawing_s_tolerance()
+ {
+    let bored = ball_about_y()
+        .difference(&bore_off_the_centre(DVec3::X, DVec3::Z, 1.0, 1.5))
+        .expect("the ball is bored");
+    for (off, how) in [
+        (1.5, "about the bore's axis"),
+        (0.5, "touching the bore along its top ruling"),
+    ] {
+        let what = format!("the bored ball counterbored {how}");
+        let counterbore = bore_between(DVec3::X, DVec3::Z, 2.0, off, [0.0, 10.0]);
+        let body = bored
+            .difference(&counterbore)
+            .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        let taken = (bore_inside_a_ball(1.0, 1.5, 5.0) + bore_inside_a_ball(2.0, off, 5.0)) / 2.0;
+        built_and_drawn(
+            &body,
+            BALL_OF_5 - taken,
+            TAU * 5.0 * 10.0 + TAU * 10.0 + TAU * 2.0 * 10.0,
+            &what,
+        );
+    }
+}
+
+/// The ball bored off its axis, then bored again by the same hole: the second
+/// cut meets the sphere along the very loops the first left, and takes
+/// nothing more.
+#[test]
+fn a_ball_bored_off_its_axis_and_bored_again_by_the_same_hole_holds_what_it_held() {
+    let bore = bore_off_the_centre(DVec3::X, DVec3::Z, 1.0, 1.5);
+    let bored = ball_about_y().difference(&bore).expect("the ball is bored");
+    let what = "the bored ball bored again by the same hole";
+    let again = bored
+        .difference(&bore)
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    built_and_drawn(
+        &again,
+        BALL_OF_5 - bore_inside_a_ball(1.0, 1.5, 5.0),
+        TAU * 5.0 * 10.0 + TAU * 10.0,
+        what,
+    );
+}
+
+/// The plug a bore off the ball's axis takes out, the ball less the bored
+/// ball, is the bore's piece inside the ball; joined back with the bored
+/// ball, it gives the ball whole. The two meet along the bore's loops, on one
+/// sphere.
+#[test]
+fn the_plug_a_bore_off_a_ball_s_axis_takes_out_joins_back_with_the_bored_ball_into_the_ball() {
+    let bored = ball_about_y()
+        .difference(&bore_off_the_centre(DVec3::X, DVec3::Z, 1.0, 1.5))
+        .expect("the ball is bored");
+    let what = "the plug the bore takes out of the ball";
+    let plug = ball_about_y()
+        .difference(&bored)
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    let curved = TAU * 5.0 * 10.0 + TAU * 10.0;
+    built_and_drawn(&plug, bore_inside_a_ball(1.0, 1.5, 5.0), curved, what);
+    let what = "the bored ball and its plug joined back";
+    let whole = bored
+        .union(&plug)
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    built_and_drawn(&whole, BALL_OF_5, curved, what);
+}
+
+/// A shell, the ball of radius 5 less the ball of radius 3 about its centre,
+/// bored off its axis right through both spheres: the loops on the one
+/// sphere are none of the other's, though the two turn about one centre.
+#[test]
+fn a_hollow_ball_bored_off_its_axis_is_built_and_drawn_within_the_drawing_s_tolerance() {
+    let shell = ball_about_y()
+        .difference(&ball_about_y_of(3.0, DVec3::ZERO))
+        .expect("the ball is hollowed");
+    let what = "the hollow ball bored off its axis";
+    let body = shell
+        .difference(&bore_off_the_centre(DVec3::X, DVec3::Z, 1.0, 1.5))
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    let taken = bore_inside_a_ball(1.0, 1.5, 5.0) - bore_inside_a_ball(1.0, 1.5, 3.0);
+    built_and_drawn(
+        &body,
+        BALL_OF_5 - 36.0 * PI - taken,
+        TAU * 5.0 * 10.0 + TAU * 3.0 * 6.0 + TAU * 10.0,
+        what,
+    );
+}
+
+/// Two balls of radius 5, about the origin and 12 along X from it, bored
+/// through by one hole along X 1.5 off both centres: the loops on the one
+/// sphere are none of the other's, though the two are of one radius.
+#[test]
+fn two_balls_of_one_radius_bored_through_by_one_hole_are_built_and_drawn_within_the_drawing_s_tolerance()
+ {
+    let two = ball_about_y()
+        .union(&ball_about_y_of(5.0, DVec3::X * 12.0))
+        .expect("the two balls stand apart");
+    let what = "two balls of one radius bored through by one hole";
+    let body = two
+        .difference(&bore_between(DVec3::X, DVec3::Z, 1.0, 1.5, [-10.0, 22.0]))
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    built_and_drawn(
+        &body,
+        2.0 * (BALL_OF_5 - bore_inside_a_ball(1.0, 1.5, 5.0)),
+        2.0 * TAU * 5.0 * 10.0 + TAU * 32.0,
+        what,
+    );
 }
 
 #[test]

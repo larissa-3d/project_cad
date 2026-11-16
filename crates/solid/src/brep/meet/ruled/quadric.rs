@@ -20,8 +20,10 @@ pub(in crate::brep::meet) struct Quadric {
 }
 
 impl Quadric {
-    pub fn of(wall: &Wall) -> Quadric {
-        match wall {
+    /// The wall as a quadric; none for a sphere, which is no quadric of two
+    /// halves about an axis.
+    pub fn of(wall: &Wall) -> Option<Quadric> {
+        Some(match wall {
             Wall::Cylinder(cylinder) => Quadric {
                 origin: cylinder.origin,
                 axis: cylinder.axis,
@@ -34,13 +36,17 @@ impl Quadric {
                 halves: [(oval.u, oval.major), (oval.v, oval.minor)],
                 cone: None,
             },
-            Wall::Cone(cone) => Quadric {
-                origin: cone.origin,
-                axis: cone.axis,
-                halves: [(cone.u, 1.0), (cone.v, 1.0)],
-                cone: Some(*cone),
-            },
-            Wall::Sphere(_) => unreachable!("a cone's rulings are never read against a sphere"),
+            Wall::Cone(cone) => Quadric::of_cone(cone),
+            Wall::Sphere(_) => return None,
+        })
+    }
+
+    pub fn of_cone(cone: &Cone) -> Quadric {
+        Quadric {
+            origin: cone.origin,
+            axis: cone.axis,
+            halves: [(cone.u, 1.0), (cone.v, 1.0)],
+            cone: Some(*cone),
         }
     }
 

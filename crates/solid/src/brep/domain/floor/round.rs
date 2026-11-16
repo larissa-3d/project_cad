@@ -234,11 +234,11 @@ fn whole_round(pole: &Pole, turns: f64, flipped: bool) -> Vec<Trace> {
 /// axis — or, where every trace runs along the meridian at its middle, as a
 /// loop round a bore along the axis does at its middle (#805), from a quarter
 /// of the way along one, then three quarters — which keeps the face on its
-/// left seen from outside the matter: the
-/// face lies above it where it runs forwards and its surface's normal points
-/// out, below it on a `flipped` face, and the pole is inside where the other
-/// traces are crossed an even number of times on the way. A face with no
-/// loop holds every pole; one bounded by meridians alone holds none.
+/// left seen from outside the matter: the face lies above it where it runs
+/// forwards and its surface's normal points out, below it on a `flipped`
+/// face, and the pole is inside where the other traces are crossed an even
+/// number of times on the way. A face with no loop holds every pole; one
+/// bounded by meridians alone holds none.
 pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -> bool {
     if loops
         .iter()

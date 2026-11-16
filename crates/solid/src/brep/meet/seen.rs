@@ -46,7 +46,6 @@ impl Meet {
         let pair = self.pair();
         let signs = pair.signs(self.component);
         let [point, speed, bend] = pair.local(signs, t);
-        let start = self.start(&pair, on_first);
         if on_first {
             let across = match self.first {
                 Wall::Cylinder(_) | Wall::Cone(_) => {
@@ -59,7 +58,7 @@ impl Meet {
                 Wall::Sphere(_) => return [DVec2::NAN; 3],
             };
             let around = around_first(&pair, signs[0], t);
-            let [angle, turn, sway] = angles(across, around, start);
+            let [angle, turn, sway] = angles(across, around, self.start(&pair, true));
             [
                 DVec2::new(angle, pair.rise(point)),
                 DVec2::new(turn, pair.rise(speed)),
@@ -80,7 +79,7 @@ impl Meet {
                 Wall::Sphere(ball) => return self.seen_on_the_ball(&pair, &ball, t),
             };
             let around = around_second(&pair, signs[1], t);
-            let [angle, turn, sway] = angles(across, around, start);
+            let [angle, turn, sway] = angles(across, around, self.start(&pair, false));
             let axis = self.second.axis();
             let height = (pair.world(point) - self.second.origin()).dot(axis);
             [

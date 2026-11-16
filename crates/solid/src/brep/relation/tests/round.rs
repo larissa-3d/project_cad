@@ -8,7 +8,7 @@
 //!
 //! Closes #805 — its second slice's relation only, a cylinder of another axis
 //! against a sphere. The slice's crossings are answered in
-//! `crossing/round.rs`, its faces drawn in `body/tests.rs`, and its fillet and
+//! `crossing/pierced.rs`, its faces drawn in `body/tests.rs`, and its fillet and
 //! its STEP export in
 //! `tests/a_chamfer_and_a_fillet_fill_a_concave_edge_up_to_a_curved_end.rs`,
 //! each file with its own criteria.
