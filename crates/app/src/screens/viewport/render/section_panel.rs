@@ -15,9 +15,9 @@ use crate::ui::floating_panel::tool_panel;
 mod steps;
 
 /// Draws the panel while the section is on, carries out what was done in it,
-/// and says its current step over the view. Échap or the control in its title
-/// closes it, and with it the section, and the step it said goes with it.
-/// Returns true when the section was kept in the part.
+/// and says its current step over the view. Échap, the control in its title
+/// or the section kept closes it, and with it the section, and the step it
+/// said goes with it. Returns true when the section was kept in the part.
 pub(crate) fn paint_section_panel(
     ui: &egui::Ui,
     state: &mut ViewportState,
@@ -60,12 +60,20 @@ pub(crate) fn paint_section_panel(
     }
     // A sketch edited under the section has the message and `Entrée` to
     // itself.
-    if context.editor.active_sketch().is_some() {
+    let sketching = context.editor.active_sketch().is_some();
+    let bare_enter = !sketching && ui.input(|input| input.key_pressed(egui::Key::Enter));
+    let entered = !sketching && (asked.enter || bare_enter);
+    let kept = asked.keep || (entered && section.enter(context.document));
+    // A section kept, its panel closes as Échap closes it.
+    if kept {
+        state.section = None;
         unsay(ui.ctx(), id, context);
-        return asked.keep;
+        return true;
     }
-    let bare_enter = ui.input(|input| input.key_pressed(egui::Key::Enter));
-    let kept = asked.keep || ((asked.enter || bare_enter) && section.enter(context.document));
+    if sketching {
+        unsay(ui.ctx(), id, context);
+        return false;
+    }
     let said = section.said(lang);
     ui.ctx()
         .data_mut(|data| data.insert_temp(id.with("said"), said.clone()));

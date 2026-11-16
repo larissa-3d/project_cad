@@ -77,8 +77,13 @@
 //!   `enter_on_the_section_s_last_step_while_its_face_is_still_to_click_keeps_nothing_and_goes_back_to_it`,
 //!   under its own `Closes #739`, which says what was decided on the way;
 //!   ↵ through the whole application, in `crates/app/tests/keeping_a_section.rs`,
-//!   by `with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_keeps_it_on_the_last`
-//!   and `with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section`,
+//!   by `with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_on_the_last_keeps_it_and_closes`
+//!   and `with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section`;
+//!   found in trying it, the panel closes once the section is kept, and the
+//!   next « Vue en coupe » opens on the face, by
+//!   `keeping_the_section_closes_its_panel_and_the_next_section_view_opens_on_its_face`,
+//!   and the two sides stand on one row, by
+//!   `the_two_sides_of_the_section_stand_on_one_row_whatever_they_are_drawn_as`;
 //!   under its own `Closes #739`
 //! - The message pill follows the section's step; a test on the wording
 //!   checks it — no test: here; held in

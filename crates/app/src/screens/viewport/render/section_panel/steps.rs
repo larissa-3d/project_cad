@@ -8,6 +8,7 @@ use super::super::live_fields::{left_on_enter, value_field};
 use super::super::step_panel::{foot, step, title};
 use crate::screens::SketchContext;
 use crate::screens::viewport::section::{Section, SectionField, SectionStep};
+use crate::ui::chip::{ChipKind, chip};
 use crate::ui::floating_panel::panel_row;
 use crate::ui::primary_button::primary_button;
 use crate::ui::theme::tokens::SPACING_XXL;
@@ -143,24 +144,31 @@ fn tilt(section: &mut Section, at: SectionField) -> &mut f64 {
     }
 }
 
-/// How the matter behind and in front is drawn, each a button stepping
-/// through hidden, see-through and opaque; « Inverser » swaps the two.
+/// How the matter behind and in front is drawn: each side's name over the
+/// state it is drawn in, either stepping it through hidden, see-through and
+/// opaque; « Inverser » swaps the two. The state stands under the name so
+/// that the two sides keep to one row whatever they are drawn as.
 fn sides(ui: &mut egui::Ui, section: &mut Section, context: &SketchContext<'_>) {
     let lang = context.lang;
     let mut clicked = false;
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .button(said::side(lang, Side::Behind, section.behind))
-            .clicked()
-        {
-            section.next_behind();
-            clicked = true;
-        }
-        if ui
-            .button(said::side(lang, Side::InFront, section.in_front))
-            .clicked()
-        {
-            section.next_in_front();
+    ui.horizontal(|ui| {
+        for side in [Side::Behind, Side::InFront] {
+            let drawn = match side {
+                Side::Behind => section.behind,
+                Side::InFront => section.in_front,
+            };
+            let stepped = ui
+                .vertical(|ui| {
+                    let named = ui.button(said::side(lang, side)).clicked();
+                    let state = crate::wording::matter::state(lang, drawn);
+                    named | chip(ui, &state, ChipKind::Selection).clicked()
+                })
+                .inner;
+            match (stepped, side) {
+                (false, _) => continue,
+                (true, Side::Behind) => section.next_behind(),
+                (true, Side::InFront) => section.next_in_front(),
+            }
             clicked = true;
         }
     });

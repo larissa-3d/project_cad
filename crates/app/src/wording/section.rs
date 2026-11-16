@@ -2,7 +2,6 @@
 //! the section waits on one of its steps.
 
 use cao_prefs::Command;
-use cao_render::MatterInFront;
 
 use crate::lang::Catalogue;
 
@@ -13,14 +12,12 @@ pub enum Side {
     InFront,
 }
 
-/// A side's row: which side, and how its matter is drawn.
-pub fn side(lang: &Catalogue, side: Side, state: MatterInFront) -> String {
-    let state = super::matter::state(lang, state);
-    let key = match side {
+/// A side's name, which the state its matter is drawn in stands under.
+pub fn side(lang: &Catalogue, side: Side) -> String {
+    lang.t(match side {
         Side::Behind => "section.behind",
         Side::InFront => "section.in_front",
-    };
-    lang.t_with(key, &[("state", &state)])
+    })
 }
 
 /// What a numbered step of the section view's panel asks for.

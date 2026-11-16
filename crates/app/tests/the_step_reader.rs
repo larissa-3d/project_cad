@@ -989,7 +989,6 @@ fn a_sketch_laid_on_a_kept_section_while_read_to_a_box_goes_at_the_end() {
     driver::click_in_the_bar(&mut app, "Vue en coupe");
     driver::click(&mut app, "Plan YZ");
     driver::click_the_button(&mut app, "Enregistrer la coupe");
-    driver::click_the_button(&mut app, "Fermer");
     driver::click_the_button(&mut app, "Coupe 1");
     driver::click_in_the_ribbon(&mut app, "Nouvelle esquisse");
     driver::click_at_world_point(&mut app, driver::ON_THE_CUT);
