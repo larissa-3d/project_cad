@@ -211,7 +211,8 @@ It can:
   the faces it meets at its ends. That last one checks what the cut left:
   no face of the prism but its chamfer, the chamfer in one piece, each of
   its corners on one of the edge's faces, and every face the body held
-  still there but the edge's two, which the chamfer may consume. An edge
+  still there but the edge's two, which the chamfer may consume, and a
+  piece an earlier cut parted from either of them, which may go too. An edge
   ending where matter lies past it, behind the one flat face it runs into
   there — an arm's edge running into the stem of an L, a pocket's rim, an
   upright of a block standing on another — stops flush instead (#801,
@@ -396,7 +397,8 @@ It can:
   rim, whose whole circle reaches past the corner under the fill (#805).
   The check is the cut's: one new face, in one piece, its
   corners on the edge's two faces, nothing else of the prism left, and no face
-  of the body gone but those two. A flat face facing back along the edge,
+  of the body gone but those two, or a piece an earlier cut parted from
+  either. A flat face facing back along the edge,
   matter lying past it — the floor a pocket's upright stands on, the plate's
   top under a boss's inner corner, a pocket's wall at the end of its floor
   edge, where three concave edges meet at one corner — trims the fill flush

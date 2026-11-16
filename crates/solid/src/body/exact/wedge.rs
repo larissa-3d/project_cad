@@ -29,7 +29,7 @@ use std::collections::BTreeSet;
 
 use glam::DVec3;
 
-use super::{Exact, PIECES, root};
+use super::{Exact, PIECES, lineage, root};
 use crate::body::caught::caught;
 use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale, VertexId};
 use crate::profile::{Contour, Frame};
@@ -309,15 +309,13 @@ impl Exact {
             .flat_map(|wedge| wedge.numbers.iter().flatten().copied())
             .chain(taken.iter().copied())
             .collect();
-        let parted_from = |piece: &u32| (before.roots.get(piece).copied()).filter(|up| up < piece);
-        let consumed = |number: &u32| {
-            std::iter::successors(Some(*number), parted_from).any(|up| consumable.contains(&up))
-        };
+        let may_be_consumed =
+            |number: &u32| lineage(&before.roots, *number).any(|up| consumable.contains(&up));
         let kept = before
             .brep
             .face_ids()
             .flat_map(|face| numbers(&before.brep, face))
-            .filter(|number| !consumed(number) && !(OVERLAPS..PIECES).contains(number))
+            .filter(|number| !may_be_consumed(number) && !(OVERLAPS..PIECES).contains(number))
             .all(|number| self.has_face(number as usize));
         !stray && !parted && self.has_face(made as usize) && on_a_side && kept
     }
