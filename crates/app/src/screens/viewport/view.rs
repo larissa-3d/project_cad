@@ -22,7 +22,7 @@ use super::render::{
     frame_of, paint_band, paint_chamfer_sides_panel, paint_copy_panel, paint_dimension_field,
     paint_dimension_labels, paint_face_labels, paint_measure, paint_pattern_labels,
     paint_rule_marks, paint_ruler, paint_section_handle, paint_section_panel, push_blinking_matter,
-    turning_guides, what_is_measured, what_would_go,
+    right_of_the_section_panel, turning_guides, what_is_measured, what_would_go,
 };
 use super::state::{GestureGoesTo, ViewScale, ViewportState, cube_rect, gesture_goes_to};
 use super::values::refused_for_what_is_typed;
@@ -125,7 +125,8 @@ pub fn show(
         true => Vec::new(),
         false => state.sketches_read(sketch.document),
     };
-    let extrusion_asked = paint_extrusion_panel(ui, rect, &read, sketch);
+    let beside_the_section = state.section().map(|_| right_of_the_section_panel(rect));
+    let extrusion_asked = paint_extrusion_panel(ui, (rect, beside_the_section), &read, sketch);
 
     // A measure read a moment ago is about a drawing that has just moved, so
     // it goes with the change rather than staying on screen being wrong.

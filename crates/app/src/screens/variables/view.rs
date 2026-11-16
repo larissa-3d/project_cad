@@ -166,7 +166,12 @@ fn one_row(
     }
     match (erase, left && !holding && panel.is_editing(row.variable)) {
         (true, _) => Some(VariablesAction::Erase(row.variable)),
-        (false, true) => Some(VariablesAction::Commit),
+        // An Enter that gave the keyboard back is eaten, as `entered` eats
+        // its own, so that it commits the row and nothing drawn after it.
+        (false, true) => {
+            ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
+            Some(VariablesAction::Commit)
+        }
         (false, false) => None,
     }
 }

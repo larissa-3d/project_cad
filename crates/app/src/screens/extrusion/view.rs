@@ -24,14 +24,22 @@ use crate::wording::{self, constraints};
 
 /// Draws the panel while an extrusion is being set, or the sketches `read`
 /// to choose from while none is offered — nothing when `read` is empty — and
-/// says what was asked in it.
+/// says what was asked in it. Open beside another panel, it stands at
+/// `beside`, and is moved there apart from where it stands alone, so that it
+/// goes back there once the other is closed.
 pub(crate) fn paint_extrusion_panel(
     ui: &egui::Ui,
-    view: egui::Rect,
+    (view, beside): (egui::Rect, Option<egui::Pos2>),
     read: &[usize],
     context: &mut SketchContext<'_>,
 ) -> Option<Command> {
-    let left_at = view.min + egui::vec2(SPACING_XXL, SPACING_XXL);
+    let (id, left_at) = match beside {
+        Some(at) => (egui::Id::new("extrusion_panel_beside"), at),
+        None => (
+            egui::Id::new("extrusion_panel"),
+            view.min + egui::vec2(SPACING_XXL, SPACING_XXL),
+        ),
+    };
     let Some(panel) = context.extrusion.panel(context.document) else {
         if context.extrusion.sketch.is_none() {
             let under_the_pill = egui::vec2(SPACING_XXL, BOTTOM_BELOW_THE_EDGE + SPACING_XXL);
@@ -50,11 +58,11 @@ pub(crate) fn paint_extrusion_panel(
     let named = wording::sketch::name(lang, context.document, panel.sketch);
     let close = lang.t("panel.close");
     let heading = (title.as_str(), named.as_str(), close.as_str());
-    let id = egui::Id::new("extrusion_panel");
     let floated = tool_panel(ui.ctx(), id, heading, (left_at, view), |ui| {
         sections(ui, &panel, context)
     });
-    let entered = panel.applies && ui.input(|input| input.key_pressed(egui::Key::Enter));
+    let entered = panel.applies
+        && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
     match floated.closed {
         true => Some(Command::ExtrusionCancel),
         false => floated.inner.or(entered.then_some(Command::ExtrusionApply)),
@@ -105,7 +113,7 @@ fn sections(ui: &mut egui::Ui, panel: &Panel, context: &mut SketchContext<'_>) -
 
     let mut around = panel.around_an_axis;
     let reshaped = ui
-        .add_enabled_ui(context.extrusion.reopened.is_none(), |ui| {
+        .add_enabled_ui(panel.shape_can_change, |ui| {
             ui.checkbox(&mut around, lang.t("extrusion.around_an_axis"))
                 .changed()
         })

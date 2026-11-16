@@ -11,7 +11,9 @@
 //!   theme's colour of an addition or of a cut as the mode says, the same
 //!   volume either way; and nothing standing off the plane while nothing is
 //!   previewed —
-//!   `the_frame_carries_the_volume_previewed_see_through_in_the_colour_of_its_mode`
+//!   `the_frame_carries_the_volume_previewed_see_through_in_the_colour_of_its_mode`;
+//!   and a revolution's, its area turned whole about its axis —
+//!   `the_frame_carries_the_revolution_previewed_see_through_in_the_colour_of_its_mode`
 
 use cao_part::PartDocument;
 use cao_part::history::{ExtrusionMode, Operation, PointRef};
@@ -269,5 +271,57 @@ fn the_frame_carries_the_volume_previewed_see_through_in_the_colour_of_its_mode(
     assert!(
         worn_off_the_plane(&unread, theme.extrusion_add).is_empty(),
         "a depth that does not read is previewed all the same",
+    );
+}
+
+/// The area picked, turned whole about V, as `mode`.
+fn turned_about_v(mode: ExtrusionMode) -> impl FnOnce(&mut ExtrusionState) {
+    move |extrusion| {
+        extrusion.arm(mode);
+        extrusion.picks = vec![INSIDE];
+        extrusion.shape = Shape::Revolution;
+        extrusion.axis = cao_part::RevolutionAxis::Sketch(cao_sketch::SketchAxis::V);
+        extrusion.angle_input = "360".to_string();
+    }
+}
+
+#[test]
+fn the_frame_carries_the_revolution_previewed_see_through_in_the_colour_of_its_mode() {
+    let theme = ViewportState::default().theme;
+    let added = a_frame(turned_about_v(ExtrusionMode::Add));
+    let cut = a_frame(turned_about_v(ExtrusionMode::Cut));
+
+    let green = worn_off_the_plane(&added, theme.extrusion_add);
+    assert!(
+        !green.is_empty(),
+        "a revolution previewed, the frame carries no see-through volume in the colour of an \
+         addition",
+    );
+    let corners: Vec<[f32; 3]> = green.iter().flatten().copied().collect();
+    let on_the_turn =
+        |[x, y, z]: &[f32; 3]| x * x + z * z <= 100.0 + 1e-2 && (-PLACE..=20.0 + PLACE).contains(y);
+    assert!(
+        corners.iter().all(on_the_turn),
+        "the 10 by 20 area from the V axis, turned whole about it, is not previewed inside the \
+         cylinder 10 round it from 0 to 20: {corners:?}",
+    );
+    let top = corners.iter().map(|[_, _, z]| *z).fold(f32::MIN, f32::max);
+    assert!(
+        top > 9.0,
+        "the turn previewed rises to {top}, short of its radius of 10",
+    );
+    assert!(
+        worn_off_the_plane(&added, theme.extrusion_cut).is_empty(),
+        "a revolution adding matter is previewed in the colour of a cut",
+    );
+
+    assert_eq!(
+        worn_off_the_plane(&cut, theme.extrusion_cut),
+        green,
+        "the same turn as a cut is not the same volume previewed, in the colour of a cut",
+    );
+    assert!(
+        worn_off_the_plane(&cut, theme.extrusion_add).is_empty(),
+        "a revolution cutting matter is previewed in the colour of an addition",
     );
 }

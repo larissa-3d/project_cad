@@ -34,7 +34,9 @@
 //!   its own block for #740. How the GPU blends it is checked by eye, the
 //!   renderer having no test but the `offscreen` example
 //! - The extrusion row under the ribbon is gone —
-//!   `extruding_a_sketch_lays_no_row_under_the_ribbon`
+//!   `extruding_a_sketch_lays_no_row_under_the_ribbon`, which reads neither
+//!   the row's words nor the panel's own outside the view, nor a field there
+//!   holding the depth
 //! - Every way of extruding today, and editing an existing extrusion, work as
 //!   before — from the panel, a straight addition, a cut and a reversed one —
 //!   `an_addition_applied_from_the_panel_raises_the_area_by_its_depth`,
@@ -50,6 +52,21 @@
 //!   part the kernel declines it needs. The tests that drove an extrusion
 //!   through the row, `driver::a_block` first, go through the panel instead
 //!   and pass as they did
+//! - found in review: ↵ is the panel's own key, as the copy panel's and the
+//!   section view's are: with nothing focused it applies the step as set —
+//!   `enter_with_nothing_focused_applies_the_extrusion_as_set_in_the_panel` —
+//!   and with the sketch still open it applies the step and leaves the sketch
+//!   open — `enter_with_the_sketch_open_applies_the_extrusion_and_leaves_the_sketch_open`;
+//!   an ↵ that commits a variable retuned in the Variables panel applies
+//!   nothing, the panel following the new value —
+//!   `an_enter_that_commits_a_variable_retuned_applies_no_extrusion`; with a
+//!   list of names open in the depth, ↵ completes the name, held in
+//!   `crates/app/tests/completion.rs` by
+//!   `the_start_of_a_name_in_the_extrusion_panel_is_completed_too`
+//! - found in review: the extrusion's panel and the section view's may be
+//!   open together, and never one over the other: the extrusion's stands to
+//!   the right of the section's —
+//!   `the_extrusion_panel_stands_to_the_right_of_the_section_panel`
 
 mod driver;
 
@@ -231,6 +248,59 @@ fn assert_along_x(part: &PartDocument, from: f64, to: f64, what: &str) {
 /// What a hand does in the application.
 type Gesture = fn(&mut driver::App);
 
+/// On the block `driver::a_block` raises, in the world: a point of its
+/// sketch on YZ, inside the area the block was raised from.
+const ON_THE_BLOCK_S_AREA: DVec3 = DVec3::new(0.0, 57.5, -4.05);
+
+/// The mode of the last straight extrusion the part records.
+fn the_last_raise(part: &PartDocument) -> Option<ExtrusionMode> {
+    part.history
+        .applied_operations()
+        .iter()
+        .rev()
+        .find_map(|operation| match operation {
+            Operation::Extrude { mode, .. } => Some(*mode),
+            _ => None,
+        })
+}
+
+/// Where the floating panel titled this stands: the bounds of everything
+/// laid in the same layer as its title — a line of text, never the button of
+/// the same name — each floating panel being a layer of its own.
+fn the_panel_titled(app: &driver::App, title: &str) -> Option<egui::Rect> {
+    let layer = |node: &egui_kittest::Node<'_>| {
+        let mut at = node.accesskit_node();
+        while let Some(up) = at.parent() {
+            if up.parent().is_none() {
+                break;
+            }
+            at = up;
+        }
+        at.id()
+    };
+    let heading = app.query_all_by_role(Role::Label).find(|node| {
+        node.accesskit_node().value().as_deref() == Some(title)
+            && driver::stands_inside_the_view(app, node.rect())
+    })?;
+    let panel = layer(&heading);
+    app.get_all_by(|_| true)
+        .filter(|node| node.accesskit_node().bounding_box().is_some() && layer(node) == panel)
+        .map(|node| node.rect())
+        .reduce(|one, other| one.union(other))
+}
+
+/// A part with `thickness` at 15, made in the Variables panel, which is
+/// closed again.
+fn a_part_with_a_thickness_of_15(test: &str) -> driver::App {
+    let mut app = a_part(test);
+    driver::click_the_button(&mut app, "Variables");
+    driver::type_into(&mut app, "nom", "thickness");
+    driver::type_into(&mut app, "formule", "15");
+    driver::click_exactly(&mut app, "Ajouter");
+    driver::click_the_button(&mut app, "Variables");
+    app
+}
+
 /// The last revolution the part records.
 fn the_last_turn(part: &PartDocument) -> Option<(RevolutionAxis, ExtrusionMode)> {
     part.history
@@ -381,12 +451,7 @@ fn a_cut_chosen_in_the_ribbon_turns_the_panel_to_a_cut() {
 
 #[test]
 fn a_depth_written_with_a_variable_shows_it_as_a_chip_and_what_it_comes_to() {
-    let mut app = a_part("a_depth_written_with_a_variable");
-    driver::click_the_button(&mut app, "Variables");
-    driver::type_into(&mut app, "nom", "thickness");
-    driver::type_into(&mut app, "formule", "15");
-    driver::click_exactly(&mut app, "Ajouter");
-    driver::click_the_button(&mut app, "Variables");
+    let mut app = a_part_with_a_thickness_of_15("a_depth_written_with_a_variable");
     draw_the_rectangle_and_finish(&mut app);
     choose_the_area_to_add_matter(&mut app);
 
@@ -550,11 +615,124 @@ fn extruding_a_sketch_lays_no_row_under_the_ribbon() {
     let read = read_outside_the_view(&app);
     let left: Vec<&str> = THE_OLD_ROW
         .into_iter()
+        .chain(["Profondeur", "Appliquer ↵", "Aires"])
         .filter(|text| read.iter().any(|outside| outside == text))
         .collect();
     assert!(
         left.is_empty(),
-        "an area chosen to extrude, the row under the ribbon still reads {left:?}; outside the \
-         view: {read:?}",
+        "an area chosen to extrude, outside the view still reads {left:?}; outside the view: \
+         {read:?}",
+    );
+    let depth = driver::the_depth(&app);
+    let fields_outside: Vec<String> = app
+        .query_all_by_role(Role::TextInput)
+        .filter(|field| !driver::stands_inside_the_view(&app, field.rect()))
+        .filter_map(|field| field.accesskit_node().value())
+        .filter(|held| *held == depth)
+        .collect();
+    assert!(
+        fields_outside.is_empty(),
+        "an area chosen to extrude, a field outside the view holds the depth « {depth} »",
+    );
+}
+
+#[test]
+fn enter_with_nothing_focused_applies_the_extrusion_as_set_in_the_panel() {
+    let test = "enter_with_nothing_focused_applies_the_extrusion";
+    let mut app = an_area_chosen_to_add_matter(test);
+    click_in_the_panel(&mut app, "Enlèvement");
+
+    driver::press(&mut app, egui::Key::Enter);
+
+    let still_open = driver::the_extrusion_panel_is_open(&app);
+    let part = put_away(&mut app, test);
+    assert!(
+        !still_open && the_last_raise(&part) == Some(ExtrusionMode::Cut),
+        "« Enlèvement » chosen and ↵ pressed, the panel is still open ({still_open}) or the part \
+         records {:?}, not the cut",
+        the_last_raise(&part),
+    );
+}
+
+#[test]
+fn enter_with_the_sketch_open_applies_the_extrusion_and_leaves_the_sketch_open() {
+    let test = "enter_with_the_sketch_open_applies_the_extrusion";
+    let mut app = a_part(test);
+    driver::start_a_sketch(&mut app);
+    driver::click(&mut app, "Rectangle (R)");
+    driver::click_at_sketch_point(&mut app, driver::A_POINT_ABOVE_THE_ORIGIN);
+    driver::click_at_sketch_point(&mut app, driver::A_POINT_BELOW_AND_RIGHT);
+    driver::click_exactly(&mut app, "Extrusion");
+    driver::click_the_button(&mut app, "1");
+    driver::click(&mut app, "Ajout de matière");
+    driver::click_at_sketch_point(&mut app, driver::INSIDE_THE_RECTANGLE);
+    click_in_the_panel(&mut app, "Enlèvement");
+
+    driver::press(&mut app, egui::Key::Enter);
+
+    let sketching = driver::a_sketch_is_open(&app);
+    let still_open = driver::the_extrusion_panel_is_open(&app);
+    let part = put_away(&mut app, test);
+    assert!(
+        sketching,
+        "↵ in the extrusion's panel finished the sketch under it",
+    );
+    assert!(
+        !still_open && the_last_raise(&part) == Some(ExtrusionMode::Cut),
+        "↵ with the sketch open, the panel is still open ({still_open}) or the part records \
+         {:?}, not the cut",
+        the_last_raise(&part),
+    );
+}
+
+#[test]
+fn an_enter_that_commits_a_variable_retuned_applies_no_extrusion() {
+    let test = "an_enter_that_commits_a_variable_retuned";
+    let mut app = a_part_with_a_thickness_of_15(test);
+    draw_the_rectangle_and_finish(&mut app);
+    choose_the_area_to_add_matter(&mut app);
+    driver::type_the_depth(&mut app, "thickness * 2");
+    driver::click_the_button(&mut app, "Variables");
+
+    driver::type_over(&mut app, "15", "20");
+    driver::press(&mut app, egui::Key::Enter);
+    app.run();
+
+    let still_open = driver::the_extrusion_panel_is_open(&app);
+    let read = read_over_the_view(&app);
+    let part = put_away(&mut app, test);
+    assert!(
+        still_open && the_last_raise(&part).is_none(),
+        "↵ committing thickness at 20 closed the extrusion's panel ({}) or raised {:?}",
+        !still_open,
+        the_last_raise(&part),
+    );
+    assert!(
+        read.iter().any(|over| over == "= 40 mm"),
+        "thickness retuned to 20, the panel does not read « = 40 mm »; over the view: {read:?}",
+    );
+}
+
+#[test]
+fn the_extrusion_panel_stands_to_the_right_of_the_section_panel() {
+    let mut app = driver::a_block("the_extrusion_panel_stands_to_the_right");
+    driver::click_in_the_ribbon(&mut app, "Ajout de matière");
+    driver::click_at_world_point(&mut app, ON_THE_BLOCK_S_AREA);
+
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+
+    let extrusion = the_panel_titled(&app, "Extrusion droite");
+    let section = the_panel_titled(&app, "Vue en coupe");
+    let (Some(extrusion), Some(section)) = (extrusion, section) else {
+        panic!(
+            "the extrusion's panel ({extrusion:?}) or the section view's ({section:?}) is not \
+             open; over the view: {:?}",
+            read_over_the_view(&app),
+        );
+    };
+    assert!(
+        !extrusion.intersects(section) && extrusion.left() >= section.right() - 0.5,
+        "the extrusion's panel at {extrusion:?} does not stand to the right of the section \
+         view's at {section:?}",
     );
 }

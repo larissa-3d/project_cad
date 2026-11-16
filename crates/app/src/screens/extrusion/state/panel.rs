@@ -14,6 +14,9 @@ pub struct Panel {
     pub matter: ExtrusionMode,
     pub extent: Extent,
     pub around_an_axis: bool,
+    /// Whether « Autour d'un axe » may change the shape: a step reopened
+    /// keeps its own.
+    pub shape_can_change: bool,
     pub reversed: bool,
     pub applies: bool,
 }
@@ -62,6 +65,7 @@ impl ExtrusionState {
             matter,
             extent,
             around_an_axis: self.is_revolving(),
+            shape_can_change: self.reopened.is_none(),
             reversed: self.reversed,
             applies: self.is_ready(variables),
         })

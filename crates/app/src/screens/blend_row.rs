@@ -8,8 +8,8 @@ use crate::screens::variables::{NAMING, offered};
 use crate::ui::formula_field::formula_field;
 use crate::wording::{blend as said, command, formula, outcome};
 
-/// The size an edge is chamfered or rounded by, shown while the edge panel is
-/// open, in the place the extrusion's values take.
+/// The size an edge is chamfered or rounded by, shown under the ribbon while
+/// the edge panel is open.
 pub(super) fn blend_row(
     ui: &mut egui::Ui,
     document: &PartDocument,

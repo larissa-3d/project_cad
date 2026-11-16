@@ -83,7 +83,10 @@
 //!   a clicked trait) — the presenter's half: the switch on, the panel is the
 //!   revolution's, its angle with what it comes to and its axis in place of
 //!   the depth —
-//!   `the_panel_holds_the_step_as_set_and_turns_into_a_revolution_around_an_axis`
+//!   `the_panel_holds_the_step_as_set_and_turns_into_a_revolution_around_an_axis`;
+//!   found in review: a step reopened keeps its shape, and its panel says the
+//!   switch cannot change it, rather than the view working it out —
+//!   `a_reopened_step_s_panel_says_its_shape_cannot_change`
 //! - The view draws the extruded volume alone, not fused into the part,
 //!   see-through, green for an addition and red for a cut, and redraws it at
 //!   every keystroke — the presenter's half: what the view is to draw is the
@@ -906,5 +909,27 @@ fn the_panel_holds_the_step_as_set_and_turns_into_a_revolution_around_an_axis() 
     assert!(
         extrusion.panel(&document).is_none(),
         "a panel stands once the extrusion is closed",
+    );
+}
+
+#[test]
+fn a_reopened_step_s_panel_says_its_shape_cannot_change() {
+    let document = a_square_raised_then_cut_the_other_way();
+    let armed = armed_on(vec![IN_THE_SQUARE]);
+    let reopened =
+        ExtrusionState::reopened(&document, THE_RAISE).expect("the square's raise reopens");
+
+    let afresh = armed.panel(&document).expect("armed on a sketch, a panel");
+    let on_its_step = reopened
+        .panel(&document)
+        .expect("reopened on its step, a panel");
+
+    assert!(
+        afresh.shape_can_change,
+        "a step set afresh says « Autour d'un axe » cannot change its shape",
+    );
+    assert!(
+        !on_its_step.shape_can_change,
+        "a step reopened says « Autour d'un axe » can turn it into another shape",
     );
 }

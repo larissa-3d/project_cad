@@ -218,10 +218,13 @@ impl CaoApp {
         asked.extend(
             shortcuts_pressed(ui, &settings, |command| {
                 // Enter moves through the panel of a tool laying copies rather
-                // than finishing the sketch under it, and through the section
-                // view's while no sketch is edited under it.
+                // than finishing the sketch under it, through the section
+                // view's while no sketch is edited under it, and applies the
+                // extrusion's once it can.
                 let sectioning = viewport.section().is_some() && editor.active_sketch().is_none();
-                command == Command::FinishSketch && (editor.copy_panel().is_some() || sectioning)
+                let extruding = extrusion.is_active() && extrusion.is_ready(doc.variables());
+                command == Command::FinishSketch
+                    && (editor.copy_panel().is_some() || sectioning || extruding)
             })
             .into_iter()
             .map(|command| blend.answering(command))
