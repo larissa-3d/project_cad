@@ -204,10 +204,10 @@
 //!   stretch, which the step must not take for the later edge — no test: it
 //!   cannot be reached through the public API. Such an edge has matter right
 //!   beside the line, within the margin the later edge's own prism stands off
-//!   its faces, carried past the body's box along the line; the later edge
-//!   is declined alone, `Unsupported`, before any corner is read. A slot
-//!   across the block's top, parting its front edge in two, does so for each
-//!   piece
+//!   its faces, which is carried along the line as far as the faces meeting
+//!   the later edge's ends reach; the later edge is declined alone,
+//!   `Unsupported`, before any corner is read, where that matter lies within
+//!   their reach
 //! - Any other corner the kernel cannot blend — no test: a corner of more
 //!   than three edges, of values that differ, or of a curved edge is out of
 //!   the issue's scope, and no list of edges of a block, an L or a pocket

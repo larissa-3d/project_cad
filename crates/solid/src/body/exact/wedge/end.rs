@@ -63,17 +63,26 @@ impl Exact {
 /// The one face, but the edge's two, at a corner of the body; none where no
 /// other face or several meet there.
 pub(super) fn end_face(body: &brep::Body, corner: VertexId, faces: [FaceId; 2]) -> Option<FaceId> {
-    let mut met = body.face_ids().filter(|face| {
+    let mut met = end_faces(body, corner, faces);
+    match (met.next(), met.next()) {
+        (Some(face), None) => Some(face),
+        _ => None,
+    }
+}
+
+/// Every face, but the edge's two, at a corner of the body.
+pub(super) fn end_faces(
+    body: &brep::Body,
+    corner: VertexId,
+    faces: [FaceId; 2],
+) -> impl Iterator<Item = FaceId> + '_ {
+    body.face_ids().filter(move |face| {
         !faces.contains(face)
             && body.face(*face).loops.iter().flatten().any(|coedge| {
                 let ends = body.edge(coedge.edge).ends;
                 ends.is_some_and(|ends| ends.contains(&corner))
             })
-    });
-    match (met.next(), met.next()) {
-        (Some(face), None) => Some(face),
-        _ => None,
-    }
+    })
 }
 
 /// The points where the prism's long edges cross the plane through `origin`

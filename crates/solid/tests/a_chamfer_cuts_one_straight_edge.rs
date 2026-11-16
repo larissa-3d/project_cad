@@ -999,16 +999,16 @@ fn a_chamfer_on_the_round_rim_of_a_disc_is_declined_as_unsupported() {
 
 /// The block a chamfer of 3 is asked on its top front edge, 30 long, 10 deep
 /// and 20 high. The cut is a prism along the edge over the wedge the chamfer
-/// takes, carried past the part's box along the edge. Until #873 each of the
-/// edge's two faces was pushed out by an eighth of the distance, z ≤ 20.375
-/// and y ≥ −0.375, so that a lump standing a few tenths clear of the edge,
-/// in front of it or above it, fell within the cut and was declined, though
-/// the chamfer's flat never reached it — the case #873 found beside a
-/// standing block's upright. Since, the faces are pushed out by the kernel's
-/// least margin alone, a few thousandths, and such a lump is left whole. The
-/// shapes below are drawn against it: the tab and the rib beside the edge's
-/// end, which the cut carried along the edge still reaches, each caught by
-/// one guard alone, and the lumps beside its length, left whole.
+/// takes, carried along the edge's line the kernel's least margin, a few
+/// thousandths, past either end, and its two faces pushed out by that margin
+/// alone: a lump standing a few tenths clear of the edge, in front of it or
+/// above it, lies outside the cut and is left whole — where #873 found one,
+/// beside a standing block's upright, declined when the faces were pushed
+/// out by an eighth of the distance. The shapes below are drawn against it:
+/// the tab and the rib on the wall beside the edge's end, which the cut's end
+/// would stop inside, leaving its end a face of its own there, declined; a
+/// blind hole into that wall, wholly within the cut, which it would take
+/// away whole, declined; and the lumps beside its length, left whole.
 fn block_to_chamfer() -> Body {
     block([30.0, 10.0, 20.0])
 }
@@ -1024,7 +1024,7 @@ fn declined_on_the_top_front_edge(part: &Body, what: &str) {
 }
 
 #[test]
-fn a_chamfer_whose_cut_would_take_a_tab_beside_its_edge_away_whole_is_declined_as_unsupported() {
+fn a_chamfer_whose_cut_would_end_inside_a_tab_beside_its_edge_s_end_is_declined_as_unsupported() {
     let tabbed = joined_to(
         &block_to_chamfer(),
         Contour::rectangle(DVec2::new(-0.3, 0.2), DVec2::new(0.0, 1.0)),
@@ -1034,7 +1034,8 @@ fn a_chamfer_whose_cut_would_take_a_tab_beside_its_edge_away_whole_is_declined_a
 
     declined_on_the_top_front_edge(
         &tabbed,
-        "a tab on the left side, wholly above the chamfer's plane and within the cut",
+        "a tab on the left side, wholly above the chamfer's plane, 0.3 thick, the cut's end \
+         a margin past the side standing inside it",
     );
 }
 
@@ -1110,27 +1111,6 @@ fn a_chamfer_leaves_a_lump_a_few_tenths_clear_of_its_edge_in_front_and_above_who
 }
 
 #[test]
-fn a_chamfer_whose_cut_carried_along_its_edge_would_reach_a_second_block_in_line_is_declined_as_unsupported()
- {
-    let first = block([15.0, 10.0, 10.0]);
-    let in_line = joined_to(
-        &first,
-        Contour::rectangle(DVec2::new(20.0, 0.0), DVec2::new(35.0, 10.0)),
-        0.0,
-        10.0,
-    );
-    let edge = edge_between(&in_line, TOP, FRONT);
-
-    let declined = in_line.chamfer(&edge, 2.0).err();
-
-    assert_eq!(
-        declined,
-        Some(Declined::Unsupported),
-        "the cut would chamfer the second block's top front edge as well"
-    );
-}
-
-#[test]
 fn a_chamfer_whose_cut_would_bite_into_a_rib_beside_its_edge_is_declined_as_unsupported() {
     let ribbed = joined_to(
         &block_to_chamfer(),
@@ -1142,6 +1122,35 @@ fn a_chamfer_whose_cut_would_bite_into_a_rib_beside_its_edge_is_declined_as_unsu
     declined_on_the_top_front_edge(
         &ribbed,
         "a rib on the left side the chamfer's plane crosses, every face of it kept in part",
+    );
+}
+
+#[test]
+fn a_chamfer_whose_cut_would_take_a_blind_hole_in_the_wall_at_its_end_away_whole_is_declined_as_unsupported()
+ {
+    let into_the_left_side = Frame {
+        origin: DVec3::X * -1.0,
+        u: DVec3::Y,
+        v: DVec3::Z,
+    };
+    let tool = block_to_chamfer()
+        .tool_raised(
+            &profile(Contour::rectangle(
+                DVec2::new(0.5, 19.0),
+                DVec2::new(1.0, 19.5),
+            )),
+            into_the_left_side,
+            DVec3::X * 6.0,
+        )
+        .expect("the tool raises");
+    let holed = block_to_chamfer()
+        .difference(&tool)
+        .expect("the hole is cut");
+
+    declined_on_the_top_front_edge(
+        &holed,
+        "a hole 5 deep into the left side under the edge's end, wholly above the chamfer's \
+         plane: every face of it within the cut",
     );
 }
 

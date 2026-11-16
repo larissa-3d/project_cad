@@ -14,8 +14,9 @@ use std::collections::BTreeMap;
 use glam::DVec3;
 
 use super::corners::Beside;
-use super::end::{beyond, end_face};
+use super::end::{beyond, end_face, end_faces};
 use super::overlap::{ENDS, Overlap, STRIDE, overlap};
+use super::reading::reaching;
 use super::{Prism, Wedge};
 use crate::body::exact::Exact;
 use crate::brep::{self, Declined, EdgeId, FaceId, Plane, Scale, Surface, VertexId};
@@ -175,6 +176,72 @@ impl<'a> Flush<'a> {
             held: Vec::new(),
         })
     }
+
+    /// Each end of the edge, read as `wedge`, the way past it along the
+    /// edge, and how a cut's prism is trimmed there: on the plane one of the
+    /// held ends holds it at, or else flush where [`stops`] stops it; at an
+    /// end with neither, it is carried past.
+    fn endings(&self, wedge: &Wedge) -> Vec<(VertexId, DVec3, Option<Trim<'_>>)> {
+        let eps = self.on.scale().eps();
+        let mut stopping = stops(self.on, self.edge, wedge);
+        let ends = self.on.edge(self.edge).ends.into_iter().flatten();
+        (ends.zip([-wedge.along, wedge.along]))
+            .map(|(end, past)| {
+                let trim = match holding(&self.held, self.on.vertex(end).point, eps) {
+                    Some((held, number)) => Some(Trim::Held(held, number)),
+                    None => (stopping.iter().position(|stop| stop.end == end))
+                        .map(|at| Trim::Stopped(stopping.swap_remove(at))),
+                };
+                (end, past, trim)
+            })
+            .collect()
+    }
+
+    /// The box round the stretch of the edge's line its prism, read as
+    /// `wedge`, is carried over. Past an end a cut is carried past, the
+    /// stretch reaches as far along the edge as the faces meeting it there
+    /// but its own two reach, read off their edges, poles and bulges — what
+    /// its section takes past that end lies behind them — and no further:
+    /// matter standing on along its line, a second boss as high, is no part
+    /// of the cut, though the edge's own faces run on to it (#924). Past an
+    /// end the prism is trimmed at — a cut's [`Trim`], either end of a fill —
+    /// it reaches as far as the box from `lowest` to `highest`, the body's it
+    /// is laid on, and the trim decides where it ends: its section must reach
+    /// the plane it is trimmed on, which runs on past the end where it leans
+    /// — over an L's arm, past its stem's foot on it. None where the edge has
+    /// no ends.
+    pub fn carried_over(
+        &self,
+        wedge: &Wedge,
+        (lowest, highest): (DVec3, DVec3),
+    ) -> Option<(DVec3, DVec3)> {
+        let body = self.on;
+        let reached: Vec<DVec3> = (self.endings(wedge).into_iter())
+            .map(|(end, past, trim)| {
+                let corner = body.vertex(end).point;
+                let reach = if wedge.inwards || trim.is_some() {
+                    past.dot(DVec3::select(past.cmpge(DVec3::ZERO), highest, lowest))
+                } else {
+                    (end_faces(body, end, wedge.faces))
+                        .map(|face| reaching(body, face, past))
+                        .fold(past.dot(corner), f64::max)
+                };
+                corner + past * (reach - past.dot(corner))
+            })
+            .collect();
+        let [from, to] = reached[..] else {
+            return None;
+        };
+        Some((from.min(to), from.max(to)))
+    }
+}
+
+/// How a cut's prism is trimmed at an end of its edge: on the plane a
+/// [`Held`] end holds it at, the end it leaves there numbered as [`holding`]
+/// numbers it, or flush on the face the edge runs into, as a [`Stop`] says.
+enum Trim<'a> {
+    Held(&'a Held, u32),
+    Stopped(Stop),
 }
 
 /// The ends of `edge` on `body`, read there as `wedge`, where the one face met
@@ -231,15 +298,16 @@ impl Exact {
         }
         let eps = flush.on.scale().eps();
         let mut trimmed = tool;
-        let ends = flush.on.edge(flush.edge).ends.into_iter().flatten();
-        for end in ends.map(|end| flush.on.vertex(end).point) {
-            if let Some((held, number)) = holding(&flush.held, end, eps) {
-                trimmed = trimmed.cut_by(&held.beyond(prism, number)?)?;
+        let mut stops = Vec::new();
+        for (_, _, trim) in flush.endings(wedge) {
+            match trim {
+                Some(Trim::Held(held, number)) => {
+                    trimmed = trimmed.cut_by(&held.beyond(prism, number)?)?;
+                }
+                Some(Trim::Stopped(stop)) => stops.push(stop),
+                None => {}
             }
         }
-        let stops: Vec<Stop> = (stops(flush.on, flush.edge, wedge).into_iter())
-            .filter(|stop| holding(&flush.held, stop.corner, eps).is_none())
-            .collect();
         for stop in &stops {
             trimmed = trimmed.cut_by(&stop.beyond(prism)?)?;
         }

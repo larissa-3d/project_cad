@@ -115,6 +115,22 @@ fn dip(body: &brep::Body, edge: EdgeId, wedge: &Wedge) -> f64 {
     dip
 }
 
+/// How far the face `face` reaches along `way`: the most of `way · p` over
+/// its points — on its boundary, as [`furthest`] reads each of its edges, at
+/// a pole of its surface it holds within it, or where the sphere or the torus
+/// it lies on bulges furthest that way — read off the face itself, so that it
+/// does not grow as the face is turned, as the corner of a box round it does.
+pub(super) fn reaching(body: &brep::Body, face: FaceId, way: DVec3) -> f64 {
+    let held = body.face(face);
+    let edges = (held.loops.iter().flatten()).map(|coedge| furthest(body, coedge.edge, way));
+    let poles = (held.poles.iter()).map(|&pole| way.dot(body.vertex(pole).point));
+    let bulges = (body.bulges(face, way).into_iter()).map(|point| way.dot(point));
+    edges
+        .chain(poles)
+        .chain(bulges)
+        .fold(f64::NEG_INFINITY, f64::max)
+}
+
 /// How far the edge `edge` reaches along `way`: the most of `way · p` over its
 /// points — at an end, or for a circle where it turns back along `way`, or at
 /// one of a few points along any other curve.

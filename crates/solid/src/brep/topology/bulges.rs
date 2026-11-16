@@ -20,7 +20,7 @@ impl Body {
     /// The points of a face's sphere or torus that go furthest along
     /// `direction` or against it, kept where the face holds them
     /// ([`Body::held`]). None for any other surface.
-    pub(in crate::brep) fn bulges(&self, face: FaceId, direction: DVec3) -> Vec<DVec3> {
+    pub(crate) fn bulges(&self, face: FaceId, direction: DVec3) -> Vec<DVec3> {
         let surface = self.surface(self.face(face).surface);
         self.held(face, furthest(surface, direction))
     }

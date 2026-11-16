@@ -242,7 +242,8 @@ impl Exact {
     /// The body with the edge of `wedge` cut off, or filled in, by the prism
     /// `tool` raises over it for `taken`, its wall numbered where the steps'
     /// numbers ended, as [`Exact::laid_as`] lays it but for the check, its
-    /// ends read as `flush` says, as [`Exact::laid_flush`] lays it.
+    /// ends read as `flush` says, as [`Exact::laid_flush`] lays it, and the
+    /// prism carried over the box [`Flush::carried_over`] reads.
     fn cut_or_filled(
         &self,
         flush: &Flush,
@@ -250,7 +251,9 @@ impl Exact {
         taken: f64,
         tool: &impl Fn(&Wedge, f64, Scale, (DVec3, DVec3)) -> Result<Prism, Declined>,
     ) -> Result<Exact, Declined> {
-        let bounds = self.brep.bounds().ok_or(Declined::Unsupported)?;
+        let bounds = (self.brep.bounds())
+            .and_then(|bounds| flush.carried_over(wedge, bounds))
+            .ok_or(Declined::Unsupported)?;
         let prism = tool(wedge, taken, self.brep.scale(), bounds)?;
         self.laid_flush(flush, wedge, &prism, raised_over(&prism)?)
     }

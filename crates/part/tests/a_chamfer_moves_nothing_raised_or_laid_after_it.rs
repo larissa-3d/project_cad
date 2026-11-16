@@ -357,10 +357,9 @@ fn a_chamfer_declined_on_a_later_replay_leaves_the_next_chamfer_on_its_edge() {
     );
 }
 
-/// The boss put in stands lower than the chamfered one: with both tops in one
-/// plane the kernel declines that chamfer however the part was built, a limit
-/// of its own and not of the step's naming.
-const THE_BOSS_PUT_IN: f64 = 25.0;
+/// The boss put in stands as high as the chamfered one, both tops in one
+/// plane, and the chamfer leaves it whole.
+const THE_BOSS_PUT_IN: f64 = 30.0;
 
 #[test]
 fn a_step_put_in_before_a_chamfer_while_the_part_is_read_earlier_leaves_it_on_its_edge() {
@@ -396,7 +395,7 @@ fn a_step_put_in_before_a_chamfer_while_the_part_is_read_earlier_leaves_it_on_it
         },
     );
 
-    let what = "a lower boss put in before the chamfered one";
+    let what = "a boss as high put in before the chamfered one";
     assert_eq!(part.declined_because(chamfer), None, "{what}: the chamfer");
     assert_near(
         height_at(part.body(), 7.5, 2.1),
