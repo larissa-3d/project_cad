@@ -199,10 +199,7 @@ fn blends_not_built<'a>(
             about: About::Blend { step },
             level: Problem::NotBuilt.level(),
             title: alerts::title(lang, &name, Problem::NotBuilt),
-            sentence: match edges.len() {
-                0 | 1 => alerts::blend_not_built(lang, *shape, reason),
-                _ => alerts::blend_of_several_not_built(lang, *shape, reason),
-            },
+            sentence: alerts::blend_not_built(lang, *shape, reason, edges.len()),
         })
     })
 }

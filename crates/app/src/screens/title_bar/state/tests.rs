@@ -895,11 +895,13 @@ fn a_blend_of_several_edges_not_built_speaks_of_its_edges_in_the_plural() {
             &lang,
             BlendShape::Chamfer,
             cao_solid::Declined::Lost(cao_solid::Lost::Split { now: 2 }),
+            1,
         ),
         crate::wording::alerts::blend_not_built(
             &lang,
             BlendShape::Chamfer,
             cao_solid::Declined::Unsupported,
+            1,
         ),
     ];
 

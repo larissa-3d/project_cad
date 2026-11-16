@@ -38,9 +38,26 @@
 //!   `crates/app/src/screens/title_bar/state/tests.rs`, where the alerts'
 //!   sentences are read, by
 //!   `a_blend_of_several_edges_not_built_speaks_of_its_edges_in_the_plural`
+//! - found in review, beyond the issue's eight: a blend of the three edges
+//!   meeting at a corner lays more faces than it has edges, and what is laid
+//!   after it keeps its faces whether the blend stands, is set to nothing or
+//!   is declined on replay — no test: held in
+//!   `crates/part/tests/several_edges_blended_in_one_step.rs` by
+//!   `a_corner_s_blend_set_to_nothing_leaves_a_sketch_laid_after_it_on_its_face`
+//!   and `a_corner_s_blend_declined_on_replay_leaves_a_sketch_laid_after_it_on_its_face`
+//!
+//! What must not break, from the issue, where the criteria left it unheld:
+//! - A click in empty space still leaves the choice as it was —
+//!   `a_click_in_empty_space_with_three_edges_chosen_leaves_all_three`
+//! - Turning « Chanfrein » into « Congé » keeps the size typed —
+//!   `turning_the_chamfer_into_a_fillet_keeps_the_size_typed`
+//! - When the kernel reduces the size, the one size it took is the one shown,
+//!   as today —
+//!   `a_size_the_faces_cannot_give_reads_the_one_size_taken_on_a_step_of_several_edges`
 
 mod driver;
 
+use cao_app::app::EDGE_REACH;
 use cao_part::history::StepKind;
 use cao_solid::{Body, DrawnEdge, EdgeName};
 use glam::{DVec2, DVec3};
@@ -507,5 +524,121 @@ fn turning_the_chamfer_into_a_fillet_keeps_every_edge_chosen() {
         driver::reads(&app, "3 arêtes"),
         "the fillet's panel does not count the three edges, showing {:?}",
         driver::on_screen(&app),
+    );
+}
+
+/// A point of the world standing in empty space on screen, half the block's
+/// breadth off its near left, at mid-height.
+fn beside_the_block(block: &Block) -> DVec3 {
+    let breadth = block.high.y - block.low.y;
+    DVec3::new(
+        block.high.x,
+        block.low.y - breadth / 2.0,
+        (block.low.z + block.high.z) / 2.0,
+    )
+}
+
+#[test]
+fn a_click_in_empty_space_with_three_edges_chosen_leaves_all_three() {
+    for (held, modifiers) in [
+        ("plain", egui::Modifiers::NONE),
+        ("Cmd +", egui::Modifiers::COMMAND),
+    ] {
+        let test = format!(
+            "a_click_in_empty_space_{}",
+            held.replace(" +", "").to_lowercase()
+        );
+        let (mut app, block) = opened_on(&test, "Chanfrein");
+        let three = [block.near_top(), block.near_left(), block.left_top()];
+        driver::click_at_world_point(&mut app, middle(three[0]));
+        for edge in &three[1..] {
+            driver::click_at_world_point_with(&mut app, middle(*edge), egui::Modifiers::COMMAND);
+        }
+        assert!(
+            are_the_edges(&chosen(&app), &three),
+            "the fixture chooses three edges, choosing {:?}",
+            chosen(&app),
+        );
+        let empty = beside_the_block(&block);
+        let apart = three
+            .iter()
+            .flat_map(|edge| *edge)
+            .chain([block.low, block.high])
+            .map(|corner| {
+                driver::world_point_on_screen(&app, corner)
+                    .distance(driver::world_point_on_screen(&app, empty))
+            })
+            .fold(f32::INFINITY, f32::min);
+        assert!(
+            apart > 2.0 * EDGE_REACH,
+            "the fixture's empty space stands {apart} points from a corner of the block",
+        );
+
+        driver::click_at_world_point_with(&mut app, empty, modifiers);
+        assert_eq!(
+            app.state().the_edge_lit_by_the_hand(),
+            None,
+            "the fixture's empty space lights an edge under the hand",
+        );
+        assert!(
+            are_the_edges(&chosen(&app), &three),
+            "a {held} click in empty space, three edges chosen, leaves {:?} chosen",
+            chosen(&app),
+        );
+    }
+}
+
+#[test]
+fn turning_the_chamfer_into_a_fillet_keeps_the_size_typed() {
+    let (mut app, block) = opened_on("turning_the_chamfer_keeps_the_size", "Chanfrein");
+    driver::click_at_world_point(&mut app, middle(block.near_top()));
+    driver::type_beside(&mut app, "Distance :", "3");
+    assert_eq!(
+        driver::field_beside(&app, "Distance :"),
+        "3",
+        "the fixture types 3 as the chamfer's distance",
+    );
+
+    driver::click_exactly(&mut app, "Congé");
+
+    assert_eq!(
+        driver::field_beside(&app, "Rayon :"),
+        "3",
+        "the chamfer turned into a fillet, the size typed is not kept",
+    );
+}
+
+#[test]
+fn a_size_the_faces_cannot_give_reads_the_one_size_taken_on_a_step_of_several_edges() {
+    let test = "a_size_the_faces_cannot_give_on_several_edges";
+    let (mut app, block) = opened_on(test, "Chanfrein");
+    let two = [block.near_top(), block.near_left()];
+    let before = the_part(test, "Bloc");
+    let taken = before
+        .body()
+        .chamfer_edges(&names_of(before.body(), &two), 50.0)
+        .unwrap_or_else(|declined| {
+            panic!("the kernel declines a chamfer of 50 on both: {declined:?}")
+        })
+        .taken;
+    assert!(
+        taken < 50.0 - 1.0 && (taken - taken.round()).abs() < 1e-9,
+        "the fixture means a whole size taken under 50, where the kernel takes {taken}",
+    );
+
+    driver::open_the_history(&mut app);
+    let lines = driver::steps(&app);
+    driver::click_at_world_point(&mut app, middle(two[0]));
+    driver::click_at_world_point_with(&mut app, middle(two[1]), egui::Modifiers::SHIFT);
+    driver::type_beside(&mut app, "Distance :", "50");
+    driver::click(&mut app, "Appliquer");
+
+    let after = driver::steps(&app);
+    assert_eq!(after.len(), lines.len() + 1, "one line added: {after:?}");
+    let added = after.last().expect("a line added");
+    assert_eq!(
+        driver::detail_of(&app, added).as_deref(),
+        Some(format!("50 mm demandé, {} mm appliqué", taken.round()).as_str()),
+        "a chamfer of 50 on two edges whose faces give {taken}",
     );
 }

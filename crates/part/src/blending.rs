@@ -1,7 +1,7 @@
 //! Edges of the part chamfered or rounded together by the kernel, at the size
 //! asked or at the most their faces give.
 
-use cao_solid::EdgeName;
+use cao_solid::{Declined, EdgeName};
 use serde::{Deserialize, Serialize};
 
 use crate::formula::Formula;
@@ -12,6 +12,24 @@ use crate::state::PartState;
 /// Closer than this to the size asked, the size taken is the same: the rest
 /// is rounding.
 const ONE_PLACE: f64 = 1e-9;
+
+/// The face numbers a step of several edges takes, per edge, built or not.
+/// The kernel numbers one face per edge, then the pieces closing its corners:
+/// a closing, an odd corner's piece and its held end take no more numbers at
+/// a corner than there are listed edges ending there, two per edge at most. A
+/// build laying more is declined `Unverified` rather than shifting every face
+/// numbered after it.
+const NUMBERS_PER_EDGE: usize = 3;
+
+/// The face numbers a step of `edges` edges takes, so that the faces after it
+/// keep theirs whatever becomes of it. A step of one edge keeps the one number
+/// it always took, which parts saved before name the faces after it by.
+fn numbers_taken(edges: usize) -> usize {
+    match edges {
+        0 | 1 => 1,
+        several => NUMBERS_PER_EDGE * several,
+    }
+}
 
 /// A chamfer or a fillet the faces of its edge could not give the size it
 /// asked, laid at the most they give. In millimetres.
@@ -42,8 +60,10 @@ impl PartState {
         shape: BlendShape,
         size: &Formula,
     ) -> Option<Outcome> {
+        let from = self.body.faces_end();
+        let block = numbers_taken(edges.len());
         let Some(size) = self.size(size, |size| size >= 1e-6) else {
-            self.body.count_past_cut(edges.len());
+            self.body.count_past_cut(block);
             return None;
         };
         let edges: Vec<EdgeName> = edges
@@ -61,9 +81,18 @@ impl PartState {
                 .fillet_edges(&edges, size / scale)
                 .map(|round| (round.body, round.taken)),
         };
+        let blended = blended.and_then(|(body, taken)| {
+            let laid = body.faces_end().saturating_sub(from);
+            match edges.len() > 1 && laid > block {
+                true => Err(Declined::Unverified),
+                false => Ok((body, taken)),
+            }
+        });
         match blended {
             Ok((body, taken)) => {
                 self.body = body;
+                let short = (from + block).saturating_sub(self.body.faces_end());
+                self.body.count_past_cut(short);
                 let taken = taken * scale;
                 if size - taken > ONE_PLACE * size.max(1.0) {
                     self.reduced
@@ -72,7 +101,7 @@ impl PartState {
                 None
             }
             Err(reason) => {
-                self.declined_with(reason, |body| body.count_past_cut(edges.len()));
+                self.declined_with(reason, |body| body.count_past_cut(block));
                 Some(Outcome::BlendDeclined(reason))
             }
         }

@@ -35,25 +35,26 @@ pub fn message(lang: &Catalogue, outcome: Option<Outcome>) -> Option<String> {
     }
 }
 
-/// Why an edge could not be chamfered or rounded, as the edge panel says it.
-pub fn blend_declined(lang: &Catalogue, shape: BlendShape, reason: Declined) -> String {
-    lang.t(match (reason, shape) {
-        (Declined::Lost(_), _) => "blend.edge_lost",
-        (Declined::Unsupported, BlendShape::Chamfer) => "blend.unsupported_chamfer",
-        (Declined::Unsupported, BlendShape::Fillet) => "blend.unsupported_fillet",
-        (_, BlendShape::Chamfer) => "blend.failed_chamfer",
-        (_, BlendShape::Fillet) => "blend.failed_fillet",
-    })
-}
-
-/// The same, for several edges chosen together.
-pub fn blend_declined_on_several(lang: &Catalogue, shape: BlendShape, reason: Declined) -> String {
-    lang.t(match (reason, shape) {
-        (Declined::Lost(_), _) => "blend.edge_lost_many",
-        (Declined::Unsupported, BlendShape::Chamfer) => "blend.unsupported_chamfer_many",
-        (Declined::Unsupported, BlendShape::Fillet) => "blend.unsupported_fillet_many",
-        (_, BlendShape::Chamfer) => "blend.failed_chamfer_many",
-        (_, BlendShape::Fillet) => "blend.failed_fillet_many",
+/// Why the `edges` edges chosen could not be chamfered or rounded, as the
+/// edge panel says it: of one edge, or of several.
+pub fn blend_declined(
+    lang: &Catalogue,
+    shape: BlendShape,
+    reason: Declined,
+    edges: usize,
+) -> String {
+    let several = edges > 1;
+    lang.t(match (reason, shape, several) {
+        (Declined::Lost(_), _, false) => "blend.edge_lost",
+        (Declined::Lost(_), _, true) => "blend.edge_lost_many",
+        (Declined::Unsupported, BlendShape::Chamfer, false) => "blend.unsupported_chamfer",
+        (Declined::Unsupported, BlendShape::Chamfer, true) => "blend.unsupported_chamfer_many",
+        (Declined::Unsupported, BlendShape::Fillet, false) => "blend.unsupported_fillet",
+        (Declined::Unsupported, BlendShape::Fillet, true) => "blend.unsupported_fillet_many",
+        (_, BlendShape::Chamfer, false) => "blend.failed_chamfer",
+        (_, BlendShape::Chamfer, true) => "blend.failed_chamfer_many",
+        (_, BlendShape::Fillet, false) => "blend.failed_fillet",
+        (_, BlendShape::Fillet, true) => "blend.failed_fillet_many",
     })
 }
 

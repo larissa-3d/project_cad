@@ -14,15 +14,25 @@
 //! - Undo, redo and the history's compaction of a blend step, which must not
 //!   break — by `undo_takes_a_blend_of_four_edges_off_whole_and_redo_lays_it_again`
 //!   and `a_history_compacted_keeps_a_blend_of_four_edges_whole`
+//! - found in review, beyond the issue's eight: a blend of the three edges
+//!   meeting at a corner lays more faces than it has edges, and a sketch on a
+//!   face raised after it stays on that face whatever becomes of the blend —
+//!   its size set to nothing, by
+//!   `a_corner_s_blend_set_to_nothing_leaves_a_sketch_laid_after_it_on_its_face`;
+//!   declined by the kernel on a later replay, an edge parted upstream, by
+//!   `a_corner_s_blend_declined_on_replay_leaves_a_sketch_laid_after_it_on_its_face`
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use cao_part::history::FaceAnchor;
 use cao_part::history::{BlendShape, Operation, PointRef, StepKind};
-use cao_part::{ExtrusionMode, FileError, Files, PartDocument};
+use cao_part::{
+    ExtrusionMode, FileError, Files, Formula, PartDocument, VariableChange, VariableId,
+};
 use cao_sketch::WorkPlane;
-use cao_solid::{Body, EdgeName};
+use cao_solid::{Body, Declined, EdgeName};
 use glam::{DVec2, DVec3};
 
 /// Planes and cylinders the exact kernel computes: what is left between two
@@ -302,5 +312,212 @@ fn a_history_compacted_keeps_a_blend_of_four_edges_whole() {
             .operations()[0];
         assert_eq!(part.declined_because(step), None, "{what}: built");
         assert_same_body(part.body(), &expected, &what);
+    }
+}
+
+/// The one face facing `normal`, standing `level` along it, with every corner
+/// at `from_x` or further along X.
+fn face_from(body: &Body, normal: DVec3, level: f64, from_x: f64) -> usize {
+    let faces: Vec<usize> = (0..body.faces_end())
+        .filter(|face| {
+            body.plane_of(*face).is_some_and(|plane| {
+                plane.normal.distance(normal) < EXACT
+                    && (plane.corners[0].dot(normal) - level).abs() < EXACT
+                    && plane
+                        .corners
+                        .iter()
+                        .all(|corner| corner.x >= from_x - EXACT)
+            })
+        })
+        .collect();
+    assert_eq!(
+        faces.len(),
+        1,
+        "one face facing {normal} at {level} from x = {from_x}: {faces:?}"
+    );
+    faces[0]
+}
+
+/// The block, its size held by the variable `size` at `SIZE`, notched 5 high
+/// at its foot across its back; the three edges meeting at its corner
+/// (30, 0, 0) blended in one step at `size`; then a boss 5 high raised beside
+/// it, from x = 40, and a sketch laid on the boss's top.
+struct ACornerBlended {
+    part: PartDocument,
+    blend: u32,
+    notch: u32,
+    notches: usize,
+    on_the_boss: usize,
+}
+
+fn a_corner_blended(shape: BlendShape) -> ACornerBlended {
+    let mut part = a_block();
+    part.apply(Operation::Variable(VariableChange::Added {
+        name: "size".to_string(),
+        formula: Formula::Number(SIZE),
+    }));
+    let rectangle = |part: &mut PartDocument, sketch, corner: DVec2, opposite: DVec2| {
+        part.apply(Operation::AddRectangle {
+            sketch,
+            corner: PointRef::New(corner),
+            opposite: PointRef::New(opposite),
+            construction: false,
+        });
+    };
+    let on_xy = Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    };
+    part.apply(on_xy.clone());
+    let notches = part.sketches().len() - 1;
+    rectangle(
+        &mut part,
+        notches,
+        DVec2::new(10.0, 7.0),
+        DVec2::new(20.0, 13.0),
+    );
+    rectangle(
+        &mut part,
+        notches,
+        DVec2::new(10.0, -3.0),
+        DVec2::new(20.0, 3.0),
+    );
+    part.apply(Operation::Extrude {
+        sketch: notches,
+        areas: part.areas_at(notches, &[DVec2::new(15.0, 10.0)]),
+        distance: 5.0.into(),
+        mode: ExtrusionMode::Cut,
+    });
+    let notch = part.history.steps().last().expect("the notch").operations()[0];
+
+    let body = part.body();
+    let [foot, front, side] = [(-DVec3::Z, 0.0), (-DVec3::Y, 0.0), (DVec3::X, LENGTH)]
+        .map(|(normal, level)| face(body, normal, level));
+    let edges = vec![
+        the_edge_between(body, foot, front),
+        the_edge_between(body, foot, side),
+        the_edge_between(body, front, side),
+    ];
+    let faces_before = body.faces_end();
+    let size = part.variables().read("size").expect("size reads");
+    let outcome = part.apply(Operation::Blend { edges, shape, size });
+    assert_eq!(
+        outcome, None,
+        "{shape:?} of the three edges at the corner: built"
+    );
+    let blend = part.history.steps().last().expect("the blend").operations()[0];
+    assert!(
+        part.body().faces_end() > faces_before + 3,
+        "{shape:?} of the three edges at the corner numbers {} faces past {faces_before}: \
+         the fixture means a corner laying more faces than it has edges",
+        part.body().faces_end() - faces_before,
+    );
+
+    part.apply(on_xy);
+    let boss = part.sketches().len() - 1;
+    rectangle(
+        &mut part,
+        boss,
+        DVec2::new(40.0, 0.0),
+        DVec2::new(50.0, 10.0),
+    );
+    part.apply(Operation::Extrude {
+        sketch: boss,
+        areas: part.areas_at(boss, &[DVec2::new(45.0, 5.0)]),
+        distance: 5.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: Some(FaceAnchor {
+            face: face_from(part.body(), DVec3::Z, 5.0, 40.0),
+            up: DVec3::Y,
+        }),
+    });
+    let on_the_boss = part.sketches().len() - 1;
+    assert_on_the_boss_s_top(
+        &part,
+        on_the_boss,
+        &format!("{shape:?}, the blend standing"),
+    );
+
+    ACornerBlended {
+        part,
+        blend,
+        notch,
+        notches,
+        on_the_boss,
+    }
+}
+
+fn assert_on_the_boss_s_top(part: &PartDocument, sketch: usize, what: &str) {
+    assert!(
+        !part.is_adrift(sketch),
+        "{what}: the sketch on the boss is adrift"
+    );
+    let plane = part.sketches()[sketch].plane;
+    let facing = plane.u.cross(plane.v);
+    assert!(
+        facing.distance(DVec3::Z) < 1e-6
+            && (plane.origin.z - 5.0).abs() < 1e-6
+            && plane.origin.x >= 40.0 - 1e-6,
+        "{what}: the sketch on the boss stands at {} facing {facing}, where the boss's top stands 5 \
+         high facing up from x = 40",
+        plane.origin,
+    );
+}
+
+#[test]
+fn a_corner_s_blend_set_to_nothing_leaves_a_sketch_laid_after_it_on_its_face() {
+    for shape in [BlendShape::Chamfer, BlendShape::Fillet] {
+        let ACornerBlended {
+            mut part,
+            on_the_boss,
+            ..
+        } = a_corner_blended(shape);
+
+        part.apply(Operation::Variable(VariableChange::Edited {
+            variable: VariableId(0),
+            name: "size".to_string(),
+            formula: Formula::Number(0.0),
+        }));
+
+        assert_on_the_boss_s_top(
+            &part,
+            on_the_boss,
+            &format!("{shape:?} of the corner set to 0"),
+        );
+    }
+}
+
+#[test]
+fn a_corner_s_blend_declined_on_replay_leaves_a_sketch_laid_after_it_on_its_face() {
+    for shape in [BlendShape::Chamfer, BlendShape::Fillet] {
+        let ACornerBlended {
+            mut part,
+            blend,
+            notch,
+            notches,
+            on_the_boss,
+        } = a_corner_blended(shape);
+
+        let across_the_front = Operation::Extrude {
+            sketch: notches,
+            areas: part.areas_at(notches, &[DVec2::new(15.0, 0.0)]),
+            distance: 5.0.into(),
+            mode: ExtrusionMode::Cut,
+        };
+        part.apply(Operation::EditMatter {
+            raised_by: notch,
+            to: Box::new(across_the_front),
+        });
+
+        let what = format!("{shape:?} of the corner, the notch moved across the foot of the front");
+        assert!(
+            matches!(part.declined_because(blend), Some(Declined::Lost(_))),
+            "{what}: the blend reads {:?}",
+            part.declined_because(blend),
+        );
+        assert_on_the_boss_s_top(&part, on_the_boss, &what);
     }
 }
