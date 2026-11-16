@@ -42,10 +42,10 @@
 //!   their fields, the issue's « nombre de copies »; the other three are
 //!   « éléments à copier », « centre de rotation » and « sens de rotation ».
 //!   The mirror and the rectangular pattern, which the next issue moves, still
-//!   ask what they asked —
-//!   `the_mirror_and_the_rectangular_pattern_still_ask_what_they_asked`, and a
-//!   row clicked in their panel still leaves the message as it was —
-//!   `a_row_clicked_in_the_mirror_s_or_the_rectangular_pattern_s_panel_leaves_the_message_as_it_was`
+//!   asked what they asked, and a row clicked in their panel left the message
+//!   as it was. #739 moved them into steps of their own, and the tests that
+//!   held this went with it: what they say now is held in
+//!   `mirror_and_rectangular_steps.rs` beside this file
 //! - « Horaire » applies the same pattern with the step of opposite sign;
 //!   « Anti-horaire », the default, gives exactly today's result. A test
 //!   compares the two —
@@ -504,67 +504,6 @@ fn a_step_clicked_in_the_panel_takes_the_message_pill_with_it() {
         CopySlot::Target,
         "the click makes that step current"
     );
-}
-
-#[test]
-fn the_mirror_and_the_rectangular_pattern_still_ask_what_they_asked() {
-    for (command, elements, target) in [
-        (
-            Command::ToolMirror,
-            "Cliquez ou encadrez ce qui doit être miroité, puis Entrée",
-            "Cliquez le trait ou l'axe de symétrie",
-        ),
-        (
-            Command::ToolRectangularPattern,
-            "Cliquez ou encadrez ce qui doit être répété, puis Entrée",
-            "Cliquez le trait ou l'axe le long duquel répéter",
-        ),
-    ] {
-        let mut bench = a_trait_and_a_centre();
-
-        bench.take(command);
-        assert_eq!(said(&bench), Some(elements), "{command:?}");
-        bench.click(ON_THE_TRAIT_TO_COPY);
-        bench.enter();
-        assert_eq!(said(&bench), Some(target), "{command:?}");
-        bench.click(THE_CENTRE + DVec2::new(0.0, 5.0));
-        assert_eq!(
-            said(&bench),
-            None,
-            "{command:?}: past its target, the panel says nothing above it"
-        );
-    }
-}
-
-#[test]
-fn a_row_clicked_in_the_mirror_s_or_the_rectangular_pattern_s_panel_leaves_the_message_as_it_was() {
-    for (command, rows) in [
-        (Command::ToolMirror, vec![CopySlot::Target]),
-        (
-            Command::ToolRectangularPattern,
-            vec![CopySlot::Target, CopySlot::Value(0)],
-        ),
-    ] {
-        let mut bench = a_trait_and_a_centre();
-        bench.take(command);
-        bench.click(ON_THE_TRAIT_TO_COPY);
-        let before = said(&bench).map(str::to_owned);
-
-        for row in rows {
-            activate_in_the_panel(&mut bench.context(), row);
-
-            assert_eq!(
-                said(&bench),
-                before.as_deref(),
-                "{command:?}: the row {row:?} clicked"
-            );
-            assert_eq!(
-                bench.active(),
-                row,
-                "{command:?}: the row clicked is active"
-            );
-        }
-    }
 }
 
 #[test]

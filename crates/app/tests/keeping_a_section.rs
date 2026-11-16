@@ -55,6 +55,41 @@
 //!   `saving_again_after_the_save_was_undone_keeps_a_section_again`, and the editing and the
 //!   deleting by `undo_takes_back_making_editing_and_deleting_a_section`, in
 //!   `crates/part/tests/a_section_is_kept_in_the_part.rs`
+//!
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`,
+//! the section view's bullets in `crates/app/src/screens/viewport/section/tests/steps.rs`;
+//! this is the half only the whole application holds, the pill and ↵ on
+//! screen.
+//! - The section panel becomes a step panel, in this order: « Face » (the
+//!   origin planes and the clicked face), « Distance », the two tilt angles,
+//!   « Devant » / « Derrière » with « Inverser », and « Enregistrer la coupe »
+//!   as the main button. Each step reads done, current or to come; a
+//!   presenter test checks it — ↵ through the whole application, with no
+//!   sketch edited: it walks the fields and keeps the section on the last —
+//!   `with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_on_the_last_keeps_it_and_closes`;
+//!   found in trying it, keeping the section, by its main button or by ↵,
+//!   closes the panel as Échap does, and the next « Vue en coupe » opens a
+//!   section afresh on its face —
+//!   `keeping_the_section_closes_its_panel_and_the_next_section_view_opens_on_its_face`;
+//!   the two tests of #692 that kept a section then went on in the same panel,
+//!   `saving_again_after_the_save_was_undone_keeps_a_section_again` and
+//!   `saving_after_the_section_was_deleted_from_the_tree_makes_a_new_one`,
+//!   reopen it from the tree first, which is the one way left to a panel
+//!   editing a section the part no longer has; and, found in trying it, each
+//!   side stays on one row with the other, each on one line, whatever they
+//!   are drawn as —
+//!   `the_two_sides_of_the_section_stand_on_one_row_whatever_they_are_drawn_as`;
+//!   found in review, with a sketch edited under the section, ↵ is the
+//!   sketch's, and finishes it without keeping the section —
+//!   `with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section`
+//! - The message pill follows the section's step; a test on the wording
+//!   checks it — that the pill shows it, and says none of it once the section
+//!   is closed,
+//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`;
+//!   found in review, with a sketch edited under the section, the pill says
+//!   the sketch's tool, not the section's step —
+//!   `with_the_section_open_a_sketch_edited_says_its_own_tool_rather_than_the_section_s_step`
 
 mod driver;
 
@@ -68,13 +103,6 @@ use glam::{DVec2, DVec3};
 /// section opened through its middle leaves standing, well clear of the line it
 /// cuts along.
 const ON_THE_BLOCK_UNDER_THE_CUT: DVec3 = DVec3::new(10.0, 41.51, -19.82);
-
-fn the_button_reading(app: &driver::App, label: &str) -> String {
-    app.query_all_by_role(egui::accesskit::Role::Button)
-        .filter_map(|node| node.accesskit_node().label())
-        .find(|read| read.starts_with(label))
-        .unwrap_or_else(|| panic!("no button reads « {label}… »"))
-}
 
 /// The ribbon's button that reads this, whichever tab it sits under.
 fn click_in_the_ribbon(app: &mut driver::App, label: &str) {
@@ -207,6 +235,216 @@ fn reopen_the_part(app: &mut driver::App) {
 }
 
 #[test]
+fn the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed() {
+    let mut app = driver::a_block("the_title_bar_pill_says_the_section_s_step");
+
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    assert!(
+        driver::says(&app, "Vue en coupe — étape 1 : face"),
+        "the section opens on its face: {:?}",
+        driver::said(&app)
+    );
+    driver::click(&mut app, "Plan YZ");
+    assert!(
+        driver::says(&app, "Vue en coupe — étape 2 : distance"),
+        "a plane chosen, the distance is asked for: {:?}",
+        driver::said(&app)
+    );
+
+    driver::press(&mut app, egui::Key::Escape);
+
+    assert!(
+        !the_panel_is_open(&app),
+        "Échap closes the section: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !driver::says(&app, "Vue en coupe — étape"),
+        "the section closed, the pill says none of its steps: {:?}",
+        driver::said(&app)
+    );
+}
+
+/// The block, its section open along YZ, then its sketch opened again from
+/// the tree under it.
+fn a_sketch_edited_under_the_section(test: &str) -> driver::App {
+    let mut app = driver::a_block(test);
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+    double_click(&mut app, "Esquisse 1");
+    assert!(
+        driver::a_sketch_is_open(&app) && the_panel_is_open(&app),
+        "the sketch opened from the tree is edited with the section still open: {:?}",
+        driver::on_screen(&app)
+    );
+    app
+}
+
+#[test]
+fn with_the_section_open_a_sketch_edited_says_its_own_tool_rather_than_the_section_s_step() {
+    let mut app = a_sketch_edited_under_the_section("a_sketch_edited_says_its_own_tool");
+
+    driver::click(&mut app, "Symétrie");
+
+    assert!(
+        driver::says(&app, "Symétrie — étape 1 : éléments"),
+        "the mirror taken in the sketch says its own step: {:?}",
+        driver::said(&app)
+    );
+    assert!(
+        !driver::says(&app, "Vue en coupe — étape"),
+        "the section open over the sketch speaks over the tool in hand: {:?}",
+        driver::said(&app)
+    );
+}
+
+#[test]
+fn with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section() {
+    let mut app = driver::a_block("enter_finishes_a_sketch_edited_under_the_section");
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+    for _ in 0..3 {
+        driver::press(&mut app, egui::Key::Enter);
+    }
+    assert!(
+        driver::says(&app, "Vue en coupe — étape 4 : devant et derrière"),
+        "with no sketch edited, ↵ walked the section to its last step: {:?}",
+        driver::said(&app)
+    );
+    double_click(&mut app, "Esquisse 1");
+    assert!(
+        driver::a_sketch_is_open(&app) && the_panel_is_open(&app),
+        "the sketch opened from the tree is edited with the section still open: {:?}",
+        driver::on_screen(&app)
+    );
+
+    driver::press(&mut app, egui::Key::Enter);
+
+    assert!(
+        !driver::a_sketch_is_open(&app),
+        "↵ finishes the sketch edited, as it does with no section open: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !driver::in_the_tree(&app, "Coupe 1"),
+        "the ↵ that finished the sketch kept the section too: {:?}",
+        driver::on_screen(&app)
+    );
+}
+
+#[test]
+fn with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_on_the_last_keeps_it_and_closes()
+ {
+    let mut app = driver::a_block("bare_enter_walks_the_section_s_fields");
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+
+    for (pressed, step) in [
+        (1, "Vue en coupe — étape 3 : inclinaisons"),
+        (2, "Vue en coupe — étape 3 : inclinaisons"),
+        (3, "Vue en coupe — étape 4 : devant et derrière"),
+    ] {
+        driver::press(&mut app, egui::Key::Enter);
+        assert!(
+            driver::says(&app, step),
+            "↵ number {pressed} from the distance stands on « {step} »: {:?}",
+            driver::said(&app)
+        );
+    }
+    assert!(
+        !driver::in_the_tree(&app, "Coupe 1"),
+        "moving through the steps kept the section"
+    );
+
+    driver::press(&mut app, egui::Key::Enter);
+
+    assert!(
+        driver::in_the_tree(&app, "Coupe 1"),
+        "↵ on the last step keeps the section, as « Enregistrer la coupe » does: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !the_panel_is_open(&app) && !driver::says(&app, "Vue en coupe — étape"),
+        "and closes it, as « Enregistrer la coupe » does, its step gone from the \
+         pill: {:?}",
+        driver::said(&app)
+    );
+}
+
+/// The button that reads this, whole or up to the state it ends on, as the
+/// panel draws it.
+fn the_button_starting(app: &driver::App, label: &str) -> (String, egui::Rect) {
+    app.query_all_by_role(egui::accesskit::Role::Button)
+        .find_map(|node| {
+            let read = node.accesskit_node().label()?;
+            read.starts_with(label).then(|| (read, node.rect()))
+        })
+        .unwrap_or_else(|| panic!("no button reads « {label}… »: {:?}", driver::on_screen(app)))
+}
+
+#[test]
+fn the_two_sides_of_the_section_stand_on_one_row_whatever_they_are_drawn_as() {
+    let mut app = driver::a_block("the_two_sides_of_the_section_stand_on_one_row");
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+
+    for _ in 0..3 {
+        let (behind_read, behind) = the_button_starting(&app, "Derrière :");
+        let (in_front_read, in_front) = the_button_starting(&app, "Devant :");
+        let (_, invert) = the_button_starting(&app, "Inverser");
+        assert!(
+            in_front.top() < behind.bottom() && in_front.left() >= behind.right(),
+            "« {behind_read} » and « {in_front_read} » do not stand side by side on \
+             one row: {behind:?} and {in_front:?}"
+        );
+        for (read, button) in [(&behind_read, behind), (&in_front_read, in_front)] {
+            assert!(
+                button.height() < invert.height() * 1.5,
+                "« {read} » wraps onto a second line: it stands {} tall, where \
+                 « Inverser » on one line stands {}",
+                button.height(),
+                invert.height()
+            );
+        }
+        for read in [behind_read, in_front_read] {
+            driver::click_the_button(&mut app, &read);
+        }
+    }
+}
+
+#[test]
+fn keeping_the_section_closes_its_panel_and_the_next_section_view_opens_on_its_face() {
+    let mut app = driver::a_block("keeping_the_section_closes_its_panel");
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+
+    driver::click_the_button(&mut app, "Enregistrer la coupe");
+
+    assert!(
+        driver::in_the_tree(&app, "Coupe 1"),
+        "« Enregistrer la coupe » left no « Coupe 1 » in the tree: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !the_panel_is_open(&app),
+        "the section kept, its panel closes, as Échap closes it: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !driver::says(&app, "Vue en coupe — étape"),
+        "and its step goes from the pill: {:?}",
+        driver::said(&app)
+    );
+
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+
+    assert!(
+        the_panel_is_open(&app) && driver::says(&app, "Vue en coupe — étape 1 : face"),
+        "the next « Vue en coupe » opens a section afresh, on its face: {:?}",
+        driver::said(&app)
+    );
+}
+
+#[test]
 fn the_section_tool_closed_without_saving_leaves_nothing_behind_and_a_sketch_on_its_cut_stays_put()
 {
     let test = "keeping_a_section_closed_without_saving";
@@ -261,12 +499,14 @@ fn a_saved_section_reopened_from_the_tree_comes_back_on_its_plane_its_offset_and
     driver::click_in_the_bar(&mut app, "Vue en coupe");
     driver::click(&mut app, "Plan YZ");
     driver::type_beside(&mut app, "Distance", "3");
-    driver::click(&mut app, "Derrière");
-    driver::click(&mut app, "Devant");
-    driver::click(&mut app, "Devant");
-    let sides = (
-        the_button_reading(&app, "Derrière"),
-        the_button_reading(&app, "Devant"),
+    for side in ["Derrière :", "Derrière :", "Devant :", "Devant :"] {
+        driver::click_the_button(&mut app, side);
+    }
+    let sides = ("transparente".to_string(), "opaque".to_string());
+    assert_eq!(
+        (drawn_as(&app, "Derrière :"), drawn_as(&app, "Devant :")),
+        sides,
+        "behind stepped twice from opaque, in front twice from hidden"
     );
     driver::click_the_button(&mut app, "Enregistrer la coupe");
     close_the_panel(&mut app);
@@ -295,13 +535,37 @@ fn a_saved_section_reopened_from_the_tree_comes_back_on_its_plane_its_offset_and
         "the section came back at another distance",
     );
     assert_eq!(
-        (
-            the_button_reading(&app, "Derrière"),
-            the_button_reading(&app, "Devant"),
-        ),
+        (drawn_as(&app, "Derrière :"), drawn_as(&app, "Devant :")),
         sides,
-        "the section came back drawing its sides another way",
+        "the section came back drawing its sides another way, or the other way round",
     );
+}
+
+/// How a side of the section's panel is drawn, as the state chip standing
+/// under its name reads it.
+fn drawn_as(app: &driver::App, side: &str) -> String {
+    let buttons = || app.query_all_by_role(egui::accesskit::Role::Button);
+    let name = buttons()
+        .find(|node| node.accesskit_node().label().as_deref() == Some(side))
+        .unwrap_or_else(|| panic!("no side of the panel is named « {side} »"))
+        .rect();
+    buttons()
+        .filter_map(|node| {
+            let read = node.accesskit_node().label()?;
+            let at = node.rect();
+            let under =
+                at.top() >= name.bottom() && at.left() < name.right() && at.right() > name.left();
+            (under && ["cachée", "transparente", "opaque"].contains(&read.as_str()))
+                .then_some((read, at))
+        })
+        .min_by(|(_, one), (_, other)| one.top().total_cmp(&other.top()))
+        .map(|(read, _)| read)
+        .unwrap_or_else(|| {
+            panic!(
+                "no state stands under « {side} »: {:?}",
+                driver::on_screen(app)
+            )
+        })
 }
 
 #[test]
@@ -463,13 +727,13 @@ fn sections_in_the_tree(app: &driver::App) -> Vec<String> {
 #[test]
 fn saving_again_after_the_save_was_undone_keeps_a_section_again() {
     let mut app = driver::a_block("keeping_a_section_saved_undone_saved");
-    driver::click_in_the_bar(&mut app, "Vue en coupe");
-    driver::click(&mut app, "Plan YZ");
-    driver::click_the_button(&mut app, "Enregistrer la coupe");
+    save_a_section(&mut app, "Plan YZ");
+    double_click(&mut app, "Coupe 1");
     driver::press_with_command(&mut app, egui::Key::Z);
     assert!(
         sections_in_the_tree(&app).is_empty() && the_panel_is_open(&app),
-        "undo should leave the panel open and no section in the tree, showing {:?}",
+        "undo should leave the panel reopened on the section and no section in the \
+         tree, showing {:?}",
         driver::on_screen(&app),
     );
 
@@ -486,14 +750,14 @@ fn saving_again_after_the_save_was_undone_keeps_a_section_again() {
 #[test]
 fn saving_after_the_section_was_deleted_from_the_tree_makes_a_new_one() {
     let mut app = driver::a_block("keeping_a_section_saved_deleted_saved");
-    driver::click_in_the_bar(&mut app, "Vue en coupe");
-    driver::click(&mut app, "Plan YZ");
-    driver::click_the_button(&mut app, "Enregistrer la coupe");
+    save_a_section(&mut app, "Plan YZ");
+    double_click(&mut app, "Coupe 1");
     right_click(&mut app, "Coupe 1");
     driver::click_the_button(&mut app, "Supprimer");
     assert!(
         sections_in_the_tree(&app).is_empty() && the_panel_is_open(&app),
-        "deleting should leave the panel open and no section in the tree, showing {:?}",
+        "deleting should leave the panel reopened on the section and no section in \
+         the tree, showing {:?}",
         driver::on_screen(&app),
     );
 

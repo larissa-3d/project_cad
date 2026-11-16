@@ -1,37 +1,33 @@
 //! What app · wording/copy_panel.rs is held to.
 //!
-//! Closes #321.
-//! - each row of the panel is said by the language file, one entry per row and
-//!   state, French spacing and agreement included — `the_elements_row_counts_what_is_held`,
-//!   `the_target_row_says_whether_it_is_still_to_click`,
-//!   `a_direction_chosen_agrees_with_its_noun`
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`;
+//! this is how the mirror's step names the axis it holds.
+//! - Both tools are laid out by `tool_panel` in numbered steps; the `slots`
+//!   and `panel_row` rows of `render/copy_panel.rs` are gone. The controls of
+//!   `ui/` already there (`step_dot`, `chip`, `number_field`,
+//!   `formula_field`) are reused; none is added — found in review: the axis
+//!   step names what it holds, a trait by its row's name and each of the
+//!   sketch's two axes by its own —
+//!   `the_axis_held_is_named_a_trait_by_its_row_and_each_sketch_axis_by_its_own`
+
+use cao_sketch::SegmentId;
 
 use super::*;
 
 #[test]
-fn the_elements_row_counts_what_is_held() {
-    assert_eq!(elements(&Catalogue::french(), 3), "Éléments : 3");
-}
-
-#[test]
-fn the_target_row_says_whether_it_is_still_to_click() {
+fn the_axis_held_is_named_a_trait_by_its_row_and_each_sketch_axis_by_its_own() {
     let lang = Catalogue::french();
 
+    assert_eq!(axis(&lang, ChosenAxis::Trait(SegmentId(2))), "Trait 3");
     assert_eq!(
-        target(&lang, Target::Axis, false),
-        "Axe : à cliquer dans le dessin"
+        axis(&lang, ChosenAxis::Sketch(SketchAxis::U)),
+        "Axe horizontal",
+        "the sketch's first axis runs along its u, across the drawing"
     );
-    assert_eq!(target(&lang, Target::Axis, true), "Axe : choisi");
     assert_eq!(
-        target(&lang, Target::Direction, false),
-        "Direction : à cliquer dans le dessin"
-    );
-}
-
-#[test]
-fn a_direction_chosen_agrees_with_its_noun() {
-    assert_eq!(
-        target(&Catalogue::french(), Target::Direction, true),
-        "Direction : choisie"
+        axis(&lang, ChosenAxis::Sketch(SketchAxis::V)),
+        "Axe vertical",
+        "the sketch's second axis runs along its v, up the drawing"
     );
 }

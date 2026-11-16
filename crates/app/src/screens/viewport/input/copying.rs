@@ -14,8 +14,8 @@ use super::{ViewScale, ViewportState, pick};
 mod asking;
 mod opening;
 mod preview;
-pub(crate) use asking::activate_in_the_panel;
 use asking::say_what_is_asked;
+pub(crate) use asking::{activate_in_the_panel, command_of};
 pub(crate) use preview::previewed;
 
 /// One click of a tool that lays a copy down — the mirror, or either pattern.
@@ -94,13 +94,14 @@ pub(crate) fn gather_in_a_box(
 }
 
 /// `Entrée` in the panel: the slot below becomes active, and on Validate or the
-/// circular pattern's direction the copy is laid — or, with a slot still
-/// empty, that slot is activated and marked.
+/// last slot of the last step the copy is laid — or, with a slot still empty,
+/// that slot is activated and marked.
 pub(crate) fn enter_in_the_panel(context: &mut SketchContext<'_>) -> bool {
-    let Some(leaving) = context.editor.copy_panel().map(|panel| panel.active()) else {
+    let Some(panel) = context.editor.copy_panel.as_mut() else {
         return false;
     };
-    if matches!(leaving, CopySlot::Rotation | CopySlot::Validate) {
+    let leaving = panel.active();
+    if !panel.move_down() {
         if refused_for_what_is_typed(context) {
             return false;
         }
@@ -114,8 +115,6 @@ pub(crate) fn enter_in_the_panel(context: &mut SketchContext<'_>) -> bool {
                 .and_then(|index| asked(context, index));
             return lay(context, laid);
         }
-    } else if let Some(panel) = context.editor.copy_panel.as_mut() {
-        panel.move_down();
     }
     let editor = &*context.editor;
     let untyped = editor.copy_panel().is_some_and(|panel| {

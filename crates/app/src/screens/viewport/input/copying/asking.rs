@@ -1,13 +1,14 @@
-//! What the drawing says the panel waits on: the circular pattern names its
-//! current step, the mirror and the rectangular pattern their active slot.
+//! What the drawing says the panel waits on: the tool, the number of its
+//! current step, and what that step asks for.
+
+use cao_prefs::Command;
 
 use crate::screens::SketchContext;
 use crate::screens::sketch::{CopySlot, CopyStep, Tool};
 use crate::wording::copy_panel::{self as said, Asked};
 
 /// A slot clicked in the panel becomes active, and when it belongs to a step
-/// the drawing says what that step asks for. A panel laid out in no steps —
-/// the mirror's, the rectangular pattern's — leaves the message as it was.
+/// the drawing says what that step asks for.
 pub(crate) fn activate_in_the_panel(context: &mut SketchContext<'_>, slot: CopySlot) {
     let Some(panel) = context.editor.copy_panel_mut() else {
         return;
@@ -18,30 +19,34 @@ pub(crate) fn activate_in_the_panel(context: &mut SketchContext<'_>, slot: CopyS
     }
 }
 
-/// What the drawing says while the panel waits on its active slot.
+/// What the drawing says while the panel waits on its active slot: nothing on
+/// Validate, which belongs to no step.
 pub(super) fn say_what_is_asked(context: &mut SketchContext<'_>) {
     let Some(panel) = context.editor.copy_panel() else {
         return;
     };
-    if let Some((rank, step)) = panel.current_step() {
-        let asked = match step {
-            CopyStep::Elements => Asked::Elements,
-            CopyStep::Centre => Asked::Centre,
-            CopyStep::CountAndStep => Asked::Count,
-            CopyStep::Rotation => Asked::Rotation,
-        };
-        context.editor.message = Some(said::circular_step(context.lang, rank + 1, asked));
-        return;
+    let tool = command_of(context.editor.tool);
+    context.editor.message = panel
+        .current_step()
+        .map(|(rank, step)| said::step_asks(context.lang, tool, rank + 1, asked(step)));
+}
+
+/// The command the copy tool in hand is taken by, which names it.
+pub(crate) fn command_of(tool: Tool) -> Command {
+    match tool {
+        Tool::CircularPattern => Command::ToolCircularPattern,
+        Tool::RectangularPattern => Command::ToolRectangularPattern,
+        _ => Command::ToolMirror,
     }
-    let said = match (panel.active(), context.editor.tool) {
-        (CopySlot::Elements, Tool::Mirror) => "sketch.mirror_take_elements",
-        (CopySlot::Elements, _) => "sketch.pattern_take_elements",
-        (CopySlot::Target, Tool::RectangularPattern) => "sketch.pattern_click_the_direction",
-        (CopySlot::Target, _) => "sketch.mirror_click_the_axis",
-        _ => {
-            context.editor.message = None;
-            return;
-        }
-    };
-    context.editor.message = Some(context.lang.t(said));
+}
+
+fn asked(step: CopyStep) -> Asked {
+    match step {
+        CopyStep::Elements => Asked::Elements,
+        CopyStep::Centre => Asked::Centre,
+        CopyStep::Axis => Asked::Axis,
+        CopyStep::Direction => Asked::Direction,
+        CopyStep::CountAndStep => Asked::CountAndStep,
+        CopyStep::Rotation => Asked::Rotation,
+    }
 }

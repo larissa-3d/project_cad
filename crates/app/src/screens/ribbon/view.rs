@@ -7,7 +7,6 @@ use crate::screens::blend_row::blend_row;
 use crate::screens::extrusion::ExtrusionState;
 use crate::screens::extrusion_row::extrusion_row;
 use crate::screens::sketch::SketchEditor;
-use crate::screens::viewport::chamfer_to_swap;
 use crate::ui::icon;
 use crate::ui::logo::logo;
 use crate::ui::panel_toggle::{panel_button, panel_toggle};
@@ -207,12 +206,6 @@ impl Ribbon {
             true => blend_row(ui, drawn.document, drawn.blend, &mut asked, lang),
             false => extrusion_row(ui, drawn.document, drawn.extrusion, read, &mut asked, lang),
         }
-        let state = drawn.context(
-            settings,
-            lang,
-            (self.section_on, !self.read_to_an_earlier_step),
-        );
-        chamfer_row(ui, &state, &mut asked, shown);
         asked
     }
 
@@ -381,12 +374,3 @@ fn named_button(
 
 #[cfg(test)]
 mod tests;
-
-/// What a chamfer held offers besides its values, while one is held: its two
-/// sides swapped. Here until a panel of the feature's own takes it.
-fn chamfer_row(ui: &mut egui::Ui, state: &Context<'_>, asked: &mut Vec<Command>, shown: Shown) {
-    if chamfer_to_swap(state.document, state.editor).is_none() {
-        return;
-    }
-    ui.horizontal_wrapped(|ui| button(ui, Command::SwapChamferSides, state, asked, shown));
-}

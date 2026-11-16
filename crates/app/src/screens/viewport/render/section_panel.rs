@@ -1,23 +1,23 @@
-//! The section view's panel — the plane, the distance, the two tilts, each
-//! side's state, « Inverser » and « Enregistrer la coupe » — and, on the
-//! cutting plane, its square, its arrow and its handle.
+//! The section view's panel, laid out in numbered steps in `steps`, and what
+//! the message pill says while it is open — and, on the cutting plane, its
+//! square, its arrow and its handle.
 
 use cao_prefs::Command;
 use cao_render::{push_plane_outline, push_plane_quad};
-use cao_sketch::WorkPlane;
 
-use super::live_fields::value_field;
 use super::overlays::{tint_to_color, to_screen};
 use super::{tint, tint_at};
 use crate::screens::SketchContext;
-use crate::screens::viewport::section::Section;
+use crate::screens::viewport::section::SectionField;
 use crate::screens::viewport::{ViewScale, ViewportState};
-use crate::ui::floating_panel::{floating_panel, panel_row};
-use crate::wording::section::{self as said, Side};
+use crate::ui::floating_panel::tool_panel;
 
-/// Draws the panel while the section is on, and carries out what was done in
-/// it. Échap or the control in its title closes it, and with it the section.
-/// Returns true when the section was kept in the part.
+mod steps;
+
+/// Draws the panel while the section is on, carries out what was done in it,
+/// and says its current step over the view. Échap, the control in its title
+/// or the section kept closes it, and with it the section, and the step it
+/// said goes with it. Returns true when the section was kept in the part.
 pub(crate) fn paint_section_panel(
     ui: &egui::Ui,
     state: &mut ViewportState,
@@ -29,125 +29,65 @@ pub(crate) fn paint_section_panel(
     if escaped {
         state.section = None;
     }
+    let id = egui::Id::new("section_panel");
     let Some(section) = state.section.as_mut() else {
+        unsay(ui.ctx(), id, context);
         return false;
     };
     let lang = context.lang;
     let title = crate::wording::command::label(lang, Command::SectionView);
     let left_at = view.min + egui::vec2(16.0, 16.0);
-    let id = egui::Id::new("section_panel");
     let close = lang.t("panel.close");
-    let mut keep = false;
-    let floated = floating_panel(ui.ctx(), id, (&title, &close), (left_at, view), |ui| {
-        keep = rows(ui, section, context);
+    let part = context.document.name().to_owned();
+    let field = section.field();
+    let arrived = ui.ctx().data_mut(|data| {
+        let before = data.get_temp::<SectionField>(id.with("field"));
+        data.insert_temp(id.with("field"), field);
+        before != Some(field)
     });
-    if keep {
-        section.keep_in(context.document);
-    }
+    let heading = (title.as_str(), part.as_str(), close.as_str());
+    let floated = tool_panel(ui.ctx(), id, heading, (left_at, view), |ui| {
+        steps::steps(ui, section, context, arrived)
+    });
     if floated.closed {
         state.section = None;
+        unsay(ui.ctx(), id, context);
+        return false;
     }
-    keep
+    let asked = floated.inner;
+    if asked.keep {
+        section.keep_in(context.document);
+    }
+    // A sketch edited under the section has the message and `Entrée` to
+    // itself.
+    let sketching = context.editor.active_sketch().is_some();
+    let bare_enter = !sketching && ui.input(|input| input.key_pressed(egui::Key::Enter));
+    let entered = !sketching && (asked.enter || bare_enter);
+    let kept = asked.keep || (entered && section.enter(context.document));
+    // A section kept, its panel closes as Échap closes it.
+    if kept {
+        state.section = None;
+        unsay(ui.ctx(), id, context);
+        return true;
+    }
+    if sketching {
+        unsay(ui.ctx(), id, context);
+        return false;
+    }
+    let said = section.said(lang);
+    ui.ctx()
+        .data_mut(|data| data.insert_temp(id.with("said"), said.clone()));
+    context.editor.message = Some(said);
+    kept
 }
 
-/// Draws the rows, and says whether the section was asked to be kept.
-fn rows(ui: &mut egui::Ui, section: &mut Section, context: &SketchContext<'_>) -> bool {
-    let (lang, body) = (context.lang, context.document.body());
-    let waiting = section.is_waiting_for_a_face();
-    let mut on_an_origin_plane = false;
-    for plane in WorkPlane::ORIGIN_PLANES {
-        let chosen = !waiting && section.plane == plane;
-        on_an_origin_plane |= chosen;
-        let said = crate::wording::plane::label(lang, plane.kind());
-        if panel_row(ui, said, chosen, false).clicked() {
-            section.choose_origin_plane(plane, body);
-        }
+/// Takes back the step the section said over the view, while that is still
+/// what the view says.
+fn unsay(ctx: &egui::Context, id: egui::Id, context: &mut SketchContext<'_>) {
+    let said = ctx.data_mut(|data| data.remove_temp::<String>(id.with("said")));
+    if said.is_some() && context.editor.message == said {
+        context.editor.message = None;
     }
-    let on_a_face = !on_an_origin_plane;
-    if panel_row(ui, lang.t("section.clicked_face"), on_a_face, waiting).clicked() {
-        section.wait_for_a_face();
-    }
-    let millimetres = context.document.scale();
-    let now = section.distance_text(millimetres);
-    let distance = ("section_distance", lang.t("section.distance"), "mm");
-    if let Some(typed) = ui
-        .horizontal(|ui| typed_row(ui, distance, now, context))
-        .inner
-    {
-        section.type_distance(typed, millimetres);
-    }
-    for (id, key, tilt) in [
-        (
-            "section_tilt_u",
-            "section.tilt_u",
-            &mut section.tilt_about_u_degrees,
-        ),
-        (
-            "section_tilt_v",
-            "section.tilt_v",
-            &mut section.tilt_about_v_degrees,
-        ),
-    ] {
-        let now = crate::wording::dimension::short(*tilt);
-        if let Some(typed) = ui
-            .horizontal(|ui| typed_row(ui, (id, lang.t(key), "°"), now, context))
-            .inner
-        {
-            *tilt = typed;
-        }
-    }
-    if panel_row(
-        ui,
-        said::side(lang, Side::Behind, section.behind),
-        false,
-        false,
-    )
-    .clicked()
-    {
-        section.next_behind();
-    }
-    if panel_row(
-        ui,
-        said::side(lang, Side::InFront, section.in_front),
-        false,
-        false,
-    )
-    .clicked()
-    {
-        section.next_in_front();
-    }
-    if ui.button(lang.t("section.invert")).clicked() {
-        section.invert();
-    }
-    ui.button(lang.t("section.save")).clicked()
-}
-
-/// A field after its label, taking a number typed or read from the formula
-/// field: while it is not being typed in, it reads `now`, which follows the
-/// handle for the distance. Returns what was typed.
-fn typed_row(
-    ui: &mut egui::Ui,
-    (id, label, unit): (&str, String, &str),
-    now: String,
-    context: &SketchContext<'_>,
-) -> Option<f64> {
-    let variables = context.document.variables();
-    let id = egui::Id::new(id);
-    let typing = ui.memory(|memory| memory.has_focus(id));
-    let mut text = match typing {
-        true => ui.data(|data| data.get_temp::<String>(id.with("text"))),
-        false => None,
-    }
-    .unwrap_or(now);
-    ui.label(label);
-    let field = value_field(ui, id, &mut text, "", false, variables);
-    ui.label(unit);
-    let typed = match field.response.response.changed() {
-        true => variables.size_of(&text).ok().map(|(_, typed)| typed),
-        false => None,
-    };
-    ui.data_mut(|data| data.insert_temp(id.with("text"), text));
-    typed
 }
 
 /// The handle: a dot on the cutting plane over the middle of the part.

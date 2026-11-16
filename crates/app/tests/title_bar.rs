@@ -361,7 +361,6 @@ fn the_view_pill_follows_the_sketch_the_section_view_and_the_kept_section() {
 
     driver::click(&mut app, "Plan YZ");
     driver::click_the_button(&mut app, "Enregistrer la coupe");
-    driver::click_the_button(&mut app, "Fermer");
     driver::click_the_button(&mut app, "Coupe 1");
     assert!(
         the_tree_shows_on(&app, "Coupe 1"),

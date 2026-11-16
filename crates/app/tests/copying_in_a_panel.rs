@@ -34,6 +34,14 @@
 //!   `once_the_centre_is_clicked_what_is_typed_goes_to_the_number_of_copies`
 //! - The panel can still be dragged and keeps its place —
 //!   `the_circular_pattern_s_panel_follows_its_title_and_reopens_where_it_was_let_go`
+//!
+//! Closes #739 — the whole transcription is in
+//! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`;
+//! this is the half only the whole application holds, the keyboard's Escape.
+//! - ↵ validates the current step and moves on; on the last step it applies
+//!   the copy; Escape cancels. One test per case and per tool — Escape's case,
+//!   `escape_on_a_step_of_the_mirror_closes_its_panel_and_lays_nothing`,
+//!   `escape_on_a_step_of_the_rectangular_pattern_closes_its_panel_and_lays_nothing`
 
 mod driver;
 
@@ -113,11 +121,12 @@ fn escape_hands_what_the_panel_held_to_the_selection_tool() {
     );
     assert!(driver::a_sketch_is_open(&app), "the sketch stays open");
     driver::click(&mut app, "Symétrie");
+    let chips = driver::buttons_over_the_view(&app);
     assert!(
-        driver::shows(&app, "Éléments : 1"),
+        chips.contains(&"Trait 1".to_string())
+            && !chips.iter().any(|chip| chip.starts_with("Point ")),
         "the trait picked stayed selected without its ends, and the mirror \
-         starts with it alone: {:?}",
-        driver::on_screen(&app)
+         starts with it alone: {chips:?}"
     );
 }
 
@@ -188,6 +197,85 @@ fn escape_on_a_step_of_the_circular_pattern_closes_its_panel_and_lays_nothing() 
         driver::steps(&app),
         history,
         "nothing is laid, though every step was filled"
+    );
+    assert!(driver::a_sketch_is_open(&app), "the sketch stays open");
+}
+
+/// Where the sketch's first axis runs, well clear of the trait: what the
+/// mirror is turned across.
+const ON_THE_SKETCH_S_FIRST_AXIS: DVec2 = DVec2::new(25.0, 0.0);
+
+/// What the drawing says when a click meant for an axis or a direction names
+/// nothing.
+const NAMES_NOTHING: &str = "ne désigne ni un trait ni un axe";
+
+/// The copy tool taken, the trait held and ↵ pressed, then `target` clicked
+/// for its axis or its direction: every step filled, the panel waiting on its
+/// last.
+fn every_step_filled(test: &str, tool: &str, target: DVec2) -> (driver::App, Vec<String>) {
+    let mut app = a_trait_drawn(test, cao_prefs::Settings::default());
+    driver::open_the_history(&mut app);
+    let history = driver::steps(&app);
+    driver::click(&mut app, tool);
+    driver::click_at_sketch_point(&mut app, driver::ON_THE_SEGMENT);
+    driver::press(&mut app, egui::Key::Enter);
+    driver::click_at_sketch_point(&mut app, target);
+    assert!(
+        !driver::says(&app, NAMES_NOTHING),
+        "{tool}: the click named what it was aimed at: {:?}",
+        driver::said(&app)
+    );
+    assert!(
+        a_panel_is_open(&app, tool),
+        "{tool}: the panel is open: {:?}",
+        driver::on_screen(&app)
+    );
+    (app, history)
+}
+
+#[test]
+fn escape_on_a_step_of_the_mirror_closes_its_panel_and_lays_nothing() {
+    let (mut app, history) = every_step_filled(
+        "escape_on_a_step_of_the_mirror",
+        "Symétrie",
+        ON_THE_SKETCH_S_FIRST_AXIS,
+    );
+
+    driver::press(&mut app, egui::Key::Escape);
+
+    assert!(
+        !a_panel_is_open(&app, "Symétrie"),
+        "the panel is closed: {:?}",
+        driver::on_screen(&app)
+    );
+    assert_eq!(
+        driver::steps(&app),
+        history,
+        "nothing is laid, though the elements and the axis were both held"
+    );
+    assert!(driver::a_sketch_is_open(&app), "the sketch stays open");
+}
+
+#[test]
+fn escape_on_a_step_of_the_rectangular_pattern_closes_its_panel_and_lays_nothing() {
+    let (mut app, history) = every_step_filled(
+        "escape_on_a_step_of_the_rectangular_pattern",
+        "Réseau rectangulaire",
+        driver::ON_THE_SEGMENT,
+    );
+
+    driver::press(&mut app, egui::Key::Escape);
+
+    assert!(
+        !a_panel_is_open(&app, "Réseau rectangulaire"),
+        "the panel is closed: {:?}",
+        driver::on_screen(&app)
+    );
+    assert_eq!(
+        driver::steps(&app),
+        history,
+        "nothing is laid, though the elements, the direction and the values \
+         the fields opened on were all held"
     );
     assert!(driver::a_sketch_is_open(&app), "the sketch stays open");
 }
@@ -280,7 +368,7 @@ fn click_the_step(app: &mut driver::App, title: &str) {
 }
 
 #[test]
-fn a_trait_clicked_into_the_panel_is_counted_with_its_two_ends() {
+fn a_trait_clicked_into_the_panel_shows_as_its_own_chip_without_its_ends() {
     let mut app = a_trait_drawn(
         "a_trait_clicked_into_the_panel",
         cao_prefs::Settings::default(),
@@ -289,10 +377,15 @@ fn a_trait_clicked_into_the_panel_is_counted_with_its_two_ends() {
 
     driver::click_at_sketch_point(&mut app, driver::ON_THE_SEGMENT);
 
+    let chips = driver::buttons_over_the_view(&app);
     assert!(
-        driver::shows(&app, "Éléments : 3"),
-        "the trait and its two ends are held: {:?}",
-        driver::on_screen(&app)
+        chips.contains(&"Trait 1".to_string()),
+        "the trait clicked shows in the panel by its name: {chips:?}"
+    );
+    assert!(
+        !chips.iter().any(|chip| chip.starts_with("Point ")),
+        "its two ends are held with it, and shown by no chip of their own: \
+         {chips:?}"
     );
 }
 
