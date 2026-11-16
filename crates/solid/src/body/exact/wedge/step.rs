@@ -144,7 +144,9 @@ impl Exact {
     /// the edges [`pairs::at_their_ends`] lays against it: every edge it
     /// shares a corner with, and the upright at a point's tip, whose round
     /// the pair's meets on an ellipse until a point edge laid after both cuts
-    /// between them. Declined as [`Exact::cut_off`] says.
+    /// between them. With the body, `taken`, or the nearer a slope stands to
+    /// its edges where it runs through a riser's top edge, as
+    /// [`Exact::sloped`] reads it. Declined as [`Exact::cut_off`] says.
     pub(super) fn in_turn(
         &self,
         names: &[EdgeName],
@@ -185,6 +187,7 @@ impl Exact {
         let given: Vec<(EdgeId, &Wedge)> = edges.iter().copied().zip(&wedges).collect();
         let crossing = set_backs::crossing_on(&self.brep, &edges, &wedges, set_back);
         let start = self.next;
+        let mut reported = taken;
         let mut cut = self.cleared(&closes, meeting.closing.apex.clear)?;
         for rank in 0..names.len() {
             let joined = pairs::together(rank, &pairs);
@@ -213,7 +216,11 @@ impl Exact {
                         .fold(f64::INFINITY, |least, &(_, _, value)| least.min(value));
                     let chain: Vec<(EdgeId, &Wedge)> = joined.iter().map(|&at| given[at]).collect();
                     let numbers: Vec<u32> = joined.iter().map(|&at| start + at as u32).collect();
-                    cut.sloped(&self.brep, &chain, &numbers, value, &tool)?
+                    let laid = (value, &mitred[..]);
+                    let (sloped, nearest) =
+                        cut.sloped(&self.brep, &chain, &numbers, laid, &tool)?;
+                    reported = reported.min(nearest);
+                    sloped
                 }
                 (None, _) => {
                     let open = flush::open(&self.brep, rank, &given, &beside);
@@ -233,7 +240,7 @@ impl Exact {
         }
         cut.overlaps_covered()?;
         cut.next = start + names.len() as u32;
-        Ok((cut.closed(&closes, start)?, taken, pairs))
+        Ok((cut.closed(&closes, start)?, reported, pairs))
     }
 }
 
