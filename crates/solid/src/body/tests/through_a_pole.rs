@@ -21,11 +21,12 @@
 //!
 //! Reading a sphere about another axis is a step's own business: a step
 //! whose plane through a pole cuts nothing of the sphere leaves its chart as
-//! it was, for the steps after it that turn about that axis; the sphere as
-//! the second operand is read so as well as the first; and where no other
-//! axis lays every circle off its poles, or another surface of the part
-//! meets the sphere along circles its own axis decides, the step declines as
-//! it did before #938.
+//! it was, for the steps after it that turn about that axis, and a face of
+//! the tool far from the sphere chooses no axis for it; the sphere as the
+//! second operand is read so as well as the first; and where no other axis
+//! lays every circle off its poles, or another surface of the part meets the
+//! sphere along circles its own axis decides, the step declines as it did
+//! before #938.
 
 use super::*;
 use crate::brep::Surface;
@@ -469,22 +470,35 @@ fn a_ball_after_a_slab_at_a_slant_through_its_pole_is_joined_to_it_or_cut_from_i
     }
 }
 
-/// A ball turned about the normal of a plane through (0, 0, 5) leaning 45°
-/// from z towards X, cut by that plane, keeping the side holding (0, 0, −5):
-/// its circle a latitude of its chart. Its sphere is then read about z
-/// instead, as a ball turned about z is, and the body laid again on it. Its
-/// piece of sphere's loop runs through a pole of that chart, where no trace
-/// reads it, and the poles a face holds are read off its loops: the body is
-/// declined, never handed back holding no pole, short of the cap of the one
-/// at (0, 0, −5).
+/// The ball turned about the normal of a plane through (0, 0, 5) leaning
+/// 45° from z towards X, cut by that plane, keeping the side holding
+/// (0, 0, −5): its circle a latitude of its chart. Then its sphere replaced
+/// by `surface`, holding the same points, and the body laid again on it.
+fn the_cut_laid_again_on(surface: Surface) -> Result<crate::brep::Body, Declined> {
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let cut = ball_about(normal)
+        .difference(&Side::Rest.slab(normal, 5.0 * normal.dot(DVec3::Z)))
+        .expect("a plane square to the ball's axis cuts it");
+    let mut laid = cut.brep().expect("an exact cut").clone();
+    let spheres: Vec<usize> = (laid.surfaces.iter().enumerate())
+        .filter(|(_, surface)| matches!(surface, Surface::Sphere(_)))
+        .map(|(rank, _)| rank)
+        .collect();
+    let [sphere] = spheres[..] else {
+        panic!("the cut lies on one sphere: {spheres:?}");
+    };
+    laid.surfaces[sphere] = surface;
+    laid.rejoined_at(&[])
+}
+
+/// The cut of [`the_cut_laid_again_on`], its sphere read about z instead, as
+/// a ball turned about z is: its piece of sphere's loop runs through a pole
+/// of that chart, where no trace reads it, and the poles a face holds are
+/// read off its loops. The body is declined as the trace declines, never
+/// handed back holding no pole, short of the cap of the one at (0, 0, −5).
 #[test]
 fn a_piece_of_sphere_laid_again_on_a_chart_whose_pole_its_loop_runs_through_is_declined_never_short_of_the_other_pole_s_cap()
  {
-    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
-    let offset = 5.0 * normal.dot(DVec3::Z);
-    let cut = ball_about(normal)
-        .difference(&Side::Rest.slab(normal, offset))
-        .expect("a plane square to the ball's axis cuts it");
     let about_z = *ball_about(DVec3::Z)
         .brep()
         .expect("an exact ball")
@@ -492,24 +506,39 @@ fn a_piece_of_sphere_laid_again_on_a_chart_whose_pole_its_loop_runs_through_is_d
         .iter()
         .find(|surface| matches!(surface, Surface::Sphere(_)))
         .expect("the ball lies on a sphere");
-    let mut read_about_z = cut.brep().expect("an exact cut").clone();
-    let spheres: Vec<usize> = (read_about_z.surfaces.iter().enumerate())
-        .filter(|(_, surface)| matches!(surface, Surface::Sphere(_)))
-        .map(|(rank, _)| rank)
-        .collect();
-    let [sphere] = spheres[..] else {
-        panic!("the cut lies on one sphere: {spheres:?}");
-    };
-    read_about_z.surfaces[sphere] = about_z;
 
-    let laid = read_about_z.rejoined_at(&[]);
+    let laid = the_cut_laid_again_on(about_z);
 
-    assert!(
-        laid.is_err(),
-        "the cut laid again on its sphere read about z is handed back holding {}, where the \
-         side kept holds {}",
-        laid.map_or(f64::NAN, |body| body.volume()),
-        Side::Rest.holds(offset)
+    assert_eq!(
+        laid.map(|body| body.volume()),
+        Err(Declined::Unsupported),
+        "the cut laid again on its sphere read about z, where the side kept holds {}",
+        BALL_OF_5 - cap_of_5(5.0 - 5.0 / 2f64.sqrt())
+    );
+}
+
+/// The cut of [`the_cut_laid_again_on`], its sphere read as the torus about z
+/// whose ring has no radius — the same points, its poles the sphere's at
+/// (0, 0, ±5): its loop is no latitude and no meridian of the torus, which no
+/// trace reads, and the body is declined as the trace declines.
+#[test]
+fn a_piece_of_sphere_laid_again_on_a_torus_of_no_ring_through_whose_pole_its_loop_runs_is_declined()
+{
+    let ringless = crate::brep::Torus::through(
+        DVec3::ZERO,
+        DVec3::Z,
+        DVec2::ZERO,
+        5.0,
+        DVec2::new(0.0, 5.0),
+    );
+
+    let laid = the_cut_laid_again_on(Surface::Torus(ringless));
+
+    assert_eq!(
+        laid.map(|body| body.volume()),
+        Err(Declined::Unsupported),
+        "the cut laid again on the torus about z of no ring, where the side kept holds {}",
+        BALL_OF_5 - cap_of_5(5.0 - 5.0 / 2f64.sqrt())
     );
 }
 
@@ -582,4 +611,76 @@ fn a_ball_cut_by_a_tool_whose_second_face_runs_through_the_poles_its_first_face_
         "a ball cut through its pole by one face of a prism, and through the poles that face's \
          circle lays by another"
     );
+}
+
+/// The normal of a plane through the pole at (0, 0, 5) of the ball of
+/// radius 5 about z, leaning 60° from z: (1/2, 1/√2, 1/2), 5 times which is a
+/// point of the circle x + z = 5 leaves on the ball.
+fn towards_a_point_of_the_slab_s_circle() -> DVec3 {
+    DVec3::new(0.5, 0.5f64.sqrt(), 0.5)
+}
+
+/// A block 40 by 10 and 10 thick far below the ball of radius 5 about z, a
+/// tool of `part`: its face on the plane through the ball's pole at
+/// (0, 0, 5) square to [`towards_a_point_of_the_slab_s_circle`], 36 down that
+/// plane from the foot of the ball's centre on it, below z = −25, where its
+/// box reaches no corner of the ball's box but the one it stands under; the
+/// block raised away from the ball, its other faces clear of it.
+fn block_far_on_a_plane_through_the_pole(part: &Body) -> Body {
+    let normal = towards_a_point_of_the_slab_s_circle();
+    let across = normal.cross(DVec3::Z).normalize();
+    let down = normal.cross(across);
+    part.tool_raised(
+        &exact(
+            Contour::rectangle(DVec2::new(-20.0, -5.0), DVec2::new(20.0, 5.0)),
+            vec![],
+        ),
+        Frame {
+            origin: normal * 2.5 + down * 36.0,
+            u: across,
+            v: down,
+        },
+        normal * 10.0,
+    )
+    .expect("the block raises")
+}
+
+/// The ball about z cut by a tool of two pieces, in either order: a slab
+/// whose face runs through the pole at (0, 0, 5) on x + z = 5, and a block far
+/// from the ball whose face lies on a plane through that pole too, leaning
+/// 60° from z. Only the slab's face meets the ball: the sphere is read about
+/// its circle's axis, and the step is built, sound and holding the ball less
+/// the cap past the slab's face — never read about the far face's circle,
+/// whose poles the slab's circle runs through, and declined so.
+#[test]
+fn a_ball_cut_through_a_pole_by_a_tool_with_another_face_far_off_on_a_plane_through_that_pole_is_read_about_the_circle_the_cut_leaves()
+ {
+    let ball = ball_about(DVec3::Z);
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let offset = 5.0 * normal.dot(DVec3::Z);
+    let slab = Side::Rest.slab(normal, offset);
+    let block = block_far_on_a_plane_through_the_pole(&slab);
+    for (order, tool) in [
+        ("the slab, then the block", slab.union(&block)),
+        ("the block, then the slab", block.union(&slab)),
+    ] {
+        let what = format!(
+            "the ball about z cut through its pole by a slab and a block far off on another \
+             plane through it, joined as {order}"
+        );
+        let tool =
+            tool.unwrap_or_else(|declined| panic!("{what}: the tool declined, {declined:?}"));
+
+        let body = ball
+            .difference(&tool)
+            .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+        built_and_drawn(
+            &body,
+            Side::Rest.holds(offset),
+            Side::Rest.curved(offset),
+            &what,
+        );
+        a_disc_and_a_piece_of_sphere(&body, &what);
+    }
 }
