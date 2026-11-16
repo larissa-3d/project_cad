@@ -774,6 +774,19 @@
 //!   the tipped and the higher one under every check, and declined the
 //!   riser turned by −1e-7 `Unsupported` in every order however it is
 //!   drawn, and by −1e-9 where it is drawn from its bottom step
+//! - Decided on the way, after the mutants (2026-11-17): the foot between
+//!   the two noses is laid the same whichever of its faces the part meets
+//!   first and whichever strays from the slope's way — on the stair cut
+//!   from one block, its front numbered first and its turned riser before
+//!   its tread, so that the slope runs along the first nose and the foot's
+//!   first face is the riser, turned from that way, which the fill must run
+//!   past and be cut back on —
+//!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_cut_from_one_block_its_riser_numbered_before_its_tread_takes_half_in_one_slope_across_it_in_every_order`.
+//!   Read as: the [`stair_cut_from_one_block`] straight, as a control, and
+//!   its riser turned by −1e-7 and 1e-7, its numbers those [`CUT_FRONT`]
+//!   names, each held to every check of the first criterion. Cutting the
+//!   fill back on the tread rather than the riser declines the riser turned
+//!   by 1e-7 `Unsupported`; the branch builds all three
 //!
 //! Closes #814.
 //! - The right upright: `stair()`, the nose, the foot and the front's
@@ -7680,6 +7693,85 @@ fn flights_drawn_from_the_bottom() -> [StrayingFlight; 7] {
 fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_drawn_from_its_bottom_step_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order()
  {
     for flight in flights_drawn_from_the_bottom() {
+        lays_one_slope_across_the_flight_in_every_order(&flight);
+    }
+}
+
+/// The numbers the faces of the [`stair_cut_from_one_block`] answer to: the
+/// block's front, its start, nought — the first nose's front — its back
+/// one, its left two, its top three, its right four and its floor five; the
+/// cut's start six — the riser — and its floor eight — the tread — the rest
+/// of the cut standing outside the block. The first nose answers to the
+/// lowest numbers, and the foot's riser to lower ones than its tread, where
+/// every other stair here numbers the foot's tread first.
+const CUT_FRONT: usize = 0;
+const CUT_LEFT: u32 = 2;
+const CUT_TOP: usize = 3;
+const CUT_RIGHT: u32 = 4;
+const CUT_RISER: usize = 6;
+const CUT_TREAD: usize = 8;
+
+/// The [`stair_with_its_riser_turned_by`] `turn` cut from one block: the
+/// block from y = 0 to 20, [`HEIGHT`] high, raised along Y from its front,
+/// and cut from the tread up and from the turned riser forward by a tool
+/// raised from the riser's plane towards the front, past the block's ends
+/// and its top.
+fn stair_cut_from_one_block(turn: f64) -> Body {
+    let part = Body::default();
+    let block = part
+        .union(
+            &part
+                .tool_raised(
+                    &profile(Contour::rectangle(DVec2::ZERO, DVec2::new(HEIGHT, LENGTH))),
+                    Frame {
+                        origin: DVec3::ZERO,
+                        u: DVec3::Z,
+                        v: DVec3::X,
+                    },
+                    DVec3::Y * 2.0 * TREAD,
+                )
+                .expect("the block raises"),
+        )
+        .expect("the block is built");
+    let way = DVec3::new(1.0, turn, 0.0).normalize();
+    let cut = block
+        .tool_raised(
+            &profile(Contour::rectangle(
+                DVec2::new(-LENGTH, TREAD_HEIGHT),
+                DVec2::new(LENGTH, 2.0 * HEIGHT),
+            )),
+            Frame {
+                origin: DVec3::new(LENGTH / 2.0, TREAD, 0.0),
+                u: way,
+                v: DVec3::Z,
+            },
+            way.cross(DVec3::Z) * (TREAD + 2.0),
+        )
+        .expect("the cut raises");
+    block.difference(&cut).expect("the step is cut")
+}
+
+#[test]
+fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_cut_from_one_block_its_riser_numbered_before_its_tread_takes_half_in_one_slope_across_it_in_every_order()
+ {
+    let flight = |turn: f64, riser: fn(f64) -> f64| StrayingFlight {
+        part: stair_cut_from_one_block(turn),
+        tread: CUT_TREAD,
+        front: CUT_FRONT,
+        top: CUT_TOP,
+        riser: CUT_RISER,
+        ends: [vec![CUT_RIGHT], vec![CUT_LEFT]],
+        height: HEIGHT,
+        foot: riser,
+        top_edge: riser,
+        strays: LENGTH * turn.abs(),
+        called: format!("the stair cut from one block, its riser turned by {turn}"),
+    };
+    for flight in [
+        flight(0.0, |_| TREAD),
+        flight(-RISER_TURN, |x| riser_turned_by_at(-RISER_TURN, x)),
+        flight(RISER_TURN, turned_riser_at),
+    ] {
         lays_one_slope_across_the_flight_in_every_order(&flight);
     }
 }
