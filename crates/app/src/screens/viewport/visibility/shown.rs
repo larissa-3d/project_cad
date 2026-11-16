@@ -1,11 +1,13 @@
-//! The part as its volumes' states show it, and the raw block of the volume
-//! marked, each replayed only when what it is replayed from changes: a frame
-//! and a hover read them, and a replay costs far more than either can afford.
+//! The part as its volumes' states show it, the raw block of the volume
+//! marked, and the volume the extrusion being set previews, each worked out
+//! only when what it is worked out from changes: a frame and a hover read
+//! them, and a replay or a step of matter costs far more than either can
+//! afford (#583).
 
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use cao_part::{History, PartDocument, Shown, StepReopened, VolumeState};
+use cao_part::{History, Operation, PartDocument, Shown, StepReopened, VolumeState};
 use cao_solid::Body;
 
 use super::super::ViewportState;
@@ -36,6 +38,14 @@ pub(super) struct Blocked {
     history: History,
     number: u32,
     block: Option<Rc<Body>>,
+}
+
+/// The volume a step of matter raises or takes away alone, with the step and
+/// the history it was worked out from: nothing when the kernel declines it.
+pub(super) struct ToolPreviewed {
+    history: History,
+    operation: Operation,
+    volume: Option<Rc<Body>>,
 }
 
 impl ViewportState {
@@ -141,5 +151,28 @@ impl ViewportState {
             block: block.clone(),
         });
         block
+    }
+
+    /// The volume the step `operation` raises or takes away alone, as the
+    /// part stands: worked out again once the step or the part changes.
+    pub(crate) fn previewed_volume(
+        &self,
+        document: &PartDocument,
+        operation: &Operation,
+    ) -> Option<Rc<Body>> {
+        let mut kept = self.visibility.previewed.borrow_mut();
+        if let Some(previewed) = kept.as_ref()
+            && previewed.operation == *operation
+            && previewed.history == document.history
+        {
+            return previewed.volume.clone();
+        }
+        let volume = document.tool_of(operation).map(Rc::new);
+        *kept = Some(ToolPreviewed {
+            history: document.history.clone(),
+            operation: operation.clone(),
+            volume: volume.clone(),
+        });
+        volume
     }
 }

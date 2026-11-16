@@ -211,6 +211,7 @@ pub(crate) fn frame_of(
     body::push_matter(&mut solids, &mut surfaces, state, drawn);
     let veiled_matter = matter_from..surfaces.len();
     body::push_marked(&mut surfaces, state, context.document);
+    body::push_previewed(&mut surfaces, state, context);
     let before = state.part_reopened(context.document);
     let named_on = before
         .as_ref()

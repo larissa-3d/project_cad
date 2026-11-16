@@ -26,11 +26,13 @@
 //!   see-through, green for an addition and red for a cut, and redraws it at
 //!   every keystroke — no test: what a frame draws is wgpu's, which the driver
 //!   does not reach. The volume alone is held in
-//!   `crates/part/tests/previewing_a_step_of_matter.rs`, and its colour by
-//!   the mode and its following every keystroke in
-//!   `crates/app/src/screens/extrusion/state/tests.rs`, each under its own block for
-//!   #740; the see-through drawing itself is checked by eye, the renderer
-//!   having no test but the `offscreen` example
+//!   `crates/part/tests/previewing_a_step_of_matter.rs`; what is previewed,
+//!   following every keystroke, in
+//!   `crates/app/src/screens/extrusion/state/tests.rs`; the frame carrying it
+//!   see-through in the colour of its mode in
+//!   `crates/app/src/screens/viewport/render/extrusion/tests.rs`, each under
+//!   its own block for #740. How the GPU blends it is checked by eye, the
+//!   renderer having no test but the `offscreen` example
 //! - The extrusion row under the ribbon is gone —
 //!   `extruding_a_sketch_lays_no_row_under_the_ribbon`
 //! - Every way of extruding today, and editing an existing extrusion, work as
