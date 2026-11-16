@@ -10,6 +10,12 @@
 //! `θ_w + angle(y − d, r)` on the second, `θ_w` the eccentric angle of the
 //! wall's reach along the height. So a circular wall's reading carries over
 //! with the root in place of the coordinate across the chords.
+//!
+//! On a sphere second to a cylinder (#805) the curve is seen in the sphere's
+//! `(θ, φ)` instead ([`ball`]), and has no angle of a grid to stand at nor
+//! any turn: the sphere's faces are laid out where their samples are read.
+
+mod ball;
 
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
@@ -29,7 +35,8 @@ enum Around {
 
 impl Meet {
     /// The point at `t` in the parameters `(θ, h)` of the first cylinder or of
-    /// the second, with its first and second derivatives with respect to `t`.
+    /// the second, or `(θ, φ)` of a sphere second, with its first and second
+    /// derivatives with respect to `t`.
     pub fn seen_on(&self, on_first: bool, t: f64) -> [DVec2; 3] {
         if let Some(read) = self.ruled() {
             return self
@@ -39,7 +46,6 @@ impl Meet {
         let pair = self.pair();
         let signs = pair.signs(self.component);
         let [point, speed, bend] = pair.local(signs, t);
-        let start = self.start(&pair, on_first);
         if on_first {
             let across = match self.first {
                 Wall::Cylinder(_) | Wall::Cone(_) => {
@@ -49,9 +55,10 @@ impl Meet {
                     let (y, [x, _]) = pair.roots(signs, t);
                     [0, 1, 2].map(|order| DVec2::new(x[order], y[order]))
                 }
+                Wall::Sphere(_) => return [DVec2::NAN; 3],
             };
             let around = around_first(&pair, signs[0], t);
-            let [angle, turn, sway] = angles(across, around, start);
+            let [angle, turn, sway] = angles(across, around, self.start(&pair, true));
             [
                 DVec2::new(angle, pair.rise(point)),
                 DVec2::new(turn, pair.rise(speed)),
@@ -69,9 +76,10 @@ impl Meet {
                     let y = [y[0] - pair.d, y[1], y[2]];
                     [0, 1, 2].map(|order| DVec2::new(y[order], z[order]))
                 }
+                Wall::Sphere(ball) => return self.seen_on_the_ball(&pair, &ball, t),
             };
             let around = around_second(&pair, signs[1], t);
-            let [angle, turn, sway] = angles(across, around, start);
+            let [angle, turn, sway] = angles(across, around, self.start(&pair, false));
             let axis = self.second.axis();
             let height = (pair.world(point) - self.second.origin()).dot(axis);
             [
@@ -133,11 +141,15 @@ impl Meet {
     /// tells which arcs pass. A height within rounding of an end of the span is
     /// that end, so where the component turns back at that angle it is found
     /// once rather than as two roots a square root of the rounding apart.
+    /// Nothing on a sphere, whose grid no curve of it is sampled on.
     pub fn at_angle(&self, on_first: bool, theta: f64) -> Vec<f64> {
         if let Some(read) = self.ruled() {
             return self
                 .lap(&read)
                 .map_or_else(Vec::new, |lap| read.at_angle(lap, on_first, theta));
+        }
+        if !on_first && matches!(self.second, Wall::Sphere(_)) {
+            return Vec::new();
         }
         let pair = self.pair();
         if self.component >= pair.components() {
@@ -188,6 +200,7 @@ impl Meet {
                 (true, Section::Round) => pair.local(signs, t)[0].x,
                 (false, Section::Round) => pair.local(signs, t)[0].z - pair.e,
                 (_, Section::Oval { .. }) => pair.roots(signs, t).1[usize::from(!on_first)][0],
+                (_, Section::Ball) => f64::NAN,
             };
             on_its_end || root * side > 0.0
         })
@@ -202,12 +215,16 @@ impl Meet {
     /// its span where that cylinder's own root does not vanish, since the
     /// point stands still on that cylinder's circle there. Along an arc the
     /// height across both axes is monotone and the root keeps its sign, so
-    /// the angle is monotone too.
+    /// the angle is monotone too. Nothing on a sphere, laid out where the
+    /// curve's samples are read.
     pub fn turns(&self, on_first: bool) -> Vec<f64> {
         if let Some(read) = self.ruled() {
             return self
                 .lap(&read)
                 .map_or_else(Vec::new, |lap| read.turns(lap, on_first));
+        }
+        if !on_first && matches!(self.second, Wall::Sphere(_)) {
+            return Vec::new();
         }
         let pair = self.pair();
         if self.component >= pair.components() {
@@ -269,6 +286,7 @@ impl Meet {
             Wall::Cone(cone) => pair.axes[rank]
                 .dot(cone.v)
                 .atan2(pair.axes[rank].dot(cone.u)),
+            Wall::Sphere(_) => f64::NAN,
         }
     }
 }

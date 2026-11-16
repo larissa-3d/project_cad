@@ -2,15 +2,52 @@
 //! pairs decided once in the meridian half-plane; a sphere and a plane at a
 //! slant to its axis, or square to it off its centre, along the circle about
 //! the foot of the centre on the plane (#805), or, within the tolerance of
-//! touching it off its poles, at the one point it touches (#939);
-//! everything else declined.
+//! touching it off its poles, at the one point it touches (#939); a sphere
+//! and a cylinder of another axis along the loops where the cylinder's
+//! rulings pierce it (#805); everything else declined.
+//!
+//! Closes #805 — its second slice's relation only, a cylinder of another axis
+//! against a sphere. The slice's crossings are answered in
+//! `crossing/pierced.rs`, its faces drawn in `body/tests.rs`, and its fillet and
+//! its STEP export in
+//! `tests/a_chamfer_and_a_fillet_fill_a_concave_edge_up_to_a_curved_end.rs`,
+//! each file with its own criteria.
+//! - A cylinder whose axis does not hold a sphere's centre (another axis)
+//!   meets the sphere along a curve: `relation` gives a meet whose curves'
+//!   points lie on both surfaces to the kernel's tolerance — one closed loop
+//!   where the cylinder takes in part of the ball,
+//!   `a_cylinder_of_another_axis_taking_in_part_of_a_ball_meets_it_along_one_closed_loop`;
+//!   two loops where it passes right through it (ρ + d < R, d the axis's
+//!   distance to the centre),
+//!   `a_cylinder_of_another_axis_passing_right_through_a_ball_meets_it_along_two_loops`;
+//!   apart when it misses the ball (d > ρ + R) or the ball sits inside it
+//!   (d + R < ρ),
+//!   `a_cylinder_of_another_axis_missing_a_ball_or_holding_it_inside_is_apart_from_it`.
+//!   A tangent case declines rather than answers wrong —
+//!   `a_cylinder_of_another_axis_within_a_hair_of_touching_a_ball_is_unsupported`.
+//!   The coaxial cases keep their answers —
+//!   `a_cylinder_a_hair_off_coaxial_is_coaxial_with_a_ball_and_further_off_meets_it_in_two_loops_and_a_cone_further_off_is_unsupported`,
+//!   which was the pin of the decline this slice turns round, and the coaxial
+//!   tests above it, left as they were. Read as: the same answer whichever
+//!   surface comes first, as every pair in this file; each loop closed after
+//!   its period, its points on both surfaces within a thousandth of the
+//!   kernel's tolerance, as the meets of two walls are; and the loops
+//!   together passing through every point where a ruling of the cylinder
+//!   pierces the ball, away from where a loop turns back along the ruling,
+//!   for cylinders along the ball's axis, square to it and at two slants. A
+//!   tangent case is a touch from outside (d = ρ + R), a figure of eight
+//!   (ρ + d = R) or a touch from inside (d + R = ρ), each within half a
+//!   tolerance; a cone of another axis stays declined, as does a torus
+//!   against any wall of another axis
+
+use std::f64::consts::TAU;
 
 use glam::{DVec2, DVec3};
 
 use super::{REACH, assert_on_both, cylinder, plane, scale};
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::relation::{Relation, Rim, at_a_slant, relation};
-use crate::brep::surface::{Cone, EllipticCylinder, Sphere, Surface, Torus};
+use crate::brep::surface::{Cone, Cylinder, EllipticCylinder, Sphere, Surface, Torus};
 
 /// A ball of radius 3 about `(0, 0, 5)`, turned about Z.
 fn ball() -> Surface {
@@ -504,14 +541,200 @@ fn a_spindle_torus_is_met_on_its_own_lobe_and_never_on_the_mirror_one() {
 }
 
 #[test]
-fn a_cylinder_a_hair_off_coaxial_is_coaxial_with_a_ball_and_further_off_is_unsupported() {
+fn a_cylinder_a_hair_off_coaxial_is_coaxial_with_a_ball_and_further_off_meets_it_in_two_loops_and_a_cone_further_off_is_unsupported()
+ {
     let eps = scale().eps();
     let bore = cylinder(DVec3::new(eps / 2.0, 0.0, 0.0), DVec3::Z, 2.0);
     let found = rims(&ball(), &bore, eps);
     assert_eq!(found.len(), 2, "{found:?}");
-    for off in [2.0 * eps, 0.5, 30.0] {
+    for off in [2.0 * eps, 0.5] {
         let bore = cylinder(DVec3::new(0.0, off, 0.0), DVec3::Z, 2.0);
-        assert_eq!(between(&ball(), &bore), Relation::Unsupported, "{off}");
+        loops(&bore, 2, &format!("a bore {off} off the axis"));
+    }
+    let far = cylinder(DVec3::new(0.0, 30.0, 0.0), DVec3::Z, 2.0);
+    assert_eq!(between(&ball(), &far), Relation::Apart);
+    for off in [2.0 * eps, 0.5] {
+        let point = Surface::Cone(Cone::through(
+            DVec3::new(0.0, off, 0.0),
+            DVec3::Z,
+            [DVec2::new(10.0, 0.0), DVec2::new(0.0, 5.0)],
+        ));
+        assert_eq!(between(&ball(), &point), Relation::Unsupported, "{off}");
+    }
+}
+
+/// How many points along a loop the polygon that stands for it runs through.
+const SAMPLES: usize = 2048;
+
+/// Cylinders of `radius` whose axes stand `off` from the ball's centre: along
+/// the ball's axis, square to it and at two slants, each run back along its
+/// own axis and set off the centre two ways.
+fn off_the_centre(radius: f64, off: f64) -> Vec<Surface> {
+    let middle = DVec3::new(0.0, 0.0, 5.0);
+    [
+        DVec3::Z,
+        DVec3::X,
+        DVec3::new(1.0, 2.0, 2.0),
+        DVec3::new(-2.0, 1.0, 0.5),
+    ]
+    .into_iter()
+    .flat_map(|axis| {
+        let axis = axis.normalize();
+        let square = axis.any_orthonormal_vector();
+        let across = axis.cross(square);
+        [square, (square - across * 2.0).normalize()]
+            .map(|out| cylinder(middle + out * off - axis * 7.0, axis, radius))
+    })
+    .collect()
+}
+
+/// Where the ruling of `wall` at `angle` pierces `sphere`, and how far each
+/// point stands along the ruling from the middle of the two: none where the
+/// ruling passes the ball by.
+fn pierced(wall: &Cylinder, sphere: &Sphere, angle: f64) -> Option<([DVec3; 2], f64)> {
+    let (sin, cos) = angle.sin_cos();
+    let foot = wall.origin + (wall.u * cos + wall.v * sin) * wall.radius;
+    let from = foot - sphere.middle();
+    let along = from.dot(wall.axis);
+    let reach = along * along - from.length_squared() + sphere.radius * sphere.radius;
+    (reach > 0.0).then(|| {
+        let half = reach.sqrt();
+        (
+            [-along - half, -along + half].map(|t| foot + wall.axis * t),
+            half,
+        )
+    })
+}
+
+/// How far `point` stands from the polygon through `samples`.
+fn off_the_polygon(samples: &[DVec3], point: DVec3) -> f64 {
+    samples
+        .windows(2)
+        .map(|pair| {
+            let (from, run) = (pair[0], pair[1] - pair[0]);
+            let share = if run.length_squared() > 0.0 {
+                ((point - from).dot(run) / run.length_squared()).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            point.distance(from + run * share)
+        })
+        .fold(f64::INFINITY, f64::min)
+}
+
+/// Holds that the ball and `wall`, a cylinder of another axis, meet along
+/// `count` loops: each closed after its period, its points on both surfaces,
+/// and the loops together passing through every point where a ruling of the
+/// cylinder pierces the ball, away from where a loop turns back along it —
+/// the same whichever surface comes first.
+fn loops(wall: &Surface, count: usize, what: &str) {
+    let (Surface::Sphere(sphere), Surface::Cylinder(cylinder)) = (ball(), wall) else {
+        unreachable!()
+    };
+    let found = between(&ball(), wall);
+    let curves = found.curves();
+    assert_eq!(
+        curves.len(),
+        count,
+        "{what}: {count} loops expected, got {found:?}"
+    );
+    assert_on_both(&found, &ball(), wall, 1e-12 * REACH);
+    let polygons: Vec<Vec<DVec3>> = curves
+        .iter()
+        .map(|curve| {
+            let period = curve
+                .period()
+                .unwrap_or_else(|| panic!("{what}: a closed loop expected, got {curve:?}"));
+            let (start, end) = (curve.point(0.0), curve.point(period));
+            assert!(
+                start.distance(end) < 1e-12 * REACH,
+                "{what}: a loop starts at {start} and ends its period at {end}"
+            );
+            (0..=SAMPLES)
+                .map(|step| curve.point(period * step as f64 / SAMPLES as f64))
+                .collect()
+        })
+        .collect();
+    let mut passed = 0;
+    for step in 0..48 {
+        let angle = TAU * f64::from(step) / 48.0;
+        let Some((points, half)) = pierced(cylinder, &sphere, angle) else {
+            continue;
+        };
+        if half < 0.1 {
+            continue;
+        }
+        for point in points {
+            let off = polygons
+                .iter()
+                .map(|polygon| off_the_polygon(polygon, point))
+                .fold(f64::INFINITY, f64::min);
+            assert!(
+                off < 1e-3,
+                "{what}: the ruling at {angle} pierces the ball at {point}, {off} off every loop"
+            );
+            passed += 1;
+        }
+    }
+    assert!(
+        passed >= 8,
+        "{what}: only {passed} piercings to pass through"
+    );
+}
+
+#[test]
+fn a_cylinder_of_another_axis_taking_in_part_of_a_ball_meets_it_along_one_closed_loop() {
+    for (radius, off) in [(2.0, 2.5), (4.0, 2.0), (0.5, 3.2), (1.0, 3.0)] {
+        for wall in off_the_centre(radius, off) {
+            loops(&wall, 1, &format!("radius {radius}, {off} off: {wall:?}"));
+        }
+    }
+}
+
+#[test]
+fn a_cylinder_of_another_axis_passing_right_through_a_ball_meets_it_along_two_loops() {
+    for (radius, off) in [(1.0, 1.5), (2.0, 0.5), (0.5, 0.25), (0.2, 2.7)] {
+        for wall in off_the_centre(radius, off) {
+            loops(&wall, 2, &format!("radius {radius}, {off} off: {wall:?}"));
+        }
+    }
+}
+
+#[test]
+fn a_cylinder_of_another_axis_missing_a_ball_or_holding_it_inside_is_apart_from_it() {
+    let eps = scale().eps();
+    for (radius, off) in [
+        (1.0, 5.0),
+        (1.0, 4.0 + 2.0 * eps),
+        (0.5, 30.0),
+        (10.0, 2.0),
+        (4.0, 0.5),
+        (5.0, 2.0 - 2.0 * eps),
+    ] {
+        for wall in off_the_centre(radius, off) {
+            assert_eq!(
+                between(&ball(), &wall),
+                Relation::Apart,
+                "radius {radius}, {off} off: {wall:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_cylinder_of_another_axis_within_a_hair_of_touching_a_ball_is_unsupported() {
+    let eps = scale().eps();
+    for (radius, off) in [(1.0, 4.0), (1.0, 2.0), (2.0, 1.0), (5.0, 2.0)] {
+        for hair in [0.0, eps / 2.0, -eps / 2.0] {
+            for wall in off_the_centre(radius, off + hair) {
+                assert_eq!(
+                    between(&ball(), &wall),
+                    Relation::Unsupported,
+                    "radius {radius}, {} off, touching the ball: {wall:?}",
+                    off + hair
+                );
+            }
+        }
     }
 }
 
@@ -792,9 +1015,11 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
         plane(DVec3::new(1.0, 0.0, 0.0), DVec3::X),
         plane(DVec3::new(0.0, 0.0, 5.0), DVec3::new(1.0, 0.0, 1e-6)),
     ];
-    let others = [
+    let walls = [
         cylinder(DVec3::ZERO, DVec3::X, 2.0),
         cylinder(DVec3::new(0.0, 2.0 * eps, 0.0), DVec3::Z, 2.0),
+    ];
+    let others = [
         Surface::Cone(Cone::through(
             DVec3::ZERO,
             DVec3::X,
@@ -815,7 +1040,15 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
     ];
     for (round, unsupported) in [
         (ball(), others.to_vec()),
-        (ring(), planes.iter().chain(&others).copied().collect()),
+        (
+            ring(),
+            planes
+                .iter()
+                .chain(&walls)
+                .chain(&others)
+                .copied()
+                .collect(),
+        ),
     ] {
         for other in &unsupported {
             assert_eq!(
@@ -824,7 +1057,7 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
                 "{round:?} {other:?}"
             );
         }
-        for other in planes.iter().chain(&others) {
+        for other in planes.iter().chain(&walls).chain(&others) {
             assert!(!at_a_slant(&round, other, scale()));
             assert!(!at_a_slant(other, &round, scale()));
         }

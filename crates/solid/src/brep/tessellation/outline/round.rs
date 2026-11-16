@@ -55,8 +55,8 @@ struct Standing {
 pub(super) enum Read {
     /// Its surface's own, every edge a line of it.
     Own,
-    /// Its sphere's own, a circle of another axis among its edges (#805),
-    /// whose samples stand where they are read.
+    /// Its sphere's own, a circle of another axis or a cylinder's curve among
+    /// its edges (#805), whose samples stand where they are read.
     Tilted,
     /// Its sphere's read about the axis every circle of it turns about, each
     /// a latitude there (#805): the samples standing for that chart's poles,
@@ -86,7 +86,7 @@ impl Outline {
     /// Lays out the loops `laps` of `face` on `round` as [`Outline::rounded`]
     /// does, short of the strips, read as `read` says, and hands back the
     /// lattice they would be cut along. None as there, and where a face read
-    /// [`Read::Tilted`] has no circle of another axis.
+    /// [`Read::Tilted`] has no circle of another axis and no cylinder's curve.
     pub(super) fn laid_out(
         &mut self,
         body: &Body,
@@ -105,8 +105,12 @@ impl Outline {
         for (rank, lap) in face.loops.iter().enumerate() {
             for coedge in lap {
                 let edge = body.edge(coedge.edge);
-                let Curve::Circle(circle) = body.curve(edge.curve) else {
-                    return None;
+                let circle = match body.curve(edge.curve) {
+                    Curve::Circle(circle) => circle,
+                    curve => {
+                        met = super::pierced::pierces(curve, read, round, eps).then_some(true)?;
+                        continue;
+                    }
                 };
                 if round.holds(circle, eps) {
                     let phi = round.latitude(circle);

@@ -3671,11 +3671,12 @@ fn a_volume_marked_is_drawn_lit_where_its_step_raised_or_cut_it() {
     );
 }
 
-/// A ball of radius 4 about (5, 10, 0), turned whole from a half disc, then a
-/// circle of radius 2 on a plane tilted 30° about X, through (5, 10, 6),
-/// raised 10 down across the ball's sphere off its centre: the kernel builds
-/// the circle's block, and declines joining it to the ball.
-fn a_ball_under_a_slanted_circle_raised() -> PartDocument {
+/// A ball of radius 4 about (5, 10, 0), turned whole from a half disc, then an
+/// ellipse 4 across and 3 high on a plane tilted 30° about X, through (5, 10,
+/// 6), raised 10 down across the ball's sphere off its centre: the kernel
+/// builds the ellipse's block, and declines joining it to the ball, an
+/// elliptic wall against a sphere.
+fn a_ball_under_a_slanted_ellipse_raised() -> PartDocument {
     let mut document = PartDocument::new("part", Utc::now());
     document.apply(Operation::CreateSketch {
         plane: WorkPlane {
@@ -3710,12 +3711,19 @@ fn a_ball_under_a_slanted_circle_raised() -> PartDocument {
         plane: the_slanted_plane(),
         on: None,
     });
-    document.apply(Operation::AddCircle {
+    document.apply(Operation::AddEllipse {
         sketch: 1,
         center: PointRef::New(DVec2::ZERO),
-        radius: 2.0,
-        rim: Vec::new(),
+        first: [
+            PointRef::New(DVec2::new(-2.0, 0.0)),
+            PointRef::New(DVec2::new(2.0, 0.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(0.0, -1.5)),
+            PointRef::New(DVec2::new(0.0, 1.5)),
+        ],
         construction: false,
+        drawn: None,
     });
     document.apply(Operation::Extrude {
         sketch: 1,
@@ -3725,20 +3733,20 @@ fn a_ball_under_a_slanted_circle_raised() -> PartDocument {
     });
     let declined = document
         .history
-        .number_at(THE_SLANTED_CIRCLE)
+        .number_at(THE_SLANTED_ELLIPSE)
         .is_some_and(|number| document.is_declined(number));
     assert!(
         declined,
-        "the fixture wants the slanted circle's step declined"
+        "the fixture wants the slanted ellipse's step declined"
     );
     document
 }
 
-/// Where the slanted circle is raised in the history of
-/// `a_ball_under_a_slanted_circle_raised`.
-const THE_SLANTED_CIRCLE: usize = 6;
+/// Where the slanted ellipse is raised in the history of
+/// `a_ball_under_a_slanted_ellipse_raised`.
+const THE_SLANTED_ELLIPSE: usize = 6;
 
-/// The plane tilted 30° about X through (5, 10, 6) the circle is drawn on.
+/// The plane tilted 30° about X through (5, 10, 6) the ellipse is drawn on.
 fn the_slanted_plane() -> WorkPlane {
     let (sin, cos) = (std::f64::consts::PI / 6.0).sin_cos();
     WorkPlane {
@@ -3752,17 +3760,17 @@ fn the_slanted_plane() -> WorkPlane {
 fn a_volume_not_built_marked_is_drawn_lit_where_its_raw_block_would_stand() {
     let plain = the_frame_of(
         &ViewportState::default(),
-        a_ball_under_a_slanted_circle_raised(),
+        a_ball_under_a_slanted_ellipse_raised(),
     );
     let see_through = clicked(
-        &a_ball_under_a_slanted_circle_raised(),
-        THE_SLANTED_CIRCLE,
+        &a_ball_under_a_slanted_ellipse_raised(),
+        THE_SLANTED_ELLIPSE,
         1,
     );
-    let see_through = the_frame_of(&see_through, a_ball_under_a_slanted_circle_raised());
+    let see_through = the_frame_of(&see_through, a_ball_under_a_slanted_ellipse_raised());
     let mut state = ViewportState::default();
-    state.mark_volume(THE_SLANTED_CIRCLE);
-    let marked = the_frame_of(&state, a_ball_under_a_slanted_circle_raised());
+    state.mark_volume(THE_SLANTED_ELLIPSE);
+    let marked = the_frame_of(&state, a_ball_under_a_slanted_ellipse_raised());
 
     let plane = the_slanted_plane();
     let (origin, down) = (plane.origin.as_vec3(), -plane.normal().as_vec3());
@@ -3783,7 +3791,7 @@ fn a_volume_not_built_marked_is_drawn_lit_where_its_raw_block_would_stand() {
 
     assert!(
         !lit.is_empty() && astray.is_empty() && reaches(0.0) && reaches(10.0),
-        "the slanted circle's step, declined and marked from its alert, is not drawn lit as the \
+        "the slanted ellipse's step, declined and marked from its alert, is not drawn lit as the \
          block it would have raised, end to end, and nothing else: {} vertices lit, {} of them \
          astray, first {:?}",
         lit.len(),

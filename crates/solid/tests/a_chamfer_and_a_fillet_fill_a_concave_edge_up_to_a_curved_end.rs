@@ -49,18 +49,17 @@
 //!   and up a ramp —
 //!   `a_chamfer_and_a_fillet_at_the_foot_of_a_rib_up_a_ramp_are_trimmed_flush_on_its_drafted_round_end`.
 //!   The sphere and the torus left this issue for #805 (the human's decision):
-//!   the kernel meets neither with a slanted plane or a cylinder off its axis,
-//!   so a fill ending on one stays declined here, as the next criterion pins
+//!   the kernel met neither with a slanted plane or a cylinder off its axis.
+//!   #805's first two slices build the sphere's chamfer and fillet, in its own
+//!   blocks below; the torus waits for its third
 //! - An end face the fill cannot be trimmed flush by is declined
 //!   `Unsupported` with that reason, and no wrong body is built — a round the
 //!   edge runs out of that turns away short of the fill's reach,
 //!   `a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_round_end_turns_away_short_of_the_fill_s_reach_are_declined_as_unsupported`;
 //!   a round the edge runs into,
 //!   `a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_into_its_round_end_are_declined_as_unsupported`;
-//!   a sphere, #805's, here a rib cut from a ball, whose chamfer #805's first
-//!   slice builds and whose fillet waits for its second —
-//!   `a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported`;
-//!   two edges filled in one step, the second of which runs into the round —
+//!   a sphere, #805's, was the next until #805's first slice built its
+//!   chamfer and its second its fillet; two edges filled in one step, the second of which runs into the round —
 //!   `a_chamfer_and_a_fillet_on_both_floor_edges_of_a_slot_whose_back_wall_runs_into_its_round_end_are_declined_as_unsupported`;
 //!   a drafted round end the edge runs into —
 //!   `a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_into_its_drafted_round_end_are_declined_as_unsupported`
@@ -181,8 +180,8 @@
 //!   leaves the sphere; every ray aimed along the foot from outside the rib,
 //!   at either end, through the flat's section, meeting the sphere first and
 //!   on it; and no corner of the flat outside the ball. The fillet is the
-//!   second slice's, and stays declined until then —
-//!   `a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported`
+//!   second slice's, built there —
+//!   `a_fillet_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flush_on_its_sphere`
 //! - The exact STEP export of such a part writes every face on its true
 //!   surface — answered for the chamfer above, at the foot of the rib's right
 //!   side —
@@ -297,6 +296,41 @@
 //! the axis, where the two agree, and a whole turn reads no spread. Its
 //! choice, `last − first < π` turned `<=` and `inner > band` turned `>=`:
 //! equivalent but at exact equality.
+//!
+//! Closes #805 — its second slice only, a cylinder of another axis against a
+//! sphere and the fillet. The relation the slice stands on, and where its
+//! curve crosses a sphere face's other curves and bounds a face, are answered
+//! with the kernel's tests, in `src/brep/relation/tests/round.rs`,
+//! `src/brep/relation/tests/crossing/pierced.rs` and `src/body/tests.rs`, each
+//! file with its own criteria; the third slice, the torus, and the fourth, a
+//! rib joined to a dome whose axis its sides do not hold, come on branches of
+//! their own.
+//! - The fillet at the foot of `rib_cut_from_a_ball` is trimmed flush on the
+//!   sphere: the sphere stays one face and takes in the fillet's section, the
+//!   body is closed, sound, of the volume the arithmetic gives, with one more
+//!   face —
+//!   `a_fillet_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flush_on_its_sphere`.
+//!   Its decline pin there,
+//!   `a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported`,
+//!   flips: it is that test, renamed for what it now builds. Read as the
+//!   chamfer's test reads it, on either side of the rib, but for the flat's
+//!   corners on its circle: the fill is a round, which offers no plane to read
+//!   its corners off
+//! - That body's exact STEP export writes every face on its true surface, the
+//!   cylinder–sphere edge as a B-spline accepted as the existing round's edge
+//!   is —
+//!   `a_rib_cut_from_a_ball_filleted_at_its_foot_written_to_step_writes_every_face_on_its_true_surface`.
+//!   Read as: one closed solid of the body's faces, every loop on its surface
+//!   within the file's tolerance, enclosing the matter and covering the area
+//!   arithmetic gives; the sphere written as one `SPHERICAL_SURFACE` about the
+//!   ball's centre and of its radius; the fillet on one cylinder of its radius
+//!   about its axis; the eight other faces on planes; and the fillet's two
+//!   edges on the sphere written as B-splines, every point of them on both
+//!   surfaces within the kernel's tolerance
+//! - #788's and #778's tests still pass — no test: they are the tests above in
+//!   this file and `a_chamfer_and_a_fillet_fill_a_concave_edge.rs`, left as
+//!   they were but for the fillet's sphere decline, which this slice turns
+//!   round, and running them is the answer
 
 mod step_reader;
 
@@ -2607,20 +2641,44 @@ fn a_chamfer_at_the_foot_of_a_rib_cut_from_a_ball_whose_trim_starts_on_the_ball_
     }
 }
 
+/// The fillet's round, a cylinder of another axis than the ball's, meets the
+/// sphere along a loop at each end of the foot (#805's second slice).
 #[test]
-fn a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupported() {
+fn a_fillet_at_the_foot_of_either_side_of_a_rib_cut_from_a_ball_is_trimmed_flush_on_its_sphere() {
+    let value = 2.0;
     let part = rib_cut_from_a_ball();
     the_rib_is_cut_from_a_ball(&part);
-    let foot = edge_between(&part, TOP, BALL_RIGHT);
+    for side in BALL_SIDES {
+        let foot = edge_between(&part, TOP, side.face);
 
-    let declined = part.fillet(&foot, 2.0).err();
+        let filleted = part.fillet(&foot, value).unwrap_or_else(|declined| {
+            panic!(
+                "the fillet at the foot of the {} side of the rib cut from a ball: declined, \
+                 {declined:?}",
+                side.name
+            )
+        });
 
-    assert_eq!(
-        declined,
-        Some(Declined::Unsupported),
-        "the fillet of 2 at the foot of a rib whose ends are a sphere, which #805's second \
-         slice, a cylinder of another axis against a sphere, is to fill"
-    );
+        let what = format!(
+            "the fillet at the foot of the {} side of the rib cut from a ball",
+            side.name
+        );
+        taken_whole(filleted.asked, filleted.taken, value, &what);
+        let body = &filleted.body;
+        let height = |out: f64| fillet_height(value, out);
+        sound_drawn_within(
+            body,
+            ball_rib_volume() + fill_matter(value, height, across_the_ball),
+            drawn_within(
+                &part,
+                ball_area() + value * value + PI / 2.0 * value * across_the_ball(0.0, 0.0),
+            ),
+            &what,
+        );
+        let fillet = one_round_more(&part, body, &what);
+        numbered_after_the_steps_last(&part, body, fillet, &what);
+        flush_on_the_ball(body, (side, fillet), value, height, &what);
+    }
 }
 
 /// How long the edges of the [`rib_cut_from_a_ball`] chamfered at the foot
@@ -2631,28 +2689,25 @@ fn a_fillet_at_the_foot_of_a_rib_whose_end_is_a_sphere_is_declined_as_unsupporte
 /// long is what its area may be off by.
 const CHAMFERED_BALL_RIB_EDGES: f64 = 410.0;
 
-/// The area of the [`rib_cut_from_a_ball`] chamfered at the foot of its
-/// right side by `value`: the plate's floor and walls; its top less the
+/// The area of the [`rib_cut_from_a_ball`] filled at the foot of its right
+/// side by `value`, its section `height(out)` high, laying a face of `laid`: the plate's floor and walls; its top less the
 /// footprint of the rib and the flat, the ball's section on the top from the
 /// left side out to the flat's foot; the left side, a half disc; the right
 /// side, a half disc less the strip under the flat's top; the sphere, half
 /// the zone between the sides, grown at each end by the flat's section laid
 /// on it, which stretches each place of the section by r over its depth into
-/// the ball, √(r² − x² − z²), x and z read from the centre; and the flat,
-/// the ball's section along its slope.
-fn chamfered_ball_rib_area(value: f64) -> f64 {
+/// the ball, √(r² − x² − z²), x and z read from the centre; and the fill's
+/// own face, `laid`.
+fn filled_ball_rib_area(value: f64, height: impl Fn(f64) -> f64, laid: f64) -> f64 {
     let square = BALL_RADIUS * BALL_RADIUS;
     let footprint = simpson(|out| across_the_ball(out, 0.0), [-4.0, value], STEPS);
     let plate = 1200.0 + 2.0 * (40.0 + 30.0) * PLATE + 1200.0 - footprint;
     let half_disc = PI * (square - 4.0) / 2.0;
     let strip = simpson(|up| across_the_ball(0.0, up), [0.0, value], STEPS);
     let zone = 4.0 * PI * BALL_RADIUS;
-    let stretched = fill_matter(
-        value,
-        |out| chamfer_height(value, out),
-        |out, up| 2.0 * BALL_RADIUS / (square - (2.0 + out).powi(2) - up * up).sqrt(),
-    );
-    let laid = 2f64.sqrt() * simpson(|out| across_the_ball(out, value - out), [0.0, value], STEPS);
+    let stretched = fill_matter(value, height, |out, up| {
+        2.0 * BALL_RADIUS / (square - (2.0 + out).powi(2) - up * up).sqrt()
+    });
     plate + half_disc + (half_disc - strip) + zone + stretched + laid
 }
 
@@ -2681,7 +2736,11 @@ fn a_rib_cut_from_a_ball_chamfered_at_its_foot_written_to_step_writes_every_face
         &chamfered.body,
         [
             ball_rib_volume() + fill_matter(value, height, across_the_ball),
-            chamfered_ball_rib_area(value),
+            filled_ball_rib_area(
+                value,
+                height,
+                2f64.sqrt() * simpson(|out| across_the_ball(out, value - out), [0.0, value], STEPS),
+            ),
             CHAMFERED_BALL_RIB_EDGES,
         ],
         what,
@@ -2961,6 +3020,104 @@ fn a_chamfer_trimmed_flush_on_a_sphere_ten_times_the_part_s_size_leaves_the_part
         after / Scale::RELATIVE,
         before / Scale::RELATIVE
     );
+}
+
+/// How long the edges of the [`rib_cut_from_a_ball`] filleted at the foot of
+/// its right side are in all, rounded up: those of
+/// [`CHAMFERED_BALL_RIB_EDGES`], the fillet's two on the sphere a quarter
+/// round each rather than a chord of one.
+const FILLETED_BALL_RIB_EDGES: f64 = 420.0;
+
+#[test]
+fn a_rib_cut_from_a_ball_filleted_at_its_foot_written_to_step_writes_every_face_on_its_true_surface()
+ {
+    let value = 2.0;
+    let part = rib_cut_from_a_ball();
+    let foot = edge_between(&part, TOP, BALL_RIGHT);
+
+    let filleted = part.fillet(&foot, value).unwrap_or_else(|declined| {
+        panic!("the fillet at the foot of the rib cut from a ball: declined, {declined:?}")
+    });
+    let text = step::of(&filleted.body, 1.0).expect("an exact body is written");
+
+    let what = "the rib cut from a ball filleted at its foot";
+    let solid = step_reader::read(&text)
+        .unwrap_or_else(|fault| panic!("{what}: the file does not read back: {fault}"));
+    assert_eq!(
+        solid.faces, 10,
+        "{what}: the plate's six faces, the rib's two sides and its sphere, and the fillet"
+    );
+    let height = |out: f64| fillet_height(value, out);
+    let laid = simpson(
+        |turn| across_the_ball(value * (1.0 - turn.cos()), value * (1.0 - turn.sin())) * value,
+        [0.0, PI / 2.0],
+        STEPS,
+    );
+    written_whole(
+        &solid,
+        &filleted.body,
+        [
+            ball_rib_volume() + fill_matter(value, height, across_the_ball),
+            filled_ball_rib_area(value, height, laid),
+            FILLETED_BALL_RIB_EDGES,
+        ],
+        what,
+    );
+    let [(centre, radius)] = solid.spheres[..] else {
+        panic!(
+            "{what}: one face written on a sphere, the rib's: {:?}",
+            solid.spheres
+        );
+    };
+    assert!(
+        centre.distance(BALL_CENTRE) <= solid.uncertainty
+            && (radius - BALL_RADIUS).abs() <= solid.uncertainty,
+        "{what}: the sphere is written about {centre}, of radius {radius}, where the ball stands \
+         about {BALL_CENTRE}, of radius {BALL_RADIUS}"
+    );
+    assert_eq!(
+        solid.planes.len(),
+        8,
+        "{what}: the plate's six faces and the rib's two sides written on planes: {:?}",
+        solid.planes
+    );
+    let [(origin, axis, written)] = solid.cylinders[..] else {
+        panic!(
+            "{what}: one face written on a cylinder, the fillet's: {:?}",
+            solid.cylinders
+        );
+    };
+    assert!(
+        (written - value).abs() <= solid.uncertainty,
+        "{what}: the fillet is written on a cylinder of radius {written}, where it is {value}"
+    );
+    assert!(
+        axis.cross(DVec3::Y).length() < PLACE,
+        "{what}: the fillet's cylinder runs along {axis}, where the foot ran along Y"
+    );
+    let about = DVec2::new(RIB_SIDE + value, PLATE + value);
+    assert!(
+        DVec2::new(origin.x, origin.z).distance(about) <= solid.uncertainty,
+        "{what}: the fillet's cylinder stands about the line through {origin}, where its axis \
+         is the radius out from the plate's top and from the rib's right side"
+    );
+    assert_eq!(
+        solid.along_splines.len(),
+        2,
+        "{what}: the fillet's two edges on the sphere, one at each end of the foot, written as \
+         B-splines"
+    );
+    let tolerance = kernel_tolerance(&filleted.body);
+    for point in solid.along_splines.iter().flatten() {
+        let on_the_ball = off_the_ball(*point).abs();
+        let on_the_fillet = (DVec2::new(point.x, point.z).distance(about) - value).abs();
+        assert!(
+            on_the_ball <= tolerance && on_the_fillet <= tolerance,
+            "{what}: the fillet's edge on the sphere is written through {point}, {on_the_ball} \
+             off the sphere and {on_the_fillet} off the fillet, the kernel's tolerance is \
+             {tolerance}"
+        );
+    }
 }
 
 /// The ground's plane with its origin moved to `to`.

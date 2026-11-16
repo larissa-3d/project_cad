@@ -106,7 +106,7 @@ pub(in crate::brep::meet) fn snapped(cone: &Wall, other: &Wall, eps: f64) -> Opt
             cylinder.radius,
         )),
         Wall::Elliptic(oval) => Wall::Elliptic(oval.moved(by)),
-        Wall::Cone(_) => *other,
+        Wall::Cone(_) | Wall::Sphere(_) => *other,
     })
 }
 

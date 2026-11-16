@@ -37,9 +37,13 @@
 //! along the first's axis is `z = (ζ + x cos φ) / sin φ`, `ζ` the second's
 //! coordinate across its chords (`pair.rs`). A pair square to within
 //! rounding is read as square, bit for bit.
+//!
+//! A cylinder and a sphere whose centre its axis does not hold (#805) are a
+//! pair too, the sphere's root vanishing at the low end alone (`pierced.rs`).
 
 mod meeting;
 mod pair;
+mod pierced;
 mod ruled;
 mod section;
 mod seen;
@@ -77,9 +81,11 @@ thread_local! {
 }
 
 /// The curve a cone meets another wall along, read once per pair; none
-/// where it is not read along the cone's rulings, kept too.
+/// where it is not read along the cone's rulings, kept too, or against a
+/// sphere, which no reading of rulings takes.
 fn ruled(cone: &Wall, other: &Wall) -> Option<Rc<Ruled>> {
-    let Wall::Cone(own) = cone else {
+    let (Wall::Cone(own), Wall::Cylinder(_) | Wall::Elliptic(_) | Wall::Cone(_)) = (cone, other)
+    else {
         return None;
     };
     READ.with(|read| {
@@ -141,9 +147,9 @@ impl Meet {
         } else {
             &self.first
         };
-        Some(
-            ruled(&self.first, &self.second).unwrap_or_else(|| Rc::new(Ruled::unread(cone, other))),
-        )
+        Some(ruled(&self.first, &self.second).unwrap_or_else(|| {
+            Rc::new(Ruled::unread(cone, other).unwrap_or_else(|| Ruled::declined(cone)))
+        }))
     }
 
     /// The lap this component runs on the curve `read`, none where the
@@ -279,9 +285,14 @@ impl Meet {
                 own.axis.cross(oval.axis).length() <= Scale::RELATIVE && own.within(oval, eps)
             }
             (Wall::Cone(own), Wall::Cone(cone)) => own.within(cone, eps),
-            (Wall::Cylinder(_), Wall::Elliptic(_) | Wall::Cone(_))
-            | (Wall::Elliptic(_), Wall::Cylinder(_) | Wall::Cone(_))
-            | (Wall::Cone(_), Wall::Cylinder(_) | Wall::Elliptic(_)) => false,
+            (Wall::Sphere(own), Wall::Sphere(ball)) => {
+                own.middle().distance(ball.middle()) <= eps
+                    && (own.radius - ball.radius).abs() <= eps
+            }
+            (Wall::Cylinder(_), Wall::Elliptic(_) | Wall::Cone(_) | Wall::Sphere(_))
+            | (Wall::Elliptic(_), Wall::Cylinder(_) | Wall::Cone(_) | Wall::Sphere(_))
+            | (Wall::Cone(_), Wall::Cylinder(_) | Wall::Elliptic(_) | Wall::Sphere(_))
+            | (Wall::Sphere(_), Wall::Cylinder(_) | Wall::Elliptic(_) | Wall::Cone(_)) => false,
         };
         if alike(&self.first) {
             Some(true)

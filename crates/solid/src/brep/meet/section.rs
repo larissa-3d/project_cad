@@ -1,6 +1,7 @@
 //! How a wall's section is read across a pair: a circle as its own root, an
 //! ellipse as the root of the circle of its half-width, sheared and scaled
-//! (#571).
+//! (#571), a sphere as the root of its height over the first wall's axis
+//! (#805).
 
 use glam::DVec3;
 
@@ -9,7 +10,10 @@ use crate::brep::surface::EllipticCylinder;
 
 /// How a wall's section is read across the pair: a circle as its own root,
 /// an ellipse as the root of the circle of its half-width, sheared along the
-/// diameter conjugate to the chords it cuts and scaled across them (#571).
+/// diameter conjugate to the chords it cuts and scaled across them (#571);
+/// a sphere second to a cylinder as the root of its height over the
+/// cylinder's axis, which vanishes at the low end of the span alone
+/// (`pierced.rs`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) enum Section {
     Round,
@@ -19,6 +23,7 @@ pub(super) enum Section {
         /// What a unit of the root is worth across the chord.
         scale: f64,
     },
+    Ball,
 }
 
 impl Section {
@@ -27,7 +32,7 @@ impl Section {
     /// the root itself, bit for bit.
     pub(super) fn across(self, height: [f64; 3], root: [f64; 3]) -> [f64; 3] {
         match self {
-            Section::Round => root,
+            Section::Round | Section::Ball => root,
             Section::Oval { shear, scale } => {
                 [0, 1, 2].map(|order| shear * height[order] + scale * root[order])
             }
@@ -42,6 +47,7 @@ pub(super) fn read(wall: &Wall, across: DVec3, along: DVec3) -> (f64, Section, f
     match wall {
         Wall::Cylinder(cylinder) => (cylinder.radius, Section::Round, cylinder.radius),
         Wall::Cone(cone) => (cone.foot.y.abs(), Section::Round, cone.foot.y.abs()),
+        Wall::Sphere(sphere) => (sphere.radius, Section::Ball, sphere.radius),
         Wall::Elliptic(oval) => {
             let (half, section) = sheared(oval, across, along);
             (half, section, oval.major)

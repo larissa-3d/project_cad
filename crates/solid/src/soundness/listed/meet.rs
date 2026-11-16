@@ -21,8 +21,8 @@ use crate::brep::{Cylinder, EllipticCylinder, Meet, Scale, Wall};
 const ROUNDING: f64 = 256.0 * f64::EPSILON;
 
 /// The place an elliptic meet reaches at its parameter `at`.
-/// Not a number where a wall of the pair is a cone, which the formula does
-/// not read.
+/// Not a number where a wall of the pair is a cone or a sphere, which the
+/// formula does not read.
 pub(super) fn point(meet: &Meet, at: f64) -> DVec3 {
     let (Some(one), Some(other)) = (Round::of(&meet.first), Round::of(&meet.second)) else {
         return DVec3::NAN;
@@ -117,7 +117,7 @@ impl Round<'_> {
         match wall {
             Wall::Cylinder(cylinder) => Some(Round::Cylinder(cylinder)),
             Wall::Elliptic(oval) => Some(Round::Elliptic(oval)),
-            Wall::Cone(_) => None,
+            Wall::Cone(_) | Wall::Sphere(_) => None,
         }
     }
 }

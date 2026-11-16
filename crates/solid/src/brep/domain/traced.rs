@@ -64,6 +64,7 @@ pub(in crate::brep) fn traced(
         (Surface::Sphere(_) | Surface::Torus(_), Curve::Circle(circle)) => {
             round::traced(surface, circle, from, to, eps)
         }
+        (Surface::Sphere(sphere), Curve::Meet(meet)) => round::pierced(meet, sphere, from, to, eps),
         (Surface::Sphere(_) | Surface::Torus(_), Curve::Line(_) | Curve::Meet(_)) => {
             Err(Declined::Unsupported)
         }
@@ -171,7 +172,8 @@ pub(in crate::brep) fn traced(
         }
         (Surface::Cylinder(cylinder), Curve::Meet(meet))
             if parallel(cylinder.axis, meet.first.axis())
-                || parallel(cylinder.axis, meet.second.axis()) =>
+                || parallel(cylinder.axis, meet.second.axis())
+                    && !matches!(meet.second, Wall::Sphere(_)) =>
         {
             let on_first = parallel(cylinder.axis, meet.first.axis());
             let (own, other) = if on_first {
@@ -254,16 +256,19 @@ pub(in crate::brep) fn traced(
             })
         }
         (Surface::Plane(plane), Curve::Meet(meet)) => {
-            let round = square::round(meet, plane);
+            let Some(round) = square::round(meet, plane) else {
+                return Err(Declined::Unsupported);
+            };
             chord(curve, surface, from, to, eps).or_else(|declined| {
                 beside(curve, (plane, &round), surface, [from, to], eps)
                     .or_else(|| {
                         let other = [meet.first, meet.second]
                             .into_iter()
-                            .map(|wall| match wall {
-                                Wall::Cylinder(cylinder) => Round::Cylinder(cylinder),
-                                Wall::Elliptic(oval) => Round::Elliptic(oval),
-                                Wall::Cone(cone) => Round::Cone(cone),
+                            .filter_map(|wall| match wall {
+                                Wall::Cylinder(cylinder) => Some(Round::Cylinder(cylinder)),
+                                Wall::Elliptic(oval) => Some(Round::Elliptic(oval)),
+                                Wall::Cone(cone) => Some(Round::Cone(cone)),
+                                Wall::Sphere(_) => None,
                             })
                             .find(|wall| *wall != round)?;
                         beside(curve, (plane, &other), surface, [from, to], eps)

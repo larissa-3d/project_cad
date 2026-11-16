@@ -8,6 +8,7 @@ mod conic;
 mod elliptic;
 mod grazed;
 mod lying;
+mod pierced;
 mod round;
 mod section;
 

@@ -192,13 +192,16 @@ fn one_undo_takes_back_a_change_of_extrusion() {
     );
 }
 
-/// A ball of radius 4 about (5, 10, 0), turned whole from a half disc, then a
-/// circle of radius 2 on a plane tilted 30° about X, through (5, 10, 6),
-/// raised `distance` along that plane's normal: raised 10 down, across the
-/// ball's sphere off its centre, the kernel declines it; raised 10 up, away
-/// from the ball, it builds.
-fn a_ball_under_a_slanted_circle_raised(distance: f64) -> PartDocument {
-    let mut document = PartDocument::new("Boule", Utc::now());
+/// A ring of tube radius 1.5 about the circle of radius 3 about the upright
+/// line through (5, 10, 0), turned whole from two half circles, then a circle
+/// of radius 2 on a plane tilted 30° about X, through (5, 10, 6), raised
+/// `distance` along that plane's normal: raised 10 down, across the ring's
+/// tube off its axis, the kernel declines it, a torus against a wall of
+/// another axis being #805's third slice; raised 10 up, away from the ring,
+/// it builds. A ball stood under the circle until #805's second slice met
+/// the two.
+fn a_ring_under_a_slanted_circle_raised(distance: f64) -> PartDocument {
+    let mut document = PartDocument::new("Anneau", Utc::now());
     document.apply(Operation::CreateSketch {
         plane: WorkPlane {
             origin: DVec3::new(5.0, 10.0, 0.0),
@@ -210,20 +213,21 @@ fn a_ball_under_a_slanted_circle_raised(distance: f64) -> PartDocument {
     let first = document.sketches()[0].points().len();
     document.apply(Operation::AddArc {
         sketch: 0,
-        center: PointRef::New(DVec2::ZERO),
-        start: PointRef::New(DVec2::new(0.0, -4.0)),
-        end: PointRef::New(DVec2::new(0.0, 4.0)),
+        center: PointRef::New(DVec2::new(3.0, 0.0)),
+        start: PointRef::New(DVec2::new(3.0, 1.5)),
+        end: PointRef::New(DVec2::new(3.0, -1.5)),
         construction: false,
     });
-    document.apply(Operation::AddSegment {
+    document.apply(Operation::AddArc {
         sketch: 0,
+        center: PointRef::New(DVec2::new(3.0, 0.0)),
         start: PointRef::Existing(PointId(first + 2)),
         end: PointRef::Existing(PointId(first + 1)),
         construction: false,
     });
     document.apply(Operation::Revolve {
         sketch: 0,
-        areas: document.areas_at(0, &[DVec2::new(1.0, 0.0)]),
+        areas: document.areas_at(0, &[DVec2::new(3.0, 0.0)]),
         axis: RevolutionAxis::Sketch(SketchAxis::V),
         angle: 360.0.into(),
         mode: ExtrusionMode::Add,
@@ -250,7 +254,7 @@ fn a_ball_under_a_slanted_circle_raised(distance: f64) -> PartDocument {
 }
 
 /// Where the slanted circle is raised in the history of
-/// `a_ball_under_a_slanted_circle_raised`.
+/// `a_ring_under_a_slanted_circle_raised`.
 const THE_SLANTED_CIRCLE: usize = 6;
 
 fn the_circle_raised(document: &PartDocument, distance: f64) -> Operation {
@@ -264,11 +268,11 @@ fn the_circle_raised(document: &PartDocument, distance: f64) -> Operation {
 
 #[test]
 fn a_declined_extrusion_changed_to_values_that_build_is_built() {
-    let mut document = a_ball_under_a_slanted_circle_raised(-10.0);
+    let mut document = a_ring_under_a_slanted_circle_raised(-10.0);
     let raised = number_of(&document, THE_SLANTED_CIRCLE);
     assert!(
         document.is_declined(raised),
-        "the fixture wants the circle raised 10 down across the ball declined",
+        "the fixture wants the circle raised 10 down across the ring declined",
     );
     let turned_up = the_circle_raised(&document, 10.0);
 
@@ -277,11 +281,11 @@ fn a_declined_extrusion_changed_to_values_that_build_is_built() {
         to: Box::new(turned_up),
     });
 
-    let as_if_raised_so = a_ball_under_a_slanted_circle_raised(10.0).body().volume();
+    let as_if_raised_so = a_ring_under_a_slanted_circle_raised(10.0).body().volume();
     assert!(
         !document.is_declined(raised) && same_volume(document.body().volume(), as_if_raised_so),
         "the circle declined raised 10 down, changed to 10 up, is declined still ({}) or holds {} \
-         where the ball and the circle raised 10 up from the start hold {as_if_raised_so}",
+         where the ring and the circle raised 10 up from the start hold {as_if_raised_so}",
         document.is_declined(raised),
         document.body().volume(),
     );

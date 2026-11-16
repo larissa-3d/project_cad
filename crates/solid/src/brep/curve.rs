@@ -7,7 +7,9 @@ use glam::DVec3;
 use serde::{Deserialize, Serialize};
 
 use super::conic::Conic;
-use super::surface::{Cone, Cylinder, EllipticCylinder, Surface, canonical_direction, reference};
+use super::surface::{
+    Cone, Cylinder, EllipticCylinder, Sphere, Surface, canonical_direction, reference,
+};
 
 /// The line through `origin`, its point nearest the world's origin, along
 /// `direction`, of unit length and with its sign fixed. Its parameter is the
@@ -39,12 +41,15 @@ pub struct Meet {
 }
 
 /// A wall the curve two walls meet along runs round: a cylinder, an
-/// elliptic wall, or a cone, whose rulings the curve is read along (#577).
+/// elliptic wall, or a cone, whose rulings the curve is read along (#577);
+/// or, second to a cylinder of another axis, the sphere its rulings pierce
+/// (#805), which `of` never gives for a sphere.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Wall {
     Cylinder(Cylinder),
     Elliptic(EllipticCylinder),
     Cone(Cone),
+    Sphere(Sphere),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -133,6 +138,7 @@ impl Wall {
             Wall::Cylinder(cylinder) => Surface::Cylinder(*cylinder),
             Wall::Elliptic(wall) => Surface::Elliptic(*wall),
             Wall::Cone(cone) => Surface::Cone(*cone),
+            Wall::Sphere(sphere) => Surface::Sphere(*sphere),
         }
     }
 
@@ -141,6 +147,7 @@ impl Wall {
             Wall::Cylinder(cylinder) => cylinder.origin,
             Wall::Elliptic(wall) => wall.origin,
             Wall::Cone(cone) => cone.origin,
+            Wall::Sphere(sphere) => sphere.origin,
         }
     }
 
@@ -149,6 +156,7 @@ impl Wall {
             Wall::Cylinder(cylinder) => cylinder.axis,
             Wall::Elliptic(wall) => wall.axis,
             Wall::Cone(cone) => cone.axis,
+            Wall::Sphere(sphere) => sphere.axis,
         }
     }
 }

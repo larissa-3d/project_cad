@@ -6,6 +6,7 @@ mod charted;
 mod columns;
 mod cone;
 mod cylinder;
+mod pierced;
 mod round;
 mod strips;
 
@@ -60,6 +61,7 @@ impl Outline {
         Outline::central(sphere, samples, &laps(body, samples, id)?, tolerance)
             .or_else(|| Outline::about(body, samples, id, sphere, tolerance))
             .or_else(|| Outline::charted(body, samples, id, sphere, tolerance))
+            .or_else(|| Outline::pierced(body, samples, id, sphere, tolerance))
     }
 
     /// The outline of a face, turned when the face is flipped so that its

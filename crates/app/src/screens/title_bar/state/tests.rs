@@ -296,7 +296,7 @@ fn each_problem_of_the_part_is_an_alert_at_its_level() {
         ("an area lost", levels_listed(&[a_block_whose_area_is_gone])),
         (
             "a volume not built",
-            levels_listed(&[a_ball_under_a_slanted_circle_raised]),
+            levels_listed(&[a_ball_under_a_slanted_ellipse_raised]),
         ),
         (
             "a step built unstably",
@@ -355,7 +355,7 @@ fn the_title_bar_counts_the_alerts_only_while_there_is_one() {
 #[test]
 fn the_count_wears_the_level_of_the_worst_alert() {
     let unstable = a_shaft_cut_by_a_slice_a_hundredth_of_a_degree_thin;
-    let declined = a_ball_under_a_slanted_circle_raised;
+    let declined = a_ball_under_a_slanted_ellipse_raised;
 
     let read = [
         ("a warning alone", the_count_s_level(&[unstable])),
@@ -391,7 +391,7 @@ fn the_count_wears_the_level_of_the_worst_alert() {
 fn each_alert_is_titled_by_its_element_and_its_problem() {
     let read = [
         titles_listed(&[a_block_whose_area_is_gone]),
-        titles_listed(&[a_ball_under_a_slanted_circle_raised]),
+        titles_listed(&[a_ball_under_a_slanted_ellipse_raised]),
         titles_listed(&[a_shaft_cut_by_a_slice_a_hundredth_of_a_degree_thin]),
         titles_listed(&[a_sketch_off_its_face]),
         titles_listed(&[a_block, two_sections_one_off_its_face]),
@@ -416,7 +416,7 @@ fn each_alert_is_titled_by_its_element_and_its_problem() {
 fn each_alert_says_why_in_a_sentence() {
     let lang = Catalogue::french();
 
-    let not_built = sentences_listed(&[a_ball_under_a_slanted_circle_raised]);
+    let not_built = sentences_listed(&[a_ball_under_a_slanted_ellipse_raised]);
     let unstable = sentences_listed(&[a_shaft_cut_by_a_slice_a_hundredth_of_a_degree_thin]);
     let area_lost = sentences_listed(&[a_block_whose_area_is_gone]);
     let sketch_off = sentences_listed(&[a_sketch_off_its_face]);
@@ -485,7 +485,7 @@ fn show_asks_to_mark_the_volume_the_alert_is_about() {
     };
 
     let read = [
-        asked(&[a_ball_under_a_slanted_circle_raised]),
+        asked(&[a_ball_under_a_slanted_ellipse_raised]),
         asked(&[a_shaft_cut_by_a_slice_a_hundredth_of_a_degree_thin]),
         asked(&[a_block_whose_area_is_gone]),
     ];
@@ -517,7 +517,7 @@ fn modify_asks_to_reopen_the_extrusion_or_revolution_the_alert_is_about_and_clos
     };
 
     let read = [
-        asked(&[a_ball_under_a_slanted_circle_raised]),
+        asked(&[a_ball_under_a_slanted_ellipse_raised]),
         asked(&[a_shaft_cut_by_a_slice_a_hundredth_of_a_degree_thin]),
         asked(&[a_block_whose_area_is_gone]),
     ];
@@ -691,10 +691,11 @@ fn a_ball(document: &mut PartDocument, center: DVec3, radius: f64) {
     });
 }
 
-/// A ball of radius 4 about (5, 10, 0), then a circle on a plane tilted 30°
-/// about X raised down across its sphere, three off its centre: the exact
-/// kernel cannot follow where the two meet, and declines the circle's step.
-fn a_ball_under_a_slanted_circle_raised(document: &mut PartDocument) {
+/// A ball of radius 4 about (5, 10, 0), then an ellipse 4 across and 3 high
+/// on a plane tilted 30° about X raised down across its sphere, three off its
+/// centre: the exact kernel cannot follow an elliptic wall where it meets a
+/// sphere, and declines the ellipse's step.
+fn a_ball_under_a_slanted_ellipse_raised(document: &mut PartDocument) {
     a_ball(document, DVec3::new(5.0, 10.0, 0.0), 4.0);
     let sketch = document.sketches().len();
     let (sin, cos) = (std::f64::consts::PI / 6.0).sin_cos();
@@ -706,12 +707,19 @@ fn a_ball_under_a_slanted_circle_raised(document: &mut PartDocument) {
         },
         on: None,
     });
-    document.apply(Operation::AddCircle {
+    document.apply(Operation::AddEllipse {
         sketch,
         center: PointRef::New(DVec2::ZERO),
-        radius: 2.0,
-        rim: Vec::new(),
+        first: [
+            PointRef::New(DVec2::new(-2.0, 0.0)),
+            PointRef::New(DVec2::new(2.0, 0.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(0.0, -1.5)),
+            PointRef::New(DVec2::new(0.0, 1.5)),
+        ],
         construction: false,
+        drawn: None,
     });
     document.apply(Operation::Extrude {
         sketch,

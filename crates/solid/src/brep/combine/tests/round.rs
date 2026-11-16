@@ -1,9 +1,10 @@
 //! A sphere or a torus joined to or cut from what shares its axis (#576):
 //! a plane square to the axis or holding it, a coaxial shaft, bore, cone,
-//! sphere or torus; and a sphere cut or joined by a plane at a slant to its
+//! sphere or torus; a sphere cut or joined by a plane at a slant to its
 //! axis, or square to it off its centre, along a circle (#805), or touched
-//! by such a plane at a point off its poles (#939). Each body is listed
-//! sound and holds the arithmetic's volume, by Pappus, to the bit the cone's
+//! by such a plane at a point off its poles (#939); and a sphere bored by a
+//! cylinder of another axis (#805). Each body is listed sound and holds the
+//! arithmetic's volume, by Pappus or by a quadrature, to the bit the cone's
 //! booleans hold; everything else declines as unsupported, unless the faces
 //! stand clear of each other.
 //!
@@ -769,13 +770,71 @@ fn a_block_beside_a_ball_knob_is_passed_over_by_clear() {
     held(&joined, BALL + 32.0, "a block beside a ball knob");
 }
 
+/// What two discs of radii `one` and `other` share, their centres `apart`.
+fn shared_by_two_discs(one: f64, other: f64, apart: f64) -> f64 {
+    if apart >= one + other {
+        return 0.0;
+    }
+    if apart <= (one - other).abs() {
+        return PI * one.min(other).powi(2);
+    }
+    [(one, other), (other, one)]
+        .map(|(near, far)| {
+            let angle = ((apart * apart + near * near - far * far) / (2.0 * apart * near))
+                .clamp(-1.0, 1.0)
+                .acos();
+            near * near * (angle - angle.sin() * angle.cos())
+        })
+        .iter()
+        .sum()
+}
+
+/// The matter a cylinder of `radius` whose axis passes `off` from the centre
+/// of a ball of radius `ball` holds inside the ball: over each plane square
+/// to the cylinder's axis, `t` from the centre's foot, what its section
+/// shares with the ball's, of radius √(ball² − t²), summed by Simpson's rule
+/// between the heights where the two sections start or stop crossing, each
+/// run laid along t = from + (to − from)(1 − cos πu)/2, under which the
+/// share's kinks there are smooth.
+fn bore_inside_a_ball(radius: f64, off: f64, ball: f64) -> f64 {
+    let shared = |t: f64| shared_by_two_discs((ball * ball - t * t).max(0.0).sqrt(), radius, off);
+    let mut heights: Vec<f64> = [off + radius, (off - radius).abs()]
+        .into_iter()
+        .filter(|&reach| reach < ball)
+        .map(|reach| (ball * ball - reach * reach).sqrt())
+        .chain([0.0, ball])
+        .collect();
+    heights.sort_by(f64::total_cmp);
+    let steps: u32 = 1 << 12;
+    let step = 1.0 / f64::from(steps);
+    let half: f64 = heights
+        .windows(2)
+        .map(|run| {
+            let (from, to) = (run[0], run[1]);
+            let at = |u: f64| {
+                let t = from + (to - from) * (1.0 - (PI * u).cos()) / 2.0;
+                shared(t) * (to - from) * PI * (PI * u).sin() / 2.0
+            };
+            let inner: f64 = (1..steps)
+                .map(|index| at(step * f64::from(index)) * if index % 2 == 1 { 4.0 } else { 2.0 })
+                .sum();
+            (at(0.0) + inner + at(1.0)) * step / 3.0
+        })
+        .sum();
+    2.0 * half
+}
+
+/// A bore of radius 1 two off the ball's axis, along it, right through the
+/// ball: its wall meets the sphere along two loops (#805), and the ball keeps
+/// all but what the bore holds inside it.
 #[test]
-fn a_hole_drilled_off_axis_through_a_ball_is_declined_as_unsupported() {
+fn a_hole_drilled_off_axis_through_a_ball_holds_the_ball_less_what_the_bore_takes_inside_it() {
     let hole = shaft(1.0, -10.0, 10.0, 2.0);
-    assert_eq!(
-        turned(&ball(), 360.0).cut_by(&hole).err(),
-        Some(Declined::Unsupported)
-    );
+    let what = "a ball of radius 5 bored through by a hole of radius 1 two off its axis";
+    let bored = turned(&ball(), 360.0)
+        .cut_by(&hole)
+        .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    held_and_drawn(&bored, BALL - bore_inside_a_ball(1.0, 2.0, 5.0), what);
 }
 
 /// Lane T's campaign found a quarter ball or a ring joined with a body

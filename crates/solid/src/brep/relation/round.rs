@@ -6,11 +6,14 @@
 //! plane holding its axis as the meridian circles it cuts, with the poles
 //! they cross at. Any other plane cuts a sphere along the circle about the
 //! foot of its centre (#805), a circle of another axis than the sphere's,
-//! or touches it at that foot alone within the tolerance (#939).
-//! Anything else — such a plane against a torus, a wall or a round of
-//! another axis, an elliptic wall — is unsupported, which declines a boolean
-//! unless the two faces stand clear of each other; none of it is a conic's,
-//! so `at_a_slant` answers false and `clear` may pass the faces by.
+//! or touches it at that foot alone within the tolerance (#939), and a
+//! cylinder whose axis does not hold its centre pierces it along one or two
+//! loops (#805, `meet/pierced.rs`). Anything else — such a plane against a
+//! torus, a cone or a round of another axis, a cylinder of another axis
+//! against a torus or through a sphere's centre, an elliptic wall — is
+//! unsupported, which declines a boolean unless the two faces stand clear
+//! of each other; none of it is a conic's, so `at_a_slant` answers false
+//! and `clear` may pass the faces by.
 //!
 //! How far a coaxial plane, cylinder or cone stands from touching a round,
 //! or from passing through a rim on it, is read here too, in the same
@@ -21,7 +24,8 @@ use glam::{DVec2, DVec3};
 
 use super::revolved::{Frame, Meridian, Met, in_the_box, met_in_the_half_plane, met_round};
 use super::{Relation, parallel, square};
-use crate::brep::curve::Circle;
+use crate::brep::curve::{Circle, Wall};
+use crate::brep::meet::{Configuration, Meeting};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Cone, Cylinder, Plane, Sphere, Surface, Torus};
 
@@ -172,7 +176,8 @@ fn goes_first(one: &Surface, other: &Surface) -> bool {
 
 /// The round `surface` against `other`: a plane square to its axis or
 /// holding it, or a surface of revolution about its axis, each read in the
-/// round's frame; any other plane against a sphere.
+/// round's frame; any other plane, or a cylinder of another axis, against a
+/// sphere.
 fn against(
     surface: &Surface,
     (frame, center, radius): (Frame, DVec2, f64),
@@ -190,7 +195,12 @@ fn against(
         Surface::Elliptic(_) => return Relation::Unsupported,
     };
     if !coaxial(&frame, origin, axis, scale) {
-        return Relation::Unsupported;
+        return match (surface, other) {
+            (Surface::Sphere(sphere), Surface::Cylinder(cylinder)) => {
+                pierced(sphere, cylinder, scale)
+            }
+            _ => Relation::Unsupported,
+        };
     }
     match Meridian::of_surface(&frame, other) {
         Some(meridian) => met_round(&frame, center, radius, meridian, scale),
@@ -260,6 +270,37 @@ fn section(sphere: &Sphere, plane: &Plane, scale: Scale) -> Relation {
         plane.normal,
         ((radius - away) * (radius + away)).sqrt(),
     ))
+}
+
+/// A cylinder of another axis than the axis of `sphere`: the loops where its
+/// rulings pierce the sphere, as `meet/pierced.rs` reads them — one where it
+/// takes in part of the ball, two where it passes right through it — and
+/// apart where it misses the ball or holds it inside, each gap measured
+/// where the two surfaces come nearest. Within the tolerance of touching the
+/// ball from outside or from inside, of a figure of eight — the cylinder
+/// through it touching it from inside along its far side — or of its axis
+/// holding the centre: unsupported.
+fn pierced(sphere: &Sphere, cylinder: &Cylinder, scale: Scale) -> Relation {
+    let eps = scale.eps();
+    let between = sphere.middle() - cylinder.origin;
+    let off = (between - cylinder.axis * cylinder.axis.dot(between)).length();
+    let (wall, ball) = (cylinder.radius, sphere.radius);
+    let outside = (off - wall).abs() - ball;
+    if outside > eps {
+        return Relation::Apart;
+    }
+    let through = ball - (off + wall);
+    if off <= eps || outside >= -eps || through.abs() <= eps {
+        return Relation::Unsupported;
+    }
+    let meeting = Meeting::of(&Wall::Cylinder(*cylinder), &Wall::Sphere(*sphere), scale);
+    match meeting.configuration {
+        Configuration::OneLoop | Configuration::TwoLoops => Relation::Meet(meeting),
+        Configuration::Apart
+        | Configuration::Contact
+        | Configuration::FigureOfEight
+        | Configuration::TwoEllipses => Relation::Unsupported,
+    }
 }
 
 /// Holding the axis, the meridian circles the plane cuts: one great circle

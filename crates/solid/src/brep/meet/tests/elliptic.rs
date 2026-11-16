@@ -210,12 +210,14 @@ fn every_point_of_a_stretch_of_a_meet_on_an_elliptic_wall_lies_in_its_box() {
 }
 
 /// The parameters of a wall, `(θ, h)`, `θ` the eccentric angle on an
-/// elliptic one, and `(θ, l)` on a cone, `l` along its ruling.
+/// elliptic one, `(θ, l)` on a cone, `l` along its ruling, and `(θ, φ)` on a
+/// sphere, `φ` its latitude.
 fn read(wall: &Wall, point: DVec3) -> glam::DVec2 {
     match wall {
         Wall::Cylinder(cylinder) => cylinder.parameters(point),
         Wall::Elliptic(oval) => oval.parameters(point),
         Wall::Cone(cone) => cone.parameters(point),
+        Wall::Sphere(sphere) => sphere.parameters(point),
     }
 }
 

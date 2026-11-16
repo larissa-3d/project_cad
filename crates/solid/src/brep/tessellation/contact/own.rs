@@ -65,7 +65,7 @@ pub(super) fn along_meets(
                 curve::Wall::Elliptic(oval) => {
                     through.iter().map(|point| *point - oval.origin).collect()
                 }
-                curve::Wall::Cone(_) => continue,
+                curve::Wall::Cone(_) | curve::Wall::Sphere(_) => continue,
             };
             for surface in (0..body.surfaces.len() as u32).map(SurfaceId) {
                 if *body.surface(surface) == held.surface() {

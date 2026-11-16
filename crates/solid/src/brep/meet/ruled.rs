@@ -106,11 +106,23 @@ impl Terms {
 }
 
 impl Ruled {
-    /// The pair before the curve is read: its terms alone, and no lap.
-    pub(super) fn unread(cone: &Cone, other: &Wall) -> Ruled {
+    /// The pair before the curve is read: its terms alone, and no lap; none
+    /// against a sphere, which no ruling is read against.
+    pub(super) fn unread(cone: &Cone, other: &Wall) -> Option<Ruled> {
+        Some(Ruled::lapless(cone, Quadric::of(other)?))
+    }
+
+    /// The cone against a wall no ruling is read against: no lap, so that
+    /// every point asked of the pair is not a number, its quadric the cone's
+    /// own, which nothing asks of a reading with no lap.
+    pub(super) fn declined(cone: &Cone) -> Ruled {
+        Ruled::lapless(cone, Quadric::of_cone(cone))
+    }
+
+    fn lapless(cone: &Cone, other: Quadric) -> Ruled {
         Ruled {
             cone: *cone,
-            other: Quadric::of(other),
+            other,
             laps: Vec::new(),
             configuration: Configuration::Apart,
             contact: None,
@@ -127,8 +139,11 @@ impl Ruled {
     /// size over `STEADY`; and of two cones the one that gives it the
     /// rulings. Sampled, then the least brought down by thirds, since a
     /// ruling parallel to the other wall's axis is a double zero of `A`.
+    /// Nought against a sphere, which no ruling is read against.
     pub fn steadiness(cone: &Cone, other: &Wall) -> f64 {
-        let read = Ruled::unread(cone, other);
+        let Some(read) = Ruled::unread(cone, other) else {
+            return 0.0;
+        };
         let a = |theta: f64| read.terms(theta).a[0];
         let step = TAU / SAMPLES as f64;
         let at = |rank: usize| step * rank as f64;
@@ -157,7 +172,7 @@ impl Ruled {
         if Ruled::steadiness(cone, other) <= STEADY {
             return None;
         }
-        let mut ruled = Ruled::unread(cone, other);
+        let mut ruled = Ruled::unread(cone, other)?;
         ruled.laid();
         Some(ruled)
     }
