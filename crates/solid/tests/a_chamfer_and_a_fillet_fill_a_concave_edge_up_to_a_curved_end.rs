@@ -272,6 +272,31 @@
 //!   pin each body's matter, its faces and their numbers, its edges and
 //!   corners, and what its file writes; running them, left as they were, is
 //!   the answer
+//!
+//! The piece of the ball the box is cut by is turned whole about the
+//! sphere's axis where the box holds the axis or stands round it, and
+//! between planes through the axis otherwise. A chamfer of 5.97 on the rib
+//! cut from a ball takes the first way, its box starting on the plane
+//! through the centre —
+//! `a_chamfer_at_the_foot_of_a_rib_cut_from_a_ball_whose_trim_starts_on_the_ball_s_axis_is_trimmed_flush_and_leaves_the_part_s_tolerance_as_it_was`;
+//! every other fill on a sphere in this file takes the second. The body
+//! cannot tell either piece from a larger one, so the piece's own shape is
+//! held beside it, in `src/body/exact/wedge/fill/ball/tests.rs`.
+//!
+//! The mutants of #941's piece those tests let live, one line each.
+//! `outside_sphere`'s snug, `clear / 4` turned `%` or `*`: a snug of one
+//! clearance or of four, a larger piece and the same body; only the reach
+//! the trim carries could show it, through the bound a turned solid's reach
+//! is read at — its corners' place and its furthest from the axis — and on
+//! no part here does that bound reach the part's own box, so it is left
+//! alive rather than pinned through that bound. `within`'s furthest corner,
+//! `>` turned `>=`: equivalent, a tie takes another corner as nought for the
+//! angles, and the turn between planes is the same read from either; a
+//! whole turn reads no angle. Its spread, `snug / length` turned `%`:
+//! equivalent, a partial turn needs every corner further than the snug from
+//! the axis, where the two agree, and a whole turn reads no spread. Its
+//! choice, `last − first < π` turned `<=` and `inner > band` turned `>=`:
+//! equivalent but at exact equality.
 
 mod step_reader;
 
@@ -2531,6 +2556,54 @@ fn a_chamfer_at_the_foot_of_a_rib_cut_from_a_ball_whose_circle_passes_by_a_pole_
         let chamfer = one_flat_face_more(&part, body, &what);
         numbered_after_the_steps_last(&part, body, chamfer, &what);
         flush_on_the_ball(body, (side, chamfer), value, height, &what);
+    }
+}
+
+/// A chamfer of 5.97 at the foot of either side of the rib: its flat's foot,
+/// 7.97 from the sphere's centre along the axis the ball was turned about,
+/// leaves the sphere 0.69 either side of the plane through the centre square
+/// to the foot, nearer than the box the fill is trimmed by stands clear of
+/// its prism, an eighth of the flat's reach. So the box starts on that
+/// plane, which holds the axis, and the piece of the ball cut from it is
+/// turned whole about the axis rather than between planes through it.
+#[test]
+fn a_chamfer_at_the_foot_of_a_rib_cut_from_a_ball_whose_trim_starts_on_the_ball_s_axis_is_trimmed_flush_and_leaves_the_part_s_tolerance_as_it_was()
+ {
+    let value = 5.97;
+    let part = rib_cut_from_a_ball();
+    for side in BALL_SIDES {
+        let foot = edge_between(&part, TOP, side.face);
+
+        let chamfered = part.chamfer(&foot, value).unwrap_or_else(|declined| {
+            panic!(
+                "the chamfer of {value} at the foot of the {} side of the rib cut from a ball: \
+                 declined, {declined:?}",
+                side.name
+            )
+        });
+
+        let what = format!(
+            "the chamfer of {value} at the foot of the {} side of the rib cut from a ball",
+            side.name
+        );
+        taken_whole(chamfered.asked, chamfered.taken, value, &what);
+        let body = &chamfered.body;
+        let height = |out: f64| chamfer_height(value, out);
+        sound_drawn_within(
+            body,
+            ball_rib_volume() + fill_matter(value, height, across_the_ball),
+            drawn_within(&part, ball_area() + 2.0 * value * value),
+            &what,
+        );
+        let chamfer = one_flat_face_more(&part, body, &what);
+        numbered_after_the_steps_last(&part, body, chamfer, &what);
+        flush_on_the_ball(body, (side, chamfer), value, height, &what);
+        let (before, after) = (part.on_a_plane(0.0), body.on_a_plane(0.0));
+        assert_eq!(
+            after, before,
+            "{what}: the part decides at a tolerance of {after}, where before the step it decided \
+             at {before}"
+        );
     }
 }
 

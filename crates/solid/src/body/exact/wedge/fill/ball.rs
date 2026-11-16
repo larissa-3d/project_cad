@@ -203,3 +203,6 @@ fn in_the_disc(
     }
     Some(Contour { corners, runs })
 }
+
+#[cfg(test)]
+mod tests;
