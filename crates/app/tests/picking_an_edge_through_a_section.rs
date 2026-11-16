@@ -179,13 +179,12 @@ fn chamfering_through_the_section(test: &str) -> driver::App {
     driver::click_in_the_bar(&mut app, "Vue en coupe");
     driver::click_exactly(&mut app, "Extrusion");
     driver::click_exactly(&mut app, "Chanfrein");
-    for side in ["Plan XY", "Derrière : opaque", "Devant : cachée"] {
-        assert!(
-            driver::a_button_reads(&app, side),
-            "the section view is not on as it opens, « {side} » missing: {:?}",
-            driver::on_screen(&app),
-        );
-    }
+    assert!(
+        driver::a_button_reads(&app, "Plan XY"),
+        "the section view is not on as it opens, « Plan XY » missing: {:?}",
+        driver::on_screen(&app),
+    );
+    the_sides_read(&app, ("opaque", "cachée"), "the section view as it opens");
     assert!(
         !driver::is_enabled(&app, "Appliquer"),
         "« Appliquer » offered before any edge is chosen",
@@ -198,32 +197,117 @@ fn the_front_drawn(app: &mut driver::App, state: &str) {
     the_side_drawn(app, "Devant", state);
 }
 
-/// Clicks the section's row for that side until it reads `state`.
+/// The state the section's panel draws a side in: the chip standing under
+/// that side's name, « Derrière : » or « Devant : ».
+fn drawn_as(app: &driver::App, side: &str) -> String {
+    let name = format!("{side} :");
+    let buttons = || app.query_all_by_role(egui::accesskit::Role::Button);
+    let named = buttons()
+        .find(|node| node.accesskit_node().label().as_deref() == Some(name.as_str()))
+        .unwrap_or_else(|| {
+            panic!(
+                "no side of the panel is named « {name} »: {:?}",
+                driver::on_screen(app)
+            )
+        })
+        .rect();
+    buttons()
+        .filter_map(|node| {
+            let read = node.accesskit_node().label()?;
+            let at = node.rect();
+            let under = at.top() >= named.bottom()
+                && at.left() < named.right()
+                && at.right() > named.left();
+            (under && ["cachée", "transparente", "opaque"].contains(&read.as_str()))
+                .then_some((read, at))
+        })
+        .min_by(|(_, one), (_, other)| one.top().total_cmp(&other.top()))
+        .map(|(read, _)| read)
+        .unwrap_or_else(|| {
+            panic!(
+                "no state stands under « {name} »: {:?}",
+                driver::on_screen(app)
+            )
+        })
+}
+
+/// Asserts the panel draws the side behind and the side in front as these.
+fn the_sides_read(app: &driver::App, (behind, in_front): (&str, &str), what: &str) {
+    assert_eq!(
+        (drawn_as(app, "Derrière"), drawn_as(app, "Devant")),
+        (behind.to_string(), in_front.to_string()),
+        "{what}: the sides are not drawn behind {behind}, in front {in_front}",
+    );
+}
+
+/// Clicks the name of that side in the section's panel until the side reads
+/// `state`.
 fn the_side_drawn(app: &mut driver::App, side: &str, state: &str) {
-    let row = format!("{side} : ");
-    let wanted = format!("{row}{state}");
     for _ in 0..3 {
-        if driver::a_button_reads(app, &wanted) {
+        if drawn_as(app, side) == state {
             return;
         }
-        let now = app
-            .query_all_by_role(egui::accesskit::Role::Button)
-            .filter_map(|node| node.accesskit_node().label())
-            .find(|read| read.starts_with(&row))
-            .unwrap_or_else(|| panic!("no row « {row}»: {:?}", driver::on_screen(app)));
-        driver::click_the_button(app, &now);
+        driver::click_the_button(app, &format!("{side} :"));
     }
     panic!(
-        "the row never read « {wanted} »: {:?}",
+        "« {side} » never read « {state} »: {:?}",
         driver::on_screen(app)
     );
 }
 
+/// Where the section's panel stands, read off the widgets it lays out and
+/// the margin around them: nothing while it is closed.
+fn the_section_s_panel(app: &driver::App) -> Option<egui::Rect> {
+    const ITS_OWN: [&str; 12] = [
+        "Plan XY",
+        "Plan XZ",
+        "Plan YZ",
+        "Face cliquée",
+        "Derrière :",
+        "Devant :",
+        "cachée",
+        "transparente",
+        "opaque",
+        "Inverser",
+        "Enregistrer la coupe",
+        "Fermer",
+    ];
+    app.query_all_by_role(egui::accesskit::Role::Button)
+        .filter(|node| {
+            node.accesskit_node()
+                .label()
+                .is_some_and(|read| ITS_OWN.contains(&read.as_str()))
+        })
+        .map(|node| node.rect())
+        .reduce(|one, other| one.union(other))
+        .map(|panel| panel.expand(24.0))
+}
+
+/// Where a point of the world is drawn, refused where the section's panel
+/// stands over it: a hand there is on the panel, and lights no edge whatever
+/// the picking does.
+fn on_the_view(app: &driver::App, point: DVec3) -> egui::Pos2 {
+    let at = driver::world_point_on_screen(app, point);
+    if let Some(panel) = the_section_s_panel(app) {
+        assert!(
+            !panel.contains(at),
+            "{point:?} is drawn at {at:?}, under the section's panel {panel:?}",
+        );
+    }
+    at
+}
+
 fn hover_at_world_point(app: &mut driver::App, point: DVec3) {
     driver::hold_the_canvas(app);
-    let at = driver::world_point_on_screen(app, point);
+    let at = on_the_view(app, point);
     app.hover_at(at);
     app.run();
+}
+
+fn click_at_world_point(app: &mut driver::App, point: DVec3) {
+    driver::hold_the_canvas(app);
+    let at = on_the_view(app, point);
+    driver::click_at(app, at);
 }
 
 fn chosen(app: &driver::App) -> Option<Vec<DVec3>> {
@@ -308,7 +392,7 @@ fn with_the_section_on_an_edge_wholly_in_front_of_the_plane_is_neither_lit_nor_c
         None,
         "the hand over the top front, wholly on the side the section hides, lights an edge",
     );
-    driver::click_at_world_point(&mut app, in_front);
+    click_at_world_point(&mut app, in_front);
     assert_eq!(
         chosen(&app),
         None,
@@ -327,7 +411,7 @@ fn lit_then_chosen(app: &mut driver::App, edge: [DVec3; 2], point: DVec3, what: 
         "{what}: the hand lights {:?}",
         lit(app)
     );
-    driver::click_at_world_point(app, point);
+    click_at_world_point(app, point);
     assert!(
         is_the_edge(chosen(app), edge),
         "{what}: a click chose {:?}",
@@ -346,7 +430,7 @@ fn neither_lit_nor_chosen(app: &mut driver::App, edge: [DVec3; 2], point: DVec3,
     let before = chosen(app);
     hover_at_world_point(app, point);
     assert_eq!(lit(app), None, "{what}: the hand lights an edge");
-    driver::click_at_world_point(app, point);
+    click_at_world_point(app, point);
     assert_eq!(chosen(app), before, "{what}: a click chose an edge");
 }
 
@@ -445,8 +529,8 @@ fn with_both_sides_opaque_an_edge_is_picked_as_with_the_section_off() {
          section off",
     );
     for point in WHERE_THE_HAND_GOES {
-        driver::click_at_world_point(&mut off, point);
-        driver::click_at_world_point(&mut both, point);
+        click_at_world_point(&mut off, point);
+        click_at_world_point(&mut both, point);
         assert_eq!(
             chosen(&both),
             chosen(&off),
@@ -459,7 +543,7 @@ fn with_both_sides_opaque_an_edge_is_picked_as_with_the_section_off() {
 fn an_edge_chosen_where_the_plane_crosses_it_is_lit_along_its_whole_length() {
     let mut app = chamfering_through_the_section("an_edge_crossed_is_lit_whole");
 
-    driver::click_at_world_point(&mut app, ON_THE_UPRIGHT_BELOW);
+    click_at_world_point(&mut app, ON_THE_UPRIGHT_BELOW);
     assert!(
         is_the_edge(chosen(&app), THE_FRONT_UPRIGHT),
         "the upright, taken by its part below the cut, is held as {:?}, not whole from its foot \
@@ -502,13 +586,7 @@ fn with_the_section_off_the_pocket_s_floor_is_not_taken_through_the_matter() {
 fn inverted_the_edge_on_the_side_now_opaque_is_lit_and_the_one_on_the_side_now_hidden_is_not() {
     let mut app = chamfering_through_the_section("inverted_the_sides_trade_places");
     driver::click_the_button(&mut app, "Inverser");
-    for side in ["Derrière : cachée", "Devant : opaque"] {
-        assert!(
-            driver::a_button_reads(&app, side),
-            "« Inverser » did not trade the sides, « {side} » missing: {:?}",
-            driver::on_screen(&app),
-        );
-    }
+    the_sides_read(&app, ("cachée", "opaque"), "« Inverser » clicked");
 
     neither_lit_nor_chosen(
         &mut app,
@@ -596,7 +674,7 @@ fn with_no_side_opaque_no_edge_is_offered() {
                 None,
                 "behind {behind}, in front {in_front}: the hand at {point:?} lights an edge",
             );
-            driver::click_at_world_point(&mut app, point);
+            click_at_world_point(&mut app, point);
             assert_eq!(
                 chosen(&app),
                 None,
@@ -664,7 +742,7 @@ fn a_section_laid_on_a_slanted_face_offers_every_edge_of_its_rim() {
         THE_FRONT_CHAMFER / 2.0,
         HEIGHT - THE_FRONT_CHAMFER / 2.0,
     );
-    driver::click_at_world_point(&mut app, on_the_face);
+    click_at_world_point(&mut app, on_the_face);
     the_front_drawn(&mut app, "cachée");
     driver::click_exactly(&mut app, "Extrusion");
     driver::click_exactly(&mut app, "Chanfrein");
@@ -676,14 +754,11 @@ fn a_section_laid_on_a_slanted_face_offers_every_edge_of_its_rim() {
         "the section is not laid on the face clicked: {:?}",
         driver::on_screen(&app),
     );
-    for row in ["Derrière : opaque", "Devant : cachée"] {
-        assert!(
-            driver::a_button_reads(&app, row),
-            "the section is not on the face with its sides as it opens them, « {row} » \
-             missing: {:?}",
-            driver::on_screen(&app),
-        );
-    }
+    the_sides_read(
+        &app,
+        ("opaque", "cachée"),
+        "the section on the face, with its sides as it opens them",
+    );
 
     let mut unlit = Vec::new();
     for points in &rim {
