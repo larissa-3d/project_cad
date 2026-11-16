@@ -51,7 +51,10 @@ pub(super) fn blend_row(
             (Some(reason), _) => {
                 ui.colored_label(
                     ui.visuals().error_fg_color,
-                    outcome::blend_declined(lang, shape, reason),
+                    match blend.edges.len() {
+                        0 | 1 => outcome::blend_declined(lang, shape, reason),
+                        _ => outcome::blend_declined_on_several(lang, shape, reason),
+                    },
                 );
             }
             (None, true) => {

@@ -314,7 +314,7 @@ impl PartState {
                 radius,
                 construction,
             } => self.fillet(*sketch, corners, radius, *construction),
-            Operation::Blend { edge, shape, size } => self.blend(edge, *shape, size),
+            Operation::Blend { edges, shape, size } => self.blend(edges, *shape, size),
             Operation::CutChange(change) => self.change_cut(change),
             // The history replays the step it changes as it now stands.
             Operation::EditMatter { .. } => None,

@@ -851,7 +851,7 @@ fn a_block_whose_chamfer_lost_its_edge() -> cao_part::PartDocument {
         .expect("the edge at the foot of the front")
         .name;
     let outcome = part.apply(Operation::Blend {
-        edge: foot_of_the_front,
+        edges: vec![foot_of_the_front],
         shape: BlendShape::Chamfer,
         size: 2.0.into(),
     });

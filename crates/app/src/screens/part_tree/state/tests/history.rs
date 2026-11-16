@@ -393,7 +393,7 @@ fn the_block_of_screen_06_with_its_top_front_edge(shape: BlendShape, size: f64) 
         .expect("the edge between the top and the front")
         .name;
     document.apply(Operation::Blend {
-        edge,
+        edges: vec![edge],
         shape,
         size: size.into(),
     });

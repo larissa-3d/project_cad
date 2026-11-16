@@ -700,7 +700,7 @@ fn a_block_with_a_pocket_and_a_slanted_front() -> cao_part::PartDocument {
         .expect("the top front")
         .name;
     let declined = part.apply(Operation::Blend {
-        edge: top_front,
+        edges: vec![top_front],
         shape: BlendShape::Chamfer,
         size: THE_FRONT_CHAMFER.into(),
     });

@@ -1,5 +1,5 @@
-//! An edge of the part chamfered or rounded by the kernel, at the size asked
-//! or at the most its two faces give.
+//! Edges of the part chamfered or rounded together by the kernel, at the size
+//! asked or at the most their faces give.
 
 use cao_solid::EdgeName;
 use serde::{Deserialize, Serialize};
@@ -22,35 +22,43 @@ pub struct Reduced {
 }
 
 impl PartState {
-    /// Chamfers or rounds an edge, noting the face it lays as a step of matter
-    /// notes its own, so that the faces after it are found again by their
-    /// numbers whatever becomes of it.
+    /// Chamfers or rounds edges together, noting the faces it lays as a step
+    /// of matter notes its own, so that the faces after it are found again by
+    /// their numbers whatever becomes of it.
     pub(crate) fn blend(
         &mut self,
-        edge: &EdgeName,
+        edges: &[EdgeName],
         shape: BlendShape,
         size: &Formula,
     ) -> Option<Outcome> {
         let mut outcome = None;
-        self.raising(|state| outcome = state.blended(edge, shape, size));
+        self.raising(|state| outcome = state.blended(edges, shape, size));
         outcome
     }
 
-    fn blended(&mut self, edge: &EdgeName, shape: BlendShape, size: &Formula) -> Option<Outcome> {
+    fn blended(
+        &mut self,
+        edges: &[EdgeName],
+        shape: BlendShape,
+        size: &Formula,
+    ) -> Option<Outcome> {
         let Some(size) = self.size(size, |size| size >= 1e-6) else {
-            self.body.count_past_cut(1);
+            self.body.count_past_cut(edges.len());
             return None;
         };
-        let edge = self.edge_named_by(edge, self.replaying);
+        let edges: Vec<EdgeName> = edges
+            .iter()
+            .map(|edge| self.edge_named_by(edge, self.replaying))
+            .collect();
         let scale = self.scale();
         let blended = match shape {
             BlendShape::Chamfer => self
                 .body
-                .chamfer(&edge, size / scale)
+                .chamfer_edges(&edges, size / scale)
                 .map(|cut| (cut.body, cut.taken)),
             BlendShape::Fillet => self
                 .body
-                .fillet(&edge, size / scale)
+                .fillet_edges(&edges, size / scale)
                 .map(|round| (round.body, round.taken)),
         };
         match blended {
@@ -64,7 +72,7 @@ impl PartState {
                 None
             }
             Err(reason) => {
-                self.declined_with(reason, |body| body.count_past_cut(1));
+                self.declined_with(reason, |body| body.count_past_cut(edges.len()));
                 Some(Outcome::BlendDeclined(reason))
             }
         }

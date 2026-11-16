@@ -372,9 +372,9 @@ pub enum Operation {
         angle: Formula,
         mode: ExtrusionMode,
     },
-    /// An edge of the part chamfered or rounded, named as the body before it.
+    /// Edges of the part chamfered or rounded together, named as the body before it.
     Blend {
-        edge: EdgeName,
+        edges: Vec<EdgeName>,
         shape: BlendShape,
         size: Formula,
     },

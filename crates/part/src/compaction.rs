@@ -107,9 +107,9 @@ pub fn compact(history: &History) -> History {
                     &mut new_state,
                 );
             }
-            Operation::Blend { edge, shape, size } => record(
+            Operation::Blend { edges, shape, size } => record(
                 Operation::Blend {
-                    edge: edge.clone(),
+                    edges: edges.clone(),
                     shape: *shape,
                     size: renumbered.formula(size),
                 },

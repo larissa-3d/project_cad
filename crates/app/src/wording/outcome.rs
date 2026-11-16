@@ -46,6 +46,17 @@ pub fn blend_declined(lang: &Catalogue, shape: BlendShape, reason: Declined) -> 
     })
 }
 
+/// The same, for several edges chosen together.
+pub fn blend_declined_on_several(lang: &Catalogue, shape: BlendShape, reason: Declined) -> String {
+    lang.t(match (reason, shape) {
+        (Declined::Lost(_), _) => "blend.edge_lost_many",
+        (Declined::Unsupported, BlendShape::Chamfer) => "blend.unsupported_chamfer_many",
+        (Declined::Unsupported, BlendShape::Fillet) => "blend.unsupported_fillet_many",
+        (_, BlendShape::Chamfer) => "blend.failed_chamfer_many",
+        (_, BlendShape::Fillet) => "blend.failed_fillet_many",
+    })
+}
+
 /// What a cut could not carry over to either piece: counted, never named. A
 /// line has no room to list them, and a drawing that quietly loses a rule is
 /// one whose shape moves for no reason the user can see.

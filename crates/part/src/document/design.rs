@@ -71,8 +71,26 @@ enum Stands {
         on: Option<FaceAnchor>,
     },
     Blend {
-        edge: EdgeName,
+        /// A step written before it could hold several edges names its one
+        /// edge under `edge`.
+        #[serde(alias = "edge", deserialize_with = "one_or_several")]
+        edges: Vec<EdgeName>,
     },
+}
+
+fn one_or_several<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Vec<EdgeName>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Edges {
+        Several(Vec<EdgeName>),
+        One(EdgeName),
+    }
+    Ok(match Edges::deserialize(deserializer)? {
+        Edges::Several(edges) => edges,
+        Edges::One(edge) => vec![edge],
+    })
 }
 
 /// What the operation opening a step sets, once the index has taken what the

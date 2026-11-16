@@ -79,20 +79,19 @@ impl BlendState {
     }
 }
 
-/// Chamfers or rounds the chosen edge and closes the panel. An edge the kernel
-/// declines records nothing and leaves the panel open, saying why. True when
-/// the part changed.
+/// Chamfers or rounds the chosen edges as one step and closes the panel.
+/// Edges the kernel declines record nothing and leave the panel open, saying
+/// why. True when the part changed.
 pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool {
-    let (Some(shape), [edge], Some((size, _))) = (
-        blend.shape,
-        blend.edges.as_slice(),
-        blend.size(document.variables()),
-    ) else {
+    let (Some(shape), Some((size, _))) = (blend.shape, blend.size(document.variables())) else {
         return false;
     };
-    let edge = edge.clone();
+    if blend.edges.is_empty() {
+        return false;
+    }
+    let edges = blend.edges.clone();
     if let Some(Outcome::BlendDeclined(reason)) =
-        document.apply(Operation::Blend { edge, shape, size })
+        document.apply(Operation::Blend { edges, shape, size })
     {
         blend.declined = Some(reason);
         return false;

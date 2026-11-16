@@ -81,8 +81,10 @@ pub(super) fn taken_apart(opening: &Operation) -> Result<(Stands, Option<Opening
                 mode: *mode,
             }),
         ),
-        Operation::Blend { edge, shape, size } => (
-            Stands::Blend { edge: edge.clone() },
+        Operation::Blend { edges, shape, size } => (
+            Stands::Blend {
+                edges: edges.clone(),
+            },
             Some(Opening::Blend {
                 shape: *shape,
                 size: size.clone(),
@@ -156,8 +158,8 @@ pub(super) fn put_together(
             angle,
             mode,
         },
-        (Stands::Blend { edge }, Some(Opening::Blend { shape, size })) => {
-            Operation::Blend { edge, shape, size }
+        (Stands::Blend { edges }, Some(Opening::Blend { shape, size })) => {
+            Operation::Blend { edges, shape, size }
         }
         _ => return Err(PartFileError::BrokenDesign),
     })

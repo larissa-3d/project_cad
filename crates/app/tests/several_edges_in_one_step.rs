@@ -15,7 +15,9 @@
 //! - « Appliquer » with the four top edges of a block chosen lays one step in
 //!   the history, and the body afterwards is the one `Body::fillet_edges`
 //!   (resp. `chamfer_edges`) gives for those four edges at that size —
-//!   `apply_on_the_four_top_edges_lays_one_step_and_the_body_the_kernel_gives_for_all_four`
+//!   `apply_on_the_four_top_edges_lays_one_step_and_the_body_the_kernel_gives_for_all_four`;
+//!   the step as the part lays, writes, reads, undoes, redoes and compacts
+//!   it, in `crates/part/tests/several_edges_blended_in_one_step.rs`
 //! - A choice the kernel declines lays nothing, shows the reason in the panel
 //!   — in the plural with several edges — and keeps every edge chosen —
 //!   `a_choice_the_kernel_declines_lays_nothing_says_why_in_the_plural_and_keeps_every_edge_chosen`
@@ -32,7 +34,9 @@
 
 mod driver;
 
-use glam::DVec3;
+use cao_part::history::StepKind;
+use cao_solid::{Body, DrawnEdge, EdgeName};
+use glam::{DVec2, DVec3};
 
 /// The block of `driver::a_block`, as the part holds it, seen from +X, -Y
 /// and +Z: the face towards +X is the near face.
@@ -72,6 +76,18 @@ impl Block {
         [
             DVec3::new(high.x, low.y, high.z),
             DVec3::new(low.x, low.y, high.z),
+        ]
+    }
+
+    /// The four edges of the top face, the near top first.
+    fn the_four_top_edges(&self) -> [[DVec3; 2]; 4] {
+        let (low, high) = (self.low, self.high);
+        let corner = |x: f64, y: f64| DVec3::new(x, y, high.z);
+        [
+            self.near_top(),
+            self.left_top(),
+            [corner(low.x, low.y), corner(low.x, high.y)],
+            [corner(low.x, high.y), corner(high.x, high.y)],
         ]
     }
 }
@@ -231,5 +247,225 @@ fn the_panel_counts_one_edge_in_the_singular_and_three_in_the_plural() {
     assert!(
         !driver::reads(&app, "1 arête"),
         "three edges chosen, the panel still reads « 1 arête »",
+    );
+}
+
+/// The names the body gives the edges drawn between these ends.
+fn names_of(body: &Body, edges: &[[DVec3; 2]]) -> Vec<EdgeName> {
+    let drawn = body.drawn_edges();
+    edges
+        .iter()
+        .map(|edge| {
+            drawn
+                .iter()
+                .find(|named| is_the_edge(&named.points, *edge))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "the block draws no edge from {:?} to {:?}",
+                        edge[0], edge[1]
+                    )
+                })
+                .name
+                .clone()
+        })
+        .collect()
+}
+
+fn faces_of(body: &Body) -> usize {
+    (0..body.faces_end())
+        .filter(|face| body.has_face(*face))
+        .count()
+}
+
+#[test]
+fn apply_on_the_four_top_edges_lays_one_step_and_the_body_the_kernel_gives_for_all_four() {
+    for (tool, value, modifiers) in [
+        ("Congé", "Rayon :", egui::Modifiers::COMMAND),
+        ("Chanfrein", "Distance :", egui::Modifiers::SHIFT),
+    ] {
+        let test = format!("the_four_top_edges_in_one_step_{}", tool.to_lowercase());
+        let (mut app, block) = opened_on(&test, tool);
+        let before = the_part(&test, "Bloc");
+        let top = block.the_four_top_edges();
+        let names = names_of(before.body(), &top);
+        let expected = match tool {
+            "Congé" => before
+                .body()
+                .fillet_edges(&names, 2.0)
+                .map(|made| made.body),
+            _ => before
+                .body()
+                .chamfer_edges(&names, 2.0)
+                .map(|made| made.body),
+        }
+        .unwrap_or_else(|declined| {
+            panic!("the kernel declines « {tool} » on the four top edges: {declined:?}")
+        });
+
+        driver::open_the_history(&mut app);
+        let lines = driver::steps(&app);
+        driver::click_at_world_point(&mut app, middle(top[0]));
+        for edge in &top[1..] {
+            driver::click_at_world_point_with(&mut app, middle(*edge), modifiers);
+        }
+        assert!(
+            are_the_edges(&chosen(&app), &top),
+            "the fixture chooses the four top edges, choosing {:?}",
+            chosen(&app),
+        );
+        driver::type_beside(&mut app, value, "2");
+        driver::click(&mut app, "Appliquer");
+
+        let after = the_part(&test, "Bloc");
+        assert_eq!(
+            after.history.steps().len(),
+            before.history.steps().len() + 1,
+            "« {tool} » applied on the four top edges laid {} steps",
+            after.history.steps().len() as isize - before.history.steps().len() as isize,
+        );
+        let laid = after.history.steps().last().expect("a step laid");
+        assert_eq!(
+            laid.kind(),
+            StepKind::Blend,
+            "« {tool} » laid a step of another kind"
+        );
+        assert_eq!(
+            driver::steps(&app).len(),
+            lines.len() + 1,
+            "« {tool} » applied on the four top edges, the history reads {:?}",
+            driver::steps(&app),
+        );
+
+        let made = after.body();
+        let what = format!("« {tool} » of 2 on the four top edges");
+        assert!(
+            (made.volume() - expected.volume()).abs() <= 1e-9 * expected.volume(),
+            "{what} leaves {}, where the kernel gives {}",
+            made.volume(),
+            expected.volume(),
+        );
+        assert_eq!(faces_of(made), faces_of(&expected), "{what}: faces");
+        assert_eq!(
+            made.drawn_edges().len(),
+            expected.drawn_edges().len(),
+            "{what}: edges drawn",
+        );
+        let (made_low, made_high) = made.bounds().expect("matter");
+        let (low, high) = expected.bounds().expect("matter");
+        assert!(
+            made_low.abs_diff_eq(low, 1e-9) && made_high.abs_diff_eq(high, 1e-9),
+            "{what} stands from {made_low:?} to {made_high:?}, where the kernel's stands from {low:?} to {high:?}",
+        );
+    }
+}
+
+/// A part named « Disque »: a circle drawn on the plane YZ, 40 across its
+/// radius, raised 60 along X, its sketch then finished. Its two rims are
+/// circles, which a chamfer does not take until #700.
+fn a_disc(test: &str) -> driver::App {
+    let mut app = driver::open_held_with(test, cao_prefs::Settings::default());
+    driver::create_a_part(&mut app, "Disque");
+    driver::start_a_sketch(&mut app);
+    driver::click_exactly(&mut app, "Cercle (C)");
+    driver::click_at_sketch_point(&mut app, driver::ON_THE_BLOCK);
+    driver::click_at_sketch_point(&mut app, driver::ON_THE_BLOCK + DVec2::new(40.0, 0.0));
+    driver::click_exactly(&mut app, "Extrusion");
+    driver::click_the_button(&mut app, "1");
+    driver::click(&mut app, "Ajout de matière");
+    driver::click_at_sketch_point(&mut app, driver::ON_THE_BLOCK);
+    driver::type_beside(&mut app, "Hauteur :", "60");
+    driver::click(&mut app, "Appliquer");
+    driver::press(&mut app, egui::Key::Escape);
+    driver::finish_the_sketch(&mut app);
+    driver::click_the_button(&mut app, "Esquisse");
+    assert!(
+        !driver::a_sketch_is_open(&app),
+        "the sketch the disc was raised from is still being edited, showing {:?}",
+        driver::on_screen(&app),
+    );
+    app
+}
+
+/// Of an edge's points, the one standing furthest on screen from `away`.
+fn furthest_on_screen_from(app: &driver::App, edge: &DrawnEdge, away: egui::Pos2) -> DVec3 {
+    edge.points
+        .iter()
+        .copied()
+        .max_by(|a, b| {
+            let from = |point: DVec3| driver::world_point_on_screen(app, point).distance(away);
+            from(*a).total_cmp(&from(*b))
+        })
+        .expect("an edge drawn through points")
+}
+
+fn the_middle_on_screen(app: &driver::App, edge: &DrawnEdge) -> egui::Pos2 {
+    let sum = edge
+        .points
+        .iter()
+        .map(|point| driver::world_point_on_screen(app, *point).to_vec2())
+        .fold(egui::Vec2::ZERO, |sum, at| sum + at);
+    (sum / edge.points.len() as f32).to_pos2()
+}
+
+#[test]
+fn a_choice_the_kernel_declines_lays_nothing_says_why_in_the_plural_and_keeps_every_edge_chosen() {
+    let test = "a_declined_choice_of_two_rims_says_why";
+    let mut app = a_disc(test);
+    let disc = the_part(test, "Disque");
+    let volume = disc.body().volume();
+    let mut rims = disc.body().drawn_edges();
+    assert_eq!(rims.len(), 2, "a disc has two rims: {rims:?}");
+    rims.sort_by(|a, b| a.points[0].x.total_cmp(&b.points[0].x));
+    let [far, near] = [&rims[0], &rims[1]];
+    let on_the_near_rim = furthest_on_screen_from(&app, near, the_middle_on_screen(&app, far));
+    let on_the_far_rim = furthest_on_screen_from(&app, far, the_middle_on_screen(&app, near));
+    let both_rims = |chosen: &[Vec<DVec3>]| {
+        chosen.len() == 2
+            && [near, far].iter().all(|rim| {
+                chosen.iter().any(|points| {
+                    points
+                        .iter()
+                        .all(|point| (point.x - rim.points[0].x).abs() < 1e-6)
+                })
+            })
+    };
+
+    driver::click_exactly(&mut app, "Extrusion");
+    driver::click_exactly(&mut app, "Chanfrein");
+    driver::open_the_history(&mut app);
+    let before = driver::steps(&app);
+    driver::click_at_world_point(&mut app, on_the_near_rim);
+    driver::click_at_world_point_with(&mut app, on_the_far_rim, egui::Modifiers::COMMAND);
+    assert!(
+        both_rims(&chosen(&app)),
+        "the fixture chooses both rims, choosing {:?}",
+        chosen(&app),
+    );
+    driver::click(&mut app, "Appliquer");
+
+    assert_eq!(
+        driver::steps(&app),
+        before,
+        "a line was added for nothing done"
+    );
+    let after = the_part(test, "Disque").body().volume();
+    assert!(
+        (after - volume).abs() <= 1e-9 * volume,
+        "the disc holds {after}, where it held {volume}",
+    );
+    assert!(
+        driver::reads(&app, "Distance :"),
+        "the panel closed on a chamfer the part could not take, showing {:?}",
+        driver::on_screen(&app),
+    );
+    assert!(
+        driver::shows_or_says(&app, "ces arêtes") && !driver::shows_or_says(&app, "cette arête"),
+        "two rims declined, the panel does not say why speaking of « ces arêtes », showing {:?}",
+        driver::on_screen(&app),
+    );
+    assert!(
+        both_rims(&chosen(&app)),
+        "the choice declined no longer holds both rims, but {:?}",
+        chosen(&app),
     );
 }
