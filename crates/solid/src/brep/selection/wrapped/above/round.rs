@@ -43,9 +43,10 @@ pub(super) fn rounded(first: &Surface, second: &Surface) -> bool {
 }
 
 /// Whether the second's meridian bends more towards the first's normal than
-/// the first's own does, at `at`, where the two touch along a rim or at a
-/// pole: a straight meridian bends not at all, a round's towards its
-/// meridian circle's centre.
+/// the first's own does, at `at`, where the two touch along a rim, at a
+/// pole or at a point a plane touches a sphere off its poles (#939): a
+/// straight meridian bends not at all, a round's towards its meridian
+/// circle's centre.
 pub(super) fn bending_more(first: &Surface, second: &Surface, at: DVec3) -> Option<bool> {
     let normal = first.normal(first.parameters(at));
     let [own, theirs] = [first, second].map(|surface| bend(surface, at).dot(normal));

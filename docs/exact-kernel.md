@@ -60,9 +60,9 @@ It can:
   plane at a slant to its axis or off it, along a circle of another axis —
   a ball cut at a slant, the chamfer at the foot of a rib cut from a ball
   (#805), through a pole of its chart too, the sphere read about the
-  circle's axis (#938) — short of a plane within the tolerance of touching
-  it (#939) and a face bounded by circles of two such axes, not drawn yet
-  (#940); a plane against
+  circle's axis (#938) — or at the one point it touches within the
+  tolerance (#939), short of a face bounded by circles of two such axes,
+  not drawn yet (#940); a plane against
   a cylinder or a cone at any angle (#552); elliptic cylinders (#571)
   against planes at any angle and round or elliptic walls parallel or
   square to them; curves: lines, circles, ellipses, the
@@ -611,9 +611,14 @@ Known and still open:
   plane holding its axis along its meridians; and a coaxial cylinder, cone,
   sphere or torus along one or two rims. A sphere meets any other plane
   along a circle of another axis (#805), one through a pole of its chart
-  read about the circle's own axis (#938); a plane within the tolerance of
-  touching it (#939), and a face bounded by circles of two such axes, which
-  is not drawn (#940), are still declined. A cone within the
+  read about the circle's own axis (#938), or at the point it touches
+  within the tolerance (#939); a face bounded by circles of two such axes,
+  which is not drawn (#940), is still declined. So is a plane a hair `δ`
+  inside a sphere whose small circle, `√(2rδ)` across, crosses an edge of
+  either face (#960): a block whose edge stands at x = 5 − `EPS` against a
+  ball of radius 5 is not drawn, the exact join being listed `Backwards`
+  and refused, and a touch 1e-5 to 3e-5 rad below a half ball's rim, the
+  plane `EPS`/2 to `EPS` inside, is unsupported. A cone within the
   tolerance of a plane or a cylinder of its axis all across the box, two
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another
@@ -859,8 +864,10 @@ The decisions, in the order taken, once per operation:
    plane, of radius `√(r² − d²)`, `d` the centre's distance from the plane,
    written as a product — `Relation::Circle`, a circle of another axis than
    the sphere's — and misses it further than `EPS` off; within `EPS` of
-   touching, the plane touches the sphere at a point no pole stands on,
-   through which no face is built: unsupported. The circle is a line of no
+   touching, the plane touches the sphere at that foot alone (#939),
+   `Relation::Apex` as at a pole, a corner candidate no edge reaches, so
+   that the join holds both and the cuts leave either whole, as a hair
+   apart. The circle is a line of no
    chart of the sphere's, and is seen in its `(θ, φ)` as itself
    (`Trace::Tilted`, `surface/sphere/seen.rs`): its angle about the axis
    unwrapped by where the axis pierces the circle's disc, once round a turn
@@ -1654,6 +1661,19 @@ The decisions, in the order taken, once per operation:
     two rims a ten-thousandth apart, which is what failed. Nor left to exact
     predicates (#585): the decisions would be exact, the geometry would stay
     thinner than the triangles.
+
+    A plane touching a sphere within `EPS` at a point off its poles (#939)
+    is not this decision's, and is not snapped: decision 2 reads it as a
+    touch at the foot of the centre, the plane is left where it stands, and
+    the drawing lays the sphere's samples there on the plane instead
+    (`tessellation/sampling/planes.rs`, `Samples::on_a_touching_plane`).
+    Moving the plane would move that face alone, its operand's other faces
+    staying, and thin a slab by up to `EPS`/2: 1600 × 1.56e-8 ≈ 2.5e-5 for
+    a face 40 by 40, past the billionth of the matter a join of such a slab
+    and a ball is held to, 1.65e-5. The two are kept apart on purpose: a
+    pole's touch snapped here, an off-pole touch drawn on the plane — taking
+    the second into this decision would leave the samples' rule with
+    nothing to do.
 
 13. **A plane a hair from an edge** (#644, `canonical/edged.rs`). A plane of
     the second operand parallel to a straight edge of the first that no two
@@ -2675,6 +2695,14 @@ pointed cone's flank waits on #711.
   in the sphere's own `(θ, φ)`, each sample of such a circle where it is
   read, swept, and refined as the central chart refines, each point added
   lifted onto the sphere from `(θ, φ)`. Any other is left open still.
+  A point added inside a face of a sphere — a lattice point, a point a
+  refinement adds — standing within `EPS` of a plane of the body within
+  `EPS` of touching the sphere is laid on the plane (#939,
+  `sampling/planes.rs`): the kernel decided the two touch at a point, and a
+  lattice point at the touch, left on the sphere a hair through the plane,
+  crossed the plane's face by more than the rules allow. A touch at a pole
+  needs none of it, decision 12 having moved the plane onto the pole, a
+  vertex; one off the poles is not moved, for the reason decision 12 gives.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

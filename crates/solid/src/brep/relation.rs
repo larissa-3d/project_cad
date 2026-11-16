@@ -73,8 +73,9 @@ pub enum Relation {
         lines: [Line; 2],
         apex: Option<DVec3>,
     },
-    /// Two surfaces touching at a point on the axis alone: a cone's apex, a
-    /// sphere's or a spindle torus's pole (#576).
+    /// Two surfaces touching at a point alone: on the axis, a cone's apex, a
+    /// sphere's or a spindle torus's pole (#576); off it, a plane touching a
+    /// sphere (#939).
     Apex(DVec3),
     /// A sphere or a torus and a surface of its axis — a plane square to it,
     /// a cylinder, a cone, a sphere or a torus about it — crossing along one
@@ -212,7 +213,7 @@ impl Relation {
 
     /// The points that must be vertices: where a curve crosses itself, where
     /// two cylinders touch at a point, a cone's apex or a round's pole where
-    /// the pair meets there.
+    /// the pair meets there, where a plane touches a sphere.
     pub fn points(&self) -> Vec<DVec3> {
         match self {
             Relation::Meet(meeting) => meeting

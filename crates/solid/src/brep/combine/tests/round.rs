@@ -1,10 +1,11 @@
 //! A sphere or a torus joined to or cut from what shares its axis (#576):
 //! a plane square to the axis or holding it, a coaxial shaft, bore, cone,
 //! sphere or torus; and a sphere cut or joined by a plane at a slant to its
-//! axis, or square to it off its centre, along a circle (#805). Each body is
-//! listed sound and holds the arithmetic's volume, by Pappus, to the bit the
-//! cone's booleans hold; everything else declines as unsupported, unless the
-//! faces stand clear of each other.
+//! axis, or square to it off its centre, along a circle (#805), or touched
+//! by such a plane at a point off its poles (#939). Each body is listed
+//! sound and holds the arithmetic's volume, by Pappus, to the bit the cone's
+//! booleans hold; everything else declines as unsupported, unless the faces
+//! stand clear of each other.
 //!
 //! Closes #625.
 //! - a quarter of a torus and a slanted wall that meet the whole torus's box
@@ -684,26 +685,77 @@ fn a_slab_at_a_slant_through_a_pole_of_a_ball_s_chart_cuts_and_joins_it_along_it
     );
 }
 
-/// A block whose side stands within the tolerance of touching the ball, at a
-/// point off its poles, half a hair inside it or outside: the relation reads
-/// no circle there, and the cut and the join are declined until #939.
+/// A slab 10 thick along `towards` from the plane `offset` along it, its
+/// sides 20 from the line of `towards` either way: [`SLAB`] of matter,
+/// touching the ball at `towards` × 5 where `offset` is 5.
+fn slab_towards(towards: DVec3, offset: f64) -> Body {
+    let u = towards.any_orthonormal_vector();
+    let frame = Frame {
+        origin: towards * offset,
+        u,
+        v: towards.cross(u),
+    };
+    Body::raised(
+        &Contour::rectangle(DVec2::splat(-20.0), DVec2::splat(20.0)),
+        &[],
+        frame,
+        towards * 10.0,
+    )
+    .expect("a slab raises")
+}
+
+/// What [`slab_towards`] holds.
+const SLAB: f64 = 40.0 * 40.0 * 10.0;
+
+/// Directions from the ball's centre to points of its sphere off its poles,
+/// at y = ±5: two on its equator, one 30° from it towards one pole, one 60°
+/// towards the other.
+fn off_the_poles() -> [DVec3; 4] {
+    let at = |latitude: f64, longitude: f64| {
+        let (up, out) = latitude.to_radians().sin_cos();
+        let (z, x) = longitude.to_radians().sin_cos();
+        DVec3::new(out * x, up, out * z)
+    };
+    [
+        at(0.0, 0.0),
+        at(0.0, 225.0),
+        at(30.0, 0.0),
+        at(-60.0, 110.0),
+    ]
+}
+
+/// A slab twice the tolerance clear of the ball, at a point off its poles,
+/// and the slab within half the tolerance of touching it there: the join
+/// holds both, the ball cut by the slab is whole and so is the slab cut by
+/// the ball, each listed sound — the bodies the slab clear of it gives, as a
+/// slab resting on a pole gives them.
 #[test]
-fn a_block_whose_side_stands_within_a_hair_of_touching_a_ball_off_its_poles_is_declined_as_unsupported()
- {
-    let eps = Scale::of(10.0).eps();
-    for low in [5.0 - eps / 2.0, 5.0 + eps / 2.0] {
-        let slab = block([low, -10.0, -10.0], [10.0, 10.0, 10.0]);
+fn a_slab_touching_a_ball_off_its_poles_is_joined_and_cut_as_the_slab_a_hair_clear_of_it_is() {
+    let ball = turned(&ball(), 360.0);
+    for towards in off_the_poles() {
+        let eps = ball
+            .scale()
+            .joined(slab_towards(towards, 5.0).scale())
+            .eps();
+        for offset in [5.0 + 2.0 * eps, 5.0 + eps / 2.0, 5.0, 5.0 - eps / 2.0] {
+            let slab = slab_towards(towards, offset);
+            let what = |how: &str| {
+                format!("{how}, the slab's face {offset} from the centre towards {towards}")
+            };
 
-        let cut = turned(&ball(), 360.0).cut_by(&slab);
-        let joined = turned(&ball(), 360.0).joined(&slab);
+            let joined = ball.joined(&slab);
+            let cut = ball.cut_by(&slab);
+            let carved = slab.cut_by(&ball);
 
-        for (what, declined) in [("cut", cut.err()), ("join", joined.err())] {
-            assert_eq!(
-                declined,
-                Some(Declined::Unsupported),
-                "the {what} of a ball by a block from x = {low}, touching it off its poles, \
-                 which #939 is to build"
-            );
+            for (result, holds, what) in [
+                (joined, BALL + SLAB, what("the ball joined to the slab")),
+                (cut, BALL, what("the ball cut by the slab")),
+                (carved, SLAB, what("the slab cut by the ball")),
+            ] {
+                let body =
+                    result.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+                held(&body, holds, &what);
+            }
         }
     }
 }
@@ -864,10 +916,11 @@ fn a_slanted_wall_cut_from_a_quarter_torus_past_its_quarter_leaves_the_quarter_w
 /// (seeds 5576502870, 5576400540): a whole ball's face has no edge to read
 /// its reach off. Once #805 meets the two along the circle about the foot of
 /// the centre, the cut keeps the ball beside the plane and the join adds the
-/// block to it; a hair inside the crest, the cut and the join are built
-/// sound or declined, and never a body whose faces cross. Two hairs inside
-/// and more, the circle is built however small: two hairs inside, its radius
-/// is √(2r × 2 eps), under half a thousandth.
+/// block to it; a hair inside the crest, where the plane touches the ball
+/// at a point (#939), the cut and the join are built sound, and never a
+/// body whose faces cross. Two hairs inside and more, the circle is built
+/// however small: two hairs inside, its radius is √(2r × 2 eps), under half
+/// a thousandth.
 #[test]
 fn a_block_whose_side_crosses_a_ball_off_its_axis_cuts_and_joins_it_along_a_circle() {
     let eps = Scale::of(10.0).eps();
@@ -894,13 +947,8 @@ fn a_block_whose_side_crosses_a_ball_off_its_axis_cuts_and_joins_it_along_a_circ
                 400.0 * (10.0 - low) + kept,
             ),
         ] {
-            match built {
-                Ok(body) => held(&body, volume, &what),
-                Err(declined) if low == 5.0 - eps => {
-                    assert_eq!(declined, Declined::Unsupported, "{what}");
-                }
-                Err(declined) => panic!("{what}: declined, {declined:?}"),
-            }
+            let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            held(&body, volume, &what);
         }
     }
 }

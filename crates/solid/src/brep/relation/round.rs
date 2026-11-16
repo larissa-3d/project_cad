@@ -5,7 +5,8 @@
 //! frame, or in the first of two rounds' by an order read off their bits; a
 //! plane holding its axis as the meridian circles it cuts, with the poles
 //! they cross at. Any other plane cuts a sphere along the circle about the
-//! foot of its centre (#805), a circle of another axis than the sphere's.
+//! foot of its centre (#805), a circle of another axis than the sphere's,
+//! or touches it at that foot alone within the tolerance (#939).
 //! Anything else — such a plane against a torus, a wall or a round of
 //! another axis, an elliptic wall — is unsupported, which declines a boolean
 //! unless the two faces stand clear of each other; none of it is a conic's,
@@ -240,21 +241,22 @@ fn with_plane(
 /// the plane, of radius √(r² − d²), `d` the centre's distance from the
 /// plane, written as a product; apart where the plane stands further than
 /// the tolerance off the sphere. Within the tolerance of touching it, the
-/// plane touches it at a point no pole stands on, which no face is built
-/// through: unsupported.
+/// plane touches it at that foot alone, off its poles (#939), as a plane
+/// square to the axis touches it at a pole.
 fn section(sphere: &Sphere, plane: &Plane, scale: Scale) -> Relation {
     let (middle, radius) = (sphere.middle(), sphere.radius);
     let standing = plane.distance(middle);
+    let foot = middle - plane.normal * standing;
     let away = standing.abs();
     let gap = away - radius;
     if gap > scale.eps() {
         return Relation::Apart;
     }
     if gap >= -scale.eps() {
-        return Relation::Unsupported;
+        return Relation::Apex(foot);
     }
     Relation::Circle(Circle::about(
-        middle - plane.normal * standing,
+        foot,
         plane.normal,
         ((radius - away) * (radius + away)).sqrt(),
     ))
