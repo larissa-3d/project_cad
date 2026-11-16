@@ -59,11 +59,25 @@
 //! Closes #739 — the whole transcription is in
 //! `crates/app/src/screens/viewport/input/copying/tests/mirror_and_rectangular_steps.rs`,
 //! the section view's bullets in `crates/app/src/screens/viewport/section/tests/steps.rs`;
-//! this is the half only the whole application holds, the pill on screen.
+//! this is the half only the whole application holds, the pill and ↵ on
+//! screen.
+//! - The section panel becomes a step panel, in this order: « Face » (the
+//!   origin planes and the clicked face), « Distance », the two tilt angles,
+//!   « Devant » / « Derrière » with « Inverser », and « Enregistrer la coupe »
+//!   as the main button. Each step reads done, current or to come; a
+//!   presenter test checks it — ↵ through the whole application, with no
+//!   sketch edited: it walks the fields and keeps the section on the last —
+//!   `with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_keeps_it_on_the_last`;
+//!   found in review, with a sketch edited under the section, ↵ is the
+//!   sketch's, and finishes it without keeping the section —
+//!   `with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section`
 //! - The message pill follows the section's step; a test on the wording
 //!   checks it — that the pill shows it, and says none of it once the section
 //!   is closed,
-//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`
+//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`;
+//!   found in review, with a sketch edited under the section, the pill says
+//!   the sketch's tool, not the section's step —
+//!   `with_the_section_open_a_sketch_edited_says_its_own_tool_rather_than_the_section_s_step`
 
 mod driver;
 
@@ -243,6 +257,105 @@ fn the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed() {
         !driver::says(&app, "Vue en coupe — étape"),
         "the section closed, the pill says none of its steps: {:?}",
         driver::said(&app)
+    );
+}
+
+/// The block, its section open along YZ, then its sketch opened again from
+/// the tree under it.
+fn a_sketch_edited_under_the_section(test: &str) -> driver::App {
+    let mut app = driver::a_block(test);
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+    double_click(&mut app, "Esquisse 1");
+    assert!(
+        driver::a_sketch_is_open(&app) && the_panel_is_open(&app),
+        "the sketch opened from the tree is edited with the section still open: {:?}",
+        driver::on_screen(&app)
+    );
+    app
+}
+
+#[test]
+fn with_the_section_open_a_sketch_edited_says_its_own_tool_rather_than_the_section_s_step() {
+    let mut app = a_sketch_edited_under_the_section("a_sketch_edited_says_its_own_tool");
+
+    driver::click(&mut app, "Symétrie");
+
+    assert!(
+        driver::says(&app, "Symétrie — étape 1 : éléments"),
+        "the mirror taken in the sketch says its own step: {:?}",
+        driver::said(&app)
+    );
+    assert!(
+        !driver::says(&app, "Vue en coupe — étape"),
+        "the section open over the sketch speaks over the tool in hand: {:?}",
+        driver::said(&app)
+    );
+}
+
+#[test]
+fn with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section() {
+    let mut app = driver::a_block("enter_finishes_a_sketch_edited_under_the_section");
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+    for _ in 0..3 {
+        driver::press(&mut app, egui::Key::Enter);
+    }
+    assert!(
+        driver::says(&app, "Vue en coupe — étape 4 : devant et derrière"),
+        "with no sketch edited, ↵ walked the section to its last step: {:?}",
+        driver::said(&app)
+    );
+    double_click(&mut app, "Esquisse 1");
+    assert!(
+        driver::a_sketch_is_open(&app) && the_panel_is_open(&app),
+        "the sketch opened from the tree is edited with the section still open: {:?}",
+        driver::on_screen(&app)
+    );
+
+    driver::press(&mut app, egui::Key::Enter);
+
+    assert!(
+        !driver::a_sketch_is_open(&app),
+        "↵ finishes the sketch edited, as it does with no section open: {:?}",
+        driver::on_screen(&app)
+    );
+    assert!(
+        !driver::in_the_tree(&app, "Coupe 1"),
+        "the ↵ that finished the sketch kept the section too: {:?}",
+        driver::on_screen(&app)
+    );
+}
+
+#[test]
+fn with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_keeps_it_on_the_last() {
+    let mut app = driver::a_block("bare_enter_walks_the_section_s_fields");
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+
+    for (pressed, step) in [
+        (1, "Vue en coupe — étape 3 : inclinaisons"),
+        (2, "Vue en coupe — étape 3 : inclinaisons"),
+        (3, "Vue en coupe — étape 4 : devant et derrière"),
+    ] {
+        driver::press(&mut app, egui::Key::Enter);
+        assert!(
+            driver::says(&app, step),
+            "↵ number {pressed} from the distance stands on « {step} »: {:?}",
+            driver::said(&app)
+        );
+    }
+    assert!(
+        !driver::in_the_tree(&app, "Coupe 1"),
+        "moving through the steps kept the section"
+    );
+
+    driver::press(&mut app, egui::Key::Enter);
+
+    assert!(
+        driver::in_the_tree(&app, "Coupe 1"),
+        "↵ on the last step keeps the section, as « Enregistrer la coupe » does: {:?}",
+        driver::on_screen(&app)
     );
 }
 

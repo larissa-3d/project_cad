@@ -11,22 +11,32 @@
 //!   presenter test checks that it appears only during a sketch chamfer or
 //!   fillet, and that the button swaps the sides — the panel over the view,
 //!   at its top left, its button swapping the sides of the chamfer held —
-//!   `a_chamfer_held_puts_its_swap_in_a_panel_at_the_top_left_of_the_view_whose_button_swaps_its_sides`
+//!   `a_chamfer_held_puts_its_swap_in_a_panel_at_the_top_left_of_the_view_whose_button_swaps_its_sides`;
+//!   found in review, with nothing held or a fillet held, no such panel
+//!   stands over the view —
+//!   `with_nothing_or_a_fillet_held_no_swap_stands_over_the_view` — and its
+//!   « Fermer » lets the chamfer go, the panel with it —
+//!   `closing_the_swap_panel_lets_the_chamfer_go_and_the_panel_with_it`
 
 mod driver;
 
 use cao_part::history::{ChamferAsked, PointRef};
 use cao_part::{Operation, PartDocument};
 use cao_sketch::{Chamfer, Corner, SegmentId, WorkPlane};
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 use glam::DVec2;
 
 /// Halfway along the chamfer `a_plate_with_a_chamfer_of_two_sides` lays, from
 /// 20 along the plate's foot to 30 up its right side.
 const ON_THE_CHAMFER: DVec2 = DVec2::new(90.0, 15.0);
 
+/// Halfway round the fillet of radius 20 at the plate's top-left corner,
+/// centred 20 in from both its sides.
+const ON_THE_FILLET: DVec2 = DVec2::new(20.0 - 14.142_135_6, 40.0 + 14.142_135_6);
+
 /// A plate a hundred by sixty on XY, the corner of its foot and its right side
-/// chamfered 20 along the first and 30 along the second.
+/// chamfered 20 along the first and 30 along the second, and its top-left
+/// corner rounded by 20.
 fn a_plate_with_a_chamfer_of_two_sides() -> PartDocument {
     let mut part = PartDocument::new("Plaque", "2026-11-16T09:00:00Z".parse().expect("a date"));
     part.apply(Operation::CreateSketch {
@@ -48,12 +58,18 @@ fn a_plate_with_a_chamfer_of_two_sides() -> PartDocument {
         }),
         construction: false,
     });
+    part.apply(Operation::Fillet {
+        sketch: 0,
+        corners: vec![Corner::Between(SegmentId(2).into(), SegmentId(3).into())],
+        radius: 20.0.into(),
+        construction: false,
+    });
     part
 }
 
-/// The plate opened from the start menu, its sketch open, and the chamfer
-/// clicked with the selection tool.
-fn holding_the_chamfer(test: &str) -> driver::App {
+/// The plate opened from the start menu, its sketch open, the selection tool
+/// in hand and nothing held.
+fn its_sketch_open(test: &str) -> driver::App {
     let mut app = driver::open_on(test, egui::vec2(1920.0, 800.0));
     driver::create_a_part(&mut app, "Plaque");
     driver::the_part_put_away(&mut app, test, "Plaque");
@@ -71,8 +87,21 @@ fn holding_the_chamfer(test: &str) -> driver::App {
     app.run();
     driver::double_click(&mut app, "Esquisse 1");
     driver::click(&mut app, "Sélection (S)");
+    app
+}
+
+/// The same, the chamfer clicked with the selection tool.
+fn holding_the_chamfer(test: &str) -> driver::App {
+    let mut app = its_sketch_open(test);
     driver::click_at_sketch_point(&mut app, ON_THE_CHAMFER);
     app
+}
+
+/// Whether « Inverser les côtés » stands over the view.
+fn offers_the_swap(app: &driver::App) -> bool {
+    driver::buttons_over_the_view(app)
+        .iter()
+        .any(|button| button == "Inverser les côtés")
 }
 
 #[test]
@@ -104,5 +133,64 @@ fn a_chamfer_held_puts_its_swap_in_a_panel_at_the_top_left_of_the_view_whose_but
         driver::shows(&app, "Côtés du chanfrein inversés"),
         "the button swapped the chamfer's sides, as one step: {:?}",
         driver::steps(&app)
+    );
+}
+
+#[test]
+fn with_nothing_or_a_fillet_held_no_swap_stands_over_the_view() {
+    let mut app = its_sketch_open("with_nothing_or_a_fillet_held_no_swap");
+    assert!(
+        !offers_the_swap(&app),
+        "nothing held, the view offers to swap sides: {:?}",
+        driver::buttons_over_the_view(&app)
+    );
+
+    driver::click_at_sketch_point(&mut app, ON_THE_FILLET);
+    assert!(
+        !offers_the_swap(&app),
+        "a fillet held, which has no sides to swap, the view offers to swap them: {:?}",
+        driver::buttons_over_the_view(&app)
+    );
+
+    driver::click_at_sketch_point(&mut app, ON_THE_CHAMFER);
+    assert!(
+        offers_the_swap(&app),
+        "the chamfer held next, the panel the fillet did not open stands over the \
+         view: {:?}",
+        driver::buttons_over_the_view(&app)
+    );
+}
+
+#[test]
+fn closing_the_swap_panel_lets_the_chamfer_go_and_the_panel_with_it() {
+    let mut app = holding_the_chamfer("closing_the_swap_panel_lets_the_chamfer_go");
+    let view = driver::canvas(&app);
+    let close = app
+        .query_all_by_label("Fermer")
+        .find(|node| {
+            node.accesskit_node().role() == egui::accesskit::Role::Button
+                && view.contains_rect(node.rect())
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "the swap panel has no « Fermer » over the view: {:?}",
+                driver::buttons_over_the_view(&app)
+            )
+        });
+
+    close.click();
+    app.run();
+
+    assert!(
+        !offers_the_swap(&app),
+        "« Fermer » left the panel over the view: {:?}",
+        driver::buttons_over_the_view(&app)
+    );
+    driver::click_at_sketch_point(&mut app, ON_THE_CHAMFER);
+    assert!(
+        offers_the_swap(&app),
+        "the chamfer clicked again, its panel comes back: closing it let the \
+         chamfer go rather than hiding the panel for good: {:?}",
+        driver::buttons_over_the_view(&app)
     );
 }

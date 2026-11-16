@@ -47,11 +47,12 @@
 //!   already in hand — `the_mirror_opens_on_its_elements_when_nothing_was_selected`,
 //!   `a_copy_tool_taken_with_a_selection_in_hand_opens_on_its_target`
 //! - once a slot is filled, the slot below it becomes active, whether or not
-//!   that one is already filled; picking the mirror's axis lands on Validate —
+//!   that one is already filled; picking the mirror's axis, its last step
+//!   since #739, leaves the panel on it, for ↵ to lay the mirror —
 //!   `picking_the_mirror_s_axis_leaves_the_panel_on_its_axis`,
-//!   `a_centre_picked_again_moves_onto_values_already_typed`. Since #739 the
-//!   axis is the mirror's last step and nothing stands below it: picking it
-//!   leaves the panel there, for ↵ to lay the mirror
+//!   `a_centre_picked_again_moves_onto_values_already_typed`. Reworded by
+//!   #739: #321 had picking the axis land on Validate, the slot below it,
+//!   which the steps no longer have
 //! - `Entrée` also moves down one slot — `enter_moves_down_one_slot`
 //! - on Validate, `Entrée` lays the copy if everything is filled —
 //!   `enter_on_validate_lays_the_mirror_as_one_step`

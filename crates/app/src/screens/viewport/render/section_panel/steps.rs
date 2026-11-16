@@ -4,7 +4,7 @@
 
 use cao_sketch::WorkPlane;
 
-use super::super::live_fields::value_field;
+use super::super::live_fields::{left_on_enter, value_field};
 use super::super::step_panel::{foot, step, title};
 use crate::screens::SketchContext;
 use crate::screens::viewport::section::{Section, SectionField, SectionStep};
@@ -211,7 +211,6 @@ fn typed_field(
     Typed {
         value,
         reached: field.gained_focus() || field.changed(),
-        entered: field.lost_focus()
-            && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter)),
+        entered: left_on_enter(ui, &field),
     }
 }

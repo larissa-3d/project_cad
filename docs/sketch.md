@@ -1563,10 +1563,13 @@ circle, an arc, an ellipse or a point, take what they took before. The copy
 comes out the same either way: a trait always carried its ends with it.
 
 Once a slot is filled the one below it becomes active, and `Entrée` moves down
-one slot too: the panel reads as an order of actions. On `Valider`, `Entrée`
-lays the copy if every slot holds something; otherwise the first empty slot
-becomes active and is marked. The copy laid, the tool stays in hand and the
-panel is emptied. `Échap` and `Annuler` close it without laying anything and
+one slot too: the panel reads as an order of actions, laid out in numbered
+steps. Nothing stands below the last slot of the last step — the mirror's
+axis, the rectangular pattern's last count, the circular pattern's direction —
+so clicking the mirror's axis leaves the panel on it, and `Entrée` there lays
+the copy, as « Valider ↵ » does anywhere, if every slot holds something;
+otherwise the first empty slot becomes active and is marked. The copy laid,
+the tool stays in hand and the panel is emptied. `Échap` and `Annuler` close it without laying anything and
 hand what it held to the Selection tool, selected; another tool taken from the
 ribbon closes it too, and only the Selection tool keeps the elements.
 

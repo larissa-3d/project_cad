@@ -106,12 +106,17 @@ impl Section {
     }
 
     /// `Entrée`: the field below becomes current, and on the last step the
-    /// section is kept, as « Enregistrer la coupe » keeps it. True when it
-    /// was.
+    /// section is kept, as « Enregistrer la coupe » keeps it — or, while the
+    /// face is still to be clicked, the face is asked for again and nothing
+    /// is kept. True when the section was kept.
     pub(crate) fn enter(&mut self, document: &mut PartDocument) -> bool {
         match self.field.below() {
             Some(below) => {
                 self.field = below;
+                false
+            }
+            None if self.waiting_for_a_face => {
+                self.field = SectionField::Face;
                 false
             }
             None => {

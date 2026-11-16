@@ -55,7 +55,11 @@
 //!   `formula_field`) are reused; none is added — no test: how the panel is
 //!   laid out is drawing, which the tests do not reach, and which controls it
 //!   is built from is a shape of the code, read in review rather than
-//!   asserted; tried by hand, see « To try it »
+//!   asserted; tried by hand, see « To try it ». Found in review: the axis
+//!   step names what it holds, held in
+//!   `crates/app/src/wording/copy_panel/tests.rs` by
+//!   `the_axis_held_is_named_a_trait_by_its_row_and_each_sketch_axis_by_its_own`,
+//!   under its own `Closes #739`
 //!
 //! Section view
 //!
@@ -68,15 +72,22 @@
 //!   `the_section_s_steps_read_done_current_or_to_come`,
 //!   `a_face_clicked_in_the_view_fills_the_face_step_and_moves_on_to_the_distance`,
 //!   `a_face_step_left_waiting_for_a_face_reads_to_come_rather_than_done`,
-//!   `a_step_clicked_in_the_section_s_panel_becomes_current` and
-//!   `enter_on_the_section_s_last_step_keeps_it_in_the_part`, under its own
-//!   `Closes #739`, which says what was decided on the way
+//!   `a_step_clicked_in_the_section_s_panel_becomes_current`,
+//!   `enter_on_the_section_s_last_step_keeps_it_in_the_part` and
+//!   `enter_on_the_section_s_last_step_while_its_face_is_still_to_click_keeps_nothing_and_goes_back_to_it`,
+//!   under its own `Closes #739`, which says what was decided on the way;
+//!   ↵ through the whole application, in `crates/app/tests/keeping_a_section.rs`,
+//!   by `with_the_section_open_and_no_sketch_bare_enter_walks_its_fields_and_keeps_it_on_the_last`
+//!   and `with_the_section_open_enter_finishes_a_sketch_edited_and_keeps_no_section`,
+//!   under its own `Closes #739`
 //! - The message pill follows the section's step; a test on the wording
 //!   checks it — no test: here; held in
 //!   `crates/app/src/screens/viewport/section/tests/steps.rs` by
 //!   `the_message_pill_follows_the_step_of_the_section`, and the pill on
 //!   screen in `crates/app/tests/keeping_a_section.rs` by
-//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`,
+//!   `the_title_bar_pill_says_the_section_s_step_until_the_section_is_closed`
+//!   and, a sketch edited under the section saying its own tool,
+//!   `with_the_section_open_a_sketch_edited_says_its_own_tool_rather_than_the_section_s_step`,
 //!   each under its own `Closes #739`
 //! - The values, the section kept in the part (#716, #717) and the handle on
 //!   the cutting plane are unchanged; a test compares the section produced
@@ -100,7 +111,11 @@
 //!   `with_a_chamfer_held_the_ribbon_no_longer_offers_to_swap_its_sides`; the
 //!   panel over the view at its top left, in
 //!   `crates/app/tests/swapping_a_chamfer_s_sides.rs` by
-//!   `a_chamfer_held_puts_its_swap_in_a_panel_at_the_top_left_of_the_view_whose_button_swaps_its_sides`;
+//!   `a_chamfer_held_puts_its_swap_in_a_panel_at_the_top_left_of_the_view_whose_button_swaps_its_sides`,
+//!   none with nothing or a fillet held by
+//!   `with_nothing_or_a_fillet_held_no_swap_stands_over_the_view`, and its
+//!   « Fermer » letting the chamfer go by
+//!   `closing_the_swap_panel_lets_the_chamfer_go_and_the_panel_with_it`;
 //!   each under its own `Closes #739`
 //! - The sketch's chamfer and fillet keep their fields by the cursor and
 //!   their keys; a test checks it — no test: here; held in

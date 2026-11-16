@@ -220,9 +220,14 @@ fn live_field(
         // The canvas this frame was already built from the value as it stood before this keystroke.
         ui.ctx().request_repaint();
     }
-    // Enter is consumed rather than merely read: the field has just given the
-    // keyboard back, so the shortcut bound to that key would fire too.
-    response.lost_focus()
+    left_on_enter(ui, &response)
+}
+
+/// Whether the keyboard left `field` on `Entrée` this frame. The key is
+/// consumed rather than merely read: the field has just given the keyboard
+/// back, so the shortcut bound to that key would fire too.
+pub(super) fn left_on_enter(ui: &egui::Ui, field: &egui::Response) -> bool {
+    field.lost_focus()
         && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter))
 }
 

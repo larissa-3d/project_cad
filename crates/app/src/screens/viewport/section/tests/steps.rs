@@ -21,7 +21,10 @@
 //!   chosen or a face clicked fills the face and moves on to the distance; ↵
 //!   moves on one field, the two tilts being two fields of one step; and ↵ on
 //!   the last step keeps the section, as its main button does —
-//!   `enter_on_the_section_s_last_step_keeps_it_in_the_part`
+//!   `enter_on_the_section_s_last_step_keeps_it_in_the_part`. Found in review,
+//!   as the copy panel does: ↵ on the last step while the face is still to be
+//!   clicked keeps nothing, and brings the face back as the step asked for —
+//!   `enter_on_the_section_s_last_step_while_its_face_is_still_to_click_keeps_nothing_and_goes_back_to_it`
 //! - The message pill follows the section's step; a test on the wording
 //!   checks it — `the_message_pill_follows_the_step_of_the_section`; that the
 //!   pill shows it, and says none of it once the section is closed, which
@@ -333,6 +336,35 @@ fn enter_on_the_section_s_last_step_keeps_it_in_the_part() {
         (sections[0].offset - 1.5).abs() < TOLERANCE,
         "kept at the distance typed, not {}",
         sections[0].offset
+    );
+}
+
+#[test]
+fn enter_on_the_section_s_last_step_while_its_face_is_still_to_click_keeps_nothing_and_goes_back_to_it()
+ {
+    let (mut document, mut section) = opened();
+    section.wait_for_a_face();
+    section.activate(SectionStep::Sides);
+
+    let kept = section.enter(&mut document);
+
+    assert!(
+        !kept,
+        "↵ says it kept a section whose face is still to click"
+    );
+    assert!(
+        document.sections().is_empty(),
+        "« Face cliquée » chosen and no face clicked yet, ↵ kept the section on \
+         the plane it stood on before"
+    );
+    assert_eq!(
+        section.steps()[0],
+        (SectionStep::Face, StepState::Current),
+        "the face, still empty, is the step asked for again"
+    );
+    assert!(
+        section.is_waiting_for_a_face(),
+        "and it still waits for a face to be clicked"
     );
 }
 

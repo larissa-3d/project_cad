@@ -55,14 +55,17 @@ pub(crate) fn paint_section_panel(
         return false;
     }
     let asked = floated.inner;
+    if asked.keep {
+        section.keep_in(context.document);
+    }
+    // A sketch edited under the section has the message and `Entrée` to
+    // itself.
+    if context.editor.active_sketch().is_some() {
+        unsay(ui.ctx(), id, context);
+        return asked.keep;
+    }
     let bare_enter = ui.input(|input| input.key_pressed(egui::Key::Enter));
-    let kept = match asked.keep {
-        true => {
-            section.keep_in(context.document);
-            true
-        }
-        false => (asked.enter || bare_enter) && section.enter(context.document),
-    };
+    let kept = asked.keep || ((asked.enter || bare_enter) && section.enter(context.document));
     let said = section.said(lang);
     ui.ctx()
         .data_mut(|data| data.insert_temp(id.with("said"), said.clone()));

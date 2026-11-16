@@ -66,3 +66,6 @@ pub fn step_asks(lang: &Catalogue, tool: Command, number: usize, asked: Asked) -
     });
     super::steps::asks(lang, tool, number, &asked)
 }
+
+#[cfg(test)]
+mod tests;
