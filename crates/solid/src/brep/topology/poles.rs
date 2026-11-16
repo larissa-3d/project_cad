@@ -119,7 +119,9 @@ impl Body {
     /// is a slit with the face on either side, and bounds nothing: a ball a
     /// half band touches along half its equator, slit there, was read as
     /// holding the pole on one side of the slit alone (5585606550). A face
-    /// whose loops cannot be traced holds none.
+    /// whose loops cannot be traced holds none here, and is declined when its
+    /// body is verified (`assembly.rs`): its volume would lose the cap of a
+    /// pole it held (#945).
     fn round_poles_within(&self, face: &Face, surface: &Surface) -> Vec<DVec3> {
         let eps = self.scale.eps();
         let uses: Vec<_> = face.loops.iter().flatten().collect();

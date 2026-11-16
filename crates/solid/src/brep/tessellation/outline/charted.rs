@@ -116,7 +116,7 @@ impl Outline {
         if !axes.all(shared) {
             return None;
         }
-        let round = Rounded::Sphere(Sphere::through(sphere.middle(), axis, 0.0, sphere.radius));
+        let round = Rounded::Sphere(sphere.about(axis));
         let eps = body.scale().eps();
         let [low, high] = round.poles(eps)[..] else {
             return None;
