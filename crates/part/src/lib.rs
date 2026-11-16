@@ -31,6 +31,7 @@ mod pulled;
 mod recutting;
 mod replay;
 mod resizing;
+mod revolution;
 mod sections;
 mod showing;
 mod state;

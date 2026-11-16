@@ -1,17 +1,15 @@
-//! Turning a sketch's areas into matter, or taking matter away: a prism along
-//! the plane's normal, or a sweep around an axis lying in the plane.
-
-use std::borrow::Cow;
+//! Turning a sketch's areas into matter, or taking matter away, by a prism
+//! along the plane's normal; and what every step of matter shares with the
+//! sweep around an axis, in `revolution.rs`.
 
 use cao_sketch::{Area, Region, Sketch};
 use cao_solid::profile::{Frame, Profile};
-use cao_solid::turning::{Axis, Lie, Turn};
 use cao_solid::{Body, Declined};
 use glam::{DVec2, DVec3};
 
 use crate::broken::Broken;
 use crate::formula::Formula;
-use crate::history::{ExtrusionMode, Operation, RevolutionAxis};
+use crate::history::{ExtrusionMode, Operation};
 use crate::profile::profile;
 use crate::state::PartState;
 
@@ -53,69 +51,6 @@ impl PartState {
                 )
                 .collect()
         })
-    }
-
-    /// Sweeps the chosen areas around an axis of the sketch and joins the
-    /// result to the part, or takes it out.
-    ///
-    /// An area across the axis would sweep through itself: it is cut along
-    /// the axis first, and each side is turned on its own, as if the axis had
-    /// been drawn across it. A turn of straight runs and arcs is the exact
-    /// kernel's (#576); one with an ellipse, or a profile the kernel cannot lay
-    /// against its axis, is a broken step (#632).
-    pub(crate) fn revolve(
-        &mut self,
-        index: usize,
-        areas: &[Area],
-        axis: RevolutionAxis,
-        degrees: &Formula,
-        mode: ExtrusionMode,
-    ) {
-        let Some(degrees) = self.size(degrees, |turn| turn.abs() > 1e-6 && turn.abs() <= 360.0)
-        else {
-            return;
-        };
-        let Some(sketch) = self.sketches.get(index) else {
-            return;
-        };
-        let Some(axis) = axis_in_sketch(sketch, axis) else {
-            return;
-        };
-
-        let frame = frame_of(sketch);
-        let regions = sketch.regions();
-        let (standing, lost) = self.all_standing_on(index, areas, &regions);
-        let sides = sides_of(sketch, &standing, axis, degrees.to_radians());
-        let profiles: Vec<(Profile, Turn)> = sides
-            .iter()
-            .map(|(region, triangles, turn)| (profile(region, triangles), *turn))
-            .collect();
-        let past_turns = |body: &mut Body| {
-            for (profile, turn) in &profiles {
-                body.count_past_turned(profile, frame, turn);
-            }
-        };
-
-        let mut tool = Body::default();
-        for (profile, turn) in &profiles {
-            let turned = self.body.tool_turned(profile, frame, turn);
-            match turned.and_then(|piece| tool.union(&piece)) {
-                Ok(joined) => tool = joined,
-                Err(reason) => return self.declined_with(reason, past_turns),
-            }
-        }
-
-        // An area the drawing no longer encloses raises nothing, which is a
-        // size that no longer holds.
-        if lost {
-            self.broke(Broken::Operation(self.replaying));
-        }
-        if !self.shows(&tool, mode) {
-            return past_turns(&mut self.body);
-        }
-        if let Err(reason) = self.combine(tool, mode) {
-            self.declined_with(reason, past_turns);
-        }
     }
 
     /// Joins a tool to the part, or takes it out. A step the kernel declines
@@ -180,19 +115,30 @@ impl PartState {
     /// nothing noted. Nothing for a size that raises nothing, or a tool the
     /// kernel declines.
     pub(crate) fn tool_of(&self, operation: &Operation) -> Option<Body> {
-        let Operation::Extrude {
-            sketch,
-            areas,
-            distance,
-            ..
-        } = operation
-        else {
-            return None;
-        };
+        match operation {
+            Operation::Extrude {
+                sketch,
+                areas,
+                distance,
+                ..
+            } => self.raised_tool(*sketch, areas, distance),
+            Operation::Revolve {
+                sketch,
+                areas,
+                axis,
+                angle,
+                ..
+            } => self.turned_tool(*sketch, areas, *axis, angle),
+            _ => None,
+        }
+    }
+
+    /// The matter an extrusion would raise, alone, with nothing noted.
+    fn raised_tool(&self, index: usize, areas: &[Area], distance: &Formula) -> Option<Body> {
         let distance = distance
             .value(&self.values)
             .filter(|travel| raises(*travel))?;
-        let prism = self.prism(*sketch, areas, distance)?;
+        let prism = self.prism(index, areas, distance)?;
         prism.tool(&self.body, &prism.profiles()).ok()
     }
 
@@ -245,7 +191,7 @@ impl PartState {
 
     /// The areas a step of matter stands on, as the drawing holds them now,
     /// and whether one of them is lost.
-    fn all_standing_on<'a>(
+    pub(crate) fn all_standing_on<'a>(
         &self,
         sketch: usize,
         areas: &[Area],
@@ -316,75 +262,11 @@ fn past_raises<'a>(profiles: &'a [Profile<'a>]) -> impl FnOnce(&mut Body) + 'a {
     move |body| profiles.iter().for_each(|profile| body.count_past(profile))
 }
 
-/// Where a revolution's axis lies, in the sketch's own coordinates.
-fn axis_in_sketch(sketch: &Sketch, axis: RevolutionAxis) -> Option<Axis> {
-    match axis {
-        RevolutionAxis::Sketch(axis) => Some(Axis {
-            origin: DVec2::ZERO,
-            direction: axis.direction(),
-        }),
-        RevolutionAxis::Segment(segment) => {
-            if segment.0 >= sketch.segments().len() {
-                return None;
-            }
-            let (start, end) = sketch.endpoints(segment);
-            ((end - start).length() > 1e-6).then_some(Axis {
-                origin: start,
-                direction: end - start,
-            })
-        }
-    }
-}
-
 /// The frame a sketch's areas stand in, for the kernels.
-fn frame_of(sketch: &Sketch) -> Frame {
+pub(crate) fn frame_of(sketch: &Sketch) -> Frame {
     Frame {
         origin: sketch.plane.origin,
         u: sketch.plane.u,
         v: sketch.plane.v,
     }
-}
-
-/// Each area as a turn takes it, with its triangles: whole when it lies on
-/// one side of the axis, and cut along the axis into its sides when it lies
-/// across it. Every side keeps the band its whole area was read at, so that
-/// a corner the drawing left a hair off the axis lands on it whichever side
-/// it ended up in. Turned whole, a side the other side's turn holds already
-/// is left out.
-fn sides_of<'a>(
-    sketch: &Sketch,
-    standing: &[&'a Region],
-    axis: Axis,
-    angle: f64,
-) -> Vec<(Cow<'a, Region>, Vec<[DVec2; 3]>, Turn)> {
-    let resolution = sketch.resolution();
-    let mut sides = Vec::new();
-    for &region in standing {
-        let triangles = region.face_triangles();
-        let whole = profile(region, &triangles);
-        let turn = Turn::of(axis, angle, resolution, &whole);
-        if turn.lie(&whole) != Lie::Across {
-            sides.push((Cow::Borrowed(region), triangles, turn));
-            continue;
-        }
-        let pieces: Vec<(Region, Vec<[DVec2; 3]>)> = sketch
-            .pieces_across(region, axis.origin, axis.direction)
-            .into_iter()
-            .map(|side| {
-                let triangles = side.face_triangles();
-                (side, triangles)
-            })
-            .collect();
-        let profiles: Vec<Profile> = pieces
-            .iter()
-            .map(|(side, triangles)| profile(side, triangles))
-            .collect();
-        let needed = turn.sides_needed(&profiles);
-        for (index, (side, triangles)) in pieces.into_iter().enumerate() {
-            if needed.contains(&index) {
-                sides.push((Cow::Owned(side), triangles, turn));
-            }
-        }
-    }
-    sides
 }
