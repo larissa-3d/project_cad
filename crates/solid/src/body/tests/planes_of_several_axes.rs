@@ -341,9 +341,11 @@ fn dome(above: bool) -> Body {
 /// to the floor, x ≥ 3 on the dome and on the bowl, x ≤ −3, and a flat 3
 /// along (1, 0, 1): the circle stands square to the rim at each corner, and
 /// touches the half-plane of its sphere's grid through that corner there.
-/// At a slant, 2 along a normal leaning thirty degrees below the floor's
-/// plane, turned 35° about the axis, on the dome, and its mirror on the bowl:
-/// the circle crosses that half-plane at the corner. Each holds the half ball
+/// A flat 5 cos 45° along (1, 0, 1) has its corners at (5, 0, 0) and
+/// (0, 0, 5), on two angles of the sphere's grid at every fineness. At a
+/// slant, 2 along a normal leaning thirty degrees below the floor's plane,
+/// turned 35° about the axis, on the dome, and its mirror on the bowl: the
+/// circle crosses that half-plane at the corner. Each holds the half ball
 /// less the part of the cap on its side of the floor, and is drawn closed and
 /// uncrossed at every fineness.
 #[test]
@@ -351,6 +353,7 @@ fn a_half_ball_cut_by_a_flat_across_its_rim_is_built_and_drawn_closed_and_uncros
  {
     let half = BALL_OF_5 / 2.0;
     let square = half - cap_above_the_equator(0.0, 3.0);
+    let on_the_grid = 5.0 * std::f64::consts::FRAC_1_SQRT_2;
     let tilt = 30f64.to_radians();
     let leaning = half - cap_above_the_equator(tilt, 2.0);
     let turned = |y: f64| {
@@ -381,6 +384,12 @@ fn a_half_ball_cut_by_a_flat_across_its_rim_is_built_and_drawn_closed_and_uncros
             slab_along(DVec3::new(1.0, 0.0, 1.0), 3.0),
             square,
             "the dome cut by a flat 3 along (1, 0, 1)",
+        ),
+        (
+            true,
+            slab_along(DVec3::new(1.0, 0.0, 1.0), on_the_grid),
+            half - cap_above_the_equator(0.0, on_the_grid),
+            "the dome cut by a flat 5 cos 45° along (1, 0, 1)",
         ),
         (
             true,
@@ -528,5 +537,37 @@ fn the_spheres_of_a_corner_fillet_and_of_a_rib_cut_from_a_ball_and_blended_at_it
             &filleted.body,
             &format!("the rib cut from a ball filleted at the foot of its {side} side"),
         );
+    }
+}
+
+/// The ball bored right through along its own axis, of radius 1, and cut by
+/// a flat 2 along (1, 1, 0) whose cap takes the bore's top rim whole, in
+/// either order: the sphere left is a band between the bore's bottom rim, a
+/// latitude, and the flat's circle winding round the axis — the fallback's,
+/// cut open at an angle of the grid that circle crosses. It holds the ball
+/// less the bore inside it, 4π (125 − 24^1.5)/3, and the cap, given back
+/// what the two share: over the bore's disc, the height from the flat's
+/// plane, y = 2√2 − x, up to the sphere, half the bore less 2√2 π.
+#[test]
+fn a_ball_bored_along_its_axis_and_cut_by_a_flat_across_one_rim_is_built_and_drawn_within_the_drawing_s_tolerance()
+ {
+    let bore = bore_between(DVec3::Y, DVec3::X, 1.0, 0.0, [-10.0, 10.0]);
+    let flat = slab_along(DVec3::new(1.0, 1.0, 0.0), 2.0);
+    let inside = 4.0 * PI * (125.0 - 24f64.powf(1.5)) / 3.0;
+    let shared = inside / 2.0 - 2.0 * 2f64.sqrt() * PI;
+    let kept = BALL_OF_5 - inside - cap_of_5(3.0) + shared;
+    for (tools, what) in [
+        (
+            [&bore, &flat],
+            "the ball bored along its axis, then cut across one rim",
+        ),
+        (
+            [&flat, &bore],
+            "the ball cut by the flat, then bored along its axis",
+        ),
+    ] {
+        let body = ball_cut_by(&tools, what);
+        built_listed_and_drawn(&body, kept, sphere_past(2.0) + TAU * 9.0, what);
+        drawn_at_each_fineness(&body, what);
     }
 }

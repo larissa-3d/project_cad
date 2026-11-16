@@ -859,3 +859,51 @@ fn a_circle_of_another_axis_on_a_sphere_takes_the_angles_of_its_grid_it_crosses_
         }
     }
 }
+
+/// The dome cut by a flat 5 cos 45° along (1, 0, 1): its circle ends on the
+/// rim at (5, 0, 0) and (0, 0, 5), each on an angle of the sphere's grid at
+/// every fineness, the half-plane through it one the circle touches there.
+/// It takes no sample between its ends within a hair of either.
+#[test]
+fn a_circle_whose_corners_stand_on_angles_of_its_sphere_s_grid_takes_no_sample_a_hair_from_them() {
+    let body = half_ball_cut_by(
+        true,
+        &[slab(
+            DVec3::new(1.0, 0.0, 1.0),
+            5.0 * std::f64::consts::FRAC_1_SQRT_2,
+        )],
+    );
+    let hair = Scale::HAIR * body.scale().eps();
+    let [(edge, _, sphere)] = tilted_circles(&body)[..] else {
+        panic!("the flat's circle alone is tilted");
+    };
+    let surface = (body.face_ids())
+        .map(|face| body.face(face).surface)
+        .find(|&surface| *body.surface(surface) == Surface::Sphere(sphere))
+        .expect("the circle's sphere bounds a face");
+    for tolerance in SAMPLED_AT {
+        let samples = Samples::of(&body, tolerance);
+        let steps = samples.steps(surface).expect("a sphere has a grid");
+        let ids = samples.edge(edge);
+        let ends = [ids[0], ids[ids.len() - 1]].map(|id| samples.point(id));
+        for end in ends {
+            let rank = angle_about(&sphere, end) * steps as f64 / TAU;
+            assert!(
+                (rank - rank.round()).abs() <= 1e-9,
+                "at {tolerance}: the corner {end} stands at {rank} of the grid's {steps} steps, \
+                 off them"
+            );
+        }
+        for &id in &ids[1..ids.len() - 1] {
+            let point = samples.point(id);
+            let near = (ends.iter())
+                .map(|end| point.distance(*end))
+                .fold(f64::INFINITY, f64::min);
+            assert!(
+                near > hair,
+                "at {tolerance}: the flat's circle takes {point}, {near:e} from a corner on the \
+                 grid, within a hair, {hair:e}"
+            );
+        }
+    }
+}
