@@ -3966,7 +3966,7 @@ fn the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere() {
     ));
 
     let mut state = ViewportState::default();
-    state.edge_chosen = Some(edge.name.clone());
+    state.edges_chosen = vec![edge.name.clone()];
     assert_eq!(state.edge_under_the_hand, None, "the hand is elsewhere");
     let chosen = every_segment_of(&a_frame_of(
         &state,
@@ -3981,7 +3981,7 @@ fn the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere() {
          segment",
     );
 
-    state.edge_chosen = None;
+    state.edges_chosen.clear();
     let none = every_segment_of(&a_frame_of(
         &state,
         &mut document,
@@ -4030,7 +4030,7 @@ fn the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane(
         &mut SketchEditor::default(),
     ));
 
-    state.edge_chosen = Some(edge.name.clone());
+    state.edges_chosen = vec![edge.name.clone()];
     let chosen = every_segment_of(&a_frame_of(
         &state,
         &mut document,

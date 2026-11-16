@@ -1,5 +1,5 @@
 //! The panel an edge of the part is chamfered or rounded from: which of the
-//! two, the edge chosen, and the size typed.
+//! two, the edges chosen, and the size typed.
 
 use cao_part::history::{BlendShape, Operation};
 use cao_part::{Formula, Outcome, PartDocument, Variables};
@@ -11,17 +11,17 @@ use cao_solid::{Declined, EdgeName};
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BlendState {
     pub shape: Option<BlendShape>,
-    pub edge: Option<EdgeName>,
+    pub edges: Vec<EdgeName>,
     /// The distance or the radius typed, in millimetres.
     pub size_input: String,
-    /// Why the kernel declined the last « Appliquer », until another edge
-    /// is chosen.
+    /// Why the kernel declined the last « Appliquer », until the edges
+    /// chosen change.
     pub declined: Option<Declined>,
 }
 
 impl BlendState {
     /// Opens the panel on a chamfer or a fillet, or turns the one open into
-    /// the other, keeping the edge chosen and the size typed.
+    /// the other, keeping the edges chosen and the size typed.
     pub fn offer(&mut self, shape: BlendShape) {
         if !self.is_active() {
             self.size_input = "1".to_string();
@@ -30,8 +30,20 @@ impl BlendState {
         self.declined = None;
     }
 
+    /// Chooses this edge alone, in place of those chosen.
     pub fn choose(&mut self, edge: EdgeName) {
-        self.edge = Some(edge);
+        self.edges = vec![edge];
+        self.declined = None;
+    }
+
+    /// Adds an edge to those chosen, or takes it out when it is one of them.
+    pub fn toggle(&mut self, edge: EdgeName) {
+        match self.edges.iter().position(|chosen| *chosen == edge) {
+            Some(at) => {
+                self.edges.remove(at);
+            }
+            None => self.edges.push(edge),
+        }
         self.declined = None;
     }
 
@@ -63,7 +75,7 @@ impl BlendState {
 
     /// Whether there is enough to apply: an edge chosen, and a usable size.
     pub fn is_ready(&self, variables: &Variables) -> bool {
-        self.edge.is_some() && self.size(variables).is_some()
+        !self.edges.is_empty() && self.size(variables).is_some()
     }
 }
 
@@ -71,13 +83,14 @@ impl BlendState {
 /// declines records nothing and leaves the panel open, saying why. True when
 /// the part changed.
 pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool {
-    let (Some(shape), Some(edge), Some((size, _))) = (
+    let (Some(shape), [edge], Some((size, _))) = (
         blend.shape,
-        blend.edge.clone(),
+        blend.edges.as_slice(),
         blend.size(document.variables()),
     ) else {
         return false;
     };
+    let edge = edge.clone();
     if let Some(Outcome::BlendDeclined(reason)) =
         document.apply(Operation::Blend { edge, shape, size })
     {

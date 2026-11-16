@@ -1104,8 +1104,8 @@ fn the_blend_s_apply_is_offered_only_with_an_edge_chosen_and_a_usable_size() {
     blend.offer(cao_part::history::BlendShape::Chamfer);
     assert!(!offered(&blend), "offered with no edge chosen");
 
-    blend.edge = part.body().edge_names().into_iter().next();
-    assert!(blend.edge.is_some(), "the block names its edges");
+    blend.edges = part.body().edge_names().into_iter().take(1).collect();
+    assert!(!blend.edges.is_empty(), "the block names its edges");
     blend.size_input = "2".to_string();
     assert!(offered(&blend), "greyed with an edge chosen and 2 typed");
     for unusable in ["0", "-1", "deux"] {

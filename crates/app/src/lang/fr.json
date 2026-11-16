@@ -843,6 +843,8 @@
   "extrusion.cancel": "Annuler",
   "blend.distance": "Distance :",
   "blend.radius": "Rayon :",
+  "blend.edges_chosen_one": "{count} arête",
+  "blend.edges_chosen_many": "{count} arêtes",
   "extrusion.nothing_added": "L'extrusion n'a rien ajouté.",
   "extrusion.nothing_removed": "Rien enlevé : la matière n'est pas de ce côté du plan (essayez « Sens inverse »).",
   "export.uncovered": "Le fichier STL n'a pas été écrit : à la précision « {asked} », les triangles ne couvrent pas toute la pièce. La précision « {fits} » la couvre.",

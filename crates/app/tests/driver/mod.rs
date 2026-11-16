@@ -364,6 +364,14 @@ pub fn click_at_world_point(app: &mut App, point: DVec3) {
     click_at(app, at);
 }
 
+/// `click_at_world_point` with these modifiers held, as `click_with` holds
+/// them.
+pub fn click_at_world_point_with(app: &mut App, point: DVec3, modifiers: egui::Modifiers) {
+    hold_the_canvas(app);
+    let at = world_point_on_screen(app, point);
+    click_with(app, at, modifiers);
+}
+
 pub fn click_at_sketch_point(app: &mut App, point: DVec2) {
     hold_the_canvas(app);
     let at = sketch_point_on_screen(app, point);
