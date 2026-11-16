@@ -4,7 +4,14 @@
 //! about the sphere's own axis, so that the fill's end lies on the very
 //! surface of the face it merges into, and bounded round the box (#941): a
 //! result carries the larger reach of its operands, and the whole ball of a
-//! dome far larger than its part would draw every later step coarser.
+//! dome far larger than its part would draw every later step coarser. The
+//! piece no longer carries the sphere's size, but it is not held inside the
+//! box: a sector's arc bulges past it between its planes, a whole turn's
+//! disc stands all round the axis, each by no more than about the box's
+//! furthest distance from the axis, and the reach its profile is laid at —
+//! its corners' place plus their furthest from the axis — is larger still.
+//! A large fill near its part's edge may so widen the part's reach a
+//! little; never by the dome's size.
 
 use std::f64::consts::{PI, TAU};
 
