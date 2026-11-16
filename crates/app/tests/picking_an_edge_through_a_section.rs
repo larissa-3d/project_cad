@@ -30,11 +30,21 @@
 //!   `with_the_section_off_the_pocket_s_floor_is_not_taken_through_the_matter`;
 //!   on the plain block, by the picking tests of `the_edge_panel.rs`, which
 //!   this issue leaves as they were
+//!
+//! Found in review, guarding what must not break and what #925 decided rather
+//! than new criteria. « Inverser » trades which side is offered, by
+//! `inverted_the_edge_on_the_side_now_opaque_is_lit_and_the_one_on_the_side_now_hidden_is_not`.
+//! A tilted section offers by the tilted plane, by
+//! `tilted_the_section_offers_an_edge_by_the_side_of_the_tilted_plane_it_lies_on`.
+//! With no side opaque, no edge is offered, by
+//! `with_no_side_opaque_no_edge_is_offered`. A section laid on a slanted face
+//! offers every edge of its rim, however the kernel rounded it, by
+//! `a_section_laid_on_a_slanted_face_offers_every_edge_of_its_rim`.
 
 mod driver;
 
 use cao_app::app::EDGE_REACH;
-use cao_part::history::{ExtrusionMode, Operation, PointRef};
+use cao_part::history::{BlendShape, ExtrusionMode, Operation, PointRef};
 use cao_sketch::WorkPlane;
 use egui_kittest::kittest::{NodeT, Queryable};
 use glam::{DVec2, DVec3};
@@ -122,15 +132,20 @@ const ON_THE_FLOOR_S_SIDE: DVec3 = DVec3::new(25.0, 50.0, FLOOR);
 /// `a_block_with_a_pocket`, written over the block `driver::a_block` left in
 /// the projects folder, and opened from the start menu.
 fn opened(test: &str) -> driver::App {
+    opened_on(test, a_block_with_a_pocket())
+}
+
+/// That part, written over the block `driver::a_block` left in the projects
+/// folder, and opened from the start menu.
+fn opened_on(test: &str, part: cao_part::PartDocument) -> driver::App {
     let mut app = driver::a_block(test);
     driver::the_part_put_away(&mut app, test, "Bloc");
-    a_block_with_a_pocket()
-        .save(
-            &cao_app::adapters::files::DiskFiles,
-            &driver::the_part_s_file(test, "Bloc"),
-            "2026-11-16T10:00:00Z".parse().expect("a date"),
-        )
-        .expect("the part is written");
+    part.save(
+        &cao_app::adapters::files::DiskFiles,
+        &driver::the_part_s_file(test, "Bloc"),
+        "2026-11-16T10:00:00Z".parse().expect("a date"),
+    )
+    .expect("the part is written");
     app.query_all_by_label("Bloc")
         .last()
         .expect("the start menu lists the part")
@@ -138,7 +153,7 @@ fn opened(test: &str) -> driver::App {
     app.run();
     assert!(
         driver::in_the_tree(&app, "Esquisse 2"),
-        "the pocketed block did not open, showing {:?}",
+        "the part written did not open, showing {:?}",
         driver::on_screen(&app),
     );
     driver::hold_the_canvas(&mut app);
@@ -180,7 +195,13 @@ fn chamfering_through_the_section(test: &str) -> driver::App {
 
 /// Clicks the section's row for the side in front until it reads `state`.
 fn the_front_drawn(app: &mut driver::App, state: &str) {
-    let wanted = format!("Devant : {state}");
+    the_side_drawn(app, "Devant", state);
+}
+
+/// Clicks the section's row for that side until it reads `state`.
+fn the_side_drawn(app: &mut driver::App, side: &str, state: &str) {
+    let row = format!("{side} : ");
+    let wanted = format!("{row}{state}");
     for _ in 0..3 {
         if driver::a_button_reads(app, &wanted) {
             return;
@@ -188,14 +209,12 @@ fn the_front_drawn(app: &mut driver::App, state: &str) {
         let now = app
             .query_all_by_role(egui::accesskit::Role::Button)
             .filter_map(|node| node.accesskit_node().label())
-            .find(|read| read.starts_with("Devant : "))
-            .unwrap_or_else(|| {
-                panic!("no row for the side in front: {:?}", driver::on_screen(app))
-            });
+            .find(|read| read.starts_with(&row))
+            .unwrap_or_else(|| panic!("no row « {row}»: {:?}", driver::on_screen(app)));
         driver::click_the_button(app, &now);
     }
     panic!(
-        "the side in front never read « {wanted} »: {:?}",
+        "the row never read « {wanted} »: {:?}",
         driver::on_screen(app)
     );
 }
@@ -246,8 +265,16 @@ fn apart_on_screen(app: &driver::App, points: &[DVec3], point: DVec3) -> f32 {
 /// How near on screen any edge of the part but `this` passes to where `point`
 /// is drawn.
 fn nearest_other_edge(app: &driver::App, this: [DVec3; 2], point: DVec3) -> f32 {
-    a_block_with_a_pocket()
-        .body()
+    nearest_other_edge_of(&a_block_with_a_pocket(), app, this, point)
+}
+
+fn nearest_other_edge_of(
+    part: &cao_part::PartDocument,
+    app: &driver::App,
+    this: [DVec3; 2],
+    point: DVec3,
+) -> f32 {
+    part.body()
         .drawn_edges()
         .into_iter()
         .filter(|edge| !is_the_edge(Some(edge.points.clone()), this))
@@ -468,5 +495,214 @@ fn with_the_section_off_the_pocket_s_floor_is_not_taken_through_the_matter() {
         THE_FRONT_UPRIGHT,
         ON_THE_UPRIGHT_ABOVE,
         "the upright high up, the section off",
+    );
+}
+
+#[test]
+fn inverted_the_edge_on_the_side_now_opaque_is_lit_and_the_one_on_the_side_now_hidden_is_not() {
+    let mut app = chamfering_through_the_section("inverted_the_sides_trade_places");
+    driver::click_the_button(&mut app, "Inverser");
+    for side in ["Derrière : cachée", "Devant : opaque"] {
+        assert!(
+            driver::a_button_reads(&app, side),
+            "« Inverser » did not trade the sides, « {side} » missing: {:?}",
+            driver::on_screen(&app),
+        );
+    }
+
+    neither_lit_nor_chosen(
+        &mut app,
+        THE_FRONT_UPRIGHT,
+        ON_THE_UPRIGHT_BELOW,
+        "inverted, the upright below the cut, now hidden",
+    );
+    neither_lit_nor_chosen(
+        &mut app,
+        THE_FLOOR_S_SIDE,
+        ON_THE_FLOOR_S_SIDE,
+        "inverted, the side of the pocket's floor, now hidden",
+    );
+    assert_eq!(chosen(&app), None);
+    lit_then_chosen(
+        &mut app,
+        THE_FRONT_UPRIGHT,
+        ON_THE_UPRIGHT_ABOVE,
+        "inverted, the upright above the cut, now opaque",
+    );
+    lit_then_chosen(
+        &mut app,
+        THE_TOP_FRONT,
+        ON_THE_TOP_FRONT,
+        "inverted, the top front, now opaque",
+    );
+}
+
+/// The upright between the faces towards +X and +Y, at the back.
+const THE_BACK_UPRIGHT: [DVec3; 2] = [DVec3::new(SIDE, SIDE, 0.0), DVec3::new(SIDE, SIDE, HEIGHT)];
+
+/// Turned this far about X, around the middle of the block, the cut rises
+/// towards +Y: at the back it passes 50 · tan 20° ≈ 18 mm above the middle,
+/// at the front as far below it.
+const THE_TILT: &str = "20";
+
+#[test]
+fn tilted_the_section_offers_an_edge_by_the_side_of_the_tilted_plane_it_lies_on() {
+    let mut app = chamfering_through_the_section("tilted_the_section_offers_by_its_plane");
+    driver::type_beside(&mut app, "Inclinaison 1", THE_TILT);
+
+    neither_lit_nor_chosen(
+        &mut app,
+        THE_FRONT_UPRIGHT,
+        ON_THE_UPRIGHT_BELOW,
+        "tilted, the front upright below the middle but above the cut there",
+    );
+    assert_eq!(chosen(&app), None);
+    lit_then_chosen(
+        &mut app,
+        THE_BACK_UPRIGHT,
+        DVec3::new(SIDE, SIDE, 35.0),
+        "tilted, the back upright above the middle but below the cut there",
+    );
+}
+
+#[test]
+fn with_no_side_opaque_no_edge_is_offered() {
+    for (test, behind, in_front) in [
+        ("no_side_opaque_both_hidden", "cachée", "cachée"),
+        (
+            "no_side_opaque_both_see_through",
+            "transparente",
+            "transparente",
+        ),
+        (
+            "no_side_opaque_hidden_and_see_through",
+            "cachée",
+            "transparente",
+        ),
+    ] {
+        let mut app = chamfering_through_the_section(test);
+        the_side_drawn(&mut app, "Derrière", behind);
+        the_side_drawn(&mut app, "Devant", in_front);
+        assert!(
+            driver::a_button_reads(&app, "Inverser"),
+            "{test}: the section view closed on the way: {:?}",
+            driver::on_screen(&app),
+        );
+
+        for point in WHERE_THE_HAND_GOES {
+            hover_at_world_point(&mut app, point);
+            assert_eq!(
+                lit(&app),
+                None,
+                "behind {behind}, in front {in_front}: the hand at {point:?} lights an edge",
+            );
+            driver::click_at_world_point(&mut app, point);
+            assert_eq!(
+                chosen(&app),
+                None,
+                "behind {behind}, in front {in_front}: a click at {point:?} chose an edge",
+            );
+        }
+    }
+}
+
+/// A size whose rim the kernel lays a hair, some 1e-14, outside the plane of
+/// the face it bounds: at 10, 7, 9 or 11 every rim point comes out inside.
+const THE_FRONT_CHAMFER: f64 = 13.0;
+
+/// The pocketed block, the top edge of its front chamfered: a face slanted
+/// at 45° between the front and the top, whose rim the kernel computes.
+fn a_block_with_a_pocket_and_a_slanted_front() -> cao_part::PartDocument {
+    let mut part = a_block_with_a_pocket();
+    let top_front = part
+        .body()
+        .drawn_edges()
+        .into_iter()
+        .find(|edge| is_the_edge(Some(edge.points.clone()), THE_TOP_FRONT))
+        .expect("the top front")
+        .name;
+    let declined = part.apply(Operation::Blend {
+        edge: top_front,
+        shape: BlendShape::Chamfer,
+        size: THE_FRONT_CHAMFER.into(),
+    });
+    assert_eq!(declined, None, "the fixture's chamfer is laid");
+    part
+}
+
+/// The edges of the slanted face: every point on the plane
+/// `z - y = HEIGHT - THE_FRONT_CHAMFER`, within the kernel's rounding.
+fn the_slanted_face_s_rim(part: &cao_part::PartDocument) -> Vec<Vec<DVec3>> {
+    part.body()
+        .drawn_edges()
+        .into_iter()
+        .map(|edge| edge.points)
+        .filter(|points| {
+            points
+                .iter()
+                .all(|point| (point.z - point.y - (HEIGHT - THE_FRONT_CHAMFER)).abs() < 1e-6)
+        })
+        .collect()
+}
+
+#[test]
+fn a_section_laid_on_a_slanted_face_offers_every_edge_of_its_rim() {
+    let test = "a_section_on_a_slanted_face";
+    let part = a_block_with_a_pocket_and_a_slanted_front();
+    let rim = the_slanted_face_s_rim(&part);
+    assert_eq!(
+        rim.len(),
+        4,
+        "the slanted face's rim is not four edges: {rim:?}"
+    );
+    let mut app = opened_on(test, a_block_with_a_pocket_and_a_slanted_front());
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    the_front_drawn(&mut app, "opaque");
+    driver::click(&mut app, "Face cliquée");
+    let on_the_face = DVec3::new(
+        SIDE / 2.0,
+        THE_FRONT_CHAMFER / 2.0,
+        HEIGHT - THE_FRONT_CHAMFER / 2.0,
+    );
+    driver::click_at_world_point(&mut app, on_the_face);
+    the_front_drawn(&mut app, "cachée");
+    driver::click_exactly(&mut app, "Extrusion");
+    driver::click_exactly(&mut app, "Chanfrein");
+    let on_a_face = app
+        .query_all_by_label("Face cliquée")
+        .any(|row| row.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True));
+    assert!(
+        on_a_face,
+        "the section is not laid on the face clicked: {:?}",
+        driver::on_screen(&app),
+    );
+    for row in ["Derrière : opaque", "Devant : cachée"] {
+        assert!(
+            driver::a_button_reads(&app, row),
+            "the section is not on the face with its sides as it opens them, « {row} » \
+             missing: {:?}",
+            driver::on_screen(&app),
+        );
+    }
+
+    let mut unlit = Vec::new();
+    for points in &rim {
+        let edge = [points[0], points[points.len() - 1]];
+        let clear = [0.5, 0.25, 0.75]
+            .map(|along| edge[0].lerp(edge[1], along))
+            .into_iter()
+            .find(|point| nearest_other_edge_of(&part, &app, edge, *point) > 2.0 * EDGE_REACH)
+            .unwrap_or_else(|| {
+                panic!("no point of the rim edge {edge:?} stands clear of every other edge")
+            });
+        hover_at_world_point(&mut app, clear);
+        if !is_the_edge(lit(&app), edge) {
+            unlit.push((edge, lit(&app)));
+        }
+    }
+    assert!(
+        unlit.is_empty(),
+        "on the slanted face the section lies on, these rim edges are not lit under the hand, \
+         each with what is: {unlit:?}",
     );
 }

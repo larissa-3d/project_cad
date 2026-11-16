@@ -49,12 +49,10 @@ fn edge_under(
         let view_projection = state.camera.view_projection(rect.aspect_ratio());
         to_screen(point, view_projection, rect)
     };
-    let (matter, offered) = match state.section_shown() {
-        None => (Cow::Borrowed(body), Offered::Everywhere),
-        Some(section) => (
-            state.sections.sectioned(section, body).opaque,
-            Offered::by(section)?,
-        ),
+    let section = state.section_shown();
+    let offered = match section {
+        None => Offered::Everywhere,
+        Some(section) => Offered::by(section, body)?,
     };
     let edges = state.edges.of(body);
     let mut within: Vec<(f32, &DrawnEdge, DVec3)> = edges
@@ -68,7 +66,14 @@ fn edge_under(
             (distance <= EDGE_REACH).then_some((distance, edge, point))
         })
         .collect();
+    if within.is_empty() {
+        return None;
+    }
     within.sort_by(|one, other| one.0.total_cmp(&other.0));
+    let matter = match section {
+        None => Cow::Borrowed(body),
+        Some(section) => state.sections.sectioned(section, body).opaque,
+    };
     within
         .into_iter()
         .find(|(_, _, point)| in_sight(state, &matter, seen(*point), *point, rect))
@@ -76,7 +81,8 @@ fn edge_under(
 }
 
 /// Where the points of an edge are offered to the hand: on a side of the
-/// section drawn opaque, everywhere while none is shown.
+/// section drawn opaque, a place lying on the plane going behind it as the
+/// kernel parts the body; everywhere while no section is shown.
 enum Offered {
     Everywhere,
     /// Where `towards · p <= offset`.
@@ -88,10 +94,10 @@ enum Offered {
 
 impl Offered {
     /// `None` when no side of the section is drawn opaque.
-    fn by(section: &Section) -> Option<Self> {
+    fn by(section: &Section, body: &Body) -> Option<Self> {
         let plane = section.cutting_plane();
         let towards = plane.normal();
-        let offset = towards.dot(plane.origin);
+        let offset = towards.dot(plane.origin) + body.on_a_plane();
         match (section.behind, section.in_front) {
             (MatterInFront::Opaque, MatterInFront::Opaque) => Some(Self::Everywhere),
             (MatterInFront::Opaque, _) => Some(Self::Below { towards, offset }),

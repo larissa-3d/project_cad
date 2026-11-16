@@ -6,6 +6,7 @@ use glam::{DVec2, DVec3};
 use super::drawn::DRAWN;
 use super::exact::Exact;
 use super::{Body, Matter};
+use crate::brep::Scale;
 use crate::profile::{Contour, Frame};
 
 impl Body {
@@ -41,6 +42,20 @@ impl Body {
     /// [`Body::in_front`] does.
     pub fn parted(&self, normal: DVec3, offset: f64) -> (Body, Body) {
         (self.behind(normal, offset), self.in_front(normal, offset))
+    }
+
+    /// How far in front of a plane a place of the body still lies on it, and
+    /// so goes behind it with [`Body::behind`]: the kernel's one tolerance,
+    /// a share of how far the body reaches.
+    pub fn on_a_plane(&self) -> f64 {
+        let reach = match &self.matter {
+            Matter::Exact(exact) => exact.reach(),
+            Matter::Flats(flats) => flats
+                .mesh
+                .bounds()
+                .map_or(0.0, |(low, high)| low.abs().max(high.abs()).max_element()),
+        };
+        Scale::of(reach).eps()
     }
 }
 
