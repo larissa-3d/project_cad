@@ -44,3 +44,15 @@ pub fn blend_not_built(lang: &Catalogue, shape: BlendShape, reason: Declined) ->
         (_, BlendShape::Fillet) => "alerts.blend_failed_fillet",
     })
 }
+
+/// The same, for a chamfer or a fillet laid on several edges together.
+pub fn blend_of_several_not_built(lang: &Catalogue, shape: BlendShape, reason: Declined) -> String {
+    lang.t(match (reason, shape) {
+        (Declined::Lost(_), BlendShape::Chamfer) => "alerts.blend_lost_chamfer_many",
+        (Declined::Lost(_), BlendShape::Fillet) => "alerts.blend_lost_fillet_many",
+        (Declined::Unsupported, BlendShape::Chamfer) => "alerts.blend_unsupported_chamfer_many",
+        (Declined::Unsupported, BlendShape::Fillet) => "alerts.blend_unsupported_fillet_many",
+        (_, BlendShape::Chamfer) => "alerts.blend_failed_chamfer_many",
+        (_, BlendShape::Fillet) => "alerts.blend_failed_fillet_many",
+    })
+}

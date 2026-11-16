@@ -190,7 +190,7 @@ fn blends_not_built<'a>(
 ) -> impl Iterator<Item = Alert> + 'a {
     let applied = document.history.applied_operations().iter().enumerate();
     applied.filter_map(move |(step, operation)| {
-        let Operation::Blend { shape, .. } = operation else {
+        let Operation::Blend { edges, shape, .. } = operation else {
             return None;
         };
         let reason = document.declined_because(document.history.number_at(step)?)?;
@@ -199,7 +199,10 @@ fn blends_not_built<'a>(
             about: About::Blend { step },
             level: Problem::NotBuilt.level(),
             title: alerts::title(lang, &name, Problem::NotBuilt),
-            sentence: alerts::blend_not_built(lang, *shape, reason),
+            sentence: match edges.len() {
+                0 | 1 => alerts::blend_not_built(lang, *shape, reason),
+                _ => alerts::blend_of_several_not_built(lang, *shape, reason),
+            },
         })
     })
 }

@@ -892,6 +892,12 @@
   "alerts.blend_unsupported_fillet": "Ce congé n'est plus possible sur son arête : il n'est pas construit.",
   "alerts.blend_failed_chamfer": "Le calcul de ce chanfrein n'a pas abouti : il n'est pas construit.",
   "alerts.blend_failed_fillet": "Le calcul de ce congé n'a pas abouti : il n'est pas construit.",
+  "alerts.blend_lost_chamfer_many": "L'une des arêtes de ce chanfrein n'est plus dans la pièce : il n'est pas construit.",
+  "alerts.blend_lost_fillet_many": "L'une des arêtes de ce congé n'est plus dans la pièce : il n'est pas construit.",
+  "alerts.blend_unsupported_chamfer_many": "Ce chanfrein n'est plus possible sur ses arêtes : il n'est pas construit.",
+  "alerts.blend_unsupported_fillet_many": "Ce congé n'est plus possible sur ses arêtes : il n'est pas construit.",
+  "alerts.blend_failed_chamfer_many": "Le calcul de ce chanfrein sur ses arêtes n'a pas abouti : il n'est pas construit.",
+  "alerts.blend_failed_fillet_many": "Le calcul de ce congé sur ses arêtes n'a pas abouti : il n'est pas construit.",
   "alerts.show": "Montrer",
   "alerts.modify": "Modifier",
 

@@ -27,10 +27,17 @@
 //!   step's serde lives and a file frozen before this change needs no window,
 //!   by `a_part_whose_blend_step_names_a_single_edge_opens_and_replays_to_the_same_body`
 //! - Under the section view, Cmd + click on an edge on the hidden side adds
-//!   nothing —
+//!   nothing — no test: held in `picking_an_edge_through_a_section.rs`,
+//!   beside the pocketed block and the section's gestures, by
 //!   `under_the_section_view_cmd_click_on_an_edge_on_the_hidden_side_adds_nothing`
 //! - Turning « Chanfrein » into « Congé » keeps every edge chosen —
 //!   `turning_the_chamfer_into_a_fillet_keeps_every_edge_chosen`
+//! - found on the way, beyond the issue's eight: a chamfer or a fillet
+//!   holding several edges, not built once the part replays, says so of its
+//!   edges in the plural in its alert — no test: held in
+//!   `crates/app/src/screens/title_bar/state/tests.rs`, where the alerts'
+//!   sentences are read, by
+//!   `a_blend_of_several_edges_not_built_speaks_of_its_edges_in_the_plural`
 
 mod driver;
 
@@ -467,5 +474,38 @@ fn a_choice_the_kernel_declines_lays_nothing_says_why_in_the_plural_and_keeps_ev
         both_rims(&chosen(&app)),
         "the choice declined no longer holds both rims, but {:?}",
         chosen(&app),
+    );
+}
+
+#[test]
+fn turning_the_chamfer_into_a_fillet_keeps_every_edge_chosen() {
+    let (mut app, block) = opened_on("turning_the_chamfer_into_a_fillet", "Chanfrein");
+    let three = [block.near_top(), block.near_left(), block.left_top()];
+    driver::click_at_world_point(&mut app, middle(three[0]));
+    for edge in &three[1..] {
+        driver::click_at_world_point_with(&mut app, middle(*edge), egui::Modifiers::COMMAND);
+    }
+    assert!(
+        are_the_edges(&chosen(&app), &three),
+        "the fixture chooses three edges with « Chanfrein », choosing {:?}",
+        chosen(&app),
+    );
+
+    driver::click_exactly(&mut app, "Congé");
+
+    assert!(
+        driver::reads(&app, "Rayon :") && !driver::reads(&app, "Distance :"),
+        "« Congé » clicked did not turn the chamfer's panel into the fillet's, showing {:?}",
+        driver::on_screen(&app),
+    );
+    assert!(
+        are_the_edges(&chosen(&app), &three),
+        "the chamfer turned into a fillet, {:?} chosen where three edges were",
+        chosen(&app),
+    );
+    assert!(
+        driver::reads(&app, "3 arêtes"),
+        "the fillet's panel does not count the three edges, showing {:?}",
+        driver::on_screen(&app),
     );
 }
