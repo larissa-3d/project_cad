@@ -44,7 +44,10 @@
 //!   is declined on replay — no test: held in
 //!   `crates/part/tests/several_edges_blended_in_one_step.rs` by
 //!   `a_corner_s_blend_set_to_nothing_leaves_a_sketch_laid_after_it_on_its_face`
-//!   and `a_corner_s_blend_declined_on_replay_leaves_a_sketch_laid_after_it_on_its_face`
+//!   and `a_corner_s_blend_declined_on_replay_leaves_a_sketch_laid_after_it_on_its_face`;
+//!   the numbers it takes, written into every part saved after it, frozen in
+//!   `crates/part/tests/a_part_with_a_blend_of_several_edges_opens.rs` by
+//!   `a_part_saved_with_a_blend_of_several_edges_opens_with_its_sketch_on_the_face_it_was_laid_on`
 //!
 //! What must not break, from the issue, where the criteria left it unheld:
 //! - A click in empty space still leaves the choice as it was —

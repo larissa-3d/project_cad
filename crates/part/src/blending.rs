@@ -17,8 +17,8 @@ const ONE_PLACE: f64 = 1e-9;
 /// The kernel numbers one face per edge, then the pieces closing its corners:
 /// a closing, an odd corner's piece and its held end take no more numbers at
 /// a corner than there are listed edges ending there, two per edge at most. A
-/// build laying more is declined `Unverified` rather than shifting every face
-/// numbered after it.
+/// build laying more is declined `Unsupported`, a limit of the part rather
+/// than of the kernel, instead of shifting every face numbered after it.
 const NUMBERS_PER_EDGE: usize = 3;
 
 /// The face numbers a step of `edges` edges takes, so that the faces after it
@@ -84,7 +84,7 @@ impl PartState {
         let blended = blended.and_then(|(body, taken)| {
             let laid = body.faces_end().saturating_sub(from);
             match edges.len() > 1 && laid > block {
-                true => Err(Declined::Unverified),
+                true => Err(Declined::Unsupported),
                 false => Ok((body, taken)),
             }
         });
