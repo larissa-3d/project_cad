@@ -1,11 +1,13 @@
 //! Where a circle lying on a sphere about another line crosses the
 //! half-plane of an angle of the sphere's grid (#940), read without a body.
 
-use std::f64::consts::TAU;
+use std::cell::RefCell;
+use std::f64::consts::{FRAC_PI_4, TAU};
 
 use glam::DVec3;
 
 use super::*;
+use crate::brep::surface::Sphere;
 
 /// The circle a plane `offset` from `centre` along `normal` cuts the sphere
 /// of `radius` about `centre` along.
@@ -173,4 +175,230 @@ fn a_circle_on_a_sphere_about_another_line_crosses_each_angle_s_half_plane_as_of
             );
         }
     }
+}
+
+/// The circle about X of radius 4 its centre `height` along Z from (3, 0, 0),
+/// its parameter's nought along Y: at `height` 0, the circle the plane
+/// x = 3 cuts the sphere of radius 5 about the origin along.
+fn about_x(height: f64, radius: f64) -> Circle {
+    Circle {
+        center: DVec3::new(3.0, 0.0, height),
+        axis: DVec3::X,
+        radius,
+        u: DVec3::Y,
+        v: DVec3::Z,
+    }
+}
+
+/// The circle about X of radius 4 whose centre stands `height` from the
+/// plane z = 0, either side of it, against the half-plane of that plane out
+/// along X from the line along Y: it reaches past the plane by 4 − |height|.
+/// By no more than the kernel's relative tolerance of its radius, a hair
+/// inside it or a hair short of it, or exactly to it, it touches and takes no
+/// crossing; twice that tolerance in, or more, it crosses twice.
+#[test]
+fn a_circle_reaching_past_a_half_plane_s_plane_by_no_more_than_the_kernel_s_tolerance_of_its_radius_takes_no_crossing_and_a_little_further_takes_two()
+ {
+    let line = (DVec3::ZERO, DVec3::Y);
+    for side in [1.0, -1.0] {
+        for (past, count) in [
+            (0.5 * Scale::RELATIVE, 0),
+            (0.0, 0),
+            (-0.5 * Scale::RELATIVE, 0),
+            (2.0 * Scale::RELATIVE, 2),
+            (1e-6, 2),
+        ] {
+            let circle = about_x(side * 4.0 * (1.0 - past), 4.0);
+            let found = crossings(&circle, line, DVec3::X);
+            assert_eq!(
+                found.len(),
+                count,
+                "a circle reaching {past} of its radius past the plane, on the side {side}: \
+                 {found:?}"
+            );
+            on_the_half_plane(&circle, line, DVec3::X, &found, "a circle reaching past");
+        }
+    }
+}
+
+/// The sphere of radius 5 about the origin, about Y, and eight steps of its
+/// grid, every eighth of a turn from X; read as the axes of a body holding
+/// it, its steps its grid's rays too, with `group` the one group, of the wall
+/// it names.
+fn axes_of_a_sphere(group: Option<(SurfaceId, Vec<DVec3>)>) -> (Axes, Vec<DVec3>) {
+    let round = Rounded::Sphere(Sphere::through(DVec3::ZERO, DVec3::Y, 0.0, 5.0));
+    let steps: Vec<DVec3> = (0..8)
+        .map(|step| {
+            let angle = FRAC_PI_4 * f64::from(step);
+            DVec3::new(angle.cos(), 0.0, angle.sin())
+        })
+        .collect();
+    let mut axes = Axes {
+        cones: vec![(Spun::Round(round), steps.clone())],
+        steps: vec![(round, steps.clone())],
+        groups: Vec::new(),
+        of_wall: BTreeMap::new(),
+    };
+    if let Some((wall, rays)) = group {
+        axes.groups.push(Group {
+            axis: DVec3::X,
+            u: DVec3::Y,
+            v: DVec3::Z,
+            rays,
+        });
+        axes.of_wall.insert(wall, 0);
+    }
+    (axes, steps)
+}
+
+/// What `axes` widen `circle` of `wall` by, from no ray of its own, at a
+/// fineness of a hundredth over a span of 10, every place kept.
+fn widened_alone(axes: &Axes, circle: &Circle, wall: SurfaceId) -> Option<Vec<DVec3>> {
+    axes.widened(
+        &Contact::default(),
+        (circle, wall),
+        (0.01, 10.0),
+        Scale::of(5.0).eps(),
+        |_| true,
+    )
+    .map(|contact| contact.rays)
+}
+
+/// Whether `found` and `expected` hold the same directions, each once.
+fn same_rays(found: &[DVec3], expected: &[DVec3]) -> bool {
+    found.len() == expected.len()
+        && expected.iter().all(|way| {
+            found
+                .iter()
+                .filter(|ray| ray.distance(*way) <= 1e-12)
+                .count()
+                == 1
+        })
+}
+
+/// Every crossing of `circle` with the half-planes of the sphere's `steps`.
+fn every_crossing(circle: &Circle, steps: &[DVec3]) -> Vec<DVec3> {
+    steps
+        .iter()
+        .flat_map(|way| crossings(circle, (DVec3::ZERO, DVec3::Y), *way))
+        .collect()
+}
+
+/// Against a sphere's grid, a circle lying on the sphere about another line,
+/// x = 3, takes every crossing of the grid's steps and no other ray. A circle
+/// the sphere does not carry, though it crosses those half-planes — x = 3 of
+/// radius 2, inside the ball, or x = 9 of radius 4, on a ball of radius 5
+/// about (12, 0, 0) — takes nothing; a latitude of the sphere takes its
+/// grid's rays and no crossing; and the circle x = 3 standing in a group
+/// takes the group's rays and no crossing.
+#[test]
+fn a_circle_is_widened_by_the_crossings_of_a_sphere_s_steps_only_when_the_sphere_carries_it_about_another_line_and_it_stands_in_no_group()
+ {
+    let (axes, steps) = axes_of_a_sphere(None);
+    let wall = SurfaceId(7);
+    let tilted = about_x(0.0, 4.0);
+    let expected = every_crossing(&tilted, &steps);
+    assert_eq!(expected.len(), 6, "x = 3 crosses three steps twice each");
+    let found = widened_alone(&axes, &tilted, wall).expect("the tilted circle is widened");
+    assert!(
+        same_rays(&found, &expected),
+        "the tilted circle takes {found:?}, where it crosses at {expected:?}"
+    );
+    for (circle, what) in [
+        (about_x(0.0, 2.0), "x = 3 of radius 2, inside the ball"),
+        (
+            Circle {
+                center: DVec3::new(9.0, 0.0, 0.0),
+                ..about_x(0.0, 4.0)
+            },
+            "x = 9 of radius 4, on another ball",
+        ),
+    ] {
+        assert!(
+            !every_crossing(&circle, &steps).is_empty(),
+            "{what} crosses the steps' half-planes"
+        );
+        assert_eq!(widened_alone(&axes, &circle, wall), None, "{what}");
+    }
+    let latitude = Circle::about(DVec3::new(0.0, 3.0, 0.0), DVec3::Y, 4.0);
+    let found = widened_alone(&axes, &latitude, wall).expect("a latitude takes its grid");
+    assert!(
+        same_rays(&found, &steps),
+        "the latitude takes {found:?}, where its grid is {steps:?}"
+    );
+    let rays = vec![DVec3::Y, DVec3::Z, DVec3::NEG_Y, DVec3::NEG_Z];
+    let (grouped, _) = axes_of_a_sphere(Some((wall, rays.clone())));
+    let found = widened_alone(&grouped, &tilted, wall).expect("a group widens its circle");
+    assert!(
+        same_rays(&found, &rays),
+        "the tilted circle in a group takes {found:?}, where its group's rays are {rays:?}"
+    );
+}
+
+/// The circle x = 3 against the sphere's grid, its parameter's nought along
+/// Y, where it crosses the step along X: a crossing whose place `kept` says
+/// no sample stands is left out, and every place it is asked about is the
+/// circle's own point at that crossing; a crossing at a step of the circle's
+/// grid its contact withholds at its level is left out. Every other crossing
+/// is taken.
+#[test]
+fn a_crossing_whose_place_is_not_kept_or_whose_step_the_circle_withholds_is_left_out() {
+    let (axes, steps) = axes_of_a_sphere(None);
+    let circle = about_x(0.0, 4.0);
+    let crossed = every_crossing(&circle, &steps);
+    let eps = Scale::of(5.0).eps();
+    let wall = SurfaceId(7);
+    let dropped = crossed[0];
+    let asked = RefCell::new(Vec::new());
+    let widened = axes
+        .widened(
+            &Contact::default(),
+            (&circle, wall),
+            (0.01, 10.0),
+            eps,
+            |point| {
+                asked.borrow_mut().push(point);
+                point.distance(circle.center + dropped * circle.radius) > 1e-9
+            },
+        )
+        .expect("the other crossings widen the circle");
+    let others: Vec<DVec3> = crossed[1..].to_vec();
+    assert!(
+        same_rays(&widened.rays, &others),
+        "with the place of {dropped} not kept, the circle takes {:?}, where {others:?}",
+        widened.rays
+    );
+    let asked = asked.into_inner();
+    assert_eq!(
+        asked.len(),
+        crossed.len(),
+        "each crossing's place asked about once"
+    );
+    for point in asked {
+        assert!(
+            crossed
+                .iter()
+                .any(|way| point.distance(circle.center + *way * circle.radius) <= 1e-12),
+            "the place {point} asked about is no crossing of the circle"
+        );
+    }
+
+    let at_nought = Contact {
+        withheld: vec![(0, [2.0, 4.0])],
+        ..Contact::default()
+    };
+    let widened = axes
+        .widened(&at_nought, (&circle, wall), (0.01, 10.0), eps, |_| true)
+        .expect("the other crossings widen the circle");
+    let others: Vec<DVec3> = crossed
+        .iter()
+        .copied()
+        .filter(|way| way.distance(DVec3::Y) > 1e-12)
+        .collect();
+    assert_eq!(others.len(), crossed.len() - 1, "one crossing along Y");
+    assert!(
+        same_rays(&widened.rays, &others),
+        "with the circle's step at nought withheld, it takes {:?}, where {others:?}",
+        widened.rays
+    );
 }
