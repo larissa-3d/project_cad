@@ -358,3 +358,6 @@ fn parted(mut body: brep::Body, pieces: &mut u32, roots: &mut BTreeMap<u32, u32>
     }
     body
 }
+
+#[cfg(test)]
+mod tests;
