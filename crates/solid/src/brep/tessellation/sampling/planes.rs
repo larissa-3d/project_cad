@@ -1,12 +1,15 @@
 //! The planes touching a wall along a line, and the places of the wall that
 //! stand on such a plane: a sample there would lay a strip of the wall on
-//! the plane's face.
+//! the plane's face. And the planes touching a sphere at a point, on which
+//! the samples inside its faces standing within the tolerance of them are
+//! laid.
 
 use glam::DVec3;
 
+use super::Samples;
 use crate::brep::domain::Location;
 use crate::brep::scale::Scale;
-use crate::brep::surface::{Plane, Surface};
+use crate::brep::surface::{Plane, Sphere, Surface};
 use crate::brep::tessellation::contact;
 use crate::brep::topology::{Body, SurfaceId};
 
@@ -75,4 +78,35 @@ pub(in crate::brep::tessellation) fn touching_planes(
         })
         .map(|(_, plane)| plane)
         .collect()
+}
+
+impl Samples {
+    /// Each sample from `from` on, added inside a face of `sphere`, laid on
+    /// a plane of `body` within the tolerance of touching the sphere where
+    /// it stands within the tolerance of the plane: the kernel decided the
+    /// two touch at a point there (#939), and a sample on the sphere a hair
+    /// through the plane would lay triangles across the plane's face.
+    pub(in crate::brep::tessellation) fn on_a_touching_plane(
+        &mut self,
+        body: &Body,
+        sphere: &Sphere,
+        from: usize,
+    ) {
+        let eps = body.scale().eps();
+        let middle = sphere.middle();
+        for surface in &body.surfaces {
+            let Surface::Plane(plane) = surface else {
+                continue;
+            };
+            if (plane.distance(middle).abs() - sphere.radius).abs() > eps {
+                continue;
+            }
+            for point in &mut self.points[from..] {
+                let away = plane.distance(*point);
+                if away.abs() <= eps {
+                    *point -= plane.normal * away;
+                }
+            }
+        }
+    }
 }

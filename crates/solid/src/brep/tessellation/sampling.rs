@@ -278,6 +278,10 @@ impl Samples {
         self.points[id]
     }
 
+    pub(super) fn count(&self) -> usize {
+        self.points.len()
+    }
+
     pub(super) fn edge(&self, edge: EdgeId) -> &[usize] {
         &self.edges[edge.0 as usize]
     }

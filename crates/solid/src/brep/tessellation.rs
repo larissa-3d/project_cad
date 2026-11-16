@@ -26,6 +26,9 @@
 //! its own `(θ, φ)` and refined there as on the central chart. Any other
 //! face reaching some 87° or more from every direction, or behind the plane
 //! of its chart, is left open, as is a face of a torus its chart refuses.
+//! A point added inside a face of a sphere within the tolerance of a plane
+//! touching the sphere at a point is laid on the plane, where the kernel
+//! decided the two touch (#939), rather than a hair through its face.
 //! Each face is cut alone, so two faces standing within the tolerance of
 //! each other can fold onto each other across their edge; [`folds`] cuts
 //! them the other way once all are cut.
@@ -39,6 +42,7 @@ mod sweep;
 
 use glam::DVec3;
 
+use super::surface::Surface;
 use super::topology::{Body, FaceId};
 use folds::Drawn;
 use outline::Outline;
@@ -63,10 +67,14 @@ impl Body {
         let mut drawn = Vec::new();
         let mut uncut = Vec::new();
         for id in self.face_ids() {
+            let from = samples.count();
             let Some((outline, cut)) = Outline::cut_of(self, &mut samples, id, tolerance) else {
                 uncut.push(id);
                 continue;
             };
+            if let Surface::Sphere(sphere) = self.surface(self.face(id).surface) {
+                samples.on_a_touching_plane(self, sphere, from);
+            }
             drawn.push(Drawn {
                 face: id,
                 outline,

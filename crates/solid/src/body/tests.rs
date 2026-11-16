@@ -1383,3 +1383,4 @@ mod chamfer;
 mod fillet;
 mod section;
 mod through_a_pole;
+mod touching_a_ball;

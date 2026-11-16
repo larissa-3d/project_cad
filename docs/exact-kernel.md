@@ -60,9 +60,9 @@ It can:
   plane at a slant to its axis or off it, along a circle of another axis —
   a ball cut at a slant, the chamfer at the foot of a rib cut from a ball
   (#805), through a pole of its chart too, the sphere read about the
-  circle's axis (#938) — short of a plane within the tolerance of touching
-  it (#939) and a face bounded by circles of two such axes, not drawn yet
-  (#940); a plane against
+  circle's axis (#938) — or at the one point it touches within the
+  tolerance (#939), short of a face bounded by circles of two such axes,
+  not drawn yet (#940); a plane against
   a cylinder or a cone at any angle (#552); elliptic cylinders (#571)
   against planes at any angle and round or elliptic walls parallel or
   square to them; curves: lines, circles, ellipses, the
@@ -611,9 +611,9 @@ Known and still open:
   plane holding its axis along its meridians; and a coaxial cylinder, cone,
   sphere or torus along one or two rims. A sphere meets any other plane
   along a circle of another axis (#805), one through a pole of its chart
-  read about the circle's own axis (#938); a plane within the tolerance of
-  touching it (#939), and a face bounded by circles of two such axes, which
-  is not drawn (#940), are still declined. A cone within the
+  read about the circle's own axis (#938), or at the point it touches
+  within the tolerance (#939); a face bounded by circles of two such axes,
+  which is not drawn (#940), is still declined. A cone within the
   tolerance of a plane or a cylinder of its axis all across the box, two
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another
@@ -859,8 +859,10 @@ The decisions, in the order taken, once per operation:
    plane, of radius `√(r² − d²)`, `d` the centre's distance from the plane,
    written as a product — `Relation::Circle`, a circle of another axis than
    the sphere's — and misses it further than `EPS` off; within `EPS` of
-   touching, the plane touches the sphere at a point no pole stands on,
-   through which no face is built: unsupported. The circle is a line of no
+   touching, the plane touches the sphere at that foot alone (#939),
+   `Relation::Apex` as at a pole, a corner candidate no edge reaches, so
+   that the join holds both and the cuts leave either whole, as a hair
+   apart. The circle is a line of no
    chart of the sphere's, and is seen in its `(θ, φ)` as itself
    (`Trace::Tilted`, `surface/sphere/seen.rs`): its angle about the axis
    unwrapped by where the axis pierces the circle's disc, once round a turn
@@ -2675,6 +2677,12 @@ pointed cone's flank waits on #711.
   in the sphere's own `(θ, φ)`, each sample of such a circle where it is
   read, swept, and refined as the central chart refines, each point added
   lifted onto the sphere from `(θ, φ)`. Any other is left open still.
+  A point added inside a face of a sphere — a lattice point, a point a
+  refinement adds — standing within `EPS` of a plane of the body within
+  `EPS` of touching the sphere is laid on the plane (#939,
+  `sampling/planes.rs`): the kernel decided the two touch at a point, and a
+  lattice point at the touch, left on the sphere a hair through the plane,
+  crossed the plane's face by more than the rules allow.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

@@ -1,7 +1,9 @@
 //! What a sphere or a torus makes with another surface (#576): the coaxial
 //! pairs decided once in the meridian half-plane; a sphere and a plane at a
 //! slant to its axis, or square to it off its centre, along the circle about
-//! the foot of the centre on the plane (#805); everything else declined.
+//! the foot of the centre on the plane (#805), or, within the tolerance of
+//! touching it off its poles, at the one point it touches (#939);
+//! everything else declined.
 
 use glam::{DVec2, DVec3};
 
@@ -677,18 +679,107 @@ fn a_plane_at_a_slant_further_from_a_ball_s_centre_than_its_radius_misses_it() {
     }
 }
 
+/// Unit directions from a ball's centre to points of its sphere off its
+/// poles, about `axis`: on its equator, and 30° and 60° from it towards
+/// either pole, each along three ways round the axis; with the slanted and
+/// square ones the sections are cut along, and every one of them turned the
+/// other way.
+fn off_the_poles(axis: DVec3) -> Vec<DVec3> {
+    let square = axis.any_orthonormal_vector();
+    let across = axis.cross(square);
+    let (sin, cos) = 250f64.to_radians().sin_cos();
+    let ways = [square, across, square * cos + across * sin];
+    [0.0f64, 30.0, 60.0, -30.0, -60.0]
+        .into_iter()
+        .flat_map(|latitude| {
+            let (sin, cos) = latitude.to_radians().sin_cos();
+            ways.map(|way| way * cos + axis * sin)
+        })
+        .chain(slanted_and_square(axis))
+        .flat_map(|towards| [towards, -towards])
+        .collect()
+}
+
+/// A ball of radius 3 about `axis`, its centre 5 along it from a point off
+/// the origin, and that centre.
+fn ball_about(axis: DVec3) -> (Surface, DVec3) {
+    let through = DVec3::new(-4.0, 2.5, 1.0);
+    (
+        Surface::Sphere(Sphere::through(through, axis, 5.0, 3.0)),
+        through + axis * 5.0,
+    )
+}
+
+/// The axes a ball is turned about: one of the frame's, and one leaning
+/// from all three.
+const AXES: [DVec3; 2] = [DVec3::Z, DVec3::new(2.0, -1.0, 3.0)];
+
 #[test]
-fn a_plane_within_a_hair_of_touching_a_ball_off_its_poles_is_unsupported() {
+fn a_plane_within_half_the_tolerance_of_touching_a_ball_off_its_poles_touches_it_at_that_point_alone()
+ {
     let eps = scale().eps();
-    for normal in slanted_and_square(DVec3::Z) {
-        for standing in [3.0 - eps / 2.0, 3.0, 3.0 + eps / 2.0, -3.0] {
-            let flat = plane(DVec3::new(0.0, 0.0, 5.0) + normal * standing, normal);
-            assert_eq!(
-                between(&ball(), &flat),
-                Relation::Unsupported,
-                "a plane facing {normal} {standing} from the centre, touching the ball off its \
-                 poles, which #939 is to read as a touch"
-            );
+    for axis in AXES.map(DVec3::normalize) {
+        let (round, middle) = ball_about(axis);
+        for towards in off_the_poles(axis) {
+            let touch = middle + towards * 3.0;
+            for standing in [3.0 - eps / 2.0, 3.0, 3.0 + eps / 2.0] {
+                for facing in [towards, -towards] {
+                    let flat = plane(middle + towards * standing, facing);
+                    let what = format!(
+                        "about {axis}, a plane facing {facing}, {standing} from the centre \
+                         towards {towards}"
+                    );
+
+                    let found = between(&round, &flat);
+
+                    assert!(found.curves().is_empty(), "{what}: no curve, got {found:?}");
+                    let [at] = found.points()[..] else {
+                        panic!("{what}: the one point of touch expected, got {found:?}");
+                    };
+                    assert!(
+                        at.distance(touch) <= eps,
+                        "{what}: touches at {at}, {} from {touch}, the ball's point square to \
+                         the plane",
+                        at.distance(touch)
+                    );
+                    for surface in [&round, &flat] {
+                        assert!(
+                            surface.distance(at).abs() <= eps,
+                            "{what}: {at} stands {} off {surface:?}",
+                            surface.distance(at)
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn a_plane_twice_the_tolerance_beyond_touching_a_ball_off_its_poles_misses_it_and_twice_within_cuts_a_small_circle()
+ {
+    let eps = scale().eps();
+    for axis in AXES.map(DVec3::normalize) {
+        let (round, middle) = ball_about(axis);
+        for towards in off_the_poles(axis) {
+            for facing in [towards, -towards] {
+                let beyond = plane(middle + towards * (3.0 + 2.0 * eps), facing);
+                assert_eq!(
+                    between(&round, &beyond),
+                    Relation::Apart,
+                    "about {axis}, a plane facing {facing} twice the tolerance beyond the ball \
+                     towards {towards}"
+                );
+                let within = plane(middle + towards * (3.0 - 2.0 * eps), facing);
+                cut_about_the_foot(
+                    &round,
+                    &within,
+                    &format!(
+                        "about {axis}, a plane facing {facing} twice the tolerance within the \
+                         ball towards {towards}"
+                    ),
+                );
+            }
         }
     }
 }
