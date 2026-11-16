@@ -38,10 +38,17 @@
 //! - Existing chamfer and fillet tests still pass — no test: their own suites,
 //!   `a_chamfer_cuts_one_straight_edge.rs`, `a_fillet_rounds_one_straight_edge.rs`,
 //!   the other `a_chamfer_and_a_fillet_` files and `src/body/tests/`, are the
-//!   answer, left as they were but for one test: the chamfer's suite held
-//!   `a_chamfer_whose_cut_carried_along_its_edge_would_reach_a_second_block_in_line_is_declined_as_unsupported`,
-//!   the very limit this issue lifts, two blocks in line declined; it went,
-//!   and its two blocks are a case of the two tests above, built
+//!   answer, all of them passing, and changed in the chamfer's suite by three
+//!   tests. One went:
+//!   `a_chamfer_whose_cut_carried_along_its_edge_would_reach_a_second_block_in_line_is_declined_as_unsupported`
+//!   declined two blocks in line, the very limit this issue lifts, and its two
+//!   blocks are a case of the two tests above, built. One was renamed: the
+//!   tab beside the edge's end, which the cut no longer takes away whole, now
+//!   `a_chamfer_whose_cut_would_end_inside_a_tab_beside_its_edge_s_end_is_declined_as_unsupported`,
+//!   the cut's end left a face of its own inside the tab. One was added, for
+//!   the guard that declines a cut taking a face away whole, which the tab no
+//!   longer reaches:
+//!   `a_chamfer_whose_cut_would_take_a_blind_hole_in_the_wall_at_its_end_away_whole_is_declined_as_unsupported`
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
