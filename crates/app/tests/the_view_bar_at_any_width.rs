@@ -282,6 +282,7 @@ fn a_view_just_short_of_the_full_bar_shows_icons_alone_and_still_the_coordinates
     for name in THE_BAR_S_BUTTONS {
         assert_icon_alone(&app, name, &seen);
     }
+    assert_every_button_wears_its_icon(&app, &seen);
     assert_eq!(
         driver::the_bar_s_coordinates(&app),
         reading,
@@ -303,6 +304,7 @@ fn a_view_just_short_of_the_full_bar_shows_icons_alone_and_still_the_coordinates
     driver::start_a_sketch(&mut app);
     let seen = narrowed_just_short_of(&mut app, "the full bar");
     assert_icon_alone(&app, "Matière devant", &seen);
+    assert_every_button_wears_its_icon(&app, &seen);
     let tooltip = the_tooltip_of(&mut app, "Matière devant", &seen);
     assert!(
         tooltip.starts_with("Matière devant"),
@@ -336,6 +338,37 @@ fn at_the_default_window_the_bar_reads_every_name_key_and_the_coordinates() {
         "{seen}, the bar ends on {last:?}, not on the coordinates of the point under the cursor",
     );
     assert_every_button_wears_its_icon(&app, seen);
+    assert!(
+        shows
+            .iter()
+            .skip_while(|text| *text != "Vue en coupe")
+            .nth(1)
+            .is_some_and(|next| next.starts_with("Matière devant")),
+        "{seen}, the bar writes {shows:?}: « Vue en coupe », bound to no key by default, is \
+         followed by something other than « Matière devant »",
+    );
+
+    let mut settings = cao_prefs::Settings::default();
+    settings.shortcuts.bind(
+        cao_prefs::Command::SectionView,
+        cao_prefs::Chord::new(cao_prefs::Key::V),
+    );
+    let mut app = driver::open_with(
+        "at_the_default_window_a_bound_key_is_written",
+        driver::SCREEN,
+        settings,
+    );
+    driver::create_a_part(&mut app, "Platine");
+    hover_off_the_view(&mut app);
+    let seen = "at 1280 × 800, « Vue en coupe » bound to V";
+    let shows = the_bar_shows(&app, seen);
+    assert!(
+        in_this_order(
+            &shows,
+            &["Recadrer", "F", "Vue en coupe", "V", "Matière devant"]
+        ),
+        "{seen}, the bar writes {shows:?}, not « Vue en coupe » with its key V",
+    );
 }
 
 #[test]
@@ -388,43 +421,49 @@ fn widening_the_window_again_gives_the_bar_back_its_words() {
 /// How many frames in a row the bar is watched on a threshold.
 const FRAMES_WATCHED: usize = 12;
 
-/// Whether the bar wears its words at this window width, once settled.
-fn worded_at(app: &mut driver::App, width: f32) -> bool {
+/// What the bar writes at this window width, once settled.
+fn the_bar_shows_at(app: &mut driver::App, width: f32) -> Vec<String> {
     app.set_size(egui::vec2(width, driver::SCREEN.y));
     let _ = app.try_run();
     the_bar_shows(app, &format!("in a window {width} wide"))
-        .iter()
-        .any(|text| text == "Recadrer")
 }
 
-#[test]
-fn on_a_threshold_the_bar_keeps_one_form_from_frame_to_frame() {
-    let mut app = driver::open_on("on_a_threshold_the_bar_keeps_one_form", driver::SCREEN);
-    driver::create_a_part(&mut app, "Platine");
-    hover_off_the_view(&mut app);
-    let full = the_bar_s_frame(&app, "at 1280 × 800").width();
-    let beside_the_view = driver::SCREEN.x - driver::the_view_s_width(&app);
+fn wears_its_words(shows: &[String]) -> bool {
+    shows.iter().any(|text| text == "Recadrer")
+}
 
-    let mut icons = beside_the_view + full + SPACING_XXL - SHORT_OF_THE_BAR;
-    let mut worded = driver::SCREEN.x;
-    while worded - icons > 0.1 {
-        let middle = (icons + worded) / 2.0;
-        if worded_at(&mut app, middle) {
-            worded = middle;
+/// With the pointer off the view the coordinates read a dash.
+fn reads_its_coordinates(shows: &[String]) -> bool {
+    shows.iter().any(|text| text == "—")
+}
+
+/// Bisects the window widths between `narrow` and `wide` for the one where the
+/// bar takes back what `wears` looks for, then watches the bar frame after
+/// frame on both sides of it and in between. Returns the narrow side.
+fn assert_one_form_on_the_threshold(
+    app: &mut driver::App,
+    (mut narrow, mut wide): (f32, f32),
+    wears: fn(&[String]) -> bool,
+    what: &str,
+) -> f32 {
+    while wide - narrow > 0.1 {
+        let middle = (narrow + wide) / 2.0;
+        if wears(&the_bar_shows_at(app, middle)) {
+            wide = middle;
         } else {
-            icons = middle;
+            narrow = middle;
         }
     }
 
     let mut watched = Vec::new();
-    for width in [icons, (icons + worded) / 2.0, worded] {
+    for width in [narrow, (narrow + wide) / 2.0, wide] {
         app.set_size(egui::vec2(width, driver::SCREEN.y));
         let _ = app.try_run();
-        let seen = format!("in a window {width} wide, on the bar's threshold");
+        let seen = format!("in a window {width} wide, where the bar {what}");
         let forms: Vec<Vec<String>> = (0..FRAMES_WATCHED)
             .map(|_| {
                 app.step();
-                the_bar_shows(&app, &seen)
+                the_bar_shows(app, &seen)
             })
             .collect();
         assert!(
@@ -435,11 +474,39 @@ fn on_a_threshold_the_bar_keeps_one_form_from_frame_to_frame() {
             app.try_run().is_ok(),
             "{seen}, the bar never stops asking for another frame",
         );
-        watched.push(forms[0].iter().any(|text| text == "Recadrer"));
+        watched.push(wears(&forms[0]));
     }
     assert!(
         !watched[0] && watched[2],
-        "the bar was to shed its words between a window {icons} and {worded} wide; \
-         worded at the narrow side, the middle and the wide side: {watched:?}",
+        "the bar was to {what} between a window {narrow} and {wide} wide; as watched at \
+         the narrow side, the middle and the wide side: {watched:?}",
+    );
+    narrow
+}
+
+#[test]
+fn on_a_threshold_the_bar_keeps_one_form_from_frame_to_frame() {
+    let mut app = driver::open_on("on_a_threshold_the_bar_keeps_one_form", driver::SCREEN);
+    driver::create_a_part(&mut app, "Platine");
+    hover_off_the_view(&mut app);
+    let full = the_bar_s_frame(&app, "at 1280 × 800").width();
+    let beside_the_view = driver::SCREEN.x - driver::the_view_s_width(&app);
+
+    let short_of_the_words = beside_the_view + full + SPACING_XXL - SHORT_OF_THE_BAR;
+    let shed = assert_one_form_on_the_threshold(
+        &mut app,
+        (short_of_the_words, driver::SCREEN.x),
+        wears_its_words,
+        "sheds its words",
+    );
+
+    the_bar_shows_at(&mut app, shed);
+    let icons_and_reading = the_bar_s_frame(&app, "with its icons and its reading").width();
+    let short_of_the_reading = beside_the_view + icons_and_reading + SPACING_XXL - SHORT_OF_THE_BAR;
+    assert_one_form_on_the_threshold(
+        &mut app,
+        (short_of_the_reading, shed),
+        reads_its_coordinates,
+        "drops its coordinates",
     );
 }
