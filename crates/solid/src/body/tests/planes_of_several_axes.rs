@@ -32,10 +32,19 @@
 //! of the ball's chart, within the reach every layout of a sphere face in
 //! that chart keeps off a pole — a limit of the chart, which a chart about
 //! another axis does not have, and none of #940's criteria: #962 is to lift
-//! it. The fallback's
-//! own test in `brep/tessellation/outline/tests.rs` now holds that a face
-//! bounded by circles alone is laid out as one bounded by a cylinder's curve
-//! is, and refused for the same nearness to a pole.
+//! it. The fallback's own test in `brep/tessellation/outline/tests.rs` now
+//! holds that a face bounded by circles alone is laid out as one bounded by a
+//! cylinder's curve is, and refused for the same nearness to a pole.
+//!
+//! The review's two risks, each held at four finenesses of the drawing: a
+//! half ball cut by a flat across its rim, whose circle ends at corners of
+//! the half ball's floor, where it touches or crosses the half-plane of its
+//! sphere's grid through each corner — declined `Undrawn` before #940, now
+//! the fallback's; and bodies drawn before #940 whose sphere carries a
+//! circle of another axis beside a round or a flat — a block's corner
+//! filleted on its three edges, and the rib cut from a ball chamfered or
+//! filleted at its foot — which now also take the angles of the sphere's
+//! grid their circles cross.
 
 use super::*;
 use crate::soundness::listed;
@@ -254,4 +263,270 @@ fn a_ball_cut_by_two_flats_whose_circles_turn_about_two_axes_round_its_own_is_bu
         TAU * 5.0 * 4.0,
         what,
     );
+}
+
+/// How fine the drawings [`drawn_at_each_fineness`] cuts are, as shares of
+/// the drawing's own tolerance: four times finer, the drawing's, and four
+/// and sixteen times coarser. A circle's grid, the angles of its sphere it
+/// is sampled at and the vertices among them move with the fineness.
+const FINENESS: [f64; 4] = [0.25, 1.0, 4.0, 16.0];
+
+/// Holds that `body` is drawn whole, closed and uncrossed at each of
+/// [`FINENESS`].
+fn drawn_at_each_fineness(body: &Body, what: &str) {
+    let reach = body.brep().expect("an exact body").scale().reach();
+    for share in FINENESS {
+        let tolerance = super::super::drawn::DRAWN * reach * share;
+        let triangles = body
+            .triangles_within(tolerance)
+            .unwrap_or_else(|| panic!("{what}: a face left uncut at {tolerance}"));
+        assert_eq!(
+            crate::soundness::closed(&triangles),
+            Ok(()),
+            "{what}, at {tolerance}"
+        );
+        assert_eq!(
+            crate::soundness::uncrossed(&triangles),
+            Ok(()),
+            "{what}, at {tolerance}"
+        );
+    }
+}
+
+/// What the cap of the ball past the plane `offset` from its centre along a
+/// normal leaning `tilt` below square to its axis holds above its equator:
+/// over every place `t` along the normal from `offset` out to 5 cos(tilt),
+/// the segment of the disc of radius ρ = √(25 − t²) past the chord t tan(tilt)
+/// across it, ρ² acos(c/ρ) − c √(ρ² − c²), summed by Simpson's rule with
+/// t = 5 cos(tilt) − s², under which the segment's vanishing there is smooth.
+/// Square to the axis, half the cap.
+fn cap_above_the_equator(tilt: f64, offset: f64) -> f64 {
+    let end = 5.0 * tilt.cos();
+    if end <= offset {
+        return 0.0;
+    }
+    let slice = |s: f64| {
+        let t = end - s * s;
+        let (square, chord) = ((25.0 - t * t).max(0.0), t * tilt.tan());
+        let segment = if chord * chord >= square {
+            0.0
+        } else {
+            square * (chord / square.sqrt()).acos() - chord * (square - chord * chord).sqrt()
+        };
+        segment * 2.0 * s
+    };
+    let (steps, last) = (1 << 12, (end - offset).sqrt());
+    let step = last / f64::from(steps);
+    let inner: f64 = (1..steps)
+        .map(|index| slice(step * f64::from(index)) * if index % 2 == 1 { 4.0 } else { 2.0 })
+        .sum();
+    (slice(0.0) + inner + slice(last)) * step / 3.0
+}
+
+/// The ball cut in half at y = 0, keeping the dome above it or the bowl
+/// below it.
+fn dome(above: bool) -> Body {
+    let (low, high) = if above { (-10.0, 0.0) } else { (0.0, 10.0) };
+    ball_about_y()
+        .difference(&boxed(
+            DVec3::new(-10.0, low, -10.0),
+            DVec3::new(10.0, high, 10.0),
+        ))
+        .expect("a plane square to its axis cuts the ball in half")
+}
+
+/// A half ball, then a flat across its rim, whose circle on the sphere ends
+/// on the rim at two corners shared by the flat, the half ball's floor and
+/// its sphere: on main, declined `Undrawn`; since #940 the fallback's. Square
+/// to the floor, x ≥ 3 on the dome and on the bowl, x ≤ −3, and a flat 3
+/// along (1, 0, 1): the circle stands square to the rim at each corner, and
+/// touches the half-plane of its sphere's grid through that corner there.
+/// At a slant, 2 along a normal leaning thirty degrees below the floor's
+/// plane, turned 35° about the axis, on the dome, and its mirror on the bowl:
+/// the circle crosses that half-plane at the corner. Each holds the half ball
+/// less the part of the cap on its side of the floor, and is drawn closed and
+/// uncrossed at every fineness.
+#[test]
+fn a_half_ball_cut_by_a_flat_across_its_rim_is_built_and_drawn_closed_and_uncrossed_at_every_fineness()
+ {
+    let half = BALL_OF_5 / 2.0;
+    let square = half - cap_above_the_equator(0.0, 3.0);
+    let tilt = 30f64.to_radians();
+    let leaning = half - cap_above_the_equator(tilt, 2.0);
+    let turned = |y: f64| {
+        let (sin, cos) = 35f64.to_radians().sin_cos();
+        DVec3::new(tilt.cos() * cos, y, tilt.cos() * sin)
+    };
+    let cases = [
+        (
+            true,
+            block_past(DVec3::X, 3.0),
+            square,
+            "the dome cut by x ≥ 3",
+        ),
+        (
+            false,
+            block_past(DVec3::X, 3.0),
+            square,
+            "the bowl cut by x ≥ 3",
+        ),
+        (
+            true,
+            boxed(DVec3::splat(-10.0), DVec3::new(-3.0, 10.0, 10.0)),
+            square,
+            "the dome cut by x ≤ −3",
+        ),
+        (
+            true,
+            slab_along(DVec3::new(1.0, 0.0, 1.0), 3.0),
+            square,
+            "the dome cut by a flat 3 along (1, 0, 1)",
+        ),
+        (
+            true,
+            slab_along(turned(-tilt.sin()), 2.0),
+            leaning,
+            "the dome cut by a flat leaning down",
+        ),
+        (
+            false,
+            slab_along(turned(tilt.sin()), 2.0),
+            leaning,
+            "the bowl cut by a flat leaning up",
+        ),
+    ];
+    for (above, flat, kept, what) in &cases {
+        let body = dome(*above)
+            .difference(flat)
+            .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        built_listed_and_drawn(&body, *kept, 50.0 * PI, what);
+        drawn_at_each_fineness(&body, what);
+    }
+}
+
+/// The face numbered `first` and the face numbered `second` meet along one
+/// edge: its name.
+fn the_edge_between(body: &Body, first: usize, second: usize) -> crate::EdgeName {
+    let sides = [vec![first as u32], vec![second as u32]];
+    let named: Vec<crate::EdgeName> = body
+        .edge_names()
+        .into_iter()
+        .filter(|name| {
+            name.between == sides || name.between == [sides[1].clone(), sides[0].clone()]
+        })
+        .collect();
+    assert_eq!(
+        named.len(),
+        1,
+        "one edge between {first} and {second}: {named:?}"
+    );
+    named[0].clone()
+}
+
+/// The face of `body` whose plane faces `normal` and holds `point`.
+fn flat_facing(body: &Body, normal: DVec3, point: DVec3) -> usize {
+    (0..body.faces_end())
+        .find(|&face| {
+            body.plane_of(face).is_some_and(|plane| {
+                plane.normal.dot(normal) > 1.0 - 1e-9
+                    && plane
+                        .corners
+                        .iter()
+                        .any(|corner| (*corner - point).dot(normal).abs() < 1e-9)
+            })
+        })
+        .unwrap_or_else(|| panic!("a face facing {normal} through {point}"))
+}
+
+/// The plate 40 × 30 × 4 with a rib on its top cut from the ball of radius 8
+/// about (20, 15, 4), between x = 18 and x = 22, as #805's first slice
+/// chamfers and its second fillets at the foot of either side: a half disc
+/// turned half a turn about the line along X through the centre.
+fn rib_cut_from_a_ball() -> Body {
+    let plate = block(DVec2::ZERO, DVec2::new(40.0, 30.0), 4.0);
+    let reach = 60f64.sqrt();
+    let slice = Contour {
+        corners: vec![
+            DVec2::new(18.0, 0.0),
+            DVec2::new(22.0, 0.0),
+            DVec2::new(22.0, reach),
+            DVec2::new(18.0, reach),
+        ],
+        runs: vec![
+            Run::Straight,
+            Run::Straight,
+            Run::Round {
+                center: DVec2::new(20.0, 0.0),
+                turn: PI - 2.0 * reach.atan2(2.0),
+            },
+            Run::Straight,
+        ],
+    };
+    let sampled: &'static [DVec2] = Box::leak(slice.corners.clone().into_boxed_slice());
+    let outline = Profile {
+        exact: Some((slice, Vec::new())),
+        sampled: Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    let on_the_top = Frame {
+        origin: DVec3::new(0.0, 15.0, 4.0),
+        ..FLAT
+    };
+    let along_x = Axis {
+        origin: DVec2::ZERO,
+        direction: DVec2::X,
+    };
+    let rib = plate
+        .tool_turned(&outline, on_the_top, &Turn::of(along_x, PI, 1e-4, &outline))
+        .expect("the slice turns");
+    plate.union(&rib).expect("the rib is joined")
+}
+
+/// Bodies drawn before #940 whose sphere carries a circle of another axis
+/// beside a round or a flat, where its samples are shared or held back:
+/// a block's corner filleted on its three edges, closed by a piece of sphere
+/// whose three arcs each run along a fillet's round (#699), and the rib cut
+/// from a ball chamfered or filleted at the foot of either side, the flat's
+/// circle, or the round's curve, on the sphere at both ends (#805). Every
+/// circle on a sphere now also takes the angles of the sphere's grid it
+/// crosses; each is drawn closed and uncrossed at every fineness all the
+/// same.
+#[test]
+fn the_spheres_of_a_corner_fillet_and_of_a_rib_cut_from_a_ball_and_blended_at_its_foot_are_drawn_closed_and_uncrossed_at_every_fineness()
+ {
+    let corner = block(DVec2::ZERO, DVec2::new(30.0, 20.0), 10.0);
+    let at = DVec3::new(30.0, 20.0, 10.0);
+    let [right, back, top] =
+        [DVec3::X, DVec3::Y, DVec3::Z].map(|normal| flat_facing(&corner, normal, at));
+    let names = [(right, back), (back, top), (top, right)]
+        .map(|(one, other)| the_edge_between(&corner, one, other));
+    let filleted = corner
+        .fillet_edges(&names, 3.0)
+        .unwrap_or_else(|declined| panic!("the corner's fillet: declined, {declined:?}"));
+    drawn_at_each_fineness(
+        &filleted.body,
+        "the block's corner filleted on its three edges",
+    );
+
+    let rib = rib_cut_from_a_ball();
+    let plate_top = flat_facing(&rib, DVec3::Z, DVec3::new(0.0, 0.0, 4.0));
+    for (normal, x, side) in [(DVec3::X, 22.0, "right"), (DVec3::NEG_X, 18.0, "left")] {
+        let face = flat_facing(&rib, normal, DVec3::new(x, 15.0, 4.0));
+        let foot = the_edge_between(&rib, plate_top, face);
+        let chamfered = rib
+            .chamfer(&foot, 2.0)
+            .unwrap_or_else(|declined| panic!("the {side} foot's chamfer: declined, {declined:?}"));
+        drawn_at_each_fineness(
+            &chamfered.body,
+            &format!("the rib cut from a ball chamfered at the foot of its {side} side"),
+        );
+        let filleted = rib
+            .fillet(&foot, 2.0)
+            .unwrap_or_else(|declined| panic!("the {side} foot's fillet: declined, {declined:?}"));
+        drawn_at_each_fineness(
+            &filleted.body,
+            &format!("the rib cut from a ball filleted at the foot of its {side} side"),
+        );
+    }
 }

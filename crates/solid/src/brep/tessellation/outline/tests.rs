@@ -129,9 +129,9 @@ fn slab(normal: DVec3, off: f64) -> Body {
     Body::raised(&side, &[], frame, normal * 10.0).expect("a slab stands on its own")
 }
 
-/// How many triangles the fallback for a sphere face bounded by a
-/// cylinder's curve cuts the sphere face of `body` into, none where it
-/// refuses the face.
+/// How many triangles the fallback for a sphere face no other chart cuts,
+/// [`Outline::pierced`], cuts the first sphere face of `body` into, none
+/// where it refuses the face.
 fn by_the_fallback(body: &Body) -> Option<usize> {
     let tolerance = 1e-3 * body.scale().reach();
     let (id, sphere) = body
@@ -188,9 +188,11 @@ fn the_curve_a_cylinder_meets_a_ball_along_pierces_it_only_on_its_own_sphere_rea
 /// its axis; and a ball cut by flats of two axes or three, bounded by their
 /// circles alone (#940): x and z ≥ 4, whose sphere holds both poles and two
 /// holes, x and z ≥ 2, one loop of two arcs, and x, y and z ≥ 2, one loop of
-/// three holding one pole. It refuses a notch whose curve passes nearer a pole, and a ball cut
-/// at a slant whose circle passes nearer a pole, alone or notched: what it
-/// lays out is told by how near a pole its curves come, not by what they are.
+/// three holding one pole. It refuses a notch whose curve passes nearer a
+/// pole, and a ball cut at a slant whose circle passes nearer a pole, alone
+/// or notched: between circles and the curve a cylinder meets the sphere
+/// along, what it lays out is told by how near a pole they come, not by which
+/// of the two they are. A face with any other curve it refuses still.
 #[test]
 fn the_fallback_lays_out_a_sphere_face_unless_a_curve_comes_within_a_twentieth_of_its_radius_of_a_pole()
  {
