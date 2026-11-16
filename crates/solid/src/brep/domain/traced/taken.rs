@@ -16,7 +16,8 @@ use crate::brep::trace::Trace;
 /// A stretch of a curve lying on `own`, a wall square to `other`, seen on
 /// `other` as the curve the two meet along: the component and the stretch
 /// of it the curve's ends and middle stand on, when the middle stands
-/// within `eps` of it.
+/// within `eps` of it. None where `own` is a sphere: the curve a cylinder
+/// meets it along is read with the sphere second alone (#805).
 pub(super) fn met(
     curve: &Curve,
     own: Wall,
@@ -24,6 +25,9 @@ pub(super) fn met(
     [from, to]: [f64; 2],
     eps: f64,
 ) -> Option<Trace> {
+    if matches!(own, Wall::Sphere(_)) {
+        return None;
+    }
     let middle = curve.point((from + to) / 2.0);
     let off = |meet: &Meet, at: f64| meet.point(at).distance(middle);
     let (meet, period, at) = (0..2)

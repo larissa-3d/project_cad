@@ -3,8 +3,10 @@ use std::f64::consts::{PI, TAU};
 use glam::{DVec2, DVec3};
 
 use super::*;
-use crate::brep::curve::{Circle, Curve, Line, Meet};
-use crate::brep::surface::{Cylinder, Plane, Surface};
+use crate::brep::curve::{Circle, Curve, Line, Meet, Wall};
+use crate::brep::meet::Meeting;
+use crate::brep::scale::Scale;
+use crate::brep::surface::{Cylinder, Plane, Sphere, Surface};
 use crate::profile::{Contour, Frame};
 
 const CLOSE: f64 = 1e-12;
@@ -177,6 +179,139 @@ fn a_meet_taken_for_an_arc_of_a_wall_a_hair_off_its_own_is_seen_in_that_wall_s_a
         "the speed {speed:?} against the step {:?}",
         (ahead - at) / step
     );
+}
+
+/// A ball of radius 3 about `(0, 0, 5)`, turned about Z, and a cylinder of
+/// radius 1 along X through `(0, 1.5, 5)`, which passes right through it; the
+/// loop the two meet along at `x > 0`, and its parameter where it stands on
+/// the ball's equator on the cylinder's ruling furthest along Y.
+fn a_ball_bored_across() -> (Sphere, Cylinder, Meet, f64) {
+    let ball = Sphere::through(DVec3::ZERO, DVec3::Z, 5.0, 3.0);
+    let bore = Cylinder::about(DVec3::new(0.0, 1.5, 5.0), DVec3::X, 1.0);
+    let on_the_equator = DVec3::new(2.75f64.sqrt(), 2.5, 5.0);
+    let meeting = Meeting::of(&Wall::Cylinder(bore), &Wall::Sphere(ball), Scale::of(40.0));
+    let (meet, at) = meeting
+        .components
+        .into_iter()
+        .map(|meet| (meet, meet.parameter(on_the_equator)))
+        .find(|(meet, at)| meet.point(*at).distance(on_the_equator) < 1e-9)
+        .expect("a loop through the equator");
+    (ball, bore, meet, at)
+}
+
+/// The angles of `seen` and `wanted` a whole number of turns apart, and their
+/// heights one, within `within`.
+fn seen_at(seen: DVec2, wanted: DVec2, within: f64) -> bool {
+    ((seen.x - wanted.x + PI).rem_euclid(TAU) - PI).abs() <= within
+        && (seen.y - wanted.y).abs() <= within
+}
+
+/// A stretch of the loop a cylinder meets a ball along is seen on that ball
+/// where the ball reads its points, and on nothing else: not on a ball of
+/// its centre and another radius, nor on one of its radius about another
+/// centre, nor on a wall along the ball's axis that carries none of it; and
+/// not on its own ball where the loop passes too near the ball's axis to be
+/// read there.
+#[test]
+fn a_stretch_of_the_curve_a_cylinder_meets_a_ball_along_is_traced_on_that_ball_alone() {
+    let (ball, _, meet, at) = a_ball_bored_across();
+    let curve = Curve::Meet(meet);
+    let [from, to] = [at - 0.2, at + 0.2];
+    let trace = traced(&curve, &Surface::Sphere(ball), from, to, EPS).expect("a trace on its ball");
+    for share in [0.0, 0.5, 1.0] {
+        let seen = trace.at(share)[0];
+        let wanted = ball.parameters(meet.point(from + (to - from) * share));
+        assert!(
+            seen_at(seen, wanted, 1e-9),
+            "at {share}: seen at {seen}, the ball reads {wanted}"
+        );
+    }
+    for (what, other) in [
+        (
+            "other radius",
+            Surface::Sphere(Sphere::through(DVec3::ZERO, DVec3::Z, 5.0, 2.5)),
+        ),
+        (
+            "other centre",
+            Surface::Sphere(Sphere::through(DVec3::X * 0.5, DVec3::Z, 5.0, 3.0)),
+        ),
+        (
+            "other wall",
+            Surface::Cylinder(Cylinder::about(DVec3::X * 20.0, DVec3::Z, 1.0)),
+        ),
+    ] {
+        assert!(
+            traced(&curve, &other, from, to, EPS).is_err(),
+            "{what}: {:?}",
+            traced(&curve, &other, from, to, EPS)
+        );
+    }
+    let thin = Cylinder::about(DVec3::new(0.012, 0.0, 0.0), DVec3::Z, 0.01);
+    let near = Meeting::of(&Wall::Cylinder(thin), &Wall::Sphere(ball), Scale::of(40.0));
+    assert!(!near.components.is_empty());
+    for meet in near.components {
+        assert!(
+            traced(&Curve::Meet(meet), &Surface::Sphere(ball), 0.0, 1.0, EPS).is_err(),
+            "{meet:?}"
+        );
+    }
+}
+
+/// The loop a cylinder meets a ball along, taken for an arc of a wall of one
+/// radius a hair off that cylinder (decision 6), the hair along the
+/// cylinder's own tangent where the stretch's middle stands, so that the
+/// middle stands on that wall within the tolerance, and that middle on the
+/// ball's equator: the stretch is seen in that wall's own angles, where its
+/// points stand, as any curve two walls meet along is.
+#[test]
+fn a_stretch_of_a_cylinder_s_curve_on_a_ball_its_middle_on_the_equator_taken_for_an_arc_of_a_wall_a_hair_off_its_cylinder_is_seen_in_that_wall_s_angles()
+ {
+    let (_, bore, meet, at) = a_ball_bored_across();
+    let beside = Cylinder::about(bore.origin + DVec3::Z * 1e-5, DVec3::X, 1.0);
+    let [from, to] = [at - 0.2, at + 0.2];
+    let trace = traced(
+        &Curve::Meet(meet),
+        &Surface::Cylinder(beside),
+        from,
+        to,
+        EPS,
+    )
+    .expect("a trace");
+    for share in [0.0, 0.25, 0.5, 0.75, 1.0] {
+        let seen = trace.at(share)[0];
+        let wanted = beside.parameters(meet.point(from + (to - from) * share));
+        assert!(
+            seen_at(seen, wanted, 1e-9),
+            "at {share}: seen at {seen}, standing at {wanted}"
+        );
+    }
+}
+
+/// Two cylinders of one radius whose axes meet square meet along two
+/// ellipses, each in a plane at 45° (#571): a stretch of one, on a face of
+/// its plane, is seen in that plane where its points stand.
+#[test]
+fn a_stretch_of_the_ellipse_two_square_walls_of_one_radius_meet_along_is_traced_on_the_plane_it_lies_in()
+ {
+    let first = Cylinder::about(DVec3::ZERO, DVec3::Z, 4.0);
+    let second = Cylinder::about(DVec3::new(0.0, 0.0, 1.0), DVec3::X, 4.0);
+    let meet = Meet {
+        first: first.into(),
+        second: second.into(),
+        component: 0,
+    };
+    let (plane, _) = Plane::through(DVec3::new(0.0, 0.0, 1.0), DVec3::new(1.0, 0.0, -1.0));
+    let [from, to] = [0.3, 1.9];
+    let trace = traced(&Curve::Meet(meet), &Surface::Plane(plane), from, to, EPS)
+        .expect("a trace on its plane");
+    for share in [0.0, 0.5, 1.0] {
+        let seen = trace.at(share)[0];
+        let wanted = plane.parameters(meet.point(from + (to - from) * share));
+        assert!(
+            seen.distance(wanted) <= 1e-9,
+            "at {share}: seen at {seen}, standing at {wanted}"
+        );
+    }
 }
 
 #[test]
