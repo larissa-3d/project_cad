@@ -306,6 +306,19 @@ pub fn stands_beside_the_view(app: &App, rect: egui::Rect) -> bool {
     rect.right() <= view.left() || rect.left() >= view.right()
 }
 
+/// Whether something floating over the drawing stands wholly inside the view,
+/// none of it under a panel beside it. Nothing is aimed with it, so a test may
+/// ask this where it may not read the canvas.
+pub fn stands_inside_the_view(app: &App, rect: egui::Rect) -> bool {
+    canvas(app).contains_rect(rect)
+}
+
+/// How wide the view is: a size, never a place, so nothing can be aimed from
+/// it.
+pub fn the_view_s_width(app: &App) -> f32 {
+    canvas(app).width()
+}
+
 fn drawing_area(app: &App) -> Option<egui::Rect> {
     let screen = app.ctx.content_rect();
     app.query_all(
@@ -832,6 +845,23 @@ pub fn the_bar_s<'a>(app: &'a App, label: &str) -> egui_kittest::Node<'a> {
                  showing {:?}",
                 on_screen(app)
             )
+        })
+}
+
+/// The view bar's button whose name starts with this wherever it stands, past
+/// the view's left edge under the panel included, where `the_bar_s` would not
+/// find it: below the top of the view, where no button of the ribbon is.
+pub fn the_bar_s_wherever_it_stands<'a>(
+    app: &'a App,
+    label: &str,
+) -> Option<egui_kittest::Node<'a>> {
+    let view = canvas(app);
+    app.query_all_by_role(egui::accesskit::Role::Button)
+        .find(|node| {
+            node.accesskit_node()
+                .label()
+                .is_some_and(|read| read.starts_with(label))
+                && node.rect().top() >= view.top()
         })
 }
 
