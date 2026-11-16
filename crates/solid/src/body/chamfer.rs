@@ -49,8 +49,12 @@ impl Body {
     /// flats stand a hair off one plane (#929). Such a slope or crease is
     /// laid at the distance whose set-backs meet across that face, which may
     /// stand a hair above the distance taken: its own distance is read off
-    /// its faces, never from [`Chamfered::taken`]. Two edges meeting at a convex corner
-    /// are mitred there, the corner's third edge left sharp, and three are
+    /// its faces, never from [`Chamfered::taken`]. Where the slope takes the
+    /// riser whole, it runs through the riser's top edge (#928), and the
+    /// distance taken is the nearest it stands to either edge, down the
+    /// nose's front at one end where the riser is turned by a hair. Two edges
+    /// meeting at a convex corner are mitred there, the corner's third edge
+    /// left sharp, and three are
     /// closed there by a triangle, cut off at a convex corner and filled in at
     /// a concave one — a pocket's bottom —, numbered after every flat, by the
     /// lowest ranks of
