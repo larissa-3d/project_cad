@@ -64,6 +64,17 @@
 //! `PartDocument::raised_as`: once changed, on its change. A height or an angle
 //! the other way along the plane reopens as written the right way with the
 //! direction reversed, which is how the panel wrote it.
+//!
+//! Closes #740 — the whole transcription is in
+//! `crates/app/tests/extruding_in_a_panel.rs`; this is the half of criterion 5
+//! the presenter answers, the volume itself being the part's, held in
+//! `crates/part/tests/previewing_a_step_of_matter.rs`.
+//! - The view draws the extruded volume alone, not fused into the part,
+//!   see-through, green for an addition and red for a cut, and redraws it at
+//!   every keystroke — the presenter's half: what the view is to draw is the
+//!   step as it would be applied, read again from what is typed, marked an
+//!   addition or a cut by the mode in hand, and nothing while the step is not
+//!   ready — `the_preview_follows_the_depth_and_the_mode_and_waits_for_the_step_to_be_ready`
 
 use std::path::Path;
 
@@ -709,5 +720,60 @@ fn a_reopened_extrusion_applied_unchanged_records_nothing_and_says_nothing() {
         document.history == held && said.is_none(),
         "the square's raise, reopened and applied as it was, moved the history ({}) or said {said:?}",
         document.history != held,
+    );
+}
+
+/// The height of the matter the view is handed to draw as the preview, and
+/// whether it is drawn as an addition or a cut; nothing when it is handed
+/// none.
+fn previewed(extrusion: &ExtrusionState, document: &PartDocument) -> Option<(f64, ExtrusionMode)> {
+    let preview = extrusion.preview(document)?;
+    let tool = document
+        .tool_of(&preview.operation)
+        .expect("the step previewed raises a volume");
+    let (low, high) = tool.bounds().expect("the volume previewed holds matter");
+    assert!(
+        (tool.volume() - 400.0 * (high.z - low.z)).abs() < 1e-6,
+        "the volume previewed, {}, is not the 20 by 20 square raised {} high",
+        tool.volume(),
+        high.z - low.z,
+    );
+    Some((high.z - low.z, preview.mode))
+}
+
+#[test]
+fn the_preview_follows_the_depth_and_the_mode_and_waits_for_the_step_to_be_ready() {
+    let document = a_part_with_a_square();
+    let mut extrusion = armed_on(vec![DVec2::ZERO]);
+    extrusion.distance_input = "30".to_string();
+    let assert_previewed = |extrusion: &ExtrusionState, height: f64, mode: ExtrusionMode| {
+        let shown = previewed(extrusion, &document);
+        assert!(
+            shown
+                .is_some_and(|(shown, shown_as)| (shown - height).abs() < 1e-9 && shown_as == mode),
+            "typed {:?} as {mode:?}, the preview is {shown:?}, not {height} mm as {mode:?}",
+            extrusion.distance_input,
+        );
+    };
+
+    assert_previewed(&extrusion, 30.0, ExtrusionMode::Add);
+
+    extrusion.distance_input = "45".to_string();
+    assert_previewed(&extrusion, 45.0, ExtrusionMode::Add);
+
+    extrusion.arm(ExtrusionMode::Cut);
+    assert_previewed(&extrusion, 45.0, ExtrusionMode::Cut);
+
+    extrusion.distance_input = "depth * 2".to_string();
+    assert!(
+        previewed(&extrusion, &document).is_none(),
+        "a depth that does not read is previewed",
+    );
+
+    extrusion.distance_input = "45".to_string();
+    extrusion.picks.clear();
+    assert!(
+        previewed(&extrusion, &document).is_none(),
+        "a step with no area chosen is previewed",
     );
 }

@@ -213,6 +213,52 @@ impl ExtrusionState {
             Shape::Revolution => self.angle(variables).is_some(),
         }
     }
+
+    /// The step applying would record now, as the view draws it while the
+    /// panel is open: nothing until the tool is armed on a sketch and ready.
+    pub fn preview(&self, document: &PartDocument) -> Option<Preview> {
+        let (Some(sketch), Some(mode)) = (self.sketch, self.mode) else {
+            return None;
+        };
+        let variables = document.variables();
+        if !self.is_ready(variables) {
+            return None;
+        }
+        // The areas are named here and never worked out again: what the click
+        // meant is what the drawing said at the moment of the click.
+        let areas = match &self.reopened {
+            Some(reopened) if reopened.is_picked_at(&self.picks) => reopened.areas.clone(),
+            _ => document.areas_at(sketch, &self.picks),
+        };
+        let operation = if self.is_revolving() {
+            Operation::Revolve {
+                sketch,
+                areas,
+                axis: self.axis,
+                angle: self
+                    .angle(variables)
+                    .map_or(Formula::Number(0.0), |(written, _)| written),
+                mode,
+            }
+        } else {
+            Operation::Extrude {
+                sketch,
+                areas,
+                distance: self
+                    .distance(variables)
+                    .map_or(Formula::Number(0.0), |(written, _)| written),
+                mode,
+            }
+        };
+        Some(Preview { operation, mode })
+    }
+}
+
+/// A step of matter as applying would record it, and whether it adds matter
+/// or takes it away.
+pub struct Preview {
+    pub operation: Operation,
+    pub mode: ExtrusionMode,
 }
 
 impl Reopened {
@@ -262,12 +308,9 @@ pub fn apply_extrusion_with(
     lang: &Catalogue,
     record: impl FnOnce(&mut PartDocument, Operation),
 ) -> bool {
-    let (Some(sketch), Some(mode)) = (extrusion.sketch, extrusion.mode) else {
+    let Some(Preview { operation, mode }) = extrusion.preview(doc) else {
         return false;
     };
-    if !extrusion.is_ready(doc.variables()) {
-        return false;
-    }
 
     // A panel reopened on a step the history has undone since names nothing
     // in effect, and applies nothing.
@@ -282,33 +325,7 @@ pub fn apply_extrusion_with(
     let step = reopened
         .as_ref()
         .map_or_else(|| doc.history.next_number(), |reopened| reopened.raised_by);
-    // The areas are named here and never worked out again: what the click
-    // meant is what the drawing said at the moment of the click.
-    let picks = std::mem::take(&mut extrusion.picks);
-    let areas = match &reopened {
-        Some(reopened) if reopened.is_picked_at(&picks) => reopened.areas.clone(),
-        _ => doc.areas_at(sketch, &picks),
-    };
-    let operation = if extrusion.is_revolving() {
-        Operation::Revolve {
-            sketch,
-            areas,
-            axis: extrusion.axis,
-            angle: extrusion
-                .angle(doc.variables())
-                .map_or(Formula::Number(0.0), |(written, _)| written),
-            mode,
-        }
-    } else {
-        Operation::Extrude {
-            sketch,
-            areas,
-            distance: extrusion
-                .distance(doc.variables())
-                .map_or(Formula::Number(0.0), |(written, _)| written),
-            mode,
-        }
-    };
+    extrusion.picks.clear();
     extrusion.mode = None;
     if as_raised.as_ref() == Some(&operation) {
         *notice = None;
