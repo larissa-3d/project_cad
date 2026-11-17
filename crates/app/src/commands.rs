@@ -191,9 +191,7 @@ pub(crate) fn run(
                 Command::ToolChamfer => BlendShape::Chamfer,
                 _ => BlendShape::Fillet,
             };
-            if let Some(sketch) = extrusion.sketch {
-                extrusion.offer(sketch);
-            }
+            extrusion.set_aside();
             blend.offer(shape);
             false
         }

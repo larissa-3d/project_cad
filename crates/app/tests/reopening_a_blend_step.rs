@@ -47,6 +47,10 @@
 //!   step reopened still lights its edges and takes another of that volume,
 //!   named on the part itself rather than on the part as shown —
 //!   `with_the_block_see_through_a_reopened_step_lights_its_edges_and_takes_another_of_the_block`
+//! - found on rendered frames: once a reopened step is applied or cancelled,
+//!   the Extrusion tab reads as after a step laid afresh, no sketch offered
+//!   to extrude and the matter tools offered —
+//!   `the_extrusion_tab_reads_as_after_a_fresh_blend_once_a_reopened_step_is_applied_or_cancelled`
 //! - decided while the work went on, beyond the issue's eleven: « Appliquer »
 //!   on a reopened step with nothing changed records nothing, so that Cmd+Z
 //!   then takes the step itself back rather than a change that changed nothing
@@ -1039,5 +1043,61 @@ fn with_the_block_see_through_a_reopened_step_lights_its_edges_and_takes_another
         wrong.is_empty(),
         "the fillet of the block's four top edges reopened, the block see-through:\n  {}",
         wrong.join("\n  "),
+    );
+}
+
+/// What reads wrong in the Extrusion tab, where a step laid afresh leaves no
+/// sketch offered to extrude and both matter tools offered.
+fn the_extrusion_tab_wrong(app: &driver::App) -> Vec<String> {
+    let mut wrong = Vec::new();
+    if driver::shows_or_says(app, "Extruder l'esquisse") {
+        wrong.push("the tab offers « Extruder l'esquisse »".to_string());
+    }
+    for tool in ["Ajout de matière", "Enlèvement de matière"] {
+        let offered = driver::the_ribbon_s(app, tool)
+            .is_some_and(|button| !button.accesskit_node().is_disabled());
+        if !offered {
+            wrong.push(format!("« {tool} » is not offered"));
+        }
+    }
+    wrong
+}
+
+#[test]
+fn the_extrusion_tab_reads_as_after_a_fresh_blend_once_a_reopened_step_is_applied_or_cancelled() {
+    let mut failures = Vec::new();
+    for closed_by in ["Appliquer", "Annuler"] {
+        let test = format!(
+            "the_extrusion_tab_once_a_reopened_step_is_closed_by_{}",
+            closed_by.to_lowercase()
+        );
+        let (mut app, _, line) = a_block_blended_at_twice_r(&test, &FILLET);
+        assert_eq!(
+            the_extrusion_tab_wrong(&app),
+            Vec::<String>::new(),
+            "the fixture's fillet laid afresh, showing {:?}",
+            driver::on_screen(&app),
+        );
+        driver::right_click(&mut app, &line);
+        driver::click_the_button(&mut app, FILLET.edit);
+        driver::type_beside(&mut app, FILLET.value, "3");
+
+        driver::click_the_button(&mut app, closed_by);
+
+        let wrong = the_extrusion_tab_wrong(&app);
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "closed by « {closed_by} »:\n    {}\n    showing {:?}",
+                wrong.join("\n    "),
+                driver::on_screen(&app),
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "the fillet of the four top edges reopened, then closed, leaves the Extrusion tab \
+         otherwise than a fillet laid afresh:\n  {}",
+        failures.join("\n  "),
     );
 }

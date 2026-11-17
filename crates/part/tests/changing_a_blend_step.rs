@@ -36,6 +36,11 @@
 //!   `a_change_taking_an_edge_of_a_step_put_in_before_the_blend_rounds_that_edge`;
 //!   compacted, the part replays the same, an edge of the block taken out or
 //!   not — `compacting_keeps_a_change_taking_an_edge_of_a_step_put_in_before_the_blend`
+//! - found in review: a step whose first-laid edges stand on a step that
+//!   another was put in before since offers them all once reopened, named as
+//!   the part now numbers its faces, and a change of its size alone gives the
+//!   part laid that way, compacted or not —
+//!   `a_step_laid_on_a_boss_another_was_put_in_before_offers_its_edges_and_changes_its_size`
 //!
 //! Each part changed is held against the same part laid with the step that way
 //! from the start.
@@ -967,6 +972,86 @@ fn a_change_taking_an_edge_of_a_step_put_in_before_the_blend_rounds_that_edge() 
         wrong.is_empty(),
         "the chamfer of the block's top, changed to take the front of a boss put in before it \
          since, does not chamfer that front:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn a_step_laid_on_a_boss_another_was_put_in_before_offers_its_edges_and_changes_its_size() {
+    let mut part = a_block();
+    a_boss(&mut part, THE_FIRST_BOSS, None);
+    let mut edges = the_four_top_edges(a_block().body());
+    edges.push(the_front_top_from(part.body(), 5.0, 40.0));
+    assert_eq!(
+        part.apply(Operation::Blend {
+            edges,
+            shape: BlendShape::Chamfer,
+            size: SIZE.into(),
+        }),
+        None,
+        "the chamfer of the block's top and the first boss's front: built",
+    );
+    let blend = part
+        .history
+        .steps()
+        .last()
+        .expect("the chamfer")
+        .operations()[0];
+    a_boss(&mut part, THE_BOSS_PUT_IN, Some(1));
+    let mut laid_that_way = a_block();
+    a_boss(&mut laid_that_way, THE_BOSS_PUT_IN, None);
+    a_boss(&mut laid_that_way, THE_FIRST_BOSS, None);
+    let mut expected = the_four_top_edges(a_block().body());
+    expected.push(the_front_top_from(laid_that_way.body(), 5.0, 40.0));
+
+    let offered = part.edges_before(blend);
+    let outcome = part.apply(Operation::EditMatter {
+        raised_by: blend,
+        to: Box::new(Operation::Blend {
+            edges: offered.clone(),
+            shape: BlendShape::Chamfer,
+            size: 3.0.into(),
+        }),
+    });
+
+    assert_eq!(
+        laid_that_way.apply(Operation::Blend {
+            edges: expected.clone(),
+            shape: BlendShape::Chamfer,
+            size: 3.0.into(),
+        }),
+        None,
+        "the chamfer of 3, laid with the boss put in already standing: built",
+    );
+    let mut wrong = Vec::new();
+    if offered != expected {
+        wrong.push(format!(
+            "the step offers {offered:?}, where the part before it names its edges {expected:?}"
+        ));
+    }
+    if outcome.is_some() {
+        wrong.push(format!("the change comes back {outcome:?}"));
+    }
+    wrong.extend(how_the_bodies_differ(
+        part.body(),
+        laid_that_way.body(),
+        "the part laid with a chamfer of 3",
+    ));
+    part.compact_history();
+    wrong.extend(
+        how_the_bodies_differ(
+            part.body(),
+            laid_that_way.body(),
+            "the part laid with a chamfer of 3",
+        )
+        .into_iter()
+        .map(|said| format!("compacted, {said}")),
+    );
+
+    assert!(
+        wrong.is_empty(),
+        "a chamfer of the block's top and the first boss's front, a longer boss put in before \
+         that boss since, then its size changed to 3 from the edges it offers:\n  {}",
         wrong.join("\n  "),
     );
 }

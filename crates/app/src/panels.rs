@@ -141,7 +141,7 @@ pub(crate) fn carry_out(
         TreeAction::EditBlend(step) => {
             if let Some(reopened) = BlendState::reopened(doc, step) {
                 editor.close();
-                extrusion.close();
+                extrusion.set_aside();
                 *blend = reopened;
                 ribbon.tab = 1;
             }

@@ -26,7 +26,7 @@ pub(super) struct Replayed {
 pub(super) struct Before {
     history: History,
     step: u32,
-    body: Rc<Body>,
+    shown: Rc<Shown>,
 }
 
 /// The raw block of the volume made by the step of that number, with the
@@ -47,6 +47,9 @@ impl ViewportState {
         let (reading_point, reopened) = (self.reading.point, self.reopened);
         if states.is_empty() && reading_point.is_none() && reopened.is_none() {
             return None;
+        }
+        if states.is_empty() && reopened.is_some() {
+            return self.part_reopened(document);
         }
         let mut kept = self.visibility.shown.borrow_mut();
         if let Some(replayed) = kept.as_ref()
@@ -75,22 +78,22 @@ impl ViewportState {
     /// The part as it stood before the step reopened, every volume opaque
     /// whatever is drawn, which its edges are named on as a new step's are on
     /// the part; nothing while no step is.
-    pub(crate) fn part_reopened(&self, document: &PartDocument) -> Option<Rc<Body>> {
+    pub(crate) fn part_reopened(&self, document: &PartDocument) -> Option<Rc<Shown>> {
         let step = self.reopened?;
         let mut kept = self.visibility.before.borrow_mut();
         if let Some(before) = kept.as_ref()
             && before.step == step
             && before.history == document.history
         {
-            return Some(Rc::clone(&before.body));
+            return Some(Rc::clone(&before.shown));
         }
-        let body = Rc::new(document.shown_before(&BTreeMap::new(), step).body);
+        let shown = Rc::new(document.shown_before(&BTreeMap::new(), step));
         *kept = Some(Before {
             history: document.history.clone(),
             step,
-            body: Rc::clone(&body),
+            shown: Rc::clone(&shown),
         });
-        Some(body)
+        Some(shown)
     }
 
     /// The raw block of the volume marked: the matter its step raises or

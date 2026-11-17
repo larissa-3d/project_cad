@@ -80,7 +80,7 @@ pub fn show(
             let before = state.part_reopened(sketch.document);
             let body = before
                 .as_ref()
-                .map_or(sketch.document.body(), |body| &**body);
+                .map_or(sketch.document.body(), |before| &before.body);
             pick_an_edge(state, &response, rect, body, blend);
             false
         }
