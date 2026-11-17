@@ -140,15 +140,18 @@ impl Exact {
     /// the faces numbered from where the steps' numbers ended by the edges'
     /// ranks, the closings' past them in the order of the step's corners.
     /// Each edge meets in a mitre the faces
-    /// laid before it on edges it shares a corner with, and on edges sharing
-    /// one with an edge laid after it that it shares a corner with — the
-    /// cut of such an edge, carried past that later edge's other end, may
-    /// reach its own until the later one cuts between them: a point's far
-    /// edge and the upright at a blunt point's shoulder (#911) — and a pair
-    /// those of the edges [`pairs::at_their_ends`] lays against it: every
-    /// edge it shares a corner with, and the upright at a point's tip, whose
-    /// round the pair's meets on an ellipse until a point edge laid after
-    /// both cuts between them. With the body, `taken`, or the nearer a slope stands to
+    /// laid before it on edges it shares a corner with, and a pair those of
+    /// the edges [`pairs::at_their_ends`] lays against it: every edge it
+    /// shares a corner with, and the upright at a point's tip, whose round
+    /// the pair's meets on an ellipse until a point edge laid after both cuts
+    /// between them. Either meets so the faces laid before it on an edge that
+    /// shares a corner with an edge laid after it, which shares one with it
+    /// too: the earlier cut, carried past that later edge's end, may reach
+    /// its own until the later one cuts between them, and in an order laying
+    /// the later edge first the two never meet (#911) — a point's far edge
+    /// and the upright at a blunt point's shoulder, a top edge and the round
+    /// of two uprights a point's wall leaves between them, the point's edge
+    /// laid last. With the body, `taken`, or the nearer a slope stands to
     /// its edges, as [`Exact::sloped`] reads it. Declined as
     /// [`Exact::cut_off`] says.
     pub(super) fn in_turn(
@@ -203,13 +206,15 @@ impl Exact {
             let partner = pairs.iter().find(|&&(_, later, _)| later == rank);
             let mitred: Vec<u32> = (0..rank)
                 .filter(|before| !joined.contains(before))
-                .filter(|&before| match partner {
-                    Some(_) => ends.contains_key(&before),
-                    None => {
-                        meet(before, rank)
-                            || (rank + 1..edges.len())
-                                .any(|later| meet(before, later) && meet(later, rank))
-                    }
+                .filter(|&before| {
+                    let trimmed = (rank + 1..edges.len()).any(|later| {
+                        meet(before, later) && joined.iter().any(|&member| meet(later, member))
+                    });
+                    trimmed
+                        || match partner {
+                            Some(_) => ends.contains_key(&before),
+                            None => meet(before, rank),
+                        }
                 })
                 .map(|before| start + before as u32)
                 .collect();

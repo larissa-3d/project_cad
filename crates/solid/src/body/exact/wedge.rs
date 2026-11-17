@@ -359,9 +359,9 @@ pub(super) fn too_short(length: f64, scale: Scale) -> bool {
 /// What an edge a step lays meets.
 #[derive(Clone, Copy)]
 struct Met<'a> {
-    /// The numbers of the faces laid before it at a corner it shares, or at
-    /// another corner of an edge laid after it that it shares one with, which
-    /// its own face meets in a mitre.
+    /// The numbers of the faces laid before it at a corner it shares, or on an
+    /// edge sharing one with an edge laid after it that shares one with it,
+    /// which its own face meets in a mitre.
     mitred: &'a [u32],
     /// Where it stops at a corner an edge laid after it completes, as
     /// [`flush::open`] reads them.
