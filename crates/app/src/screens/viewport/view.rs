@@ -72,10 +72,10 @@ pub fn show(
     );
     let sectioning =
         !handled_cube && point_the_section(ui, state, &response, (rect, scale), sketch);
-    // A drag on the arrow sets the depth and nothing else: no area is picked
-    // under it.
-    let extruding = !handled_cube
-        && !sectioning
+    // A hold taken on the arrow is let go wherever the pointer is released,
+    // over the cube too.
+    let extruding = !sectioning
+        && (!handled_cube || state.extrusion_handle.is_held())
         && point_the_extrusion_arrow(ui, state, &response, (rect, scale), sketch);
     state.edge_under_the_hand = None;
     state.edges_chosen.clone_from(&blend.edges);

@@ -24,10 +24,11 @@ const PILL_FROM_THE_TIP: egui::Vec2 = egui::vec2(12.0, 10.0);
 const PILL_PADDING: egui::Vec2 = egui::vec2(8.0, 3.0);
 
 /// The arrow on the extrusion previewed, from its foot to its tip, a head at
-/// the tip the same size at any zoom.
+/// the tip the same size at any zoom, opening across the shaft as seen along
+/// `sight`.
 pub(super) fn push_extrusion_arrow(
     lines: &mut Vec<cao_render::Vertex>,
-    scale: ViewScale,
+    (scale, sight): (ViewScale, glam::DVec3),
     context: &SketchContext<'_>,
 ) {
     let Some(arrow) = ExtrusionHandle::drawn(context.extrusion, context.document) else {
@@ -40,7 +41,11 @@ pub(super) fn push_extrusion_arrow(
         [.., before, tip] => (*tip - *before).normalize_or_zero(),
         _ => return,
     };
-    let side = way.any_orthonormal_vector() * 0.5;
+    let side = way
+        .cross(sight)
+        .try_normalize()
+        .unwrap_or_else(|| way.any_orthonormal_vector())
+        * 0.5;
     let barbs = [side, -side].map(|side| (arrow.tip, arrow.tip + (side - way) * length));
     for (from, to) in run.windows(2).map(|pair| (pair[0], pair[1])).chain(barbs) {
         lines.push(cao_render::Vertex::line(from.as_vec3(), colour, 2.0));

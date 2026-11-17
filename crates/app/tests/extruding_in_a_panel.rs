@@ -67,6 +67,22 @@
 //!   open together, and never one over the other: the extrusion's stands to
 //!   the right of the section's —
 //!   `the_extrusion_panel_stands_to_the_right_of_the_section_panel`
+//!
+//! Closes #741 — the whole transcription is in
+//! `crates/app/src/screens/viewport/extrusion_handle/tests.rs`; these are the
+//! findings of its review that only the whole application reaches: the
+//! panel's view and the frame loop, neither with a net of its own.
+//! - found in review: « Fermer » closes the panel at once after a drag of the
+//!   arrow, where « Annuler » first gives back the depth typed —
+//!   `closing_the_panel_after_a_drag_closes_it_at_once_where_annuler_gives_the_depth_back`
+//! - found in review: a click on the arrow's tip, with no drag, picks and
+//!   unpicks nothing — `a_click_on_the_arrow_s_tip_picks_and_unpicks_nothing`
+//! - found in review: a drag of the arrow let go over the orientation cube lets
+//!   the arrow go: a drag started there afterwards pulls nothing —
+//!   `a_drag_of_the_arrow_let_go_over_the_cube_lets_the_arrow_go`
+//! - found in review: a depth typed after a drag is the user's, and « Annuler »
+//!   closes the panel as it does before any drag —
+//!   `typing_the_depth_after_a_drag_lets_annuler_close_the_panel`
 
 mod driver;
 
@@ -734,5 +750,164 @@ fn the_extrusion_panel_stands_to_the_right_of_the_section_panel() {
         !extrusion.intersects(section) && extrusion.left() >= section.right() - 0.5,
         "the extrusion's panel at {extrusion:?} does not stand to the right of the section \
          view's at {section:?}",
+    );
+}
+
+/// The arrow's tip while the rectangle is set to add matter: the middle of the
+/// rectangle, (56.25, 25) on YZ, raised the 10 the panel offers along X.
+const THE_ARROW_S_TIP: DVec3 = DVec3::new(10.0, 56.25, 25.0);
+
+/// Twenty further along X: where the arrow's tip stands once the depth reads
+/// 30.
+const THE_ARROW_PULLED_TO_30: DVec3 = DVec3::new(30.0, 56.25, 25.0);
+
+/// The arrow taken at its tip and let go where the view shows `to`.
+fn drag_the_arrow_to(app: &mut driver::App, to: DVec3) {
+    driver::hold_the_canvas(app);
+    let from = driver::world_point_on_screen(app, THE_ARROW_S_TIP);
+    let to = driver::world_point_on_screen(app, to);
+    driver::drag_and_drop(app, from, to);
+}
+
+/// What the panel's depth reads, while the panel is open.
+fn the_depth_while_open(app: &driver::App) -> Option<String> {
+    driver::the_extrusion_panel_is_open(app).then(|| driver::the_depth(app))
+}
+
+fn reads_about(depth: Option<&str>, millimetres: f64) -> bool {
+    depth
+        .and_then(|depth| depth.parse::<f64>().ok())
+        .is_some_and(|depth| (depth - millimetres).abs() <= 0.5)
+}
+
+/// Whether the panel offers « Appliquer ↵ », which it does only while an area
+/// is chosen and the depth reads.
+fn applies(app: &driver::App) -> bool {
+    the_panel_s(app, "Appliquer ↵").is_some_and(|node| !node.accesskit_node().is_disabled())
+}
+
+/// Every shape the last frame painted, with the rectangle it is clipped to.
+fn painted(app: &driver::App) -> Vec<(egui::Shape, egui::Rect)> {
+    let mut found = Vec::new();
+    for clipped in &app.output().shapes {
+        let mut pending = vec![clipped.shape.clone()];
+        while let Some(shape) = pending.pop() {
+            match shape {
+                egui::Shape::Vec(group) => pending.extend(group),
+                shape => found.push((shape, clipped.clip_rect)),
+            }
+        }
+    }
+    found
+}
+
+/// The orientation cube: the square its face labels are clipped to, as
+/// `view_bar.rs` finds it.
+fn the_cube(app: &driver::App) -> egui::Rect {
+    painted(app)
+        .into_iter()
+        .find_map(|(shape, clip)| match shape {
+            egui::Shape::Mesh(mesh)
+                if mesh.texture_id == egui::TextureId::default()
+                    && (clip.width() - clip.height()).abs() < 0.5 =>
+            {
+                Some(clip)
+            }
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("no face of the cube is named on screen"))
+}
+
+#[test]
+fn closing_the_panel_after_a_drag_closes_it_at_once_where_annuler_gives_the_depth_back() {
+    let mut app = an_area_chosen_to_add_matter("closing_the_panel_after_a_drag");
+
+    drag_the_arrow_to(&mut app, THE_ARROW_PULLED_TO_30);
+    let dragged = the_depth_while_open(&app);
+    click_in_the_panel(&mut app, "Annuler");
+    let cancelled = the_depth_while_open(&app);
+    drag_the_arrow_to(&mut app, THE_ARROW_PULLED_TO_30);
+    click_in_the_panel(&mut app, "Fermer");
+    let closed = the_depth_while_open(&app);
+
+    assert!(
+        reads_about(dragged.as_deref(), 30.0),
+        "the arrow dragged from 10 to 30 along X left the panel reading {dragged:?}",
+    );
+    assert_eq!(
+        cancelled.as_deref(),
+        Some("10"),
+        "« Annuler » after the drag does not leave the panel open on the 10 it read before",
+    );
+    assert_eq!(
+        closed, None,
+        "« Fermer » after a second drag left the panel open, reading {closed:?}: it took a \
+         second click to close",
+    );
+}
+
+#[test]
+fn a_click_on_the_arrow_s_tip_picks_and_unpicks_nothing() {
+    let mut app = an_area_chosen_to_add_matter("a_click_on_the_arrow_s_tip");
+    let applied_before = applies(&app);
+
+    driver::click_at_world_point(&mut app, THE_ARROW_S_TIP);
+
+    let depth = the_depth_while_open(&app);
+    assert!(
+        applied_before,
+        "with the rectangle chosen, the panel does not offer « Appliquer ↵ »"
+    );
+    assert!(
+        applies(&app) && depth.as_deref() == Some("10"),
+        "a click on the arrow's tip, with no drag, left the panel offering « Appliquer ↵ »: \
+         {}, reading {depth:?}: the area under the tip was unpicked",
+        applies(&app),
+    );
+}
+
+#[test]
+fn a_drag_of_the_arrow_let_go_over_the_cube_lets_the_arrow_go() {
+    let mut app = an_area_chosen_to_add_matter("a_drag_of_the_arrow_let_go_over_the_cube");
+    driver::hold_the_canvas(&mut app);
+    let cube = the_cube(&app);
+    let tip = driver::world_point_on_screen(&app, THE_ARROW_S_TIP);
+
+    driver::drag_and_drop(&mut app, tip, cube.center());
+    let let_go = the_depth_while_open(&app);
+    let far_along = driver::world_point_on_screen(&app, THE_ARROW_PULLED_TO_30);
+    driver::drag_and_drop(&mut app, cube.center(), far_along);
+    let after = the_depth_while_open(&app);
+
+    assert!(
+        let_go.is_some(),
+        "the arrow dragged onto the cube closed the panel"
+    );
+    assert_eq!(
+        after, let_go,
+        "a drag started over the cube, after the arrow was let go there, moved the depth: the \
+         arrow was still held",
+    );
+}
+
+#[test]
+fn typing_the_depth_after_a_drag_lets_annuler_close_the_panel() {
+    let mut app = an_area_chosen_to_add_matter("typing_the_depth_after_a_drag");
+
+    drag_the_arrow_to(&mut app, THE_ARROW_PULLED_TO_30);
+    driver::type_the_depth(&mut app, "25");
+    let typed = the_depth_while_open(&app);
+    click_in_the_panel(&mut app, "Annuler");
+    let left = the_depth_while_open(&app);
+
+    assert_eq!(
+        typed.as_deref(),
+        Some("25"),
+        "25 typed over the dragged depth does not read in the panel",
+    );
+    assert_eq!(
+        left, None,
+        "« Annuler » after a drag and 25 typed over it left the panel open, reading {left:?}: \
+         what was typed was dropped for what the panel read before the drag",
     );
 }

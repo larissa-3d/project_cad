@@ -79,6 +79,12 @@ impl DrawnArrow {
                 .collect(),
         }
     }
+
+    fn has_its_tip_near(&self, (origin, direction): (DVec3, DVec3), reach: f64) -> bool {
+        let direction = direction.normalize_or_zero();
+        let along = (self.tip - origin).dot(direction);
+        (origin + direction * along - self.tip).length() <= reach
+    }
 }
 
 impl ExtrusionHandle {
@@ -139,6 +145,17 @@ impl ExtrusionHandle {
         self.held.is_some()
     }
 
+    /// Whether the ray passes within `reach` of the tip of the arrow
+    /// previewed.
+    pub(crate) fn is_over(
+        extrusion: &ExtrusionState,
+        document: &PartDocument,
+        ray: (DVec3, DVec3),
+        reach: f64,
+    ) -> bool {
+        Self::drawn(extrusion, document).is_some_and(|arrow| arrow.has_its_tip_near(ray, reach))
+    }
+
     /// Takes hold of the arrow when the ray passes within `reach` of its tip,
     /// and runs neither along the normal it slides on nor along the plane its
     /// arc turns in.
@@ -151,14 +168,12 @@ impl ExtrusionHandle {
         reach: f64,
     ) -> bool {
         self.held = None;
-        let Some(arrow) = Self::drawn(extrusion, document) else {
+        let direction = direction.normalize_or_zero();
+        let Some(arrow) = Self::drawn(extrusion, document)
+            .filter(|arrow| arrow.has_its_tip_near((origin, direction), reach))
+        else {
             return false;
         };
-        let direction = direction.normalize_or_zero();
-        let along = (arrow.tip - origin).dot(direction);
-        if (origin + direction * along - arrow.tip).length() > reach {
-            return false;
-        }
         self.held = match arrow.pulls {
             Pulls::Depth {
                 normal,

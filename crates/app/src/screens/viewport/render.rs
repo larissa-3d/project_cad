@@ -221,7 +221,7 @@ pub(crate) fn frame_of(
         .map_or(context.document.body(), |before| &before.body);
     edges::push_lit_edges(&mut lit_lines, state, named_on, scale.height_px);
     section_panel::push_section_plane(&mut surfaces, &mut lines, state, scale, context);
-    push_extrusion_arrow(&mut lines, scale, context);
+    push_extrusion_arrow(&mut lines, (scale, camera.forward().as_dvec3()), context);
 
     let mut cube_triangles = Vec::new();
     let mut cube_edges = Vec::new();

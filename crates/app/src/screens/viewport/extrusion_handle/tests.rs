@@ -50,6 +50,23 @@
 //!   `the_arrow_takes_no_gesture_while_nothing_is_previewed`. Each frame is
 //!   handed to the camera's navigation and then to the arrow, in the order the
 //!   frame loop hands them; the frame loop itself, `view.rs`, has no net
+//! - found in review: a revolution pulled past a whole turn, held there, turns
+//!   back as soon as the pointer comes back under a whole turn —
+//!   `for_a_revolution_pulled_past_a_whole_turn_and_back_the_angle_follows_at_once`
+//! - found in review: seen from the front or the back, square to the plane the
+//!   head was laid in, the arrow's head still opens across its shaft —
+//!   `seen_from_the_front_or_the_back_the_arrow_s_head_still_opens_across_its_shaft`
+//! - found in review: « Fermer » closes the panel at once after a drag, « Annuler »
+//!   alone giving the depth back first; a click on the arrow's tip picks and
+//!   unpicks nothing; a drag let go over the orientation cube lets the arrow
+//!   go; a depth typed after a drag lets « Annuler » close as usual — no test:
+//!   in this file, since only the whole application reaches the panel's view
+//!   and the frame loop, both with no net; it holds them in
+//!   `crates/app/tests/extruding_in_a_panel.rs`, under its own block for #741,
+//!   by `closing_the_panel_after_a_drag_closes_it_at_once_where_annuler_gives_the_depth_back`,
+//!   `a_click_on_the_arrow_s_tip_picks_and_unpicks_nothing`,
+//!   `a_drag_of_the_arrow_let_go_over_the_cube_lets_the_arrow_go` and
+//!   `typing_the_depth_after_a_drag_lets_annuler_close_the_panel`
 //!
 //! Snapping the drag to faces of the part is out of the issue's scope.
 //!
@@ -1264,4 +1281,86 @@ fn the_arrow_takes_no_gesture_while_nothing_is_previewed() {
         "with the tool only offered, a drag where the arrow's tip would stand moved the depth \
          to {field:?}, the arrow taking the gesture: {took}",
     );
+}
+
+#[test]
+fn for_a_revolution_pulled_past_a_whole_turn_and_back_the_angle_follows_at_once() {
+    let document = a_part_with_a_rectangle_beside_the_v_axis();
+    let mut extrusion = turning_the_rectangle("90");
+    let mut handle = ExtrusionHandle::default();
+
+    let taken = handle.grab(
+        &extrusion,
+        &document,
+        above(turned_to(90.0)),
+        DOWN_THE_AXIS,
+        REACH,
+    );
+    for degrees in [180.0, 270.0, 360.0, 450.0] {
+        handle.pull(&mut extrusion, above(turned_to(degrees)), DOWN_THE_AXIS);
+    }
+    let held_at_a_whole_turn = angle_shown(&extrusion, &document);
+    handle.pull(&mut extrusion, above(turned_to(350.0)), DOWN_THE_AXIS);
+    let back = angle_shown(&extrusion, &document);
+
+    assert!(
+        taken,
+        "a ray down the axis through the arc's tip, a quarter turn round, takes no hold of it",
+    );
+    assert!(
+        turns(held_at_a_whole_turn, false, 360.0),
+        "pulled round to 450°, the panel reads {held_at_a_whole_turn:?}: not held at a whole \
+         turn",
+    );
+    assert!(
+        turns(back, false, 350.0),
+        "pulled back from 450° to 350°, the panel reads {back:?}: not 350, the angle still \
+         held where the pointer left it",
+    );
+}
+
+#[test]
+fn seen_from_the_front_or_the_back_the_arrow_s_head_still_opens_across_its_shaft() {
+    for (seen, looking) in [
+        ("the front", glam::Vec3::Y),
+        ("the back", glam::Vec3::NEG_Y),
+    ] {
+        let mut document = a_part_with_a_square();
+        let mut editor = SketchEditor::default();
+        let mut extrusion = extruding_the_square();
+        let lang = Catalogue::french();
+        let mut state = ViewportState::default();
+        let (yaw, pitch) = cao_render::camera::view_angles_towards(looking);
+        state.camera.set_view_angles(yaw, pitch);
+        let context = SketchContext {
+            document: &mut document,
+            editor: &mut editor,
+            extrusion: &mut extrusion,
+            lang: &lang,
+        };
+        let scale = ViewScale::of(&state.camera, SCREEN, 1.0, &state.config, 1.0);
+        let frame = build_frame(&state, SCREEN, SCREEN, scale, &context, None, None);
+
+        let tip = on_the_screen(&state, DVec3::new(0.0, 0.0, 10.0));
+        let across = frame
+            .scene_lines
+            .iter()
+            .filter(|vertex| {
+                vertex
+                    .color
+                    .iter()
+                    .zip(amber())
+                    .all(|(channel, wanted)| (channel - wanted).abs() <= 1e-3)
+            })
+            .map(|vertex| {
+                (on_the_screen(&state, Vec3::from(vertex.position).as_dvec3()).x - tip.x).abs()
+            })
+            .fold(0.0_f32, f32::max);
+
+        assert!(
+            across >= 3.0,
+            "seen from {seen}, the arrow standing up Z draws nothing more than {across} points \
+             across its shaft: its head folds onto it",
+        );
+    }
 }
