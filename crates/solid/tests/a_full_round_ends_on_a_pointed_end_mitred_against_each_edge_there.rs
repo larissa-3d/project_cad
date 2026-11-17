@@ -270,13 +270,14 @@
 //!   edge of the list stands for that one. A V-notched end with one of its
 //!   notch's edges named, the other left out — the front edge on the notches
 //!   (27,3) and (28,3), the back edge on (27,3) — alone or with the edge
-//!   across the square far end, which meets both edges of the pair there, is
+//!   across the square far end, which meets both edges of the pair there, was
 //!   declined `Unsupported` in each of its orders, 6 or 24. Unlike the point's
 //!   lone edge, which stops short at 6 − 3√2, the notch edge's set-back never
 //!   reaches the other edge's on an edge of the body, so nothing bounds the
-//!   value before the pair forms, and the decline is read at the full round's
-//!   end; building it is #917 —
-//!   `a_fillet_on_a_full_round_and_one_edge_of_its_v_notched_end_alone_or_with_its_square_far_end_s_edge_is_declined_as_unsupported_whatever_the_order`
+//!   value before the pair forms, and the decline was read at the full round's
+//!   end, until #917 built it — no test: the decline went with #917, and the
+//!   bodies, the notch edge's round stopping flush on the sharp wall's plane,
+//!   are held under its block below
 //!
 //! Closes #911.
 //! - The plate with the point at (33, 3), its four top edges and the upright
@@ -410,6 +411,66 @@
 //!   the same matter, its faces meeting alike and the plate's flat faces at
 //!   the same corners —
 //!   `a_fillet_on_the_point_s_back_edges_and_the_uprights_at_its_front_shoulder_and_its_tip_is_declined_in_every_order_or_built_as_one_body_in_every_order`
+//!
+//! Closes #917.
+//! - The notch (27, 3), the pair and the front notch edge filleted at 3: built
+//!   in every order, one body, exact, closed and uncrossed, with the volume
+//!   the arithmetic gives, which the booleans give too. Likewise with the
+//!   square far end's edge, with the back notch edge, and on the notch
+//!   (28, 3) — the pair and the front notch edge,
+//!   `a_fillet_on_a_full_round_and_the_front_edge_of_its_v_notched_end_rounds_that_edge_and_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order`;
+//!   with the square far end's edge,
+//!   `a_fillet_on_a_full_round_the_front_edge_of_its_v_notched_end_and_its_square_far_end_s_edge_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order`;
+//!   the back notch edge, alone or with the square far end's,
+//!   `a_fillet_on_a_full_round_and_the_back_edge_of_its_v_notched_end_alone_or_with_its_square_far_end_s_edge_ends_flush_on_the_sharp_front_notch_wall_whatever_the_order`;
+//!   on the notch (28, 3), its front edge alone or with the square far end's,
+//!   `a_fillet_on_a_full_round_and_the_front_edge_of_a_shallower_v_notch_alone_or_with_its_square_far_end_s_edge_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order`.
+//!   Read as: in each of the 6 or 24 orders, the value taken whole; the body
+//!   exact, closed, uncrossed, holding what the arithmetic below gives — on
+//!   (27, 3) 1593.27 with either notch edge, 1586.86 with the far end's edge
+//!   too; on (28, 3) 1623.11 and 1616.70 —, which the booleans give too, and
+//!   its triangles enclosing that within the drawing's tolerance; the top
+//!   gone, the full round one face answering to both its edges' ranks, every
+//!   other round one face answering to its own, no patch laid, the next step
+//!   numbering past the list; the notch edge's round on its quarter cylinder
+//!   over the triangle between its wall, the vertical plane through its
+//!   shoulder halving the angle there, as #843 mitres it, and the sharp
+//!   wall's plane carried past the notch's bottom, met there from outside;
+//!   the full round on its half cylinder over the rest of the plate, beside
+//!   that triangle and the far end's share when it is named, met there from
+//!   outside; the two meeting on the mitre only, from the shoulder at z = 7 up
+//!   to where the mitre crosses the sharp wall's plane — on (27, 3)
+//!   (30 − 3√2, 6 − 3√2, 7 + 3√(2√2 − 2)) for the front edge —, one vertex
+//!   there with the sharp wall; the sharp wall flat, facing out of the notch
+//!   and keeping its number, grown past the notch's bottom by the end of the
+//!   notch edge's round, its corners at its two ends on the floor and at
+//!   z = 7, and at the top of the mitre; it meets the floor, the walls at its
+//!   two ends, the full round along its top and the notch edge's round along
+//!   that round's end, and the notch edge's round meets its wall, the full
+//!   round and the sharp wall, and the full round its two walls, the far end's
+//!   wall or round, the notch edge's round and the sharp wall, one edge each
+//!   but the far end's round, met across two mitres; every named edge's wall
+//!   set back to z = 7, meeting the floor, its two neighbours and its round;
+//!   the far end, when named, mitred as #803 mitres it, its round and the full
+//!   round meeting at one vertex, (3, 3, 10); and every order laying the body
+//!   the first lays
+//! - The decline test above flips to that —
+//!   `a_fillet_on_a_full_round_and_the_front_edge_of_its_v_notched_end_rounds_that_edge_and_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order`
+//!   and the three beside it. Read as: the decline test is gone, each of its
+//!   six lists built by those four
+//! - Decided when picked up (2026-11-17), the point the issue left open: the
+//!   full round ends flush on the sharp notch wall, its half cylinder cut by
+//!   that wall's plane along an ellipse, rather than mitred, since no round is
+//!   laid along that wall to mitre it against. The notch edge's round, whose
+//!   edge ends at the notch's bottom where matter lies past it behind the
+//!   sharp wall, stops flush on that wall's plane, as `laid_flush` stops a
+//!   round where matter lies past its edge's end, the wall growing by the
+//!   round's end and keeping its number; run on to the middle line as #843's
+//!   runs against the other notch round, it would leave there a step no wall
+//!   carries. The booleans give that body: the plate less the full round's
+//!   prism, the far end's raised whole when it is named, and the notch edge's
+//!   prism kept on the shoulder's side of the sharp wall's plane —
+//!   `a_fillet_on_a_full_round_and_the_front_edge_of_its_v_notched_end_rounds_that_edge_and_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order`
 //!
 //! The campaign is run by hand, out of the gate, compiled only under the
 //! `campaigns` feature: every one of the 720 orders of the plate pointed at
@@ -599,6 +660,37 @@
 //! `18√10/5` off `1773 − 9√10`, 1744.54; on (32, 3), `108√13/13` off
 //! `1584 − 3√13`, 1573.18, for each shoulder chamfered. The booleans give each:
 //! the plate cut beyond the plane of every flat and of every triangle.
+//!
+//! With one notch edge named and the other left sharp, the full round is laid
+//! over the whole outline and ends on each notch wall's plane, along the
+//! ellipse that plane cuts from its half cylinder. Alone, on a notch `a` deep
+//! — the tip at `x_t = L − a` —, it leaves `(H − r)(2rL − ar)` under its axis
+//! and over it, each half's lines across at `v` from the middle line running
+//! from the left end to `x_t + av/r`, `2∫(x_t + av/r)√(r² − v²) dv`, that is
+//! `x_t·πr²/2 + 2ar²/3`: `1215 + 243π/2` on (27, 3), `1230 + 126π` on
+//! (28, 3). The notch edge's round takes off that, over its own triangle, the
+//! matter between the full round's quarter round and its own: the triangle
+//! between its wall, the mitre at its shoulder, where the two stand level, as
+//! far from the pair's wall as from its own, and the sharp wall's plane, on
+//! which it stops flush, the mitre's top `Q` where those last two cross. Each
+//! round's height over it hangs on one distance across the triangle, from the
+//! pair's wall or from its own, and the triangle's width along that distance
+//! runs linearly from one corner to the next, so each is an integral of the
+//! root times a line, elementary. On (27, 3) the sharp wall stands square to
+//! the named one, `Q` at `(30 − 3√2, 6 − 3√2)`, `3√2 − 3` from the middle line,
+//! and the round takes
+//! `(27/2)(1 + √2)·acos(√2 − 1) − (63/2 + 18√2)·√(2√2 − 2) + 18`, 3.44: the
+//! body holds `1197 + 243π/2 − (27/2)(1 + √2)·acos(√2 − 1) +
+//! (63/2 + 18√2)·√(2√2 − 2)`, 1593.27. On (28, 3), `Q` at
+//! `((110 − 8√13)/3, 16 − 4√13)`, `4√13 − 13` from the middle line, it takes
+//! `(9/8)(13 + 4√13)·acos((4√13 − 13)/3) − (71/8 + 2√13)·√(104√13 − 368) + 12`,
+//! 2.73: the body holds `1218 + 126π − (9/8)(13 + 4√13)·acos((4√13 − 13)/3) +
+//! (71/8 + 2√13)·√(104√13 − 368)`, 1623.11. The back edge named instead is the
+//! front's mirror and holds the same; the far end's edge named too takes
+//! #803's `πr³/2 − 4r³/3`, 6.41, off either. The booleans give each: the plate
+//! less the full round's prism, the far end's prism raised whole along its
+//! wall when it is named, and the notch edge's prism raised along its wall's
+//! line, kept on the shoulder's side of the sharp wall's plane.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::{PI, SQRT_2};
@@ -6512,44 +6604,663 @@ fn a_fillet_on_a_full_round_one_edge_of_its_point_alone_and_its_square_far_end_s
     );
 }
 
-#[test]
-fn a_fillet_on_a_full_round_and_one_edge_of_its_v_notched_end_alone_or_with_its_square_far_end_s_edge_is_declined_as_unsupported_whatever_the_order()
- {
-    let left_end = 6;
-    let pair = [
-        ([TOP, FRONT], "the top's front edge"),
-        ([TOP, BACK], "the top's back edge"),
-    ];
-    let far_end = ([TOP, left_end], "the top's left edge");
-    for (tip, notch_edge) in [
-        (27.0, ([TOP, POINT_FRONT], "the notch's front edge")),
-        (28.0, ([TOP, POINT_FRONT], "the notch's front edge")),
-        (27.0, ([TOP, POINT_BACK], "the notch's back edge")),
-    ] {
-        let plate = Plate::pointed(tip, DVec3::ZERO);
-        for with_the_far_end in [false, true] {
-            let mut listed: Vec<([usize; 2], &str)> =
-                pair.into_iter().chain([notch_edge]).collect();
-            if with_the_far_end {
-                listed.push(far_end);
+/// The run across the square far end, the plate's left: its wall numbered six.
+const FAR_END: usize = 4;
+
+/// #843's V-notched plate, the full round's pair and one of the notch's two
+/// top edges named, the other left sharp, the edge across the square far end
+/// named or not: the plate, its list the front's, the notch edge's, the
+/// back's and the far end's where named; the run of the notch edge named, one
+/// for the notch's front, two for its back; and what the arithmetic gives the
+/// body, as the module's documentation derives it.
+struct OneNotchEdge {
+    plate: Plate,
+    named: usize,
+    volume: f64,
+}
+
+impl OneNotchEdge {
+    /// The plate notched back to `x` on the middle line, its notch edge on run
+    /// `named` listed with the pair, and the far end's edge too where
+    /// `far_end` says, holding `volume`.
+    fn at(x: f64, named: usize, far_end: bool, volume: f64) -> OneNotchEdge {
+        let [own, other] = if named == 1 {
+            ["front", "back"]
+        } else {
+            ["back", "front"]
+        };
+        let notch_edge = format!("the notch's {own} edge");
+        let mut edges = vec![
+            (0, "the top's front edge"),
+            (named, notch_edge.as_str()),
+            (3, "the top's back edge"),
+        ];
+        if far_end {
+            edges.push((FAR_END, "the top's left edge"));
+        }
+        let plate = Plate::raised(
+            &format!("the plate notched back to ({x}, {RADIUS}), its notch's {other} edge sharp"),
+            vec![
+                DVec2::ZERO,
+                DVec2::new(LENGTH, 0.0),
+                DVec2::new(x, RADIUS),
+                DVec2::new(LENGTH, WIDTH),
+                DVec2::new(0.0, WIDTH),
+            ],
+            &edges,
+            [0, 3],
+            Vec::new(),
+        );
+        OneNotchEdge {
+            plate,
+            named,
+            volume,
+        }
+    }
+
+    /// The notch's wall whose top edge the list names.
+    fn notch_wall(&self) -> Wall {
+        self.plate.wall(self.named)
+    }
+
+    /// The notch's other wall, whose top edge is left sharp.
+    fn sharp_wall(&self) -> Wall {
+        self.plate.wall(3 - self.named)
+    }
+
+    /// The shoulder, where the pair's wall meets the named notch wall, seen
+    /// from above.
+    fn shoulder(&self) -> DVec2 {
+        self.plate.corner(if self.named == 1 { 1 } else { 3 })
+    }
+
+    /// The notch's bottom, where its two walls meet, seen from above.
+    fn bottom(&self) -> DVec2 {
+        self.plate.corner(2)
+    }
+
+    /// The top of the mitre at the shoulder: where the vertical plane through
+    /// the shoulder halving the angle there crosses the sharp wall's plane,
+    /// at the height the full round has there.
+    fn top_of_the_mitre(&self) -> DVec3 {
+        let shoulder = self.shoulder();
+        let toward = self.plate.closing(self.named, self.named == 2) - shoulder;
+        let sharp = self.sharp_wall();
+        let out = sharp.outward().truncate();
+        let point = shoulder + toward * (out.dot(sharp.from - shoulder) / out.dot(toward));
+        let from_the_pair_s_wall = if self.named == 1 {
+            point.y
+        } else {
+            WIDTH - point.y
+        };
+        point.extend(
+            HEIGHT - RADIUS + (RADIUS * RADIUS - (RADIUS - from_the_pair_s_wall).powi(2)).sqrt(),
+        )
+    }
+
+    /// The share of the top the notch edge's round is laid over: the triangle
+    /// between its wall, the mitre at its shoulder and the sharp wall's plane
+    /// carried past the notch's bottom.
+    fn notch_share(&self) -> Share {
+        let wall = self.notch_wall();
+        Share {
+            corners: vec![wall.from, wall.to, self.top_of_the_mitre().truncate()],
+        }
+    }
+
+    /// The share of the far end's round when the list names its edge: #803's
+    /// triangle, up to the crown one radius in from the left end and from the
+    /// pair's walls.
+    fn far_end_share(&self) -> Option<Share> {
+        self.plate
+            .edge_of(FAR_END)
+            .map(|edge| self.plate.share(edge))
+    }
+
+    /// How far a point stands inside the plate's outline, seen from above:
+    /// its least distance to the outline, negative outside.
+    fn inside_the_outline_by(&self, point: DVec3) -> f64 {
+        let point = point.truncate();
+        let count = self.plate.outline.len();
+        let mut crossings = 0;
+        let mut least = f64::INFINITY;
+        for corner in 0..count {
+            let [from, to] = [corner, corner + 1].map(|at| self.plate.corner(at));
+            let run = to - from;
+            let along = ((point - from).dot(run) / run.length_squared()).clamp(0.0, 1.0);
+            least = least.min(point.distance(from + run * along));
+            if (from.y > point.y) != (to.y > point.y)
+                && point.x < from.x + (point.y - from.y) / run.y * run.x
+            {
+                crossings += 1;
             }
-            declined_in_every_order(
-                &plate.part,
-                &listed,
-                &format!(
-                    "the full round's pair, {}{}, on {}, the notch edge meeting one edge of the \
-                     pair and joined to the other by no listed edge",
-                    notch_edge.1,
-                    if with_the_far_end {
-                        " and the edge across the square far end"
-                    } else {
-                        " alone"
-                    },
-                    plate.called
-                ),
+        }
+        if crossings % 2 == 1 { least } else { -least }
+    }
+
+    /// Whether the full round shows at a point, seen from above: `clear`
+    /// inside the outline, and `clear` off the notch edge's share and the far
+    /// end's.
+    fn full_round_shows(&self, point: DVec3, clear: f64) -> bool {
+        self.inside_the_outline_by(point) >= clear
+            && self.notch_share().inside_by(point) <= -clear
+            && self
+                .far_end_share()
+                .is_none_or(|share| share.inside_by(point) <= -clear)
+    }
+
+    /// What the booleans leave, apart from the step: the plate less the full
+    /// round's prism, the far end's raised whole along its wall when the list
+    /// names its edge, and the notch edge's raised along its wall's line,
+    /// kept on the shoulder's side of the sharp wall's plane.
+    fn by_booleans(&self) -> f64 {
+        let plate = &self.plate;
+        let mut cut = plate
+            .part
+            .difference(&full_round_tool(plate))
+            .expect("the full round's prism cuts the plate");
+        if plate.edge_of(FAR_END).is_some() {
+            let prism = plate.wall(FAR_END).tool(&cut);
+            cut = cut
+                .difference(&prism)
+                .expect("the far end's prism cuts the plate");
+        }
+        let sharp = self.sharp_wall();
+        let inward = -sharp.outward();
+        let prism = self
+            .notch_wall()
+            .tool(&cut)
+            .behind(inward, inward.dot(sharp.from.extend(0.0)));
+        cut.difference(&prism)
+            .expect("the notch edge's prism cuts the plate")
+            .volume()
+    }
+}
+
+/// What the plate notched back to (27, 3) holds once the pair and one notch
+/// edge are filleted at [`RADIUS`], the module's documentation deriving it.
+fn one_notch_edge_on_the_deeper_notch() -> f64 {
+    1197.0 + 243.0 * PI / 2.0 - 13.5 * (1.0 + SQRT_2) * (SQRT_2 - 1.0).acos()
+        + (31.5 + 18.0 * SQRT_2) * (2.0 * SQRT_2 - 2.0).sqrt()
+}
+
+/// What the plate notched back to (28, 3) holds likewise.
+fn one_notch_edge_on_the_shallower_notch() -> f64 {
+    let root = 13f64.sqrt();
+    1218.0 + 126.0 * PI - 9.0 / 8.0 * (13.0 + 4.0 * root) * ((4.0 * root - 13.0) / 3.0).acos()
+        + (71.0 / 8.0 + 2.0 * root) * (104.0 * root - 368.0).sqrt()
+}
+
+/// What naming the far end's edge too takes off: #803's square end,
+/// `πr³/2 − 4r³/3`.
+fn the_far_end_takes() -> f64 {
+    PI * RADIUS.powi(3) / 2.0 - 4.0 * RADIUS.powi(3) / 3.0
+}
+
+/// Holds that the fillet at [`RADIUS`] on the case's listed edges, named in
+/// `order` and laid as `filleted`, rounds the notch edge up to the sharp
+/// wall's plane and ends the full round flush on that wall: the value taken
+/// whole; the body exact, closed, uncrossed and drawn, holding what the
+/// arithmetic gives; the top gone, the full round one face answering to both
+/// its edges' ranks and every other round to its own, no patch laid; each
+/// round drawn on its own surface over its own share and met there from
+/// outside; the full round and the notch edge's round meeting on the mitre at
+/// the shoulder only, up to its top, one vertex there with the sharp wall;
+/// the far end, named, mitred against the full round up to its crown; the
+/// sharp wall flat, grown past the notch's bottom by the notch round's end, at
+/// its corners; every named edge's wall set back to z = 7; and every face
+/// meeting the faces it bounds by one edge each, the far end's round the full
+/// round across two mitres.
+fn rounds_one_notch_edge_and_ends_flush_on_the_other_s_wall(
+    case: &OneNotchEdge,
+    order: &[usize],
+    filleted: &Filleted,
+    what: &str,
+) {
+    let r = RADIUS;
+    let plate = &case.plate;
+    let part = &plate.part;
+    let start = part.faces_end();
+    let count = plate.edges.len();
+    let rank_of = |run: usize| {
+        let edge = plate.edge_of(run).expect("the run's edge is listed");
+        (start
+            + order
+                .iter()
+                .position(|&named| named == edge)
+                .expect("every edge is named")) as u32
+    };
+    let mut full: Vec<usize> = [0, 3].map(|run| rank_of(run) as usize).to_vec();
+    full.sort();
+    let notch = rank_of(case.named);
+    let far = plate.edge_of(FAR_END).map(|_| rank_of(FAR_END));
+    let notch_wall = case.notch_wall();
+    let sharp = case.sharp_wall();
+    let share = case.notch_share();
+    let notch_round = notch_wall.round_over(&share);
+    let far_share = case.far_end_share();
+    let far_round = far_share
+        .as_ref()
+        .map(|share| plate.wall(FAR_END).round_over(share));
+    let pair_rounds = [0, 3].map(|run| {
+        let wall = plate.wall(run);
+        let whole = Share {
+            corners: vec![wall.from, wall.to],
+        };
+        wall.round_over(&whole)
+    });
+    let top_of_the_mitre = case.top_of_the_mitre();
+    let shoulder = case.shoulder().extend(HEIGHT - r);
+
+    taken_as_asked(filleted.asked, filleted.taken, r, what);
+    let body = &filleted.body;
+    let area: f64 = pair_rounds
+        .iter()
+        .chain([&notch_round])
+        .chain(far_round.as_ref())
+        .map(Round::area)
+        .sum();
+    sound_drawn_within(body, case.volume, DRAWN * reach_of(part) * area, what);
+
+    assert!(
+        !body.has_face(TOP),
+        "{what}: the top is gone, the full round over it"
+    );
+    let mut kept_and_laid = numbers(part);
+    kept_and_laid.remove(&TOP);
+    kept_and_laid.extend(start..start + count);
+    assert_eq!(
+        numbers(body),
+        kept_and_laid,
+        "{what}: every face of the plate but its top, the full round answering to both its \
+         edges' ranks and every other round to its own, and no patch laid"
+    );
+    assert_eq!(
+        body.faces_end(),
+        start + count,
+        "{what}: the next step numbers its faces past the {count} the list gave its edges"
+    );
+    one_curved_face_answers_to(body, &full, &format!("{what}: the full round"));
+    for (number, which) in [
+        (Some(notch), "the notch edge's round"),
+        (far, "the far end's round"),
+    ] {
+        if let Some(number) = number {
+            assert!(
+                !body.is_flat(number as usize) && body.plane_of(number as usize).is_none(),
+                "{what}: {which}, face {number}, is curved, and offers no plane to draw on"
             );
         }
     }
+
+    let drawn_of =
+        |number: u32| -> Vec<DVec3> { body.triangles_of(number as usize).flatten().collect() };
+    let [full_drawn, notch_drawn] = [full[0] as u32, notch].map(drawn_of);
+    assert!(!full_drawn.is_empty(), "{what}: the full round is drawn");
+    for &point in &full_drawn {
+        assert!(
+            pair_rounds.iter().any(|round| round.holds(point))
+                && case.full_round_shows(point, -PLACE),
+            "{what}: the full round is drawn through {point}, off its half cylinder over the \
+             plate, beside the other rounds' shares"
+        );
+    }
+    assert!(
+        !notch_drawn.is_empty(),
+        "{what}: the notch edge's round is drawn"
+    );
+    for &point in &notch_drawn {
+        assert!(
+            notch_round.holds(point) && share.inside_by(point) >= -PLACE,
+            "{what}: the notch edge's round is drawn through {point}, off its quarter cylinder \
+             over the triangle between its wall, the mitre at its shoulder and the sharp wall's \
+             plane"
+        );
+    }
+    for round in &pair_rounds {
+        met_from_outside_where(
+            body,
+            full[0],
+            round,
+            |aim| case.full_round_shows(aim, CLEAR_OF_THE_MITRE),
+            &format!("{what}: the full round, clear of the other rounds and of the walls"),
+        );
+    }
+    met_from_outside_where(
+        body,
+        notch as usize,
+        &notch_round,
+        |aim| share.inside_by(aim) > CLEAR_OF_THE_MITRE,
+        &format!("{what}: the notch edge's round, clear of its triangle's sides"),
+    );
+
+    let at_the_shoulder = Mitre {
+        edges: [0, 0],
+        corner: case.shoulder(),
+        crown: top_of_the_mitre,
+        called: format!("the shoulder {}", case.shoulder()),
+    };
+    for (point, at) in [
+        (shoulder, "the shoulder"),
+        (top_of_the_mitre, "the top of the mitre"),
+    ] {
+        for (drawn, which) in [
+            (&full_drawn, "the full round"),
+            (&notch_drawn, "the notch edge's round"),
+        ] {
+            assert!(
+                drawn_through(drawn, point),
+                "{what}: {which} is drawn up to {at}, {point}, where the mitre at the shoulder \
+                 ends"
+            );
+        }
+    }
+    for &point in full_drawn
+        .iter()
+        .filter(|&&point| drawn_through(&notch_drawn, point))
+    {
+        assert!(
+            at_the_shoulder.off(point) < PLACE,
+            "{what}: the full round and the notch edge's round meet at {point}, off the vertical \
+             plane through the shoulder and the top of the mitre"
+        );
+    }
+    let the_mitre_s_top = sides_answering(&[&full, &[notch as usize], &[sharp.number]]);
+    assert_eq!(
+        body.vertex_names()
+            .into_iter()
+            .filter(|vertex| vertex.faces == the_mitre_s_top)
+            .count(),
+        1,
+        "{what}: the full round, the notch edge's round and the sharp wall meet at one vertex, \
+         the top of the mitre {top_of_the_mitre}"
+    );
+
+    if let (Some(far), Some(far_share), Some(far_round)) = (far, &far_share, &far_round) {
+        let far_drawn = drawn_of(far);
+        assert!(
+            !far_drawn.is_empty(),
+            "{what}: the far end's round is drawn"
+        );
+        for &point in &far_drawn {
+            assert!(
+                far_round.holds(point) && far_share.inside_by(point) >= -PLACE,
+                "{what}: the far end's round is drawn through {point}, off its quarter cylinder \
+                 over its share"
+            );
+        }
+        met_from_outside_where(
+            body,
+            far as usize,
+            far_round,
+            |aim| far_share.inside_by(aim) > CLEAR_OF_THE_MITRE,
+            &format!("{what}: the far end's round, clear of its mitres"),
+        );
+        let crown = DVec3::new(r, r, HEIGHT);
+        let mitres = [0, 4].map(|corner| Mitre {
+            edges: [0, 0],
+            corner: plate.corner(corner),
+            crown,
+            called: format!("the corner {}", plate.corner(corner)),
+        });
+        for mitre in &mitres {
+            for point in [mitre.corner.extend(HEIGHT - r), crown] {
+                for (drawn, which) in [
+                    (&full_drawn, "the full round"),
+                    (&far_drawn, "the far end's round"),
+                ] {
+                    assert!(
+                        drawn_through(drawn, point),
+                        "{what}: {which} is drawn up to {point}, an end of the mitre at {}",
+                        mitre.called
+                    );
+                }
+            }
+        }
+        for &point in full_drawn
+            .iter()
+            .filter(|&&point| drawn_through(&far_drawn, point))
+        {
+            assert!(
+                mitres.iter().any(|mitre| mitre.off(point) < PLACE),
+                "{what}: the full round and the far end's round meet at {point}, off both mitres \
+                 at the far end"
+            );
+        }
+        let at_the_crown = sides_answering(&[&full, &[far as usize]]);
+        assert_eq!(
+            body.vertex_names()
+                .into_iter()
+                .filter(|vertex| vertex.faces == at_the_crown)
+                .count(),
+            1,
+            "{what}: the full round and the far end's round meet at one vertex, the crown {crown}"
+        );
+    }
+
+    let far_end_wall = 2 + FAR_END;
+    let mut full_meets: Vec<Vec<usize>> = vec![
+        vec![FRONT],
+        vec![BACK],
+        vec![notch as usize],
+        vec![sharp.number],
+    ];
+    match far {
+        Some(far) => full_meets.extend([vec![far as usize], vec![far as usize]]),
+        None => full_meets.push(vec![far_end_wall]),
+    }
+    let full_meets: Vec<&[usize]> = full_meets.iter().map(Vec::as_slice).collect();
+    assert_eq!(
+        sides_met_by(body, &full),
+        sides_answering(&full_meets),
+        "{what}: the full round meets the front and the back along their feet, the far end's \
+         wall or its round across both mitres there, the notch edge's round along the mitre and \
+         the sharp wall along its top, by one edge each"
+    );
+    assert_eq!(
+        sides_met_by(body, &[notch as usize]),
+        sides_answering(&[&[notch_wall.number], &full, &[sharp.number]]),
+        "{what}: the notch edge's round meets its wall along its foot, the full round along the \
+         mitre and the sharp wall along its end, by one edge each"
+    );
+    if let Some(far) = far {
+        assert_eq!(
+            sides_met_by(body, &[far as usize]),
+            sides_answering(&[&[far_end_wall], &full, &full]),
+            "{what}: the far end's round meets its wall along its foot and the full round along \
+             both mitres, by one edge each"
+        );
+    }
+
+    faces_toward(
+        body,
+        sharp.number,
+        sharp.outward(),
+        &format!("{what}: the sharp wall"),
+    );
+    let far_shoulder = if case.named == 1 {
+        sharp.to
+    } else {
+        sharp.from
+    };
+    let bottom = case.bottom();
+    let corners = [
+        bottom.extend(0.0),
+        far_shoulder.extend(0.0),
+        far_shoulder.extend(HEIGHT - r),
+        top_of_the_mitre,
+        bottom.extend(HEIGHT - r),
+    ];
+    let outline = body
+        .plane_of(sharp.number)
+        .unwrap_or_else(|| panic!("{what}: the body offers no plane on the sharp wall"))
+        .corners;
+    for corner in corners {
+        assert!(
+            drawn_through(&outline, corner),
+            "{what}: the sharp wall has a corner at {corner}, at an end of it on the floor or at \
+             z = 7, or at the top of the mitre; its outline runs through {outline:?}"
+        );
+    }
+    for &point in &outline {
+        assert!(
+            drawn_through(&corners, point)
+                || pair_rounds.iter().any(|round| round.holds(point))
+                || notch_round.holds(point),
+            "{what}: the sharp wall's outline runs through {point}, neither at one of its corners \
+             {corners:?} nor along its top on the full round nor along the notch edge's round's \
+             end: grown past the notch's bottom by that end and up to the full round, no further"
+        );
+    }
+    let [before, after] = plate.runs_beside(3 - case.named).map(|run| 2 + run);
+    assert_eq!(
+        sides_met_by(body, &[sharp.number]),
+        sides_answering(&[&[FLOOR], &[before], &[after], &full, &[notch as usize]]),
+        "{what}: the sharp wall meets the floor, the walls at its two ends along its uprights, \
+         the full round along its top and the notch edge's round along that round's end, by one \
+         edge each"
+    );
+    for (run, laid) in [
+        (0, full.clone()),
+        (case.named, vec![notch as usize]),
+        (3, full.clone()),
+    ]
+    .into_iter()
+    .chain(far.map(|far| (FAR_END, vec![far as usize])))
+    {
+        let wall = plate.wall(run);
+        corners_are(
+            body,
+            wall.number,
+            &[
+                wall.from.extend(0.0),
+                wall.to.extend(0.0),
+                wall.to.extend(HEIGHT - r),
+                wall.from.extend(HEIGHT - r),
+            ],
+            &format!(
+                "{what}: the wall under {}, set back by the radius from the top",
+                wall.called
+            ),
+        );
+        let [before, after] = plate.runs_beside(run).map(|run| 2 + run);
+        assert_eq!(
+            sides_met_by(body, &[wall.number]),
+            sides_answering(&[&[FLOOR], &[before], &[after], &laid]),
+            "{what}: the wall under {} meets the floor, the walls on either side along its \
+             uprights, and its round along its top",
+            wall.called
+        );
+    }
+    if far.is_none() {
+        assert_eq!(
+            sides_met_by(body, &[far_end_wall]),
+            sides_answering(&[&[FLOOR], &[FRONT], &[BACK], &full]),
+            "{what}: the far end's wall meets the floor, the front and the back along its \
+             uprights, and the full round along its top"
+        );
+    }
+}
+
+/// Holds, for each case, that the booleans give the matter the arithmetic
+/// does, and that the fillet at [`RADIUS`] on its listed edges lays in every
+/// order the body [`rounds_one_notch_edge_and_ends_flush_on_the_other_s_wall`]
+/// holds, the same in every order: none declined.
+fn rounds_one_notch_edge_in_every_order(cases: &[OneNotchEdge]) {
+    for case in cases {
+        let plate = &case.plate;
+        let by_booleans = case.by_booleans();
+        assert!(
+            (by_booleans - case.volume).abs() <= EXACT * case.volume,
+            "{}: the booleans leave {by_booleans}, where arithmetic gives {}",
+            plate.called,
+            case.volume
+        );
+        let start = plate.part.faces_end();
+        let mut laid: Vec<(Vec<usize>, String, Filleted)> = Vec::new();
+        let mut declined: Vec<String> = Vec::new();
+        for order in every_order(plate.edges.len()) {
+            let what = plate.called("fillet", &order);
+            match plate.filleted(&order) {
+                Ok(filleted) => laid.push((order, what, filleted)),
+                Err(reason) => declined.push(format!("{what}: declined, {reason:?}")),
+            }
+        }
+        assert!(
+            declined.is_empty(),
+            "the fillet at {RADIUS} on a full round and one edge of its V-notched end, the \
+             other left sharp, is built whatever the order; declined:\n{}",
+            declined.join("\n")
+        );
+        let (reference_order, _, reference) = &laid[0];
+        for (order, what, filleted) in &laid {
+            rounds_one_notch_edge_and_ends_flush_on_the_other_s_wall(case, order, filleted, what);
+            let otherwise = met_otherwise(
+                start,
+                order,
+                &filleted.body,
+                reference_order,
+                &reference.body,
+                &[],
+            );
+            assert!(
+                otherwise.is_empty(),
+                "{what}: its faces meet otherwise than in the listed order:\n  {}",
+                otherwise.join("\n  ")
+            );
+            same_body_as(plate, &filleted.body, &reference.body, what);
+        }
+    }
+}
+
+#[test]
+fn a_fillet_on_a_full_round_and_the_front_edge_of_its_v_notched_end_rounds_that_edge_and_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order()
+ {
+    rounds_one_notch_edge_in_every_order(&[OneNotchEdge::at(
+        27.0,
+        1,
+        false,
+        one_notch_edge_on_the_deeper_notch(),
+    )]);
+}
+
+#[test]
+fn a_fillet_on_a_full_round_the_front_edge_of_its_v_notched_end_and_its_square_far_end_s_edge_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order()
+ {
+    rounds_one_notch_edge_in_every_order(&[OneNotchEdge::at(
+        27.0,
+        1,
+        true,
+        one_notch_edge_on_the_deeper_notch() - the_far_end_takes(),
+    )]);
+}
+
+#[test]
+fn a_fillet_on_a_full_round_and_the_back_edge_of_its_v_notched_end_alone_or_with_its_square_far_end_s_edge_ends_flush_on_the_sharp_front_notch_wall_whatever_the_order()
+ {
+    rounds_one_notch_edge_in_every_order(&[
+        OneNotchEdge::at(27.0, 2, false, one_notch_edge_on_the_deeper_notch()),
+        OneNotchEdge::at(
+            27.0,
+            2,
+            true,
+            one_notch_edge_on_the_deeper_notch() - the_far_end_takes(),
+        ),
+    ]);
+}
+
+#[test]
+fn a_fillet_on_a_full_round_and_the_front_edge_of_a_shallower_v_notch_alone_or_with_its_square_far_end_s_edge_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order()
+ {
+    rounds_one_notch_edge_in_every_order(&[
+        OneNotchEdge::at(28.0, 1, false, one_notch_edge_on_the_shallower_notch()),
+        OneNotchEdge::at(
+            28.0,
+            1,
+            true,
+            one_notch_edge_on_the_shallower_notch() - the_far_end_takes(),
+        ),
+    ]);
 }
 
 #[cfg(feature = "campaigns")]

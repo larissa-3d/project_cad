@@ -4,7 +4,8 @@
 //! as one — a chain of cuts beside fills as one slope (#813) — and the edges
 //! of the list such a pair is mitred against at a corner (#803): each edge
 //! at its end, bounding the face that is gone, one across it or the two of a
-//! pointed or a V-notched end (#843), the upright at a point's tip with
+//! pointed or a V-notched end (#843) — one of a V-notched end's alone, the
+//! other left sharp (#917) —, the upright at a point's tip with
 //! them, and any upright meeting one of the pair, at either end, alone or
 //! with the edge at their end (#837) or a point's edge at its shoulder
 //! (#911) — the front's upright at a slope's nose among them (#814); and the
@@ -16,9 +17,10 @@ use glam::DVec3;
 
 use super::chain::TANGENT;
 use super::corners::{self, Beside, Closed};
+use super::flush;
 use super::{MADE, Prism, Wedge, too_short};
 use crate::body::exact::Exact;
-use crate::brep::{self, Declined, EdgeId, FaceId, Scale};
+use crate::brep::{self, Declined, EdgeId, FaceId, Scale, VertexId};
 
 /// What raises the one prism two edges whose set-backs meet are taken off
 /// with, the earlier edge's wedge first, at the value whose set-backs meet
@@ -174,7 +176,12 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// meets the other — each edge of a pointed or a notched end (#843) — with
 /// the third edge of the list ending where those two meet, as `closed` holds
 /// the corners three or more of them meet at — the upright at a point's tip, which
-/// meets neither of the pair, the three closed there (#837) — and each edge
+/// meets neither of the pair, the three closed there (#837) — or, of a pair
+/// laid outwards, one of them alone and stops flush at its other end, no
+/// other edge of the list ending there, as [`flush::stops`] reads it — one
+/// edge of a V-notched end, the other left sharp, its round stopping on the
+/// sharp wall's plane past the notch's bottom while the pair's prism, cut
+/// whole, ends on that wall along an ellipse (#917) — and each edge
 /// whose faces meet outwards, not bounding that face, that meets one of the
 /// pair at a corner where no third edge of the list ends but one at their
 /// end — the edge across it, or, of a pair laid outwards, any edge bounding
@@ -210,7 +217,7 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// meeting there do not commute. Declined `Unsupported` where
 /// an edge of a pair meets another of `edges` at a corner any other way: a
 /// full round meeting an edge bounding its face at one of its edges alone,
-/// or an upright where a third edge of the list ends but one at their end
+/// carried past its other end, or an upright where a third edge of the list ends but one at their end
 /// (#837), a notched end with the upright at its bottom, a corner of
 /// mixed sense gone round that upright first (#914), a round bottom, a slope
 /// or a crease meeting any other edge — the uprights at a round bottom's end
@@ -271,8 +278,24 @@ pub(super) fn at_their_ends(
                     })
                 && !(beside.iter()).any(|(_, at)| at.contains(&rank) && at.contains(&member))
         };
+        let stopping = |rank: usize| {
+            let alone = |end: VertexId| {
+                (0..edges.len()).all(|listed| {
+                    listed == rank
+                        || !body
+                            .edge(edges[listed])
+                            .ends
+                            .is_some_and(|at| at.contains(&end))
+                })
+            };
+            outwards
+                && bounding(rank)
+                && meets(one, rank) != meets(other, rank)
+                && (flush::stops(body, edges[rank], &wedges[rank]).iter())
+                    .any(|stop| alone(stop.end))
+        };
         for rank in (0..edges.len()).filter(|&rank| meets(one, rank) || meets(other, rank)) {
-            if !ending(rank) && !upright(rank) {
+            if !ending(rank) && !upright(rank) && !stopping(rank) {
                 return Err(Declined::Unsupported);
             }
             ends.insert(rank, value);
