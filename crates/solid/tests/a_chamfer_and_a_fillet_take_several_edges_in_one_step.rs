@@ -402,13 +402,12 @@
 //!   a slope a hair off can change over the tread
 //! - Decided on the way, after the review (2026-11-12): the crease counts as
 //!   a pair, as #791's slope does, so a list naming a third edge that meets
-//!   it is declined in every order until #926 — on a flight whose front
-//!   leans, its riser as high as its tread is deep, the first nose, the foot
-//!   and the second nose, which `main` laid in four of their six orders —
-//!   `a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_is_declined_as_unsupported_in_every_order`.
-//!   Read as: the first nose and the foot, and the foot and the second nose,
-//!   each pair laid in both orders at 4; the three declined `Unsupported` in
-//!   each of their six orders, asked 4 and asked 6. The front's upright edge
+//!   it was declined in every order here, until #926 — on a flight whose
+//!   front leans, its riser as high as its tread is deep, the first nose,
+//!   the foot and the second nose, which `main` laid in four of their six
+//!   orders. They are one body in every order since #926, below —
+//!   `a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_lays_the_first_nose_s_flat_meeting_the_slope_across_the_riser_in_a_crease_in_every_order`.
+//!   The front's upright edge
 //!   at one end of the leaning stair's nose, named with the nose and the
 //!   foot, never reaches the crease: the upright's set-back across the
 //!   stair's end reaches the tread √104/10 along it for each unit set back,
@@ -668,16 +667,17 @@
 //!   test: those tests hold their own bodies, above in this file, and run
 //!   beside the tests that answer #813, left as they were but #791's pinned
 //!   decline, which the next criterion flips; #812's leaning flight among
-//!   them, whose first nose, foot and second nose stay declined in every
-//!   order until #926, the crease counting as a pair —
-//!   `a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_is_declined_as_unsupported_in_every_order`
+//!   them, whose first nose, foot and second nose stayed declined in every
+//!   order until #926, the crease counting as a pair, and are one body
+//!   since —
+//!   `a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_lays_the_first_nose_s_flat_meeting_the_slope_across_the_riser_in_a_crease_in_every_order`
 //! - Throughout: #791's pinned decline
 //!   `…where_its_treads_are_as_deep_as_its_risers_are_high_is_declined_as_unsupported`
 //!   flips to the above: it is now
 //!   `a_chamfer_on_a_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_takes_half_in_one_slope_across_it_in_every_order`,
 //!   and #791's criterion above names it in its stead
 //! - Decided on the way, after the review (2026-11-12): a chain holding a
-//!   crease is declined in every order until #926, whether its other flats
+//!   crease is declined in every order until #985, whether its other flats
 //!   meet in a crease too or lie a hair off one plane — the leaning flight
 //!   with its top rising 2 over its depth, three flats in two creases, and
 //!   rising 1e-5, the foot's flat and the second nose's 5e-7 rad apart, under
@@ -944,6 +944,55 @@
 //!   30·(600 − 12.5) − 250/3, 17541.666667, on three — two noses' triangles
 //!   lost and one foot's gained, less what the upright's flat takes off —
 //!   and its triangles enclosing that
+//!
+//! Closes #926.
+//! - The leaning flight ([`LEANING_FLIGHT`] — only its front leans; the
+//!   riser stands upright and the top is flat), its first nose, the foot
+//!   between and its second nose, chamfered at 4, is built in every order
+//!   (six) as one body: the foot's flat and the second nose's flat are one
+//!   slope on z = y + 4, as #813 lays them across the riser, answering to
+//!   both their numbers; the first nose's flat meets that slope along one
+//!   crease, as #812's pair meets; the tread and the riser are gone; the
+//!   same body in every order; exact, closed and uncrossed, holding
+//!   30·(270 − 80/√104). The value is not reduced: 4 splits the 8-deep
+//!   tread and the 8-high riser exactly. The decline test
+//!   `…where_its_treads_are_as_deep_as_its_risers_are_high_is_declined_as_unsupported_in_every_order`
+//!   flips to that —
+//!   `a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_lays_the_first_nose_s_flat_meeting_the_slope_across_the_riser_in_a_crease_in_every_order`.
+//!   Read as: the first nose's and the foot's set-backs meeting on the tread
+//!   at (6, 10), and the foot's and the second nose's on the riser at
+//!   (10, 14); in each of the six orders, asked 4 and 6, the value asked
+//!   reported and 4 taken; the tread and the riser gone and every other face
+//!   kept, the next step numbering past the three edges' numbers; the first
+//!   nose's flat answering to its own number alone, facing out of its
+//!   section's line from (6, 10) to (2, 10) + 4·(−2, −10)/√104, those two its
+//!   corners at either end of the flight, meeting the leaning front, the
+//!   slope along the crease and the flight's two ends by one edge each; the
+//!   slope one flat face answering to the foot's and the second nose's
+//!   numbers, drawn with the same triangles, no edge between the two,
+//!   facing (0, −1, 1)/√2, its corners (x, 6, 10) and (x, 14, 18) at either
+//!   end and none anywhere else, meeting the first nose's flat along the
+//!   crease, the top and the flight's two ends by one edge each; what is
+//!   left of the leaning front, up to the first nose's flat, and of the top,
+//!   from y = 14 back; the flight's two ends cut to that section; the body
+//!   exact, closed, uncrossed, holding 30·(270 − 80/√104), 7864.660638 — the
+//!   section's 270, less the first nose's triangle, 80/√104, more the foot's
+//!   8 and less the second nose's 8 — which the booleans give too, the first
+//!   nose's triangle and the second's cut away and the foot's joined on, and
+//!   its triangles enclosing that. The same body in every order is every
+//!   check above holding to the place's tolerance in each
+//! - #812's crease, #791's and #813's slopes, #814's slope corners, #928's
+//!   and #929's slopes keep their bodies — no test: their tests above, left
+//!   as they were, hold their bodies, among them
+//!   `a_chamfer_on_the_nose_and_foot_of_a_tread_whose_front_leans_asked_half_its_depth_or_more_takes_half_in_two_flats_meeting_in_a_crease_whichever_is_named_first`,
+//!   `a_chamfer_on_a_tread_s_nose_and_foot_asked_half_its_depth_or_more_takes_half_in_one_slope_answering_to_both_their_numbers`,
+//!   `a_chamfer_on_a_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_takes_half_in_one_slope_across_it_in_every_order`,
+//!   `a_chamfer_on_a_tread_s_nose_and_foot_and_the_front_s_upright_edge_at_the_nose_s_right_end_lays_the_slope_and_the_upright_s_flat_mitred_along_one_line_in_every_order`,
+//!   `a_chamfer_on_a_tread_s_nose_and_foot_whose_riser_is_turned_by_a_ten_millionth_and_as_high_as_half_its_depth_lays_one_slope_taking_the_riser_whole_whichever_is_named_first`,
+//!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_stair_whose_riser_strays_from_the_flight_s_one_plane_by_a_hair_takes_half_in_one_slope_across_it_in_every_order`.
+//!   Set aside, unchanged: the crease meeting the front's upright at the
+//!   nose's end, which reduces the value before a crease forms —
+//!   `a_chamfer_on_the_nose_and_foot_of_a_tread_whose_front_leans_and_the_front_s_upright_edge_at_one_end_of_the_nose_is_reduced_short_of_the_crease_and_lays_the_body_main_lays_in_every_order`
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
@@ -7269,7 +7318,7 @@ fn a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_no
                     "the leaning flight whose top rises {rise}, its first nose, foot and second \
                      nose named in the order {order:?}, asked {asked}: the foot's flat would meet \
                      the first nose's in a crease across the tread, and the second nose's in \
-                     {which}, a chain holding a crease, declined in every order until #926"
+                     {which}, a chain holding a crease, declined in every order until #985"
                 );
             }
         }
@@ -9432,56 +9481,269 @@ const LEANING_FLIGHT: [DVec2; 6] = [
 ];
 const LEANING_TOP: usize = 4;
 
+/// The [`LEANING_FLIGHT`] raised along X for [`LENGTH`].
+fn leaning_flight() -> Body {
+    leaning_flight_rising(0.0)
+}
+
+/// Where a chamfer of `distance` on the leaning flight's second nose sets
+/// back the riser and the top, on its section: down the riser and back on
+/// the top from the nose.
+fn second_nose_set_backs(distance: f64) -> [DVec2; 2] {
+    let nose_at = LEANING_FLIGHT[3];
+    [nose_at - DVec2::Y * distance, nose_at + DVec2::X * distance]
+}
+
+/// The matter of the leaning flight once a chamfer of `distance` cuts its
+/// first nose off, fills its foot in and cuts its second nose off, along its
+/// length: its section, 270, less the triangle the first nose gives up, two
+/// sides `distance` long holding the angle of the tread and the leaning
+/// front between them, whose sine is 10/√104, more the foot's triangle and
+/// less the second nose's, two sides `distance` long square to each other
+/// each — 30·(270 − 5d²/√104), 30·(270 − 80/√104) at 4.
+fn leaning_flight_matter(distance: f64) -> f64 {
+    let nose_at = LEANING_FLIGHT[5];
+    let [on_tread, on_front, _, _] = leaning_set_backs(distance);
+    let cut = (on_tread - nose_at).perp_dot(on_front - nose_at).abs() / 2.0;
+    let square = distance * distance / 2.0;
+    LENGTH * (area_of(&LEANING_FLIGHT) - cut + square - square)
+}
+
+/// The matter the booleans leave of the leaning flight once a chamfer's
+/// triangles of `distance` are cut away at its first nose, joined on at its
+/// foot and cut away at its second nose: the first nose's run on into the
+/// air beyond the tread and the leaning front, the foot's into the matter
+/// under the tread and behind the riser, and the second nose's into the air
+/// above the top and in front of the riser, short of the foot's slope.
+fn leaning_flight_matter_by_booleans(flight: &Body, distance: f64) -> f64 {
+    let [nose_on_tread, on_front, on_riser, foot_on_tread] = leaning_set_backs(distance);
+    let [down_the_riser, on_top] = second_nose_set_backs(distance);
+    let above = TREAD_HEIGHT + 2.0;
+    let before = -2.0;
+    let nose = raised_along_x(
+        flight,
+        vec![
+            on_front,
+            nose_on_tread,
+            DVec2::new(nose_on_tread.x, above),
+            DVec2::new(before, above),
+            DVec2::new(before, on_front.y),
+        ],
+        [-1.0, LENGTH + 1.0],
+    );
+    let cut = flight
+        .difference(&nose)
+        .expect("the first nose's triangle cuts the flight");
+    let below = TREAD_HEIGHT - 1.0;
+    let behind = TREAD + 1.0;
+    let foot = raised_along_x(
+        &cut,
+        vec![
+            foot_on_tread,
+            DVec2::new(foot_on_tread.x, below),
+            DVec2::new(behind, below),
+            DVec2::new(behind, on_riser.y),
+            on_riser,
+        ],
+        [0.0, LENGTH],
+    );
+    let filled = cut
+        .union(&foot)
+        .expect("the foot's triangle joins the flight");
+    let over = LEANING_FLIGHT[3].y + 2.0;
+    let short = TREAD - 1.0;
+    let second = raised_along_x(
+        &filled,
+        vec![
+            down_the_riser,
+            on_top,
+            DVec2::new(on_top.x, over),
+            DVec2::new(short, over),
+            DVec2::new(short, down_the_riser.y),
+        ],
+        [-1.0, LENGTH + 1.0],
+    );
+    filled
+        .difference(&second)
+        .expect("the second nose's triangle cuts the flight")
+        .volume()
+}
+
 #[test]
-fn a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_is_declined_as_unsupported_in_every_order()
+fn a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_nose_where_its_treads_are_as_deep_as_its_risers_are_high_lays_the_first_nose_s_flat_meeting_the_slope_across_the_riser_in_a_crease_in_every_order()
  {
-    let part = Body::default();
-    let flight = part
-        .union(&raised_along_x(
-            &part,
-            LEANING_FLIGHT.to_vec(),
-            [0.0, LENGTH],
-        ))
-        .expect("the flight is built");
+    let flight = leaning_flight();
     let edges = [
         edge_between(&flight, LEANING_TREAD_TOP, LEANING_FRONT),
         edge_between(&flight, LEANING_RISER, LEANING_TREAD_TOP),
         edge_between(&flight, LEANING_TOP, LEANING_RISER),
     ];
     let limit = LEANING_TREAD / 2.0;
-    for (pair, which) in [
-        (
-            [0, 1],
-            "the first nose and the foot, two flats meeting in a crease across the tread",
-        ),
-        (
-            [1, 2],
-            "the foot and the second nose, one slope across the riser",
-        ),
-    ] {
-        for order in every_order(&pair) {
-            let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
-            assert!(
-                flight.chamfer_edges(&names, limit).is_ok(),
-                "{which}, alone, named in the order {order:?}, asked {limit}: laid, so that what \
-                 declines the three is the foot meeting both"
-            );
-        }
-    }
+    let start = flight.faces_end();
+    let [nose_on_tread, on_front, on_riser, foot_on_tread] = leaning_set_backs(limit);
+    let [down_the_riser, on_top] = second_nose_set_backs(limit);
+    assert!(
+        nose_on_tread.distance(foot_on_tread) < PLACE && on_riser.distance(down_the_riser) < PLACE,
+        "at {limit} the first nose's and the foot's set-backs meet on the tread, at \
+         {nose_on_tread} and {foot_on_tread}, and the foot's and the second nose's on the riser, \
+         at {on_riser} and {down_the_riser}: the tread and the riser are both taken"
+    );
+    let promised = leaning_flight_matter(limit);
+    let crease_and_slope = LENGTH * (270.0 - 80.0 / 104_f64.sqrt());
+    assert!(
+        (promised - crease_and_slope).abs() <= EXACT * crease_and_slope,
+        "the leaning flight chamfered at {limit} holds 30·(270 − 80/√104), {crease_and_slope}, \
+         where the arithmetic of its triangles gives {promised}"
+    );
+    let by_booleans = leaning_flight_matter_by_booleans(&flight, limit);
+    assert!(
+        (by_booleans - promised).abs() <= EXACT * promised,
+        "the booleans leave {by_booleans}, where arithmetic gives {promised}"
+    );
 
     for asked in [limit, 6.0] {
         for order in every_order(&[0, 1, 2]) {
             let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+            let number_of = |edge: usize| {
+                start
+                    + order
+                        .iter()
+                        .position(|&named| named == edge)
+                        .expect("each edge is named")
+            };
+            let what = format!(
+                "the chamfer on the leaning flight's first nose, foot and second nose, named in \
+                 the order {order:?}, asked {asked}"
+            );
 
-            let declined = flight.chamfer_edges(&names, asked).err();
+            let chamfered = flight
+                .chamfer_edges(&names, asked)
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
 
+            reduced(chamfered.asked, chamfered.taken, [asked, limit], &what);
+            let body = &chamfered.body;
+            let nose_flat = number_of(0);
+            let mut slope = [number_of(1), number_of(2)];
+            slope.sort_unstable();
+            let mut kept_and_laid = numbers(&flight);
+            for gone in [LEANING_TREAD_TOP, LEANING_RISER] {
+                assert!(!body.has_face(gone), "{what}: face {gone} is gone");
+                kept_and_laid.remove(&gone);
+            }
+            kept_and_laid.extend(start..start + 3);
             assert_eq!(
-                declined,
-                Some(Declined::Unsupported),
-                "the first nose, the foot and the second nose named in the order {order:?}, \
-                 asked {asked}: the foot's flat would meet the first nose's in a crease across \
-                 the tread and be one slope with the second nose's across the riser, a crease \
-                 meeting another chamfered edge, declined in every order until #926"
+                numbers(body),
+                kept_and_laid,
+                "{what}: every face of the flight but its tread and its riser, the first nose's \
+                 flat and the slope answering to the foot and the second nose"
+            );
+            assert_eq!(
+                body.faces_end(),
+                start + 3,
+                "{what}: the next step numbers its faces past the three edges' numbers"
+            );
+            let slope_sides: Vec<u32> = slope.iter().map(|&number| number as u32).collect();
+            let ends = [vec![LEANING_START as u32], vec![LEANING_END as u32]];
+
+            let which = format!("{what}: face {nose_flat}, the first nose cut off");
+            face_facing(
+                body,
+                &[nose_flat],
+                facing_out_of(nose_on_tread, on_front),
+                &which,
+            );
+            corners_are(
+                body,
+                nose_flat,
+                &strip(on_section(nose_on_tread, 0.0), on_section(on_front, 0.0)),
+                &which,
+            );
+            assert_eq!(
+                sides_met(body, nose_flat),
+                sides_by(
+                    &[
+                        &ends[..],
+                        &[vec![LEANING_FRONT as u32], slope_sides.clone()],
+                    ]
+                    .concat()
+                ),
+                "{which}: a face answering to its own number alone, meeting the leaning front, \
+                 the slope along the crease and the flight's two ends, by one edge each"
+            );
+
+            let which =
+                format!("{what}: the slope answering to {slope:?}, from the crease up to {on_top}");
+            one_flat_face_answers_to(body, &slope, &which);
+            assert!(
+                body.edge_names()
+                    .iter()
+                    .all(|name| !lies_between(name, slope[0], slope[1])),
+                "{which}: no edge stands between {} and {}: they are one face",
+                slope[0],
+                slope[1]
+            );
+            face_facing(
+                body,
+                &[slope[0]],
+                DVec3::new(0.0, -1.0, 1.0).normalize(),
+                &which,
+            );
+            corners_are(
+                body,
+                slope[0],
+                &strip(on_section(foot_on_tread, 0.0), on_section(on_top, 0.0)),
+                &which,
+            );
+            assert_eq!(
+                sides_met_by(body, &slope),
+                sides_by(
+                    &[
+                        &ends[..],
+                        &[vec![LEANING_TOP as u32], vec![nose_flat as u32]],
+                    ]
+                    .concat()
+                ),
+                "{which}: meeting the top, the first nose's flat along the crease and the \
+                 flight's two ends, by one edge each"
+            );
+
+            corners_are(
+                body,
+                LEANING_FRONT,
+                &strip(
+                    on_section(LEANING_FLIGHT[0], 0.0),
+                    on_section(on_front, 0.0),
+                ),
+                &format!("{what}: what is left of the leaning front, under the first nose's flat"),
+            );
+            corners_are(
+                body,
+                LEANING_TOP,
+                &strip(on_section(on_top, 0.0), on_section(LEANING_FLIGHT[2], 0.0)),
+                &format!("{what}: what is left of the top, behind the slope"),
+            );
+            let section = [
+                LEANING_FLIGHT[0],
+                LEANING_FLIGHT[1],
+                LEANING_FLIGHT[2],
+                on_top,
+                foot_on_tread,
+                on_front,
+            ];
+            for (end, x) in [(LEANING_START, 0.0), (LEANING_END, LENGTH)] {
+                let corners: Vec<DVec3> = section.iter().map(|&at| on_section(at, x)).collect();
+                corners_are(
+                    body,
+                    end,
+                    &corners,
+                    &format!("{what}: the flight's end at x = {x}"),
+                );
+            }
+            sound_drawn_within(
+                body,
+                promised,
+                EXACT * promised,
+                &format!("{what}: what the noses give up taken off, what the foot takes in added"),
             );
         }
     }
