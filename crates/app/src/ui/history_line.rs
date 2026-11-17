@@ -15,7 +15,7 @@ use crate::ui::theme::tokens::{
 
 /// The measures in points the tokens do not carry: a line's height, the room
 /// its number is given, and how far below the name the detail starts.
-const HEIGHT: f32 = 38.0;
+pub const HEIGHT: f32 = 38.0;
 const NUMBER_COLUMN: f32 = 28.0;
 const DETAIL_BELOW: f32 = 16.0;
 

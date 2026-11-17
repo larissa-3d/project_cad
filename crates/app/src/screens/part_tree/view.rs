@@ -29,6 +29,14 @@ struct Asked<'a> {
     adding: bool,
     action: TreeAction,
     hovering: Option<Points>,
+    ends: Vec<f32>,
+}
+
+impl Asked<'_> {
+    /// Where the row just laid ends, a place the tree's list may stop at.
+    fn ended(&mut self, ui: &egui::Ui) {
+        self.ends.push(ui.cursor().top());
+    }
 }
 
 /// The panel the tree is shown in, chrome and all, with the history folded at
@@ -49,6 +57,7 @@ pub fn panel(
         adding: ui.input(|input| input.modifiers.command || input.modifiers.shift),
         action: TreeAction::None,
         hovering: None,
+        ends: Vec::new(),
     };
     egui::Panel::left("part_tree_panel")
         .resizable(true)
@@ -71,13 +80,28 @@ fn show(ui: &mut egui::Ui, asked: &mut Asked<'_>, lang: &Catalogue) {
         return;
     }
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
+    let id = egui::Id::new("part_tree_row_ends");
+    let ends: Vec<f32> = ui.data(|data| data.get_temp(id)).unwrap_or_default();
+    let room = ui.available_height();
+    let fitting = ends.iter().copied().filter(|end| *end <= room);
+    let on_a_whole_row = if ends.is_empty() {
+        room
+    } else {
+        fitting.fold(0.0, f32::max)
+    };
+    let within_what_is_left = egui::ScrollArea::vertical()
+        .max_height(on_a_whole_row)
+        .min_scrolled_height(0.0);
+    let laid = within_what_is_left.show(ui, |ui| {
+        let margin = ui.spacing().scroll.content_margin;
+        let top = ui.cursor().top() - margin.topf();
         ui.spacing_mut().item_spacing.y = 0.0;
         for (rank, rubric) in tree.rubrics().into_iter().enumerate() {
             if rank > 0 {
                 ui.add_space(8.0);
             }
             ui.label(said::rubric(lang, rubric));
+            asked.ended(ui);
             match rubric {
                 Rubric::Sketches => {
                     for drawing in &tree.sketches {
@@ -97,10 +121,20 @@ fn show(ui: &mut egui::Ui, asked: &mut Asked<'_>, lang: &Catalogue) {
                         section(ui, kept, asked, lang);
                     }
                 }
-                Rubric::Variables => variables(ui, &tree.variables, lang),
+                Rubric::Variables => variables(ui, &tree.variables, asked, lang),
             }
         }
+        asked.ends.push(ui.cursor().top() + margin.bottomf());
+        asked
+            .ends
+            .drain(..)
+            .map(|end| end - top)
+            .collect::<Vec<f32>>()
     });
+    if laid.inner != ends {
+        ui.data_mut(|data| data.insert_temp(id, laid.inner));
+        ui.ctx().request_repaint();
+    }
 }
 
 /// « Tout rendre opaque », under the volumes, greyed while they all are.
@@ -109,13 +143,15 @@ fn make_all_opaque(ui: &mut egui::Ui, offered: &state::Offered, asked: &mut Aske
     if secondary_button(ui, offered.enabled, &offered.label).clicked() {
         asked.action = TreeAction::MakeAllOpaque;
     }
+    asked.ended(ui);
 }
 
 /// The variables, read only: the name in the variable colour, the value on
 /// the right.
-fn variables(ui: &mut egui::Ui, variables: &[Variable], lang: &Catalogue) {
+fn variables(ui: &mut egui::Ui, variables: &[Variable], asked: &mut Asked<'_>, lang: &Catalogue) {
     if variables.is_empty() {
         tree_note(ui, 0, &lang.t("part_tree.no_variables"));
+        asked.ended(ui);
     }
     for variable in variables {
         tree_row(
@@ -128,6 +164,7 @@ fn variables(ui: &mut egui::Ui, variables: &[Variable], lang: &Catalogue) {
                 ..TreeRow::default()
             },
         );
+        asked.ended(ui);
     }
 }
 
@@ -144,6 +181,7 @@ fn section(ui: &mut egui::Ui, kept: &Kept, asked: &mut Asked<'_>, lang: &Catalog
         ..TreeRow::default()
     };
     let response = tree_row(ui, row).row;
+    asked.ended(ui);
     if response.double_clicked() {
         asked.action = TreeAction::EditSection(kept.id);
     } else if response.clicked() {
@@ -200,6 +238,7 @@ fn made_of_matter(ui: &mut egui::Ui, body: &Body, asked: &mut Asked<'_>, lang: &
     };
     let id = egui::Id::new(("body", body.step));
     let (touched, open) = folding_row(ui, id, false, heading);
+    asked.ended(ui);
     if touched.eye {
         asked.action = TreeAction::NextVolumeMode(body.step);
     }
@@ -208,6 +247,7 @@ fn made_of_matter(ui: &mut egui::Ui, body: &Body, asked: &mut Asked<'_>, lang: &
     }
     if open {
         tree_note(ui, 1, &body.reads);
+        asked.ended(ui);
         for area in &body.areas {
             row(ui, area, 1, false, asked);
         }
@@ -235,6 +275,7 @@ fn drawn(ui: &mut egui::Ui, drawing: &Drawn, asked: &mut Asked<'_>, lang: &Catal
     };
     let id = egui::Id::new(("sketch", drawing.step));
     let (touched, unfolded) = folding_row(ui, id, drawing.open, heading);
+    asked.ended(ui);
     if touched.eye {
         asked.action = TreeAction::ToggleEye(drawing.sketch);
     }
@@ -285,7 +326,9 @@ fn kind(
         value: Some(&count),
         ..TreeRow::default()
     };
-    if folding_row(ui, egui::Id::new(("kind", salt)), false, named).1 {
+    let unfolded = folding_row(ui, egui::Id::new(("kind", salt)), false, named).1;
+    asked.ended(ui);
+    if unfolded {
         for one in rows {
             row(ui, one, 2, dimmed, asked);
         }
@@ -307,6 +350,7 @@ fn row(ui: &mut egui::Ui, row: &Row, depth: usize, dimmed: bool, asked: &mut Ask
         ..TreeRow::default()
     };
     let response = tree_row(ui, named).row;
+    asked.ended(ui);
     if !asks {
         return;
     }
