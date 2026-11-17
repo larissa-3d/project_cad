@@ -103,7 +103,11 @@ fn history(
     let lines = fitting(floor)
         .max(fitting(bottom).min(FEWEST_LINES))
         .clamp(0.0, MOST_LINES);
-    let tallest = lines * history_line::HEIGHT + ui.spacing().scroll.content_margin.topf();
+    let margin = ui.spacing().scroll.content_margin;
+    let all_of_it = history.lines.len() as f32 <= lines;
+    let tallest = lines * history_line::HEIGHT
+        + margin.topf()
+        + if all_of_it { margin.bottomf() } else { 0.0 };
     egui::ScrollArea::vertical()
         .id_salt("part_history")
         .max_height(tallest)

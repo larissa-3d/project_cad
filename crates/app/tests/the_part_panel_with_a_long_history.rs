@@ -22,6 +22,10 @@
 //!   below that the list takes what is left and nothing of the history runs
 //!   off the window's bottom —
 //!   `on_a_window_too_short_for_two_lines_nothing_of_the_history_runs_off_its_bottom`
+//! - found in review: on a window tall enough, six lines of history show
+//!   whole, the list not scrolling by a point: no scroll bar runs beside
+//!   them —
+//!   `on_a_tall_window_six_lines_of_history_show_whole`
 //! - found on the rendered frames: at rest, no row of the tree and no line of
 //!   the history shows in part, at 713 and at 600 points high —
 //!   `at_rest_no_row_of_the_tree_nor_line_of_the_history_shows_in_part`
@@ -49,12 +53,14 @@ use glam::DVec2;
 const THE_FRAMES_WINDOW: egui::Vec2 = egui::vec2(1280.0, 713.0);
 
 /// The shortest window whose Part panel holds the reader's card, the
-/// history's header, two of its lines and its link, measured on the branch:
-/// at 450 the panel is 206 points high where they need about 250.
+/// history's header, two of its lines and its link, as measured on the branch.
 const A_SHORT_WINDOW: egui::Vec2 = egui::vec2(1280.0, 520.0);
 
 /// A window too short for the card, the header, two lines and the link.
 const A_WINDOW_TOO_SHORT_FOR_TWO_LINES: egui::Vec2 = egui::vec2(1280.0, 450.0);
+
+/// A window tall enough for six lines of history under the card, and the tree.
+const A_TALL_WINDOW: egui::Vec2 = egui::vec2(1280.0, 800.0);
 
 /// A row of the tree, 28 points high: C10, which `the_part_panel.rs` holds.
 const ROW: f32 = 28.0;
@@ -705,6 +711,17 @@ fn on_a_window_too_short_for_two_lines_nothing_of_the_history_runs_off_its_botto
     );
     let window = app.ctx.content_rect();
     let lines = the_history_s_lines(&app);
+    let whole = the_history_s_bar(&app, &lines).map_or(0, |list| {
+        lines
+            .iter()
+            .filter(|(_, rect)| inside(*rect, list) && window.contains_rect(*rect))
+            .count()
+    });
+    assert!(
+        whole < 2,
+        "the fixture wants a window too short for two lines, and {whole} show whole on \
+         {A_WINDOW_TOO_SHORT_FOR_TWO_LINES:?}",
+    );
     let drawn = the_history_s_bar(&app, &lines).map_or_else(Vec::new, |list| {
         lines
             .into_iter()
@@ -730,5 +747,27 @@ fn on_a_window_too_short_for_two_lines_nothing_of_the_history_runs_off_its_botto
          run off the window's bottom at {}:\n  {}",
         window.bottom(),
         off.join("\n  "),
+    );
+}
+
+#[test]
+fn on_a_tall_window_six_lines_of_history_show_whole() {
+    let mut app = a_block_with_a_hole("on_a_tall_window_six_lines_show_whole");
+    assert_eq!(
+        history_length(&mut app),
+        6,
+        "the fixture wants six lines of history"
+    );
+    unfold_or_fold_the_history(&mut app, true);
+    app.set_size(A_TALL_WINDOW);
+    app.run();
+
+    let lines = the_history_s_lines(&app);
+    let scrolled = the_history_s_bar(&app, &lines);
+
+    assert!(
+        scrolled.is_none(),
+        "on a {A_TALL_WINDOW:?} window, six lines of history unfolded, the list scrolls \
+         beside them, showing {scrolled:?} of lines at {lines:?}",
     );
 }
