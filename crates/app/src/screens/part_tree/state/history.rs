@@ -156,13 +156,7 @@ fn blended(lang: &Catalogue, document: &PartDocument, step: usize, size: &Formul
         .number_at(step)
         .and_then(|number| document.reduced_at(number));
     match reduced {
-        Some(reduced) => lang.t_with(
-            "part_tree.history.blend_reduced",
-            &[
-                ("asked", &dimension::short(reduced.asked)),
-                ("taken", &dimension::short(reduced.taken)),
-            ],
-        ),
+        Some(reduced) => wording::blend::reduced(lang, reduced),
         None => lang.t_with(
             "part_tree.history.blend_size",
             &[(

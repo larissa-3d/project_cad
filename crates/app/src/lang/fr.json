@@ -849,6 +849,7 @@
   "extrusion.cancel": "Annuler",
   "blend.distance": "Distance :",
   "blend.radius": "Rayon :",
+  "blend.not_above_zero": "Une taille est un nombre plus grand que zéro",
   "blend.edges_chosen_one": "{count} arête",
   "blend.edges_chosen_many": "{count} arêtes",
   "extrusion.nothing_added": "L'extrusion n'a rien ajouté.",

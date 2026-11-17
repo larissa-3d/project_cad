@@ -6,6 +6,7 @@
 //! lit where it stands, and each volume is drawn invisible, see-through or
 //! opaque.
 
+mod preview;
 mod shown;
 
 use std::cell::RefCell;
@@ -15,6 +16,7 @@ use cao_part::history::StepKind;
 use cao_part::{Operation, PartDocument, VolumeState};
 use cao_sketch::Sketch;
 
+use preview::Previewed;
 use shown::{Before, Blocked, Replayed};
 
 use super::ViewportState;
@@ -44,6 +46,10 @@ pub(super) struct Visibility {
     /// The part as it stood before the step reopened, and what it was
     /// replayed from.
     before: RefCell<Option<Before>>,
+    /// The step reopened as its panel last held it.
+    preview: Option<Previewed>,
+    /// How many times the step reopened was laid as its panel held it.
+    previews_built: usize,
 }
 
 /// One sketch, or the volume made at a step of the history.
@@ -64,6 +70,8 @@ impl Default for Visibility {
             shown: RefCell::new(None),
             block: RefCell::new(None),
             before: RefCell::new(None),
+            preview: None,
+            previews_built: 0,
         }
     }
 }

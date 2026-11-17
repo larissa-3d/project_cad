@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use cao_part::{History, PartDocument, Shown, VolumeState};
+use cao_part::{History, PartDocument, Shown, StepReopened, VolumeState};
 use cao_solid::Body;
 
 use super::super::ViewportState;
@@ -27,6 +27,7 @@ pub(super) struct Before {
     history: History,
     step: u32,
     shown: Rc<Shown>,
+    reopened: Rc<StepReopened>,
 }
 
 /// The raw block of the volume made by the step of that number, with the
@@ -39,10 +40,14 @@ pub(super) struct Blocked {
 
 impl ViewportState {
     /// The part as its volumes' states show it, read through the step the
-    /// reader is on, or as it stood before the step reopened; nothing while
+    /// reader is on, or as it stood before the step reopened; the step
+    /// reopened laid as its panel holds it, opaque, once it is; nothing while
     /// every volume of the document is opaque, the part is read to its end and
     /// no step is reopened, when the part shown is the part itself.
     pub(crate) fn part_shown(&self, document: &PartDocument) -> Option<Rc<Shown>> {
+        if let Some(previewed) = self.previewed() {
+            return Some(previewed);
+        }
         let states = self.volume_states(document);
         let (reading_point, reopened) = (self.reading.point, self.reopened);
         if states.is_empty() && reading_point.is_none() && reopened.is_none() {
@@ -79,21 +84,36 @@ impl ViewportState {
     /// whatever is drawn, which its edges are named on as a new step's are on
     /// the part; nothing while no step is.
     pub(crate) fn part_reopened(&self, document: &PartDocument) -> Option<Rc<Shown>> {
+        self.before(document).map(|(shown, _)| shown)
+    }
+
+    /// The part as it stood before the step reopened, kept to lay the step
+    /// on as its panel holds it; nothing while no step is.
+    pub(super) fn step_reopened(&self, document: &PartDocument) -> Option<Rc<StepReopened>> {
+        self.before(document).map(|(_, reopened)| reopened)
+    }
+
+    fn before(&self, document: &PartDocument) -> Option<(Rc<Shown>, Rc<StepReopened>)> {
         let step = self.reopened?;
         let mut kept = self.visibility.before.borrow_mut();
         if let Some(before) = kept.as_ref()
             && before.step == step
             && before.history == document.history
         {
-            return Some(Rc::clone(&before.shown));
+            return Some((Rc::clone(&before.shown), Rc::clone(&before.reopened)));
         }
-        let shown = Rc::new(document.shown_before(&BTreeMap::new(), step));
+        let reopened = Rc::new(document.step_reopened(step));
+        let shown = Rc::new(Shown {
+            body: reopened.body().clone(),
+            ghosts: Vec::new(),
+        });
         *kept = Some(Before {
             history: document.history.clone(),
             step,
             shown: Rc::clone(&shown),
+            reopened: Rc::clone(&reopened),
         });
-        Some(shown)
+        Some((shown, reopened))
     }
 
     /// The raw block of the volume marked: the matter its step raises or

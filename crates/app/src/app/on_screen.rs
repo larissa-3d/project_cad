@@ -68,6 +68,13 @@ impl CaoApp {
         })
     }
 
+    /// How many times the step reopened in the edge panel was laid as the
+    /// panel held it, to be drawn.
+    pub fn the_blend_previews_built(&self) -> usize {
+        self.part_opened()
+            .map_or(0, |part| part.viewport.previews_built())
+    }
+
     /// The points of every edge the view lights: those chosen and the one
     /// under the hand.
     pub fn the_edges_lit(&self) -> Vec<Vec<DVec3>> {

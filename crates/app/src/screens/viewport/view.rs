@@ -134,6 +134,9 @@ pub fn show(
     if state.keep_reading_up_with(sketch.document) {
         ui.ctx().request_repaint();
     }
+    if state.keep_up_with_the_step_reopened(sketch.document, blend) {
+        ui.ctx().request_repaint();
+    }
     let drawn = seen(state, sketch.editor, sketch.document);
     // Once, for the same reason: the pitch has to stand on the arc drawn.
     let turning = turning_guides(sketch);
