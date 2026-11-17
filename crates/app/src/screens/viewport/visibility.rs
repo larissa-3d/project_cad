@@ -48,9 +48,8 @@ pub(super) struct Visibility {
     before: RefCell<Option<Before>>,
     /// The step reopened as its panel last held it.
     preview: Option<Previewed>,
-    /// How many times the step reopened was laid as its panel held it, and
-    /// how many operations the last of them laid.
-    previews: (usize, usize),
+    /// How many times the step reopened was laid as its panel held it.
+    previews_built: usize,
 }
 
 /// One sketch, or the volume made at a step of the history.
@@ -72,7 +71,7 @@ impl Default for Visibility {
             block: RefCell::new(None),
             before: RefCell::new(None),
             preview: None,
-            previews: (0, 0),
+            previews_built: 0,
         }
     }
 }

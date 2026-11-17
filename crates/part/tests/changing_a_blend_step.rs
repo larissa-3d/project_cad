@@ -42,6 +42,14 @@
 //!   part laid that way, compacted or not —
 //!   `a_step_laid_on_a_boss_another_was_put_in_before_offers_its_edges_and_changes_its_size`
 //!
+//! Closes #989 — the part's half; the panel and the view are in
+//! `crates/app/tests/a_reopened_blend_step_is_drawn_rebuilt.rs`.
+//! - decided on the way: a step reopened is laid alone on the part before it,
+//!   kept from the reopening, and gives what « Appliquer » then rebuilds — the
+//!   body, the size taken, the reason declined — a new size, a size reduced,
+//!   a step put in before it, a step changed before, an edge declined —
+//!   `a_step_reopened_laid_alone_gives_what_apply_rebuilds`
+//!
 //! Each part changed is held against the same part laid with the step that way
 //! from the start.
 
@@ -1053,5 +1061,175 @@ fn a_step_laid_on_a_boss_another_was_put_in_before_offers_its_edges_and_changes_
         "a chamfer of the block's top and the first boss's front, a longer boss put in before \
          that boss since, then its size changed to 3 from the edges it offers:\n  {}",
         wrong.join("\n  "),
+    );
+}
+
+/// The block, `blend` laid on it as its last step: the part, and the number
+/// of the blend's operation.
+fn a_block_ending_on(blend: Operation) -> (PartDocument, u32) {
+    let mut part = a_block();
+    let outcome = part.apply(blend.clone());
+    assert_eq!(outcome, None, "{blend:?} on the block: built");
+    let number = part.history.steps().last().expect("the blend").operations()[0];
+    (part, number)
+}
+
+/// What differs between the step of number `blend` reopened and laid as `to`,
+/// and `part` once « Appliquer » records that change and rebuilds: nothing
+/// when they agree. A change declined records nothing; the step laid alone
+/// then gives the part before it.
+fn how_laying_alone_differs(part: &PartDocument, blend: u32, to: &Operation) -> Vec<String> {
+    let reopened = part.step_reopened(blend);
+    let tried = reopened.laid(to);
+    let mut applied = part.clone();
+    let outcome = applied.apply(Operation::EditMatter {
+        raised_by: blend,
+        to: Box::new(to.clone()),
+    });
+    let declined = match outcome {
+        Some(Outcome::BlendDeclined(reason)) => Some(reason),
+        _ => None,
+    };
+    let mut wrong = Vec::new();
+    if tried.declined != declined {
+        wrong.push(format!(
+            "laid alone, it is declined {:?}, where the change applied comes back {outcome:?}",
+            tried.declined,
+        ));
+    }
+    match declined {
+        Some(_) => {
+            if tried.reduced.is_some() {
+                wrong.push(format!("declined, it reads reduced {:?}", tried.reduced));
+            }
+            wrong.extend(how_the_bodies_differ(
+                &tried.body,
+                reopened.body(),
+                "the part before the step",
+            ));
+        }
+        None => {
+            if tried.reduced != applied.reduced_at(blend) {
+                wrong.push(format!(
+                    "laid alone, it is reduced {:?}, where the part rebuilt reads {:?}",
+                    tried.reduced,
+                    applied.reduced_at(blend),
+                ));
+            }
+            wrong.extend(how_the_bodies_differ(
+                &tried.body,
+                applied.body(),
+                "the part rebuilt once the change is applied",
+            ));
+        }
+    }
+    wrong
+}
+
+#[test]
+fn a_step_reopened_laid_alone_gives_what_apply_rebuilds() {
+    let mut cases: Vec<(&str, PartDocument, u32, Operation)> = Vec::new();
+
+    let (part, blend) = a_block_ending_on(a_blend(4, BlendShape::Fillet, SIZE));
+    cases.push((
+        "a fillet of the four top edges given a new size",
+        part,
+        blend,
+        a_blend(4, BlendShape::Fillet, 3.0),
+    ));
+
+    let (part, blend) = a_block_ending_on(a_blend(1, BlendShape::Fillet, SIZE));
+    let fifty = a_blend(1, BlendShape::Fillet, 50.0);
+    let mut reduced = part.clone();
+    reduced.apply(Operation::EditMatter {
+        raised_by: blend,
+        to: Box::new(fifty.clone()),
+    });
+    assert!(
+        reduced.reduced_at(blend).is_some(),
+        "the fixture's fillet of 50 on the block's front top edge is reduced",
+    );
+    cases.push((
+        "a fillet of the front top edge given 50, which the block reduces",
+        part,
+        blend,
+        fifty,
+    ));
+
+    let mut part = a_block();
+    a_boss(&mut part, THE_FIRST_BOSS, None);
+    assert_eq!(
+        part.apply(a_blend(4, BlendShape::Chamfer, SIZE)),
+        None,
+        "the chamfer of the block's top: built"
+    );
+    let blend = part
+        .history
+        .steps()
+        .last()
+        .expect("the chamfer")
+        .operations()[0];
+    a_boss(&mut part, THE_BOSS_PUT_IN, Some(1));
+    let before_the_blend = part.shown_before(&Default::default(), blend).body;
+    let mut edges = the_four_top_edges(a_block().body());
+    edges.push(the_front_top_from(&before_the_blend, 8.0, 60.0));
+    cases.push((
+        "a chamfer of the block's top, a boss put in before it, changed to take that boss's front",
+        part,
+        blend,
+        Operation::Blend {
+            edges,
+            shape: BlendShape::Chamfer,
+            size: SIZE.into(),
+        },
+    ));
+
+    let (mut part, blend) = a_block_ending_on(a_blend(4, BlendShape::Fillet, SIZE));
+    let mut five = the_four_top_edges(a_block().body());
+    five.push(the_front_right_upright(a_block().body()));
+    assert_eq!(
+        part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(Operation::Blend {
+                edges: five,
+                shape: BlendShape::Fillet,
+                size: SIZE.into(),
+            }),
+        }),
+        None,
+        "the fixture's first change of the fillet: built",
+    );
+    cases.push((
+        "a fillet of the four top edges changed to five, then to three",
+        part,
+        blend,
+        a_blend(3, BlendShape::Fillet, SIZE),
+    ));
+
+    let (part, chamfer, rim) = a_block_chamfered_beside_a_disc();
+    cases.push((
+        "a chamfer of the block's top moved to the rim of a disc beside it, declined",
+        part,
+        chamfer,
+        Operation::Blend {
+            edges: vec![rim],
+            shape: BlendShape::Chamfer,
+            size: SIZE.into(),
+        },
+    ));
+
+    let failures: Vec<String> = cases
+        .iter()
+        .filter_map(|(what, part, blend, to)| {
+            let wrong = how_laying_alone_differs(part, *blend, to);
+            (!wrong.is_empty()).then(|| format!("{what}:\n    {}", wrong.join("\n    ")))
+        })
+        .collect();
+
+    assert!(
+        failures.is_empty(),
+        "a step reopened, laid alone on the part before it, does not give what the change applied \
+         rebuilds:\n  {}",
+        failures.join("\n  "),
     );
 }

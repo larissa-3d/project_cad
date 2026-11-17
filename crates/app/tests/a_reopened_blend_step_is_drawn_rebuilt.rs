@@ -18,12 +18,14 @@
 //!   `a_size_that_does_not_read_keeps_the_last_body_drawn_and_says_what_is_wrong`
 //! - The step is rebuilt once per change of the panel, never at a frame where
 //!   nothing in it changed; the later steps are not replayed before
-//!   « Appliquer » —
-//!   `the_step_is_rebuilt_once_per_change_and_the_later_steps_wait_for_apply`
+//!   « Appliquer » — the rebuilds counted, by
+//!   `the_step_is_rebuilt_once_per_change_never_per_frame`; the later steps,
+//!   by construction: the step is laid alone on the part before it, which the
+//!   part's file holds to what « Appliquer » lays
 //! - decided on the way: the step is laid on the part before it kept from the
-//!   reopening, every volume opaque, so each change lays one operation — the
-//!   count, in the test above; and a volume before the step made see-through
-//!   changes nothing the panel says, which is what « Appliquer » meets —
+//!   reopening, every volume opaque, so a volume before the step made
+//!   see-through changes nothing the panel says, which is what « Appliquer »
+//!   meets —
 //!   `with_a_volume_before_the_step_see_through_the_panel_says_what_apply_will_meet`
 //! - decided on the way: a size that reads but is not above zero keeps the
 //!   last body drawn and says something beside the field —
@@ -31,6 +33,10 @@
 //! - found in review: another step reopened after a change cancelled draws
 //!   its own step, never the preview of the one before —
 //!   `another_step_reopened_after_a_change_cancelled_draws_its_own_step_not_the_last_preview`
+//! - found in review: a size that reads, then does not, then reads the same
+//!   again, gives back what the panel said of it — the size taken, or the
+//!   reason and « Appliquer » greyed —
+//!   `a_size_read_again_after_a_detour_through_one_that_does_not_read_gives_back_what_the_panel_said`
 
 mod driver;
 
@@ -579,55 +585,10 @@ fn idle(app: &mut driver::App, top: &[[DVec3; 2]; 4]) {
     }
 }
 
-/// A box 10 by 10 by 5 raised from a sketch on XY, behind the block's foot and
-/// clear of it: matter laid after whatever the part already holds.
-fn a_box_behind_the_block(part: &mut cao_part::PartDocument) {
-    let sketch = part.sketches().len();
-    part.apply(Operation::CreateSketch {
-        plane: WorkPlane::XY,
-        on: None,
-    });
-    rectangle(
-        part,
-        sketch,
-        DVec2::new(-30.0, 0.0),
-        DVec2::new(-20.0, 10.0),
-    );
-    part.apply(Operation::Extrude {
-        sketch,
-        areas: part.areas_at(sketch, &[DVec2::new(-25.0, 5.0)]),
-        distance: 5.0.into(),
-        mode: ExtrusionMode::Add,
-    });
-}
-
 #[test]
-fn the_step_is_rebuilt_once_per_change_and_the_later_steps_wait_for_apply() {
+fn the_step_is_rebuilt_once_per_change_never_per_frame() {
     let test = "the_step_is_rebuilt_once_per_change";
-    let (mut app, top) = a_fillet_at_twice_r(test);
-    let mut part = driver::the_part_put_away(&mut app, test, "Bloc");
-    let held = part.body().bounds();
-    a_box_behind_the_block(&mut part);
-    assert_ne!(
-        part.body().bounds(),
-        held,
-        "the fixture raises a box after the fillet",
-    );
-    open_in_the_app(&mut app, test, &part);
-    let line = the_fillet_reopened(&mut app);
-    let through_the_fillet = part
-        .history
-        .operations()
-        .iter()
-        .position(|operation| matches!(operation, Operation::Blend { .. }))
-        .expect("the fillet is recorded")
-        + 1;
-    let in_all = part.history.operations().len();
-    assert!(
-        through_the_fillet < in_all,
-        "the fixture lays operations after « {line} »: {through_the_fillet} through it, {in_all} \
-         in all",
-    );
+    let (mut app, top, _) = a_fillet_at_twice_r_reopened(test);
     let mut wrong = Vec::new();
 
     let mut built = app.state().the_blend_previews_built();
@@ -672,20 +633,11 @@ fn the_step_is_rebuilt_once_per_change_and_the_later_steps_wait_for_apply() {
                 app.state().the_blend_previews_built() - after_the_change,
             ));
         }
-        let laid = app.state().the_steps_laid_by_the_last_preview();
-        if laid != 1 {
-            wrong.push(format!(
-                "{change}, the preview laid {laid} operations, not the step alone on the part \
-                 before it kept from the reopening; the history holds {through_the_fillet} up to \
-                 and with « {line} » and {in_all} in all",
-            ));
-        }
     }
 
     assert!(
         wrong.is_empty(),
-        "the fillet of the four top edges reopened under a box raised after it, then \
-         changed:\n  {}",
+        "the fillet of the four top edges reopened, then changed:\n  {}",
         wrong.join("\n  "),
     );
 }
@@ -953,5 +905,93 @@ fn another_step_reopened_after_a_change_cancelled_draws_its_own_step_not_the_las
         "« {chamfer} » reopened after « {fillet} » was typed 4 and cancelled, the pointer beside \
          the fillet meets « {drawn} », where the fillet of 2 meets it at « {as_laid} » and the \
          fillet of 4 cancelled at « {at_four} »",
+    );
+}
+
+/// Types `size` beside the field, then `detour`, then `size` again; an empty
+/// `detour` empties the field.
+fn type_with_a_detour(app: &mut driver::App, label: &str, size: &str, detour: &str) {
+    driver::type_beside(app, label, size);
+    match detour {
+        "" => empty_the_field_beside(app, label),
+        _ => driver::type_beside(app, label, detour),
+    }
+    driver::type_beside(app, label, size);
+}
+
+#[test]
+fn a_size_read_again_after_a_detour_through_one_that_does_not_read_gives_back_what_the_panel_said()
+{
+    let mut failures = Vec::new();
+    for (detour, said) in [("50 +", "« 50 + » typed"), ("", "the field emptied")] {
+        let test = format!(
+            "a_reduced_size_read_again_after_{}",
+            if detour.is_empty() {
+                "an_empty_field"
+            } else {
+                "an_unreadable_one"
+            }
+        );
+        let (mut app, _, _) = a_fillet_at_twice_r_reopened(&test);
+        let reduced = "50 mm demandé, 10 mm appliqué";
+        driver::type_beside(&mut app, "Rayon :", "50");
+        assert!(
+            driver::reads(&app, reduced),
+            "the fixture's radius of 50 on walls 10 high reads « {reduced} », showing {:?}",
+            driver::on_screen(&app),
+        );
+        type_with_a_detour(&mut app, "Rayon :", "50", detour);
+        if !driver::reads(&app, reduced) {
+            failures.push(format!(
+                "the fillet typed 50, {said}, then 50 again: the panel does not read « {reduced} »"
+            ));
+        }
+    }
+    for (detour, said) in [("2 +", "« 2 + » typed"), ("", "the field emptied")] {
+        let test = format!(
+            "a_declined_choice_read_again_after_{}",
+            if detour.is_empty() {
+                "an_empty_field"
+            } else {
+                "an_unreadable_one"
+            }
+        );
+        let mut app = driver::a_block(&test);
+        driver::the_part_put_away(&mut app, &test, "Bloc");
+        open_in_the_app(&mut app, &test, &a_block_chamfered_beside_a_disc());
+        driver::open_the_history(&mut app);
+        let line = driver::steps(&app)
+            .into_iter()
+            .find(|line| line.ends_with("Arête chanfreinée"))
+            .unwrap_or_else(|| panic!("no line of the chamfer: {:?}", driver::steps(&app)));
+        driver::right_click(&mut app, &line);
+        driver::click_the_button(&mut app, "Modifier le chanfrein");
+        let rim = on_the_disc_s_top_rim(&app);
+        driver::click_at_world_point(&mut app, rim);
+        assert!(
+            driver::reads(&app, NOT_YET_A_CHAMFER) && !driver::is_enabled(&app, "Appliquer"),
+            "the fixture's chamfer moved to the disc's rim is declined, showing {:?}",
+            driver::on_screen(&app),
+        );
+        type_with_a_detour(&mut app, "Distance :", "2", detour);
+        let mut wrong = Vec::new();
+        if !driver::reads(&app, NOT_YET_A_CHAMFER) {
+            wrong.push(format!("the panel does not read « {NOT_YET_A_CHAMFER} »"));
+        }
+        if driver::is_enabled(&app, "Appliquer") {
+            wrong.push("« Appliquer » is offered".to_string());
+        }
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "the chamfer moved to the disc's rim, declined, {said}, then 2 again: {}",
+                wrong.join("; ")
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "a size read again after a detour through one that does not read:\n  {}",
+        failures.join("\n  "),
     );
 }

@@ -2,12 +2,9 @@
 //! two, the edges chosen, and the size typed.
 
 use cao_part::history::{BlendShape, Operation};
-use cao_part::{Formula, Outcome, PartDocument, Reduced, Unusable, Variables};
+use cao_part::{Formula, Outcome, PartDocument, Reduced, Unusable, Variables, is_a_blend_size};
 use cao_prefs::Command;
 use cao_solid::{Declined, EdgeName};
-
-/// The smallest size an edge can be given, in millimetres.
-const SMALLEST: f64 = 1e-6;
 
 /// What is wrong with a size typed in the edge panel.
 #[derive(Clone, Debug, PartialEq)]
@@ -113,7 +110,7 @@ impl BlendState {
         variables
             .size_of(&self.size_input)
             .ok()
-            .filter(|(_, value)| *value > SMALLEST)
+            .filter(|(_, value)| is_a_blend_size(*value))
     }
 
     /// What is wrong with the size typed, when it is none an edge can be
@@ -124,7 +121,7 @@ impl BlendState {
         }
         match variables.size_of(&self.size_input) {
             Err(wrong) => Some(WrongSize::Unusable(wrong)),
-            Ok((_, value)) if value <= SMALLEST => Some(WrongSize::NotAboveZero),
+            Ok((_, value)) if !is_a_blend_size(value) => Some(WrongSize::NotAboveZero),
             Ok(_) => None,
         }
     }

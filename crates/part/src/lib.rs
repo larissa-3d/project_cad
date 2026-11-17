@@ -39,7 +39,7 @@ pub mod variables;
 
 #[cfg(any(test, feature = "test-support"))]
 pub use adapters::InMemoryFiles;
-pub use blending::{Reduced, StepReopened, Tried};
+pub use blending::{Reduced, StepReopened, Tried, is_a_blend_size};
 pub use broken::Broken;
 pub use compaction::compact;
 pub use copying::Capped;

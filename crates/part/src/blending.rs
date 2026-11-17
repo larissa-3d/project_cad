@@ -14,6 +14,11 @@ use crate::state::PartState;
 /// is rounding.
 const ONE_PLACE: f64 = 1e-9;
 
+/// Whether an edge can be chamfered or rounded by this size, in millimetres.
+pub fn is_a_blend_size(size: f64) -> bool {
+    size >= 1e-6
+}
+
 /// The face numbers a step of several edges takes, per edge, built or not.
 /// The kernel numbers one face per edge, then the pieces closing its corners:
 /// a closing, an odd corner's piece and its held end take no more numbers at
@@ -64,7 +69,7 @@ impl PartState {
         let from = self.body.faces_end();
         let first_laid = self.replay.blends_first_laid.get(&self.replaying);
         let block = numbers_taken(edges.len().max(first_laid.copied().unwrap_or(0)));
-        let Some(size) = self.size(size, |size| size >= 1e-6) else {
+        let Some(size) = self.size(size, is_a_blend_size) else {
             self.body.count_past_cut(block);
             return None;
         };

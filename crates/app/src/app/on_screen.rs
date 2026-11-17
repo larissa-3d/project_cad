@@ -72,13 +72,7 @@ impl CaoApp {
     /// panel held it, to be drawn.
     pub fn the_blend_previews_built(&self) -> usize {
         self.part_opened()
-            .map_or(0, |part| part.viewport.previews_built().0)
-    }
-
-    /// How many operations of the history the last of those laid.
-    pub fn the_steps_laid_by_the_last_preview(&self) -> usize {
-        self.part_opened()
-            .map_or(0, |part| part.viewport.previews_built().1)
+            .map_or(0, |part| part.viewport.previews_built())
     }
 
     /// The points of every edge the view lights: those chosen and the one
