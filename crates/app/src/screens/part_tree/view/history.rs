@@ -13,13 +13,18 @@ use crate::ui::history_line::{HistoryLine, history_line};
 use crate::ui::question::{Question, ask};
 use crate::ui::quiet_link::quiet_link;
 use crate::ui::theme::tokens::SPACING_S;
-use crate::ui::tree_row::{TreeRow, tree_row};
+use crate::ui::tree_row::{self, TreeRow, tree_row};
 
 /// How tall the unfolded list grows before it scrolls.
 const TALLEST: f32 = 230.0;
 
+/// What of the Part panel's height the tree above keeps, its title and three
+/// rows: the history's list scrolls more rather than take it.
+const THE_TREE_KEEPS: f32 = 4.0 * tree_row::HEIGHT;
+
 /// The step reader's card, then the history, in a panel of their own along
-/// the bottom of the Part panel, as tall as what they hold.
+/// the bottom of the Part panel, as tall as what they hold short of
+/// [`THE_TREE_KEEPS`].
 ///
 /// A bottom panel is laid out at the height it had the frame before and only
 /// ever grows, so it is given the height its content took last time, and asks
@@ -35,6 +40,7 @@ pub(super) fn at_the_bottom(
     let margins = frame.total_margin().sum().y;
     let id = egui::Id::new("part_history_height");
     let height = ui.data(|data| data.get_temp::<f32>(id)).unwrap_or(margins);
+    let most = ui.available_height() - THE_TREE_KEEPS - margins;
     let shown = egui::Panel::bottom("part_history_panel")
         .resizable(false)
         .show_separator_line(false)
@@ -42,9 +48,10 @@ pub(super) fn at_the_bottom(
         .exact_size(height)
         .show(ui, |ui| {
             ui.vertical(|ui| {
+                let floor = ui.cursor().top() + most;
                 let read = reader(ui, document, viewport, lang);
                 ui.separator();
-                match history(ui, document, unfolded, lang) {
+                match history(ui, document, unfolded, floor, lang) {
                     TreeAction::None => read,
                     asked => asked,
                 }
@@ -58,13 +65,15 @@ pub(super) fn at_the_bottom(
     shown.inner.inner
 }
 
-/// The header, and the lines under it while `unfolded`; what was asked of
-/// them. Nothing at all while nothing was done to the part. Folded, the lines
-/// are not even worked out.
+/// The header, and the lines under it while `unfolded`, their list scrolling
+/// rather than reach below `floor`; what was asked of them. Nothing at all
+/// while nothing was done to the part. Folded, the lines are not even worked
+/// out.
 fn history(
     ui: &mut egui::Ui,
     document: &PartDocument,
     unfolded: bool,
+    floor: f32,
     lang: &Catalogue,
 ) -> TreeAction {
     let Some(actions) = History::actions_of(document, lang) else {
@@ -86,10 +95,12 @@ fn history(
         return action;
     }
     let history = History::of(document, lang);
+    let link = SPACING_S + ui.spacing().interact_size.y;
+    let tallest = (floor - ui.cursor().top() - link).clamp(0.0, TALLEST);
     egui::ScrollArea::vertical()
         .id_salt("part_history")
-        .max_height(TALLEST)
-        .min_scrolled_height(TALLEST)
+        .max_height(tallest)
+        .min_scrolled_height(tallest)
         .show(ui, |ui| {
             for line in &history.lines {
                 let shown = HistoryLine {

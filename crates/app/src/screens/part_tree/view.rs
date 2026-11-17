@@ -71,7 +71,8 @@ fn show(ui: &mut egui::Ui, asked: &mut Asked<'_>, lang: &Catalogue) {
         return;
     }
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
+    let within_what_is_left = egui::ScrollArea::vertical().min_scrolled_height(0.0);
+    within_what_is_left.show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 0.0;
         for (rank, rubric) in tree.rubrics().into_iter().enumerate() {
             if rank > 0 {
