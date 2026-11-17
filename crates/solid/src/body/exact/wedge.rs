@@ -109,8 +109,9 @@ impl Exact {
     /// goes whatever the order — and an edge bounding the face two cuts laid
     /// together meet across, meeting both at a corner, or one and an edge of a
     /// pointed end with it that meets the other, or one alone, stopping flush
-    /// at its other end — a notch's edge, the other left sharp —, the upright at the point's
-    /// tip with them, and an upright meeting one of them at a convex corner
+    /// at its other end — a notch's edge, the other left sharp —, the upright
+    /// at the point's tip with them, and an upright meeting one of them at a
+    /// convex corner
     /// where no third edge of the list ends but one at their end, the edge
     /// across it or a pointed end's at its shoulder, meets
     /// their one prism the same way, at their value, as

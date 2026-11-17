@@ -471,6 +471,23 @@
 //!   prism, the far end's raised whole when it is named, and the notch edge's
 //!   prism kept on the shoulder's side of the sharp wall's plane —
 //!   `a_fillet_on_a_full_round_and_the_front_edge_of_its_v_notched_end_rounds_that_edge_and_ends_flush_on_the_sharp_back_notch_wall_whatever_the_order`
+//! - Found by the review (2026-11-17): a notch whose two walls do not mirror
+//!   each other — the tip kept at (27, 3), the back shoulder moved along the
+//!   back — named with the pair and one notch edge was built in some orders
+//!   and declined `Unsupported` in the others, what one body in every order
+//!   or a decline in every order (#822) refuses: the back shoulder at (25, 6)
+//!   or (26, 6) with the back notch edge, at (28, 6) with the front one, built
+//!   only in the two orders naming the notch edge last, and right there,
+//!   1527.75, 1540.75 and 1566.65, the booleans' bodies. Held in every order of
+//!   each, with the other notch edge at (26, 6), declined in every order, and
+//!   either at (29, 6) and (31, 6), built in every order: every order
+//!   declined, or every order built — the value taken whole, the body exact,
+//!   closed and uncrossed, holding what the booleans leave, the plate less the
+//!   full round's prism and the notch edge's kept on the shoulder's side of
+//!   the sharp wall's plane, its triangles enclosing that within two
+//!   thousandths, and the one body the first order built lays, its faces
+//!   meeting alike and the plate's flat faces at the same corners —
+//!   `a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_is_declined_in_every_order_or_built_as_one_body_in_every_order`
 //!
 //! The campaign is run by hand, out of the gate, compiled only under the
 //! `campaigns` feature: every one of the 720 orders of the plate pointed at
@@ -6624,6 +6641,13 @@ impl OneNotchEdge {
     /// `named` listed with the pair, and the far end's edge too where
     /// `far_end` says, holding `volume`.
     fn at(x: f64, named: usize, far_end: bool, volume: f64) -> OneNotchEdge {
+        OneNotchEdge::shouldered(x, LENGTH, named, far_end, volume)
+    }
+
+    /// The same, the back shoulder standing at `back` along the back rather
+    /// than at [`LENGTH`], the mirror of the front's: the notch's tip kept on
+    /// the middle line, its two walls no longer mirroring each other.
+    fn shouldered(x: f64, back: f64, named: usize, far_end: bool, volume: f64) -> OneNotchEdge {
         let [own, other] = if named == 1 {
             ["front", "back"]
         } else {
@@ -6638,13 +6662,21 @@ impl OneNotchEdge {
         if far_end {
             edges.push((FAR_END, "the top's left edge"));
         }
+        let shoulder = if back == LENGTH {
+            String::new()
+        } else {
+            format!(", its back shoulder at ({back}, {WIDTH})")
+        };
         let plate = Plate::raised(
-            &format!("the plate notched back to ({x}, {RADIUS}), its notch's {other} edge sharp"),
+            &format!(
+                "the plate notched back to ({x}, {RADIUS}){shoulder}, its notch's {other} edge \
+                 sharp"
+            ),
             vec![
                 DVec2::ZERO,
                 DVec2::new(LENGTH, 0.0),
                 DVec2::new(x, RADIUS),
-                DVec2::new(LENGTH, WIDTH),
+                DVec2::new(back, WIDTH),
                 DVec2::new(0.0, WIDTH),
             ],
             &edges,
@@ -7261,6 +7293,114 @@ fn a_fillet_on_a_full_round_and_the_front_edge_of_a_shallower_v_notch_alone_or_w
             one_notch_edge_on_the_shallower_notch() - the_far_end_takes(),
         ),
     ]);
+}
+
+/// The notches #917's review found split, the tip on the middle line at
+/// (27, 3) and the back shoulder moved along the back so that the notch's two
+/// walls no longer mirror each other, with the notch edge named: at (25, 6)
+/// and (26, 6) the back one, at (28, 6) the front one; beside them, the same
+/// with the other notch edge at (26, 6), and either at (29, 6) and (31, 6).
+const SHOULDERS_THAT_DO_NOT_MIRROR: [(f64, usize); 8] = [
+    (25.0, 2),
+    (26.0, 2),
+    (28.0, 1),
+    (26.0, 1),
+    (29.0, 1),
+    (29.0, 2),
+    (31.0, 1),
+    (31.0, 2),
+];
+
+#[test]
+fn a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_is_declined_in_every_order_or_built_as_one_body_in_every_order()
+ {
+    let cases = SHOULDERS_THAT_DO_NOT_MIRROR
+        .map(|(back, named)| OneNotchEdge::shouldered(27.0, back, named, false, f64::NAN));
+    let laid: Vec<LaidInEachOrder> = (cases.iter())
+        .map(|case| {
+            every_order(case.plate.edges.len())
+                .into_iter()
+                .map(|order| {
+                    let outcome = case.plate.filleted(&order);
+                    (order, outcome)
+                })
+                .collect()
+        })
+        .collect();
+    let split: Vec<String> = (cases.iter())
+        .zip(&laid)
+        .filter_map(|(case, laid)| {
+            let declined: Vec<String> = (laid.iter())
+                .filter_map(|(order, outcome)| {
+                    outcome
+                        .as_ref()
+                        .err()
+                        .map(|reason| format!("{}: {reason:?}", case.plate.called("fillet", order)))
+                })
+                .collect();
+            let built = laid.len() - declined.len();
+            (!declined.is_empty() && built > 0).then(|| {
+                format!(
+                    "on {}: built in {built} of the {} orders, declined in {}:\n  {}",
+                    case.plate.called,
+                    laid.len(),
+                    declined.len(),
+                    declined.join("\n  ")
+                )
+            })
+        })
+        .collect();
+    assert!(
+        split.is_empty(),
+        "the fillet at {RADIUS} on a full round and one edge of a V-notch whose shoulders do not \
+         mirror is declined in every order or built in every order (#822); split:\n{}",
+        split.join("\n")
+    );
+
+    for (case, laid) in cases.iter().zip(&laid) {
+        let plate = &case.plate;
+        let start = plate.part.faces_end();
+        let built: Vec<(&Vec<usize>, &Filleted)> = (laid.iter())
+            .filter_map(|(order, outcome)| outcome.as_ref().ok().map(|filleted| (order, filleted)))
+            .collect();
+        let Some(&(reference_order, reference)) = built.first() else {
+            continue;
+        };
+        let by_booleans = case.by_booleans();
+        for &(order, filleted) in &built {
+            let what = plate.called("fillet", order);
+            taken_as_asked(filleted.asked, filleted.taken, RADIUS, &what);
+            let body = &filleted.body;
+            assert!(
+                body.is_exact(),
+                "{what}: the exact kernel computed the body"
+            );
+            let triangles = body.triangles();
+            assert_eq!(closed(&triangles), Ok(()), "{what}");
+            assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
+            assert!(
+                (body.volume() - by_booleans).abs() <= EXACT * by_booleans,
+                "{what}: the body holds {}, where the booleans leave {by_booleans}: the plate less \
+                 the full round's prism and the notch edge's, kept on the shoulder's side of the \
+                 sharp wall's plane",
+                body.volume()
+            );
+            let enclosed = enclosed(&triangles);
+            assert!(
+                (enclosed - by_booleans).abs() <= DRAWN_ROUGHLY * by_booleans,
+                "{what}: its triangles enclose {enclosed}, where the booleans leave {by_booleans}"
+            );
+            let otherwise =
+                met_otherwise(start, order, body, reference_order, &reference.body, &[]);
+            assert!(
+                otherwise.is_empty(),
+                "{what}: the body is the one the first order built lays, its faces meeting \
+                 alike; not so:\n{}",
+                otherwise.join("\n")
+            );
+            same_body_as(plate, body, &reference.body, &what);
+        }
+    }
 }
 
 #[cfg(feature = "campaigns")]

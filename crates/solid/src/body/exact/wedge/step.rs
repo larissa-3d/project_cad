@@ -238,7 +238,8 @@ impl Exact {
                 }
                 (None, _) => {
                     let open = flush::open(&self.brep, rank, &given, &beside);
-                    let completed = completing(rank, &given, &crossing);
+                    let completed =
+                        completing(rank, &given, &crossing, &pairs, |member| meet(member, rank));
                     let met = Met {
                         mitred: &mitred,
                         open: &open,
@@ -261,14 +262,27 @@ impl Exact {
 /// The wedges of the listed edges laid after the edge of rank `rank` in
 /// `edges` on whose faces its set-back and another's cross, as `crossing`
 /// holds them (#822): the crossing ends on that edge's wall, which its own
-/// cut takes away once it is laid — whole, where this one takes it whole.
+/// cut takes away once it is laid — whole, where this one takes it whole —
+/// and of each edge of a pair of `pairs` cut as one after it that `meets`
+/// says it meets at a corner, whose one prism, cut whole, takes away what
+/// its cut leaves on that edge's wall: the round of a notch's edge, stopped
+/// flush on the sharp wall's plane where that plane leans across it, runs
+/// on past its shoulder to the wall of the edge it meets there (#917).
 fn completing<'a>(
     rank: usize,
     edges: &[(EdgeId, &'a Wedge)],
     crossing: &[(usize, [usize; 2])],
+    pairs: &[pairs::Pair],
+    meets: impl Fn(usize) -> bool,
 ) -> Vec<&'a Wedge> {
-    (crossing.iter())
+    let crossed = (crossing.iter())
         .filter(|&&(between, pair)| pair.contains(&rank) && between > rank)
-        .map(|&(between, _)| edges[between].1)
-        .collect()
+        .map(|&(between, _)| between);
+    let cut_whole = (pairs.iter())
+        .filter(|&&(one, other, _)| {
+            other > rank && !edges[one].1.inwards && !edges[other].1.inwards
+        })
+        .flat_map(|&(one, other, _)| [one, other])
+        .filter(|&member| meets(member));
+    crossed.chain(cut_whole).map(|at| edges[at].1).collect()
 }
