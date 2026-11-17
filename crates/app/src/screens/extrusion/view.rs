@@ -64,7 +64,10 @@ pub(crate) fn paint_extrusion_panel(
     let entered = panel.applies
         && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
     match floated.closed {
-        true => Some(Command::ExtrusionCancel),
+        true => {
+            context.extrusion.forget_the_drag();
+            Some(Command::ExtrusionCancel)
+        }
         false => floated.inner.or(entered.then_some(Command::ExtrusionApply)),
     }
 }

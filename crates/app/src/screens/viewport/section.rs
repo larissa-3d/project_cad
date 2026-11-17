@@ -48,7 +48,7 @@ struct Held {
 
 /// A ray closer than this to the normal runs nearly along the handle's line,
 /// and the smallest move of the pointer would throw the cut across the part.
-const GRAZING_DEGREES: f64 = 5.0;
+pub(crate) const GRAZING_DEGREES: f64 = 5.0;
 
 impl Section {
     pub(crate) fn new(plane: WorkPlane) -> Self {
@@ -224,7 +224,7 @@ pub(crate) fn to_the_middle(plane: WorkPlane, body: &Body) -> f64 {
     plane.normal().dot(middle(body, plane) - plane.origin)
 }
 
-fn grazes(normal: DVec3, direction: DVec3) -> bool {
+pub(crate) fn grazes(normal: DVec3, direction: DVec3) -> bool {
     direction.dot(normal).abs() > GRAZING_DEGREES.to_radians().cos()
 }
 

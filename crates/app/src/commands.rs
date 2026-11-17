@@ -350,8 +350,9 @@ pub(crate) fn run(
             false
         }
         Command::ExtrusionCancel => {
-            extrusion.close();
-            ribbon.tab = 0;
+            if extrusion.cancel() {
+                ribbon.tab = 0;
+            }
             false
         }
         Command::BlendApply => apply_blend(doc, blend),

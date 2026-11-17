@@ -15,14 +15,17 @@ use crate::screens::sketch::Tool;
 
 use super::finish::advance_on_enter;
 use super::input::chamfer_to_swap;
-use super::input::{handle_sketch_input, pick_an_edge, pick_areas, point_the_section};
+use super::input::{
+    handle_sketch_input, pick_an_edge, pick_areas, point_the_extrusion_arrow, point_the_section,
+};
 use super::matter::seen;
 use super::navigation::{advance_transition, handle_navigation};
 use super::render::{
     frame_of, paint_band, paint_chamfer_sides_panel, paint_copy_panel, paint_dimension_field,
-    paint_dimension_labels, paint_face_labels, paint_measure, paint_pattern_labels,
-    paint_rule_marks, paint_ruler, paint_section_handle, paint_section_panel, push_blinking_matter,
-    right_of_the_section_panel, turning_guides, what_is_measured, what_would_go,
+    paint_dimension_labels, paint_extrusion_pill, paint_face_labels, paint_measure,
+    paint_pattern_labels, paint_rule_marks, paint_ruler, paint_section_handle, paint_section_panel,
+    push_blinking_matter, right_of_the_section_panel, turning_guides, what_is_measured,
+    what_would_go,
 };
 use super::state::{GestureGoesTo, ViewScale, ViewportState, cube_rect, gesture_goes_to};
 use super::values::refused_for_what_is_typed;
@@ -69,11 +72,16 @@ pub fn show(
     );
     let sectioning =
         !handled_cube && point_the_section(ui, state, &response, (rect, scale), sketch);
+    // A hold taken on the arrow is let go wherever the pointer is released,
+    // over the cube too.
+    let extruding = !sectioning
+        && (!handled_cube || state.extrusion_handle.is_held())
+        && point_the_extrusion_arrow(ui, state, &response, (rect, scale), sketch);
     state.edge_under_the_hand = None;
     state.edges_chosen.clone_from(&blend.edges);
     state.reopened = blend.reopened;
     let mut changed = match gesture_goes_to(handled_cube, sketch) {
-        _ if sectioning => false,
+        _ if sectioning || extruding => false,
         GestureGoesTo::TheCube => false,
         GestureGoesTo::PickingAnArea => {
             pick_areas(state, &response, rect, scale, sketch);
@@ -181,6 +189,7 @@ pub fn show(
     ));
 
     paint_section_handle(ui, state, rect, sketch);
+    paint_extrusion_pill(ui, state, rect, sketch);
     paint_face_labels(ui, state, cube_rect, sketch.lang);
     paint_band(ui, state, rect, sketch);
     paint_rule_marks(ui, state, rect, sketch, going.as_ref());

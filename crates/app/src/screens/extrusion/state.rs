@@ -9,8 +9,10 @@ use glam::DVec2;
 
 use crate::lang::Catalogue;
 
+mod before_the_drag;
 mod panel;
 
+use before_the_drag::BeforeTheDrag;
 pub use panel::{Extent, Panel, Preview};
 
 /// How the matter is made from the chosen areas.
@@ -50,6 +52,9 @@ pub struct ExtrusionState {
     /// The step of matter the panel was reopened on, which applying changes
     /// rather than raising another.
     pub reopened: Option<Reopened>,
+    /// What the panel read before the arrow in the view was first dragged,
+    /// while a drag has changed it since the panel opened.
+    pub before_the_drag: Option<BeforeTheDrag>,
 }
 
 /// A step of matter reopened: the number of the operation that raised it, and
@@ -74,6 +79,7 @@ impl Default for ExtrusionState {
             distance_input: String::new(),
             reversed: false,
             reopened: None,
+            before_the_drag: None,
         }
     }
 }
@@ -240,11 +246,14 @@ impl Reopened {
     }
 }
 
+/// A value typed no further from zero than this raises nothing.
+const NOTHING: f64 = 1e-6;
+
 fn signed(input: &str, reversed: bool, variables: &Variables) -> Option<(Formula, f64)> {
     let (written, value) = variables
         .size_of(input)
         .ok()
-        .filter(|(_, value)| value.abs() > 1e-6)?;
+        .filter(|(_, value)| value.abs() > NOTHING)?;
     Some(match reversed {
         true => (written.negated(), -value),
         false => (written, value),
@@ -296,6 +305,7 @@ pub fn apply_extrusion_with(
         .map_or_else(|| doc.history.next_number(), |reopened| reopened.raised_by);
     extrusion.picks.clear();
     extrusion.mode = None;
+    extrusion.before_the_drag = None;
     if as_raised.as_ref() == Some(&operation) {
         *notice = None;
         return false;
