@@ -1,4 +1,5 @@
 mod uniforms;
+mod vertex_buffer;
 
 use std::ops::Range;
 
@@ -6,6 +7,7 @@ use glam::Mat4;
 
 use crate::geometry::Vertex;
 use uniforms::UniformBinding;
+use vertex_buffer::DynamicVertexBuffer;
 
 /// A rectangle in physical pixels, as `wgpu`'s viewport expects it.
 #[derive(Clone, Copy, Debug, Default)]
@@ -37,76 +39,13 @@ pub struct SceneFrame {
     /// so it is the only geometry that writes depth.
     pub scene_solids: Vec<Vertex>,
     pub scene_lines: Vec<Vertex>,
+    /// The edges lit for the user, drawn last: hidden by the solid matter, and
+    /// veiled by nothing drawn before them.
+    pub scene_lit_lines: Vec<Vertex>,
     pub cube_view_projection: Mat4,
     pub cube_triangles: Vec<Vertex>,
     pub cube_edges: Vec<Vertex>,
     pub cube_viewport: ViewportRect,
-}
-
-/// Vertex buffer that grows to fit whatever the frame needs and is reused
-/// across frames otherwise.
-struct DynamicVertexBuffer {
-    buffer: wgpu::Buffer,
-    capacity: u64,
-    len: u32,
-    label: &'static str,
-}
-
-impl DynamicVertexBuffer {
-    const INITIAL_CAPACITY: u64 = 4096;
-
-    fn new(device: &wgpu::Device, label: &'static str) -> Self {
-        Self {
-            buffer: Self::allocate(device, label, Self::INITIAL_CAPACITY),
-            capacity: Self::INITIAL_CAPACITY,
-            len: 0,
-            label,
-        }
-    }
-
-    fn allocate(device: &wgpu::Device, label: &'static str, capacity: u64) -> wgpu::Buffer {
-        device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(label),
-            size: capacity * size_of::<Vertex>() as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        })
-    }
-
-    fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, vertices: &[Vertex]) {
-        self.len = vertices.len() as u32;
-        if vertices.is_empty() {
-            return;
-        }
-        if vertices.len() as u64 > self.capacity {
-            self.capacity = (vertices.len() as u64).next_power_of_two();
-            self.buffer = Self::allocate(device, self.label, self.capacity);
-        }
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(vertices));
-    }
-
-    /// Draws the buffer as triangles, one vertex each.
-    fn draw_triangles(&self, pass: &mut wgpu::RenderPass<'_>) {
-        self.draw_triangles_in(pass, 0..self.len);
-    }
-
-    fn draw_triangles_in(&self, pass: &mut wgpu::RenderPass<'_>, vertices: Range<u32>) {
-        if vertices.is_empty() {
-            return;
-        }
-        pass.set_vertex_buffer(0, self.buffer.slice(..));
-        pass.draw(vertices, 0..1);
-    }
-
-    /// Draws the buffer as lines: every pair of vertices is one instance, and
-    /// the shader expands it into a six-vertex quad.
-    fn draw_lines(&self, pass: &mut wgpu::RenderPass<'_>) {
-        if self.len < 2 {
-            return;
-        }
-        pass.set_vertex_buffer(0, self.buffer.slice(..));
-        pass.draw(0..6, 0..self.len / 2);
-    }
 }
 
 /// Draws the viewport: the part's matter as shaded solids, the axes, grid and
@@ -124,6 +63,7 @@ pub struct SceneRenderer {
     background_pipeline: wgpu::RenderPipeline,
     solid_pipeline: wgpu::RenderPipeline,
     world_line_pipeline: wgpu::RenderPipeline,
+    lit_line_pipeline: wgpu::RenderPipeline,
     scene_uniform: UniformBinding,
     cube_uniform: UniformBinding,
     scene_surfaces: DynamicVertexBuffer,
@@ -132,6 +72,7 @@ pub struct SceneRenderer {
     scene_solids: DynamicVertexBuffer,
     scene_world_lines: DynamicVertexBuffer,
     scene_lines: DynamicVertexBuffer,
+    scene_lit_lines: DynamicVertexBuffer,
     cube_triangles: DynamicVertexBuffer,
     cube_edges: DynamicVertexBuffer,
     cube_viewport: ViewportRect,
@@ -312,7 +253,17 @@ impl SceneRenderer {
                 "vs_line",
                 &line_layout,
                 None,
-                hidden_by_the_part,
+                hidden_by_the_part.clone(),
+            ),
+            lit_line_pipeline: make_pipeline(
+                "cao_lit_line_pipeline",
+                "vs_line",
+                &line_layout,
+                None,
+                wgpu::DepthStencilState {
+                    bias: wgpu::DepthBiasState::default(),
+                    ..hidden_by_the_part.clone()
+                },
             ),
             // A real volume: the only geometry whose near faces must hide its
             // far ones, so the only one that writes depth.
@@ -331,6 +282,7 @@ impl SceneRenderer {
             scene_solids: DynamicVertexBuffer::new(device, "cao_scene_solids"),
             scene_world_lines: DynamicVertexBuffer::new(device, "cao_scene_world_lines"),
             scene_lines: DynamicVertexBuffer::new(device, "cao_scene_lines"),
+            scene_lit_lines: DynamicVertexBuffer::new(device, "cao_scene_lit_lines"),
             cube_triangles: DynamicVertexBuffer::new(device, "cao_cube_triangles"),
             cube_edges: DynamicVertexBuffer::new(device, "cao_cube_edges"),
             cube_viewport: ViewportRect::default(),
@@ -361,6 +313,8 @@ impl SceneRenderer {
         self.scene_world_lines
             .upload(device, queue, &frame.scene_world_lines);
         self.scene_lines.upload(device, queue, &frame.scene_lines);
+        self.scene_lit_lines
+            .upload(device, queue, &frame.scene_lit_lines);
         self.cube_triangles
             .upload(device, queue, &frame.cube_triangles);
         self.cube_edges.upload(device, queue, &frame.cube_edges);
@@ -385,6 +339,8 @@ impl SceneRenderer {
         self.scene_surfaces.draw_triangles_in(pass, veiled.end..len);
         pass.set_pipeline(&self.line_pipeline);
         self.scene_lines.draw_lines(pass);
+        pass.set_pipeline(&self.lit_line_pipeline);
+        self.scene_lit_lines.draw_lines(pass);
 
         if self.cube_viewport.width < 1.0 || self.cube_viewport.height < 1.0 {
             return;

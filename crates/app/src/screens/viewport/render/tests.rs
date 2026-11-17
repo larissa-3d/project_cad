@@ -328,6 +328,48 @@
 //!   left it for « Appliquer », and nothing is drawn of it once the panel
 //!   holds none —
 //!   `the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere`
+//!
+//! Closes #990.
+//! - With both rims of a disc chosen, the rim on the far side is not drawn
+//!   where the cylinder stands in front of it, and the near rim is drawn whole
+//!   — read as: both rims are drawn in the lit lines, a pass of their own that
+//!   the part hides, and nothing of them in the scene's lines or the world's
+//!   lines; each end on the pixel of the rim's own point, pulled 2 to 10
+//!   pixels' worth towards the eye; the fixture holds the far rim partly
+//!   behind the cylinder's solid matter and the near rim behind none of it —
+//!   `both_rims_of_a_disc_chosen_are_drawn_in_the_pass_the_part_hides`; the
+//!   pixels, an edge behind the matter drawn not at all, by
+//!   `a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all`,
+//!   and behind a wall barely thicker than the most an end is pulled, by
+//!   `a_lit_edge_behind_a_wall_a_little_thicker_than_the_most_it_is_pulled_is_not_drawn`,
+//!   both in `crates/render/tests/lit_edges.rs`, where a GPU adapter exists
+//! - An edge lying on a face turned to the camera is drawn whole, not stippled
+//!   by the face — read as: the edge under the hand, lying on faces turned to
+//!   the eye, is drawn in the lit lines, each end on its point's pixel and
+//!   pulled 2 to 10 pixels' worth towards the eye —
+//!   `an_edge_under_the_hand_lying_on_a_face_turned_to_the_eye_is_drawn_a_few_pixels_nearer_the_eye`;
+//!   the pixels, the inside edge of a boss on a plate amber along its length
+//!   and across its width, by
+//!   `a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all`
+//!   in `crates/render/tests/lit_edges.rs`, where a GPU adapter exists
+//! - Hovering and choosing an edge behave as before, with the section view on
+//!   or off — the click is not touched, and the picking tests of
+//!   `crates/app/tests/the_edge_panel.rs` and
+//!   `crates/app/tests/picking_an_edge_through_a_section.rs` hold it as they
+//!   were; what is lit stays the edge through its points, read back from the
+//!   lit lines, section off or on, by
+//!   `the_edge_under_the_hand_is_drawn_through_the_points_the_kernel_draws_it_through`,
+//!   `the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere`,
+//!   `the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane`
+//! - from the issue's "What it does": what the user sees through a see-through
+//!   volume or the see-through side of a section, they still see lit through
+//!   it — read as: the edge behind that matter is drawn in the lit lines, and
+//!   no solid, the only geometry that writes depth, stands in front of it —
+//!   `an_edge_behind_see_through_matter_is_drawn_in_the_pass_only_solid_matter_hides`
+//!
+//! The first answer to #990 sent the light through the world's lines, and
+//! rendered frames set it aside: their constant nudge thinned an inside edge
+//! to a dotted hairline. The decision is a comment on the issue.
 
 use cao_part::{ExtrusionMode, Operation, PartDocument, PointRef, VolumeState};
 use cao_prefs::config::ViewportConfig;
@@ -335,7 +377,7 @@ use cao_render::camera::{OrbitCamera, ViewTransition};
 use cao_render::{CubeFace, CubeZone, MatterInFront};
 use cao_sketch::{Element, WorkPlane};
 use chrono::Utc;
-use glam::{DVec2, DVec3, Vec3};
+use glam::{DVec2, DVec3, DVec4, Vec3};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::*;
@@ -3870,9 +3912,12 @@ fn segments_drawn(lines: &[cao_render::Vertex]) -> BTreeSet<[[u32; 3]; 2]> {
         .collect()
 }
 
-fn every_segment_of(frame: &SceneFrame) -> BTreeSet<[[u32; 3]; 2]> {
+/// Every segment a frame draws, the lit edges read back as the points of
+/// `document`'s edges they stand for.
+fn every_segment_of(frame: &SceneFrame, document: &PartDocument) -> BTreeSet<[[u32; 3]; 2]> {
     let mut drawn = segments_drawn(&frame.scene_lines);
     drawn.extend(segments_drawn(&frame.scene_world_lines));
+    drawn.extend(lit_segments(frame, document));
     drawn
 }
 
@@ -3898,19 +3943,21 @@ fn the_edge_under_the_hand_is_drawn_through_the_points_the_kernel_draws_it_throu
             ends
         })
         .collect();
-    let plain = every_segment_of(&a_frame_of(
-        &ViewportState::default(),
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let plain = every_segment_of(
+        &a_frame_of(
+            &ViewportState::default(),
+            &mut document,
+            &mut SketchEditor::default(),
+        ),
+        &document,
+    );
 
     let mut state = ViewportState::default();
     state.edge_under_the_hand = Some(edge.name.clone());
-    let lit = every_segment_of(&a_frame_of(
-        &state,
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let lit = every_segment_of(
+        &a_frame_of(&state, &mut document, &mut SketchEditor::default()),
+        &document,
+    );
     let added: BTreeSet<_> = lit.difference(&plain).copied().collect();
 
     assert!(
@@ -3926,11 +3973,10 @@ fn the_edge_under_the_hand_is_drawn_through_the_points_the_kernel_draws_it_throu
     let mut lost = edge.name.clone();
     lost.between = [vec![90], vec![91]];
     state.edge_under_the_hand = Some(lost);
-    let nowhere = every_segment_of(&a_frame_of(
-        &state,
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let nowhere = every_segment_of(
+        &a_frame_of(&state, &mut document, &mut SketchEditor::default()),
+        &document,
+    );
     assert_eq!(
         nowhere, plain,
         "a name the part does not find lit something"
@@ -3959,20 +4005,22 @@ fn the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere() {
             ends
         })
         .collect();
-    let plain = every_segment_of(&a_frame_of(
-        &ViewportState::default(),
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let plain = every_segment_of(
+        &a_frame_of(
+            &ViewportState::default(),
+            &mut document,
+            &mut SketchEditor::default(),
+        ),
+        &document,
+    );
 
     let mut state = ViewportState::default();
     state.edges_chosen = vec![edge.name.clone()];
     assert_eq!(state.edge_under_the_hand, None, "the hand is elsewhere");
-    let chosen = every_segment_of(&a_frame_of(
-        &state,
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let chosen = every_segment_of(
+        &a_frame_of(&state, &mut document, &mut SketchEditor::default()),
+        &document,
+    );
     let added: BTreeSet<_> = chosen.difference(&plain).copied().collect();
 
     assert_eq!(
@@ -3982,11 +4030,10 @@ fn the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere() {
     );
 
     state.edges_chosen.clear();
-    let none = every_segment_of(&a_frame_of(
-        &state,
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let none = every_segment_of(
+        &a_frame_of(&state, &mut document, &mut SketchEditor::default()),
+        &document,
+    );
     assert_eq!(none, plain, "no edge chosen, and something is drawn of one");
 }
 
@@ -4024,18 +4071,16 @@ fn the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane(
         })
         .collect();
     let mut state = sectioned(|_| {});
-    let plain = every_segment_of(&a_frame_of(
-        &state,
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let plain = every_segment_of(
+        &a_frame_of(&state, &mut document, &mut SketchEditor::default()),
+        &document,
+    );
 
     state.edges_chosen = vec![edge.name.clone()];
-    let chosen = every_segment_of(&a_frame_of(
-        &state,
-        &mut document,
-        &mut SketchEditor::default(),
-    ));
+    let chosen = every_segment_of(
+        &a_frame_of(&state, &mut document, &mut SketchEditor::default()),
+        &document,
+    );
     let added: BTreeSet<_> = chosen.difference(&plain).copied().collect();
 
     assert_eq!(
@@ -4043,4 +4088,371 @@ fn the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane(
         "the section on, what the frame adds for the upright chosen is not the upright whole, \
          its part on the hidden side included",
     );
+}
+
+/// A disc of radius 4 round the origin of XY, raised 4.
+fn a_disc() -> PartDocument {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(DVec2::ZERO),
+        radius: 4.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas: document.areas_at(0, &[DVec2::new(1.0, 0.5)]),
+        distance: 4.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    document
+}
+
+fn segments_through(points: &[DVec3]) -> BTreeSet<[[u32; 3]; 2]> {
+    points
+        .windows(2)
+        .map(|pair| {
+            let mut ends = [pair[0], pair[1]].map(|end| end.as_vec3().to_array().map(f32::to_bits));
+            ends.sort();
+            ends
+        })
+        .collect()
+}
+
+/// The eye a frame is seen from: the one point its projection sends to
+/// infinity.
+fn eye_of(frame: &SceneFrame) -> DVec3 {
+    let eye = frame.scene_view_projection.as_dmat4().inverse() * DVec4::new(0.0, 0.0, 1.0, 0.0);
+    eye.truncate() / eye.w
+}
+
+/// Where a point of the world lands in a frame, in pixels.
+fn on_screen(frame: &SceneFrame, point: DVec3) -> DVec2 {
+    let clip = frame.scene_view_projection.as_dmat4() * point.extend(1.0);
+    let ndc = clip.truncate().truncate() / clip.w;
+    let viewport = &frame.scene_viewport;
+    DVec2::new(
+        f64::from(viewport.x) + (ndc.x + 1.0) * 0.5 * f64::from(viewport.width),
+        f64::from(viewport.y) + (1.0 - ndc.y) * 0.5 * f64::from(viewport.height),
+    )
+}
+
+/// How many world units one pixel of the frame spans at the depth of `point`.
+fn a_pixel_s_worth_at(frame: &SceneFrame, point: DVec3) -> f64 {
+    let sight = point - eye_of(frame);
+    let aside = sight.normalize().any_orthonormal_vector() * (sight.length() * 1e-3);
+    aside.length() / on_screen(frame, point + aside).distance(on_screen(frame, point))
+}
+
+/// How far a lit end may land from the point it stands for, in pixels: what
+/// `f32` loses on the way, and nothing a user could see.
+const ON_THE_SAME_PIXEL: f64 = 0.05;
+
+/// How far towards the eye a lit end stands from its point, in pixels' worth
+/// at the point's depth: enough to clear the faces the edge bounds, and not so
+/// much that matter a few pixels thick in front of it stops hiding it. The
+/// slack under the least is the arithmetic's, not a pixel.
+const PULLED_AT_LEAST: f64 = 2.0 - 0.05;
+const PULLED_AT_MOST: f64 = 10.0;
+
+/// Every segment of the frame's lit lines, read back as the two points of
+/// `document`'s edges its ends stand for: each end landing on the same pixel
+/// as its point, nearer the eye by `PULLED_AT_LEAST` to `PULLED_AT_MOST`
+/// pixels' worth. An end that stands for no point fails the test, saying which.
+fn lit_segments(frame: &SceneFrame, document: &PartDocument) -> BTreeSet<[[u32; 3]; 2]> {
+    let points: Vec<DVec3> = document
+        .body()
+        .drawn_edges()
+        .into_iter()
+        .flat_map(|edge| edge.points)
+        .collect();
+    let eye = eye_of(frame);
+    let stands_for = |end: &cao_render::Vertex| {
+        let end = Vec3::from(end.position).as_dvec3();
+        let pulled = |point: &DVec3| {
+            (eye.distance(*point) - eye.distance(end)) / a_pixel_s_worth_at(frame, *point)
+        };
+        let found = points.iter().find(|point| {
+            on_screen(frame, end).distance(on_screen(frame, **point)) <= ON_THE_SAME_PIXEL
+                && (PULLED_AT_LEAST..=PULLED_AT_MOST).contains(&pulled(point))
+        });
+        let Some(point) = found else {
+            let nearest = points
+                .iter()
+                .min_by(|a, b| {
+                    let off =
+                        |point: &DVec3| on_screen(frame, end).distance(on_screen(frame, *point));
+                    off(a).total_cmp(&off(b))
+                })
+                .map(|point| {
+                    (
+                        point,
+                        on_screen(frame, end).distance(on_screen(frame, *point)),
+                        pulled(point),
+                    )
+                });
+            panic!(
+                "the lit end {end:?} stands for no point of the part's edges: on the same pixel \
+                 and {PULLED_AT_LEAST} to {PULLED_AT_MOST} pixels' worth nearer the eye; the \
+                 nearest on screen, as (point, pixels off, pixels' worth nearer), is {nearest:?}",
+            );
+        };
+        point.as_vec3().to_array().map(f32::to_bits)
+    };
+    frame
+        .scene_lit_lines
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|[a, b]| {
+            let mut ends = [stands_for(a), stands_for(b)];
+            ends.sort();
+            ends
+        })
+        .collect()
+}
+
+/// What lighting edges adds to a frame, pass by pass, and the frame lit.
+struct Lit {
+    frame: SceneFrame,
+    eye: Vec3,
+    in_the_world_s_lines: BTreeSet<[[u32; 3]; 2]>,
+    over_everything: BTreeSet<[[u32; 3]; 2]>,
+    lit: BTreeSet<[[u32; 3]; 2]>,
+}
+
+fn lit(
+    document: &mut PartDocument,
+    mut state: ViewportState,
+    light: impl FnOnce(&mut ViewportState),
+) -> Lit {
+    let plain = a_frame_of(&state, document, &mut SketchEditor::default());
+    light(&mut state);
+    let frame = a_frame_of(&state, document, &mut SketchEditor::default());
+    let added = |lit: &[cao_render::Vertex], plain: &[cao_render::Vertex]| {
+        segments_drawn(lit)
+            .difference(&segments_drawn(plain))
+            .copied()
+            .collect()
+    };
+    Lit {
+        in_the_world_s_lines: added(&frame.scene_world_lines, &plain.scene_world_lines),
+        over_everything: added(&frame.scene_lines, &plain.scene_lines),
+        lit: lit_segments(&frame, document),
+        eye: state.camera.eye(),
+        frame,
+    }
+}
+
+impl Lit {
+    /// That the light went to the lit lines alone, and drew there `expected`,
+    /// each end on its own point's pixel and pulled towards the eye.
+    fn drew_only(&self, expected: &BTreeSet<[[u32; 3]; 2]>, what: &str) {
+        assert!(
+            self.over_everything.is_empty() && self.in_the_world_s_lines.is_empty(),
+            "{what} is drawn in the scene's lines, over everything, by {} segments, or in the \
+             world's lines, whose constant nudge thins an inside edge to a hairline, by {}",
+            self.over_everything.len(),
+            self.in_the_world_s_lines.len(),
+        );
+        assert_eq!(
+            &self.lit, expected,
+            "{what} is not drawn, segment for segment, in the lit lines, each end on the pixel of \
+             the edge's own point and pulled towards the eye",
+        );
+    }
+}
+
+/// Points spread along an edge drawn through `points`, its ends included.
+fn along(points: &[DVec3]) -> Vec<Vec3> {
+    const STEPS: u32 = 16;
+    points
+        .windows(2)
+        .flat_map(|pair| {
+            (0..=STEPS).map(move |step| {
+                pair[0]
+                    .lerp(pair[1], f64::from(step) / f64::from(STEPS))
+                    .as_vec3()
+            })
+        })
+        .collect()
+}
+
+/// How much nearer the eye than a point a triangle has to be met to stand in
+/// front of it: well above what `f32` loses at the camera's distance, well
+/// under the size of anything a fixture here draws.
+const IN_FRONT_BY: f32 = 1e-2;
+
+/// Whether a triangle of `layer` stands between the eye and `point`, worked
+/// out in `f64`: along a silhouette the ray grazes a face, and `f32` there
+/// meets it on the wrong side of the point.
+fn stands_in_front(layer: &[cao_render::Vertex], eye: Vec3, point: Vec3) -> bool {
+    let (eye, point) = (eye.as_dvec3(), point.as_dvec3());
+    let to = point - eye;
+    let reach = to.length();
+    let towards = to / reach;
+    triangles(layer).into_iter().any(|triangle| {
+        let [a, b, c] = triangle.map(|corner| Vec3::from(corner.position).as_dvec3());
+        let (ab, ac) = (b - a, c - a);
+        let across = towards.cross(ac);
+        let det = ab.dot(across);
+        if det.abs() <= 1e-12 * ab.length() * ac.length() {
+            return false;
+        }
+        let from_a = eye - a;
+        let u = from_a.dot(across) / det;
+        let up = from_a.cross(ab);
+        let v = towards.dot(up) / det;
+        let met = ac.dot(up) / det;
+        u >= 0.0 && v >= 0.0 && u + v <= 1.0 && met > 0.0 && met < reach - f64::from(IN_FRONT_BY)
+    })
+}
+
+fn edges_where(document: &PartDocument, all: impl Fn(&DVec3) -> bool) -> Vec<cao_solid::DrawnEdge> {
+    document
+        .body()
+        .drawn_edges()
+        .into_iter()
+        .filter(|edge| edge.points.iter().all(&all))
+        .collect()
+}
+
+#[test]
+fn both_rims_of_a_disc_chosen_are_drawn_in_the_pass_the_part_hides() {
+    let mut document = a_disc();
+    let far = edges_where(&document, |point| point.z.abs() < 1e-9);
+    let near = edges_where(&document, |point| (point.z - 4.0).abs() < 1e-9);
+    assert!(
+        !far.is_empty() && !near.is_empty(),
+        "the fixture wants the disc's two rims, the bottom one {far:?}, the top one {near:?}",
+    );
+    let chosen: Vec<_> = far
+        .iter()
+        .chain(&near)
+        .map(|edge| edge.name.clone())
+        .collect();
+
+    let lit = lit(&mut document, ViewportState::default(), |state| {
+        state.edges_chosen = chosen;
+    });
+
+    let behind_the_disc = |edges: &[cao_solid::DrawnEdge]| {
+        edges
+            .iter()
+            .flat_map(|edge| along(&edge.points))
+            .filter(|point| stands_in_front(&lit.frame.scene_solids, lit.eye, *point))
+            .count()
+    };
+    assert!(
+        behind_the_disc(&far) > 0 && behind_the_disc(&near) == 0,
+        "the fixture wants the bottom rim partly behind the cylinder from the eye and the top \
+         rim behind none of it: {} points of the bottom rim behind it, {} of the top rim",
+        behind_the_disc(&far),
+        behind_the_disc(&near),
+    );
+    let rims: BTreeSet<_> = far
+        .iter()
+        .chain(&near)
+        .flat_map(|edge| segments_through(&edge.points))
+        .collect();
+
+    lit.drew_only(&rims, "with both rims chosen, the light");
+}
+
+#[test]
+fn an_edge_under_the_hand_lying_on_a_face_turned_to_the_eye_is_drawn_a_few_pixels_nearer_the_eye() {
+    let mut document = a_block();
+    let [edge] = edges_where(&document, |point| {
+        point.y.abs() < 1e-9 && (point.z - 4.0).abs() < 1e-9
+    })
+    .try_into()
+    .expect("the edge between the top and the front");
+    let name = edge.name.clone();
+
+    let lit = lit(&mut document, ViewportState::default(), |state| {
+        state.edge_under_the_hand = Some(name);
+    });
+
+    let lies_on_a_face_turned_to_the_eye =
+        triangles(&lit.frame.scene_solids).iter().any(|triangle| {
+            let [a, b, c] = triangle.map(|corner| Vec3::from(corner.position));
+            let normal = (b - a).cross(c - a).normalize_or_zero();
+            normal.dot(lit.eye - a) > 0.0
+                && edge
+                    .points
+                    .iter()
+                    .all(|point| normal.dot(point.as_vec3() - a).abs() < 1e-4)
+        });
+    let behind: Vec<Vec3> = along(&edge.points)
+        .into_iter()
+        .filter(|point| stands_in_front(&lit.frame.scene_solids, lit.eye, *point))
+        .collect();
+    assert!(
+        lies_on_a_face_turned_to_the_eye && behind.is_empty(),
+        "the fixture wants the edge lying on a face of the block turned to the eye and behind \
+         none of its matter: on such a face {lies_on_a_face_turned_to_the_eye}, behind it at \
+         {behind:?}",
+    );
+
+    lit.drew_only(&segments_through(&edge.points), "the edge under the hand");
+}
+
+#[test]
+fn an_edge_behind_see_through_matter_is_drawn_in_the_pass_only_solid_matter_hides() {
+    let [upright] = edges_where(&a_block(), |point| {
+        point.x.abs() < 1e-9 && (point.y - 10.0).abs() < 1e-9
+    })
+    .try_into()
+    .expect("the upright at the back corner, the one furthest from the eye");
+
+    let mut see_through_block = ViewportState::default();
+    body_drawn(&mut see_through_block, VolumeState::SeeThrough);
+    let see_through_side = sectioned(|section| section.in_front = MatterInFront::SeeThrough);
+
+    for (seen, state, past) in [
+        (
+            "the block see-through",
+            see_through_block,
+            f32::NEG_INFINITY,
+        ),
+        (
+            "the section's side over it see-through",
+            see_through_side,
+            MID_HEIGHT,
+        ),
+    ] {
+        let name = upright.name.clone();
+        let lit = lit(&mut a_block(), state, |state| {
+            state.edges_chosen = vec![name];
+        });
+        let veiled = &lit.frame.scene_surfaces[lit.frame.scene_veiled_matter.clone()];
+        let seen_through: Vec<Vec3> = along(&upright.points)
+            .into_iter()
+            .filter(|point| point.z > past + IN_FRONT_BY)
+            .collect();
+        let behind_the_veil = seen_through
+            .iter()
+            .filter(|point| stands_in_front(veiled, lit.eye, **point))
+            .count();
+        let behind_a_solid: Vec<&Vec3> = seen_through
+            .iter()
+            .filter(|point| stands_in_front(&lit.frame.scene_solids, lit.eye, **point))
+            .collect();
+        assert!(
+            behind_the_veil > 0 && behind_a_solid.is_empty(),
+            "with {seen}, the fixture wants the upright behind see-through matter and behind no \
+             solid: {behind_the_veil} points behind the see-through matter, behind a solid at \
+             {behind_a_solid:?}",
+        );
+
+        lit.drew_only(
+            &segments_through(&upright.points),
+            &format!("with {seen}, the upright chosen"),
+        );
+    }
 }
