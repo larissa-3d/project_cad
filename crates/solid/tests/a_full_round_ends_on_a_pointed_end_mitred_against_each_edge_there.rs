@@ -478,15 +478,26 @@
 //!   or a decline in every order (#822) refuses: the back shoulder at (25, 6)
 //!   or (26, 6) with the back notch edge, at (28, 6) with the front one, built
 //!   only in the two orders naming the notch edge last, and right there,
-//!   1527.75, 1540.75 and 1566.65, the booleans' bodies. Held in every order of
-//!   each, with the other notch edge at (26, 6), declined in every order, and
-//!   either at (29, 6) and (31, 6), built in every order: every order
-//!   declined, or every order built — the value taken whole, the body exact,
-//!   closed and uncrossed, holding what the booleans leave, the plate less the
-//!   full round's prism and the notch edge's kept on the shoulder's side of
-//!   the sharp wall's plane, its triangles enclosing that within two
-//!   thousandths, and the one body the first order built lays, its faces
-//!   meeting alike and the plate's flat faces at the same corners —
+//!   1527.75, 1540.75 and 1566.65, the booleans' bodies; likewise with the
+//!   far end's edge named too, or the upright at the front left corner,
+//!   (0, 0). Built in every order since, held so, with either notch edge at
+//!   (29, 6) and (31, 6), built in every order before: each list alone, with
+//!   the far end's edge and with that upright, in each of its 6 or 24
+//!   orders, the value taken whole, the body exact, closed and uncrossed,
+//!   holding what the booleans leave — the plate less the full round's
+//!   prism, the far end's and the upright's raised whole where named, and the
+//!   notch edge's kept on the shoulder's side of the sharp wall's plane —,
+//!   its triangles enclosing that within two thousandths, and the one body
+//!   the first order lays, its faces meeting alike and the plate's flat faces
+//!   at the same corners —
+//!   `a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_alone_with_the_far_end_s_edge_or_with_the_upright_at_its_front_left_corner_lays_one_body_in_every_order`.
+//!   The far end's edge and that upright both named close the corner at
+//!   (0, 0) with #699's piece of sphere, which those booleans do not lay: not
+//!   held here. The back shoulder at (26, 6) with the front notch edge is
+//!   declined `Unsupported` in every order, alone, with the far end's edge or
+//!   with the upright, though the booleans would give it a body, 1540.41
+//!   alone: held to one verdict, every order declined or every order built as
+//!   above —
 //!   `a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_is_declined_in_every_order_or_built_as_one_body_in_every_order`
 //!
 //! The campaign is run by hand, out of the gate, compiled only under the
@@ -6786,6 +6797,15 @@ impl OneNotchEdge {
     /// names its edge, and the notch edge's raised along its wall's line,
     /// kept on the shoulder's side of the sharp wall's plane.
     fn by_booleans(&self) -> f64 {
+        self.by_booleans_with(false)
+    }
+
+    /// What the booleans leave as [`OneNotchEdge::by_booleans`] says, the
+    /// upright at the front left corner, (0, 0), named too where `upright`
+    /// says: its round's prism raised whole up the plate cut away as well, and
+    /// the two convex rounds meeting it there, the front's and the far end's
+    /// unless both are named, crossing on the ellipse where they meet.
+    fn by_booleans_with(&self, upright: bool) -> f64 {
         let plate = &self.plate;
         let mut cut = plate
             .part
@@ -6796,6 +6816,12 @@ impl OneNotchEdge {
             cut = cut
                 .difference(&prism)
                 .expect("the far end's prism cuts the plate");
+        }
+        if upright {
+            let prism = upright_tool_at(&cut, DVec2::ZERO, DVec2::NEG_Y, DVec2::X);
+            cut = cut
+                .difference(&prism)
+                .expect("the upright's prism cuts the plate");
         }
         let sharp = self.sharp_wall();
         let inward = -sharp.outward();
@@ -7295,80 +7321,93 @@ fn a_fillet_on_a_full_round_and_the_front_edge_of_a_shallower_v_notch_alone_or_w
     ]);
 }
 
-/// The notches #917's review found split, the tip on the middle line at
-/// (27, 3) and the back shoulder moved along the back so that the notch's two
-/// walls no longer mirror each other, with the notch edge named: at (25, 6)
-/// and (26, 6) the back one, at (28, 6) the front one; beside them, the same
-/// with the other notch edge at (26, 6), and either at (29, 6) and (31, 6).
-const SHOULDERS_THAT_DO_NOT_MIRROR: [(f64, usize); 8] = [
-    (25.0, 2),
-    (26.0, 2),
-    (28.0, 1),
-    (26.0, 1),
-    (29.0, 1),
-    (29.0, 2),
-    (31.0, 1),
-    (31.0, 2),
-];
+/// A list on a notch whose shoulders do not mirror, the tip on the middle line
+/// at (27, 3) and the back shoulder moved along the back: the case, its top
+/// edges listed as [`OneNotchEdge`] lists them, and whether the upright at the
+/// front left corner, (0, 0), is named after them.
+struct UnevenList {
+    case: OneNotchEdge,
+    upright: bool,
+}
 
-#[test]
-fn a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_is_declined_in_every_order_or_built_as_one_body_in_every_order()
- {
-    let cases = SHOULDERS_THAT_DO_NOT_MIRROR
-        .map(|(back, named)| OneNotchEdge::shouldered(27.0, back, named, false, f64::NAN));
-    let laid: Vec<LaidInEachOrder> = (cases.iter())
-        .map(|case| {
-            every_order(case.plate.edges.len())
-                .into_iter()
-                .map(|order| {
-                    let outcome = case.plate.filleted(&order);
-                    (order, outcome)
-                })
-                .collect()
-        })
-        .collect();
-    let split: Vec<String> = (cases.iter())
-        .zip(&laid)
-        .filter_map(|(case, laid)| {
-            let declined: Vec<String> = (laid.iter())
-                .filter_map(|(order, outcome)| {
-                    outcome
-                        .as_ref()
-                        .err()
-                        .map(|reason| format!("{}: {reason:?}", case.plate.called("fillet", order)))
-                })
-                .collect();
-            let built = laid.len() - declined.len();
-            (!declined.is_empty() && built > 0).then(|| {
-                format!(
-                    "on {}: built in {built} of the {} orders, declined in {}:\n  {}",
-                    case.plate.called,
-                    laid.len(),
-                    declined.len(),
-                    declined.join("\n  ")
-                )
+impl UnevenList {
+    /// The list on the notch whose back shoulder stands at (`back`, 6), its
+    /// notch edge on run `named`, the far end's edge named where `far_end`
+    /// says and the upright at (0, 0) where `upright` says.
+    fn at(back: f64, named: usize, far_end: bool, upright: bool) -> UnevenList {
+        UnevenList {
+            case: OneNotchEdge::shouldered(27.0, back, named, far_end, f64::NAN),
+            upright,
+        }
+    }
+
+    /// How many edges the list names.
+    fn count(&self) -> usize {
+        self.case.plate.edges.len() + usize::from(self.upright)
+    }
+
+    /// The edges' names in `order`, the upright last of the list's indices.
+    fn names(&self, order: &[usize]) -> Vec<EdgeName> {
+        let plate = &self.case.plate;
+        let mut names = plate.names(&(0..plate.edges.len()).collect::<Vec<usize>>());
+        if self.upright {
+            names.push(edge_between(&plate.part, LEFT_END, FRONT));
+        }
+        order.iter().map(|&edge| names[edge].clone()).collect()
+    }
+
+    /// What the fillet at [`RADIUS`] on the edges named in `order` is called.
+    fn called(&self, order: &[usize]) -> String {
+        let plate = &self.case.plate;
+        let called: Vec<&str> = order
+            .iter()
+            .map(|&edge| {
+                plate
+                    .edges
+                    .get(edge)
+                    .map_or("the upright at (0, 0)", |(_, called)| called.as_str())
             })
-        })
-        .collect();
-    assert!(
-        split.is_empty(),
-        "the fillet at {RADIUS} on a full round and one edge of a V-notch whose shoulders do not \
-         mirror is declined in every order or built in every order (#822); split:\n{}",
-        split.join("\n")
-    );
+            .collect();
+        format!(
+            "the fillet at {RADIUS} on {}, on {}",
+            called.join(", then "),
+            plate.called
+        )
+    }
 
-    for (case, laid) in cases.iter().zip(&laid) {
-        let plate = &case.plate;
+    /// The fillet at [`RADIUS`] in every order the list's edges can be named
+    /// in: each order with what it laid.
+    fn laid_in_every_order(&self) -> LaidInEachOrder {
+        every_order(self.count())
+            .into_iter()
+            .map(|order| {
+                let laid = self
+                    .case
+                    .plate
+                    .part
+                    .fillet_edges(&self.names(&order), RADIUS);
+                (order, laid)
+            })
+            .collect()
+    }
+
+    /// Holds that every order `laid` built took the value whole and laid one
+    /// body, the one the first built lays — exact, closed, uncrossed, holding
+    /// what the booleans leave, its triangles enclosing that within two
+    /// thousandths, its faces meeting alike and the plate's flat faces at the
+    /// same corners.
+    fn lays_one_body_holding_what_the_booleans_leave(&self, laid: &LaidInEachOrder) {
+        let plate = &self.case.plate;
         let start = plate.part.faces_end();
         let built: Vec<(&Vec<usize>, &Filleted)> = (laid.iter())
             .filter_map(|(order, outcome)| outcome.as_ref().ok().map(|filleted| (order, filleted)))
             .collect();
         let Some(&(reference_order, reference)) = built.first() else {
-            continue;
+            return;
         };
-        let by_booleans = case.by_booleans();
+        let by_booleans = self.case.by_booleans_with(self.upright);
         for &(order, filleted) in &built {
-            let what = plate.called("fillet", order);
+            let what = self.called(order);
             taken_as_asked(filleted.asked, filleted.taken, RADIUS, &what);
             let body = &filleted.body;
             assert!(
@@ -7381,8 +7420,8 @@ fn a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mir
             assert!(
                 (body.volume() - by_booleans).abs() <= EXACT * by_booleans,
                 "{what}: the body holds {}, where the booleans leave {by_booleans}: the plate less \
-                 the full round's prism and the notch edge's, kept on the shoulder's side of the \
-                 sharp wall's plane",
+                 the full round's prism, the far end's and the upright's where named, and the \
+                 notch edge's, kept on the shoulder's side of the sharp wall's plane",
                 body.volume()
             );
             let enclosed = enclosed(&triangles);
@@ -7400,6 +7439,83 @@ fn a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mir
             );
             same_body_as(plate, body, &reference.body, &what);
         }
+    }
+
+    /// The list alone, with the far end's edge, and with the upright at
+    /// (0, 0), on the notch whose back shoulder stands at (`back`, 6), its
+    /// notch edge on run `named`. Both at once close the corner at (0, 0)
+    /// with #699's piece of sphere, which the booleans here do not lay.
+    fn each_way(back: f64, named: usize) -> [UnevenList; 3] {
+        [(false, false), (true, false), (false, true)]
+            .map(|(far_end, upright)| UnevenList::at(back, named, far_end, upright))
+    }
+}
+
+/// The notches whose shoulders do not mirror that the fillet on the pair and
+/// one notch edge builds in every order since #917's review: the back shoulder
+/// at (25, 6) and (26, 6) with the back notch edge, which the review found
+/// split, at (28, 6) with the front one, split too, and at (29, 6) and
+/// (31, 6) with either, built in every order before.
+const BUILT_ON_SHOULDERS_THAT_DO_NOT_MIRROR: [(f64, usize); 7] = [
+    (25.0, 2),
+    (26.0, 2),
+    (28.0, 1),
+    (29.0, 1),
+    (29.0, 2),
+    (31.0, 1),
+    (31.0, 2),
+];
+
+#[test]
+fn a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_alone_with_the_far_end_s_edge_or_with_the_upright_at_its_front_left_corner_lays_one_body_in_every_order()
+ {
+    for (back, named) in BUILT_ON_SHOULDERS_THAT_DO_NOT_MIRROR {
+        for list in UnevenList::each_way(back, named) {
+            let laid = list.laid_in_every_order();
+            let declined: Vec<String> = (laid.iter())
+                .filter_map(|(order, outcome)| {
+                    (outcome.as_ref().err())
+                        .map(|reason| format!("{}: declined, {reason:?}", list.called(order)))
+                })
+                .collect();
+            assert!(
+                declined.is_empty(),
+                "the fillet at {RADIUS} on a full round and one edge of a V-notch whose \
+                 shoulders do not mirror is built in every order; declined:\n{}",
+                declined.join("\n")
+            );
+            list.lays_one_body_holding_what_the_booleans_leave(&laid);
+        }
+    }
+}
+
+#[test]
+fn a_fillet_on_a_full_round_and_one_edge_of_a_v_notch_whose_shoulders_do_not_mirror_is_declined_in_every_order_or_built_as_one_body_in_every_order()
+ {
+    for list in UnevenList::each_way(26.0, 1) {
+        let laid = list.laid_in_every_order();
+        let declined = laid.iter().filter(|(_, outcome)| outcome.is_err()).count();
+        let built = laid.len() - declined;
+        assert!(
+            declined == 0 || built == 0,
+            "the fillet at {RADIUS} on a full round and one edge of a V-notch whose shoulders \
+             do not mirror is declined in every order or built in every order (#822); on {}, \
+             built in {built} of the {} orders, declined in {declined}:\n{}",
+            list.case.plate.called,
+            laid.len(),
+            (laid.iter())
+                .map(|(order, outcome)| format!(
+                    "{}: {}",
+                    list.called(order),
+                    match outcome {
+                        Ok(filleted) => format!("built, {}", filleted.body.volume()),
+                        Err(reason) => format!("declined, {reason:?}"),
+                    }
+                ))
+                .collect::<Vec<String>>()
+                .join("\n")
+        );
+        list.lays_one_body_holding_what_the_booleans_leave(&laid);
     }
 }
 
