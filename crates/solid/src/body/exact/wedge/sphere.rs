@@ -14,10 +14,11 @@
 //! discs that leaves, facing the centre, replaced by the piece of sphere
 //! facing it, the matter outside the ball. Two corners at the ends of one
 //! edge whose centres are one — the edge across a tongue's tip as wide as
-//! two radii, whose round closes to nothing between them (#837) — close on
-//! one sphere: the later corner's cut takes that round whole, and its piece
-//! takes in the earlier corner's, one face answering to the round's number
-//! and both corners'. Two whose pieces touch at a point alone — the shoulders
+//! two radii, whose round closes to nothing between them (#837), or, hollow,
+//! the floor's edge at a pocket's end as wide (#919) — close on one sphere:
+//! the later corner's cut takes that round whole, or its filling fills it,
+//! and its piece takes in the earlier corner's, one face answering to the
+//! round's number and both corners'. Two whose pieces touch at a point alone — the shoulders
 //! of a full round's pointed end, under its crown (#911) — keep a piece
 //! each. Four or more rounds meeting outwards (#804), a
 //! pyramid's apex, are closed the same way where the faces round the corner
