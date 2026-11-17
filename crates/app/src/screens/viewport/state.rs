@@ -15,6 +15,7 @@ use crate::screens::SketchContext;
 use crate::ui::floating_bar::TOP_ABOVE_THE_EDGE as BAR_TOP;
 
 use super::edges::DrawnEdges;
+use super::extrusion_handle::ExtrusionHandle;
 use super::kept_sections::KeptSections;
 use super::navigation::Drag;
 use super::reading::Reading;
@@ -74,6 +75,8 @@ pub struct ViewportState {
     pub(super) sections: Sections,
     /// The section view, while it is on.
     pub(super) section: Option<Section>,
+    /// The extrusion's arrow, held from one frame of a drag to the next.
+    pub(super) extrusion_handle: ExtrusionHandle,
     pub(crate) kept_sections: KeptSections,
     pub(super) visibility: Visibility,
     pub(super) reading: Reading,
@@ -106,6 +109,7 @@ impl Default for ViewportState {
             canvas: None,
             sections: Sections::default(),
             section: None,
+            extrusion_handle: ExtrusionHandle::default(),
             kept_sections: KeptSections::default(),
             visibility: Visibility::default(),
             reading: Reading::default(),

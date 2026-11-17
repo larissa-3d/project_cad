@@ -36,6 +36,9 @@ mod planes;
 use planes::choose_a_plane;
 pub(super) use planes::point_the_section;
 
+mod extrusion_arrow;
+pub(super) use extrusion_arrow::point_the_extrusion_arrow;
+
 mod symmetric_line;
 pub(crate) use symmetric_line::draw_symmetric_line_point;
 

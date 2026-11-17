@@ -43,7 +43,8 @@ pub(crate) use copy_panel::paint_copy_panel;
 pub(crate) use cuts::cut_label_under;
 pub(crate) use dimensions::{paint_dimension_field, paint_dimension_labels};
 use drawing::{Shown, what_would_be_laid};
-use extrusion::push_chosen_areas;
+pub(crate) use extrusion::paint_extrusion_pill;
+use extrusion::{push_chosen_areas, push_extrusion_arrow};
 pub(crate) use live_fields::paint_live_input;
 pub(crate) use overlays::{
     mark_under, paint_band, paint_face_labels, paint_rule_marks, paint_ruler, placed_marks,
@@ -220,6 +221,7 @@ pub(crate) fn frame_of(
         .map_or(context.document.body(), |before| &before.body);
     edges::push_lit_edges(&mut lit_lines, state, named_on, scale.height_px);
     section_panel::push_section_plane(&mut surfaces, &mut lines, state, scale, context);
+    push_extrusion_arrow(&mut lines, scale, context);
 
     let mut cube_triangles = Vec::new();
     let mut cube_edges = Vec::new();
