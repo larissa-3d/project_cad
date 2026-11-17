@@ -14,6 +14,18 @@
 //! - criteria 4 and 6 as first written, « TOUT LE CORPS » and the faces no
 //!   volume made — no test: both struck on 2026-11-10 by Tom, and the tests
 //!   that held them deleted with them
+//!
+//! Closes #740 — the whole transcription is in
+//! `crates/app/tests/extruding_in_a_panel.rs`; this is the half of criterion 5
+//! that keeps the redrawing cheap, the cost #583 named.
+//! - The view draws the extruded volume alone, not fused into the part,
+//!   see-through, green for an addition and red for a cut, and redraws it at
+//!   every keystroke — the canvas's half: frame after frame, the volume of a
+//!   step that has not changed on a part that has not either is the one
+//!   already built, and a step retyped or a part changed builds it again —
+//!   `the_volume_previewed_is_built_again_only_once_its_step_or_the_part_changes`
+
+use std::rc::Rc;
 
 use cao_part::{ExtrusionMode, PointRef, VolumeState};
 use cao_sketch::WorkPlane;
@@ -174,4 +186,44 @@ fn making_everything_opaque_puts_every_volume_back_to_opaque() {
         "« Tout rendre opaque » leaves a volume in another state",
     );
     assert!(state.all_opaque(&document));
+}
+
+#[test]
+fn the_volume_previewed_is_built_again_only_once_its_step_or_the_part_changes() {
+    let mut document = a_block_with_a_hole();
+    let state = ViewportState::default();
+    let six_deep = a_cut_through_the_middle(&document, 6.0);
+    let previewed = |document: &PartDocument, step: &Operation| {
+        state
+            .previewed_volume(document, step)
+            .unwrap_or_else(|| panic!("the cut through the middle previews no volume: {step:?}"))
+    };
+
+    let first = previewed(&document, &six_deep);
+    let next_frame = previewed(&document, &six_deep);
+    assert!(
+        Rc::ptr_eq(&first, &next_frame),
+        "the same step on the same part, the next frame builds its volume again",
+    );
+
+    let eight_deep = a_cut_through_the_middle(&document, 8.0);
+    let retyped = previewed(&document, &eight_deep);
+    assert!(
+        !Rc::ptr_eq(&first, &retyped) && retyped.volume() > first.volume(),
+        "the depth retyped from 6 to 8, the volume previewed is the one 6 deep: {} then {}",
+        first.volume(),
+        retyped.volume(),
+    );
+
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::new(30.0, 0.0)),
+        opposite: PointRef::New(DVec2::new(40.0, 10.0)),
+        construction: false,
+    });
+    let after_a_change = previewed(&document, &eight_deep);
+    assert!(
+        !Rc::ptr_eq(&retyped, &after_a_change),
+        "the part changed under the same step, the volume previewed is the one built before",
+    );
 }

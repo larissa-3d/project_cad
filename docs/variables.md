@@ -57,7 +57,7 @@ without a word.
 ### A name completed as it is typed
 
 Every field a size is typed into — the fields at the cursor, a dimension's
-field, the extrusion row — and the formula column of the panel **complete a
+field, the extrusion's panel — and the formula column of the panel **complete a
 variable's name**. Typing the start of one opens a list under the field: the
 variables whose name starts with what was typed, whatever the case, in the
 order of the panel, each with what it comes to. The arrows move the choice;

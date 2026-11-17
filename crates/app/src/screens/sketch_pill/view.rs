@@ -1,8 +1,11 @@
-use crate::ui::pill::{floating_pill, name_and_detail, note};
+use crate::ui::pill::{bottom_below_the_edge, floating_pill, name_and_detail, note};
 use crate::ui::primary_button::{self, primary_button};
 use crate::ui::theme::tokens::{STATE_SUCCESS_TEXT, TEXT_QUIET};
 
 use super::state::{Left, SketchPill};
+
+/// How far below the view's top edge the bottom of the pill stands.
+pub const BOTTOM_BELOW_THE_EDGE: f32 = bottom_below_the_edge(primary_button::HEIGHT);
 
 /// Draws the pill at the top centre of `view`, and says whether its button was
 /// clicked.

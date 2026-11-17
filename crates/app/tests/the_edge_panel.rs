@@ -564,8 +564,8 @@ fn a_disc(test: &str) -> driver::App {
     driver::click_the_button(&mut app, "1");
     driver::click(&mut app, "Ajout de matière");
     driver::click_at_sketch_point(&mut app, driver::ON_THE_BLOCK);
-    driver::type_beside(&mut app, "Hauteur :", "60");
-    driver::click(&mut app, "Appliquer");
+    driver::type_the_depth(&mut app, "60");
+    driver::click_the_button(&mut app, "Appliquer ↵");
     driver::press(&mut app, egui::Key::Escape);
     driver::finish_the_sketch(&mut app);
     driver::click_the_button(&mut app, "Esquisse");
@@ -983,7 +983,7 @@ fn modifier_on_an_extrusion_s_alert_closes_the_edge_panel_and_the_chord_chamfers
     driver::click_the_button(&mut app, "Modifier");
 
     assert!(
-        driver::says(&app, "Hauteur :") && !driver::reads(&app, THE_CHAMFER_S_VALUE),
+        driver::the_extrusion_panel_is_open(&app) && !driver::reads(&app, THE_CHAMFER_S_VALUE),
         "« Modifier » on the extrusion's alert left the edge panel in the ribbon: {:?}",
         driver::on_screen(&app),
     );

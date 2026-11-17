@@ -775,6 +775,63 @@ pub fn field_beside(app: &App, label: &str) -> String {
 /// would.
 pub fn type_beside(app: &mut App, label: &str, text: &str) {
     the_field_beside(app, label).focus();
+    type_over_the_field_focused(app, text);
+}
+
+/// Whether the extrusion's step panel stands open, straight or around an
+/// axis: its title, a line of text rather than the ribbon's button of the same
+/// name.
+pub fn the_extrusion_panel_is_open(app: &App) -> bool {
+    app.query_all_by_role(egui::accesskit::Role::Label)
+        .any(|node| {
+            matches!(
+                node.accesskit_node().value().as_deref(),
+                Some("Extrusion droite" | "Révolution")
+            )
+        })
+}
+
+/// The field the extrusion panel types its depth in: the first drawn under
+/// its heading « Profondeur », the panel laying a heading above its field.
+pub fn the_depth_field(app: &App) -> egui_kittest::Node<'_> {
+    use egui::accesskit::Role;
+
+    let heading = app
+        .query_all_by_role(Role::Label)
+        .find(|node| node.accesskit_node().value().as_deref() == Some("Profondeur"))
+        .unwrap_or_else(|| {
+            panic!(
+                "no extrusion panel reads « Profondeur », the screen saying {:?}",
+                said(app)
+            )
+        })
+        .rect();
+    app.query_all_by_role(Role::TextInput)
+        .filter(|field| {
+            let at = field.rect();
+            at.min.y >= heading.max.y - 1.0 && at.min.x <= heading.max.x
+        })
+        .min_by(|a, b| a.rect().min.y.total_cmp(&b.rect().min.y))
+        .unwrap_or_else(|| panic!("no field stands under « Profondeur »"))
+}
+
+/// What the extrusion panel's depth holds.
+pub fn the_depth(app: &App) -> String {
+    the_depth_field(app)
+        .accesskit_node()
+        .value()
+        .unwrap_or_default()
+}
+
+/// Types over the extrusion panel's depth, the way selecting all of it first
+/// would.
+pub fn type_the_depth(app: &mut App, text: &str) {
+    the_depth_field(app).focus();
+    type_over_the_field_focused(app, text);
+}
+
+/// Types over the field just focused, selecting all of it first.
+fn type_over_the_field_focused(app: &mut App, text: &str) {
     app.run();
     app.event(egui::Event::Key {
         key: egui::Key::A,

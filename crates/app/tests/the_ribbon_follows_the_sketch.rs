@@ -348,7 +348,7 @@ fn opening_an_extrusion_from_the_tree_while_sketching_still_lands_on_its_tab() {
     driver::click_the_button(&mut app, "Modifier");
 
     assert!(
-        !driver::a_sketch_is_open(&app) && driver::says(&app, "Hauteur :"),
+        !driver::a_sketch_is_open(&app) && driver::the_extrusion_panel_is_open(&app),
         "« Modifier » on the block's alert did not trade the sketch for its extrusion: {:?}",
         driver::on_screen(&app)
     );

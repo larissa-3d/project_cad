@@ -54,7 +54,9 @@ use planes::{push_choosable_planes, push_hovered_face};
 use preview::pending_annotation;
 use reading::push_measure;
 pub(crate) use reading::{Measuring, paint_measure, what_is_measured};
-pub(crate) use section_panel::{paint_section_handle, paint_section_panel};
+pub(crate) use section_panel::{
+    paint_section_handle, paint_section_panel, right_of_the_section_panel,
+};
 pub(crate) use trim::what_would_go;
 
 use super::matter::Drawn;
@@ -211,6 +213,7 @@ pub(crate) fn frame_of(
     body::push_matter(&mut solids, &mut surfaces, state, drawn);
     let veiled_matter = matter_from..surfaces.len();
     body::push_marked(&mut surfaces, state, context.document);
+    body::push_previewed(&mut surfaces, state, context);
     let before = state.part_reopened(context.document);
     let named_on = before
         .as_ref()

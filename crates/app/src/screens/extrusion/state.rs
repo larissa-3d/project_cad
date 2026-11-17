@@ -9,6 +9,10 @@ use glam::DVec2;
 
 use crate::lang::Catalogue;
 
+mod panel;
+
+pub use panel::{Extent, Panel, Preview};
+
 /// How the matter is made from the chosen areas.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Shape {
@@ -213,6 +217,17 @@ impl ExtrusionState {
             Shape::Revolution => self.angle(variables).is_some(),
         }
     }
+
+    /// The areas the picks name: the reopened step's own while the picks are
+    /// where it was picked at, the drawing's under them otherwise. Named here
+    /// and never worked out again: what the click meant is what the drawing
+    /// said at the moment of the click.
+    fn chosen_areas(&self, document: &PartDocument, sketch: usize) -> Vec<Area> {
+        match &self.reopened {
+            Some(reopened) if reopened.is_picked_at(&self.picks) => reopened.areas.clone(),
+            _ => document.areas_at(sketch, &self.picks),
+        }
+    }
 }
 
 impl Reopened {
@@ -262,12 +277,9 @@ pub fn apply_extrusion_with(
     lang: &Catalogue,
     record: impl FnOnce(&mut PartDocument, Operation),
 ) -> bool {
-    let (Some(sketch), Some(mode)) = (extrusion.sketch, extrusion.mode) else {
+    let Some(Preview { operation, mode }) = extrusion.preview(doc) else {
         return false;
     };
-    if !extrusion.is_ready(doc.variables()) {
-        return false;
-    }
 
     // A panel reopened on a step the history has undone since names nothing
     // in effect, and applies nothing.
@@ -282,33 +294,7 @@ pub fn apply_extrusion_with(
     let step = reopened
         .as_ref()
         .map_or_else(|| doc.history.next_number(), |reopened| reopened.raised_by);
-    // The areas are named here and never worked out again: what the click
-    // meant is what the drawing said at the moment of the click.
-    let picks = std::mem::take(&mut extrusion.picks);
-    let areas = match &reopened {
-        Some(reopened) if reopened.is_picked_at(&picks) => reopened.areas.clone(),
-        _ => doc.areas_at(sketch, &picks),
-    };
-    let operation = if extrusion.is_revolving() {
-        Operation::Revolve {
-            sketch,
-            areas,
-            axis: extrusion.axis,
-            angle: extrusion
-                .angle(doc.variables())
-                .map_or(Formula::Number(0.0), |(written, _)| written),
-            mode,
-        }
-    } else {
-        Operation::Extrude {
-            sketch,
-            areas,
-            distance: extrusion
-                .distance(doc.variables())
-                .map_or(Formula::Number(0.0), |(written, _)| written),
-            mode,
-        }
-    };
+    extrusion.picks.clear();
     extrusion.mode = None;
     if as_raised.as_ref() == Some(&operation) {
         *notice = None;

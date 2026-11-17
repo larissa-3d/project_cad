@@ -4,7 +4,7 @@
 use crate::ui::theme::tokens::{TEXT_QUIET, TYPOGRAPHY_SIZES_DETAIL};
 
 /// How wide C13 of `docs/redesign/components.md` draws a tool's panel.
-const TOOL_PANEL_WIDTH: f32 = 300.0;
+pub const TOOL_PANEL_WIDTH: f32 = 300.0;
 
 /// The size C13 writes a tool panel's title at, which the tokens do not carry.
 const TOOL_TITLE_SIZE: f32 = 14.0;

@@ -406,8 +406,8 @@ fn a_disc(test: &str) -> driver::App {
     driver::click_the_button(&mut app, "1");
     driver::click(&mut app, "Ajout de matière");
     driver::click_at_sketch_point(&mut app, driver::ON_THE_BLOCK);
-    driver::type_beside(&mut app, "Hauteur :", "60");
-    driver::click(&mut app, "Appliquer");
+    driver::type_the_depth(&mut app, "60");
+    driver::click_the_button(&mut app, "Appliquer ↵");
     driver::press(&mut app, egui::Key::Escape);
     driver::finish_the_sketch(&mut app);
     driver::click_the_button(&mut app, "Esquisse");

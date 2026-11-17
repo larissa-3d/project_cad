@@ -120,7 +120,7 @@ const NO_NET_HEADING: &str = "## What has no net";
 /// `docs/code-map.md` carries the argument beside the list.
 const PLACES_ALLOWED_TO_HAVE_NO_NET: [&str; 11] = [
     "crates/app/src/screens/annotations.rs",
-    "crates/app/src/screens/extrusion_row.rs",
+    "crates/app/src/screens/extrusion/view.rs",
     "crates/app/src/screens/mod.rs",
     "crates/app/src/screens/settings/",
     "crates/app/src/screens/start_menu.rs",

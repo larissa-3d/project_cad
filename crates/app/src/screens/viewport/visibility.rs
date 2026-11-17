@@ -17,7 +17,7 @@ use cao_part::{Operation, PartDocument, VolumeState};
 use cao_sketch::Sketch;
 
 use preview::Previewed;
-use shown::{Before, Blocked, Replayed};
+use shown::{Before, Blocked, Replayed, ToolPreviewed};
 
 use super::ViewportState;
 use crate::screens::SketchContext;
@@ -50,6 +50,9 @@ pub(super) struct Visibility {
     preview: Option<Previewed>,
     /// How many times the step reopened was laid as its panel held it.
     previews_built: usize,
+    /// The volume the extrusion being set previews, and what it was worked
+    /// out from.
+    previewed: RefCell<Option<ToolPreviewed>>,
 }
 
 /// One sketch, or the volume made at a step of the history.
@@ -72,6 +75,7 @@ impl Default for Visibility {
             before: RefCell::new(None),
             preview: None,
             previews_built: 0,
+            previewed: RefCell::new(None),
         }
     }
 }

@@ -214,15 +214,17 @@ impl CaoApp {
         };
         ribbon.section_on = viewport.section().is_some();
         ribbon.read_to_an_earlier_step = !viewport.is_read_whole();
-        ribbon.sketches_read = viewport.sketches_read(doc);
         asked.extend(ribbon.show(ui, &settings, &mut drawn, lang));
         asked.extend(
             shortcuts_pressed(ui, &settings, |command| {
                 // Enter moves through the panel of a tool laying copies rather
-                // than finishing the sketch under it, and through the section
-                // view's while no sketch is edited under it.
+                // than finishing the sketch under it, through the section
+                // view's while no sketch is edited under it, and applies the
+                // extrusion's once it can.
                 let sectioning = viewport.section().is_some() && editor.active_sketch().is_none();
-                command == Command::FinishSketch && (editor.copy_panel().is_some() || sectioning)
+                let extruding = extrusion.is_active() && extrusion.is_ready(doc.variables());
+                command == Command::FinishSketch
+                    && (editor.copy_panel().is_some() || sectioning || extruding)
             })
             .into_iter()
             .map(|command| blend.answering(command))
@@ -313,6 +315,7 @@ impl CaoApp {
         .and_then(|button| screens::origin_view::show(ui.ctx(), view.response.rect, &button));
         let over_the_view = finished
             .then_some(Command::FinishSketch.into())
+            .or(view.inner.extrusion_asked.map(Into::into))
             .or(from_the_bar)
             .or(from_the_cube);
         if let Some(asked) = over_the_view {

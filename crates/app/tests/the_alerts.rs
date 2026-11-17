@@ -88,7 +88,7 @@
 //!   and for a cut at an unstable lean alike, the pill handed nothing and the
 //!   alert saying what the pill used to, by
 //!   `an_extrusion_not_built_or_unstable_is_an_alert_and_no_message`, in
-//!   `crates/app/src/screens/extrusion/tests.rs`
+//!   `crates/app/src/screens/extrusion/state/tests.rs`
 //! - and stays while it is true — through a message said since, until the
 //!   circle is turned the right way and built, and back with the undo of that
 //!   turn — `an_alert_stays_while_its_problem_holds_and_goes_with_it`
@@ -141,7 +141,7 @@
 //!   in `crates/app/src/screens/title_bar/state/tests.rs`; the panel reopened
 //!   on an extrusion's or a revolution's values, and « Appliquer » changing
 //!   the step rather than raising another, in
-//!   `crates/app/src/screens/extrusion/tests.rs`; and the volume's row reading
+//!   `crates/app/src/screens/extrusion/state/tests.rs`; and the volume's row reading
 //!   its new values, by `a_volume_changed_after_it_was_raised_reads_its_new_values`,
 //!   in `crates/app/src/screens/part_tree/state/tests.rs`. Through the alert
 //!   only the extrusion is driven: a revolution reopens through the same panel
@@ -151,7 +151,7 @@
 //!   compaction — since the step it names may no longer be the one in effect —
 //!   `the_panel_reopened_on_a_step_closes_when_the_history_moves`. What applying
 //!   one left open anyway does is held in
-//!   `crates/app/src/screens/extrusion/tests.rs`, and what the part does with a
+//!   `crates/app/src/screens/extrusion/state/tests.rs`, and what the part does with a
 //!   change of a step undone since in `crates/part/tests/changing_an_extrusion.rs`
 //! - decided by Tom when the work opened: « Montrer » on a volume's alert
 //!   selects the volume and lights it in the view — its row in the tree stands
@@ -623,7 +623,7 @@ fn modify_on_an_extrusion_s_alert_reopens_it_with_its_values() {
     );
 
     driver::click_the_button(&mut app, "Annuler");
-    if driver::says(&app, "Hauteur :") {
+    if driver::the_extrusion_panel_is_open(&app) {
         wrong.push("« Annuler » left the extrusion panel open".to_owned());
     }
     let lines_after = driver::steps(&app);
@@ -640,8 +640,8 @@ fn modify_on_an_extrusion_s_alert_reopens_it_with_its_values() {
         ));
     }
     reopen_the_circle(&mut app);
-    driver::click(&mut app, "Sens inverse");
-    driver::click_the_button(&mut app, "Appliquer");
+    driver::click(&mut app, "Inverser le sens");
+    driver::click_the_button(&mut app, "Appliquer ↵");
     let counted: Vec<String> = the_title_bar(&app)
         .into_iter()
         .filter(|read| read.contains("alerte"))
@@ -686,7 +686,7 @@ fn an_alert_stays_while_its_problem_holds_and_goes_with_it() {
     wrong.extend(alerted_as_wanted(&app, "opened", true));
 
     reopen_the_circle(&mut app);
-    driver::click_the_button(&mut app, "Appliquer");
+    driver::click_the_button(&mut app, "Appliquer ↵");
     if driver::says(&app, DECLINED) {
         wrong.push(format!(
             "applied again as it was, the circle the kernel declines is said in the pill: {:?}",
@@ -710,8 +710,8 @@ fn an_alert_stays_while_its_problem_holds_and_goes_with_it() {
     driver::press(&mut app, egui::Key::Escape);
 
     reopen_the_circle(&mut app);
-    driver::click(&mut app, "Sens inverse");
-    driver::click_the_button(&mut app, "Appliquer");
+    driver::click(&mut app, "Inverser le sens");
+    driver::click_the_button(&mut app, "Appliquer ↵");
     wrong.extend(alerted_as_wanted(
         &app,
         "turned the other way, built",
@@ -737,8 +737,8 @@ fn an_extrusion_that_changes_nothing_still_says_so_in_the_pill() {
 
     reopen_the_circle(&mut app);
     driver::click(&mut app, "Enlèvement de matière");
-    driver::click(&mut app, "Sens inverse");
-    driver::click_the_button(&mut app, "Appliquer");
+    driver::click(&mut app, "Inverser le sens");
+    driver::click_the_button(&mut app, "Appliquer ↵");
 
     let bar = the_topmost_reading(&app, "Accueil");
     let said: Vec<egui::Rect> = app
@@ -823,8 +823,8 @@ fn the_panel_reopened_on_a_step_closes_when_the_history_moves() {
     );
     driver::open_the_history(&mut app);
     reopen_the_circle(&mut app);
-    driver::type_beside(&mut app, "Hauteur :", "12");
-    driver::click_the_button(&mut app, "Appliquer");
+    driver::type_the_depth(&mut app, "12");
+    driver::click_the_button(&mut app, "Appliquer ↵");
     assert!(
         the_button_reading(&app, "1 alerte").is_some() && driver::steps(&app).len() >= 2,
         "the circle changed to 12 down, still declined, does not keep its alert, or the history \
@@ -856,12 +856,12 @@ fn the_panel_reopened_on_a_step_closes_when_the_history_moves() {
     let mut wrong = Vec::new();
     for (way, move_the_history) in ways {
         reopen_the_circle(&mut app);
-        if !driver::says(&app, "Hauteur :") {
+        if !driver::the_extrusion_panel_is_open(&app) {
             wrong.push(format!("the circle's panel did not reopen before {way}"));
             continue;
         }
         move_the_history(&mut app);
-        if driver::says(&app, "Hauteur :") {
+        if driver::the_extrusion_panel_is_open(&app) {
             wrong.push(format!("{way} left the panel reopened on the circle open"));
         }
     }
@@ -889,16 +889,16 @@ fn reopen_the_circle(app: &mut driver::App) {
 /// What keeps the extrusion panel from standing open on the slanted circle's
 /// values: a height of 10, the other way along its plane.
 fn not_reopened_on_ten_the_other_way(app: &driver::App) -> Vec<String> {
-    if !driver::says(app, "Hauteur :") {
-        return vec!["no extrusion panel asks for a « Hauteur : »".to_owned()];
+    if !driver::the_extrusion_panel_is_open(app) {
+        return vec!["no extrusion panel stands open".to_owned()];
     }
     let mut wrong = Vec::new();
-    let height = driver::field_beside(app, "Hauteur :");
+    let height = driver::the_depth(app);
     if height != "10" {
-        wrong.push(format!("its height reads « {height} », not « 10 »"));
+        wrong.push(format!("its depth reads « {height} », not « 10 »"));
     }
-    if !driver::is_on(app, "Sens inverse") {
-        wrong.push("« Sens inverse » is not ticked, where the circle goes down".to_owned());
+    if !driver::is_on(app, "Inverser le sens") {
+        wrong.push("« Inverser le sens » is not on, where the circle goes down".to_owned());
     }
     wrong
 }

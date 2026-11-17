@@ -10,7 +10,11 @@ use super::{tint, tint_at};
 use crate::screens::SketchContext;
 use crate::screens::viewport::section::SectionField;
 use crate::screens::viewport::{ViewScale, ViewportState};
-use crate::ui::floating_panel::tool_panel;
+use crate::ui::floating_panel::{TOOL_PANEL_WIDTH, tool_panel};
+use crate::ui::theme::tokens::SPACING_XXL;
+
+/// How far in from the view's top left corner the panel stands.
+const INSET: f32 = 16.0;
 
 mod steps;
 
@@ -36,7 +40,7 @@ pub(crate) fn paint_section_panel(
     };
     let lang = context.lang;
     let title = crate::wording::command::label(lang, Command::SectionView);
-    let left_at = view.min + egui::vec2(16.0, 16.0);
+    let left_at = view.min + egui::vec2(INSET, INSET);
     let close = lang.t("panel.close");
     let part = context.document.name().to_owned();
     let field = section.field();
@@ -79,6 +83,12 @@ pub(crate) fn paint_section_panel(
         .data_mut(|data| data.insert_temp(id.with("said"), said.clone()));
     context.editor.message = Some(said);
     kept
+}
+
+/// Where a panel open beside the section view's stands: to its right, the
+/// section's being a tool's panel `TOOL_PANEL_WIDTH` across.
+pub(crate) fn right_of_the_section_panel(view: egui::Rect) -> egui::Pos2 {
+    view.min + egui::vec2(INSET + TOOL_PANEL_WIDTH + SPACING_XXL, INSET)
 }
 
 /// Takes back the step the section said over the view, while that is still

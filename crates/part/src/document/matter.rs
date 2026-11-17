@@ -1,7 +1,7 @@
 //! The matter of a part as its steps made it: which faces each one raised or
 //! cut, for what names a step to show it where it stands.
 
-use cao_solid::{Declined, Unstable};
+use cao_solid::{Body, Declined, Unstable};
 
 use super::PartDocument;
 use crate::history::Operation;
@@ -28,6 +28,15 @@ impl PartDocument {
             }
             _ => None,
         }
+    }
+
+    /// The matter a step of matter would raise or take away, alone, for a
+    /// panel to show while it is still open: the same for an addition and a
+    /// cut, neither joined to the part nor cut from it, and nothing recorded.
+    /// Nothing for another operation, a size that raises nothing, or a tool
+    /// the kernel declines.
+    pub fn tool_of(&self, operation: &Operation) -> Option<Body> {
+        self.state.tool_of(operation)
     }
 
     /// The faces of the part a step of matter made, by the number of its

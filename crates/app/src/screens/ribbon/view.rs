@@ -5,7 +5,6 @@ use crate::lang::Catalogue;
 use crate::screens::blend::BlendState;
 use crate::screens::blend_row::blend_row;
 use crate::screens::extrusion::ExtrusionState;
-use crate::screens::extrusion_row::extrusion_row;
 use crate::screens::sketch::SketchEditor;
 use crate::ui::icon;
 use crate::ui::logo::logo;
@@ -201,10 +200,8 @@ impl Ribbon {
             }
         });
 
-        let read = &self.sketches_read;
-        match drawn.blend.is_active() {
-            true => blend_row(ui, drawn.document, drawn.blend, &mut asked, lang),
-            false => extrusion_row(ui, drawn.document, drawn.extrusion, read, &mut asked, lang),
+        if drawn.blend.is_active() {
+            blend_row(ui, drawn.document, drawn.blend, &mut asked, lang);
         }
         asked
     }
