@@ -30,7 +30,7 @@
 //! from the start.
 
 use cao_part::history::{BlendShape, Operation, PointRef, StepKind};
-use cao_part::{ExtrusionMode, PartDocument};
+use cao_part::{ExtrusionMode, Outcome, PartDocument};
 use cao_sketch::WorkPlane;
 use cao_solid::{Body, EdgeName};
 use glam::{DVec2, DVec3};
@@ -167,25 +167,25 @@ fn faces_of(body: &Body) -> usize {
 
 /// What differs between `made` and `expected`, as sentences: nothing when
 /// they hold the same matter.
-fn how_the_bodies_differ(made: &Body, expected: &Body) -> Vec<String> {
+fn how_the_bodies_differ(made: &Body, expected: &Body, expected_is: &str) -> Vec<String> {
     let mut wrong = Vec::new();
     if (made.volume() - expected.volume()).abs() > EXACT * expected.volume() {
         wrong.push(format!(
-            "the part holds {} where the part laid that way holds {}",
+            "the part holds {} where {expected_is} holds {}",
             made.volume(),
             expected.volume(),
         ));
     }
     if faces_of(made) != faces_of(expected) {
         wrong.push(format!(
-            "{} faces where the part laid that way has {}",
+            "{} faces where {expected_is} has {}",
             faces_of(made),
             faces_of(expected),
         ));
     }
     if made.drawn_edges().len() != expected.drawn_edges().len() {
         wrong.push(format!(
-            "{} edges drawn where the part laid that way draws {}",
+            "{} edges drawn where {expected_is} draws {}",
             made.drawn_edges().len(),
             expected.drawn_edges().len(),
         ));
@@ -194,8 +194,8 @@ fn how_the_bodies_differ(made: &Body, expected: &Body) -> Vec<String> {
     let (low, high) = expected.bounds().expect("some matter");
     if !(made_low.abs_diff_eq(low, EXACT) && made_high.abs_diff_eq(high, EXACT)) {
         wrong.push(format!(
-            "it stands from {made_low:?} to {made_high:?}, where the part laid that way stands \
-             from {low:?} to {high:?}",
+            "it stands from {made_low:?} to {made_high:?}, where {expected_is} stands from {low:?} \
+             to {high:?}",
         ));
     }
     wrong
@@ -273,7 +273,11 @@ fn a_blend_step_changed_in_size_kind_or_edges_records_one_change_and_gives_the_b
                 part.declined_because(blend),
             ));
         }
-        wrong.extend(how_the_bodies_differ(part.body(), laid_that_way.body()));
+        wrong.extend(how_the_bodies_differ(
+            part.body(),
+            laid_that_way.body(),
+            "the part laid that way",
+        ));
         if !wrong.is_empty() {
             failures.push(format!("{what}:\n    {}", wrong.join("\n    ")));
         }
@@ -284,5 +288,135 @@ fn a_blend_step_changed_in_size_kind_or_edges_records_one_change_and_gives_the_b
         "a blend step changed after a boss was raised beside it is not laid again from its new \
          values in its own step:\n  {}",
         failures.join("\n  "),
+    );
+}
+
+/// The block with a disc of radius 5 raised 10 beside it, centred on
+/// (45, 5): the four top edges of the block chamfered at `SIZE` as one step,
+/// then a boss raised beside both. The part, the number of the chamfer's
+/// operation, and the rim of the disc's top, named on the body before the
+/// chamfer.
+fn a_block_chamfered_beside_a_disc() -> (PartDocument, u32, EdgeName) {
+    let mut part = a_block();
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    let disc = part.sketches().len() - 1;
+    part.apply(Operation::AddCircle {
+        sketch: disc,
+        center: PointRef::New(DVec2::new(45.0, 5.0)),
+        radius: 5.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    part.apply(Operation::Extrude {
+        sketch: disc,
+        areas: part.areas_at(disc, &[DVec2::new(45.0, 5.0)]),
+        distance: 10.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    let disc_top = face(part.body(), DVec3::Z, 10.0);
+    let rim = part
+        .body()
+        .edge_names()
+        .into_iter()
+        .find(|name| name.between.contains(&vec![disc_top]))
+        .expect("the rim of the disc's top");
+    let mut on_the_rim = part.clone();
+    assert!(
+        matches!(
+            on_the_rim.apply(Operation::Blend {
+                edges: vec![rim.clone()],
+                shape: BlendShape::Chamfer,
+                size: SIZE.into(),
+            }),
+            Some(Outcome::BlendDeclined(_))
+        ),
+        "the fixture means a chamfer of the disc's rim, laid as a step, declined by the kernel",
+    );
+    let outcome = part.apply(Operation::Blend {
+        edges: the_four_top_edges(part.body()),
+        shape: BlendShape::Chamfer,
+        size: SIZE.into(),
+    });
+    assert_eq!(outcome, None, "the chamfer of the block's top: built");
+    let chamfer = part
+        .history
+        .steps()
+        .last()
+        .expect("the chamfer")
+        .operations()[0];
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    let boss = part.sketches().len() - 1;
+    rectangle(
+        &mut part,
+        boss,
+        DVec2::new(60.0, 0.0),
+        DVec2::new(70.0, 10.0),
+    );
+    part.apply(Operation::Extrude {
+        sketch: boss,
+        areas: part.areas_at(boss, &[DVec2::new(65.0, 5.0)]),
+        distance: 5.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    (part, chamfer, rim)
+}
+
+#[test]
+fn a_change_of_blend_step_the_kernel_declines_records_nothing_and_says_why() {
+    let (mut part, chamfer, rim) = a_block_chamfered_beside_a_disc();
+    let held = part.history.clone();
+    let as_laid = part.raised_as(chamfer).cloned();
+    let before = part.body().clone();
+
+    let outcome = part.apply(Operation::EditMatter {
+        raised_by: chamfer,
+        to: Box::new(Operation::Blend {
+            edges: vec![rim],
+            shape: BlendShape::Chamfer,
+            size: SIZE.into(),
+        }),
+    });
+
+    let mut wrong = Vec::new();
+    if !matches!(outcome, Some(Outcome::BlendDeclined(_))) {
+        wrong.push(format!(
+            "the change comes back {outcome:?}, not the kernel's reason"
+        ));
+    }
+    if part.history != held {
+        wrong.push(format!(
+            "the history moved: {} changes are recorded",
+            changes_recorded(&part),
+        ));
+    }
+    if part.raised_as(chamfer).cloned() != as_laid {
+        wrong.push(format!(
+            "the step reads {:?}, not its values as laid",
+            part.raised_as(chamfer),
+        ));
+    }
+    if part.declined_because(chamfer).is_some() {
+        wrong.push(format!(
+            "the step stands declined: {:?}",
+            part.declined_because(chamfer),
+        ));
+    }
+    wrong.extend(how_the_bodies_differ(
+        part.body(),
+        &before,
+        "the part before the change",
+    ));
+
+    assert!(
+        wrong.is_empty(),
+        "the chamfer of a block's top, changed to the rim of a disc beside it, which the kernel \
+         declines, was taken:\n  {}",
+        wrong.join("\n  "),
     );
 }

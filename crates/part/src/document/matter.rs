@@ -5,8 +5,31 @@ use cao_solid::{Declined, Unstable};
 
 use super::PartDocument;
 use crate::history::Operation;
+use crate::outcome::Outcome;
 
 impl PartDocument {
+    /// Records a change of a step of matter and builds the part again from
+    /// that step. A blend step the kernel declines laid that way records
+    /// nothing, and the part stands as it did.
+    pub(super) fn change_matter(&mut self, change: Operation) -> Option<Outcome> {
+        let Operation::EditMatter { raised_by, to } = &change else {
+            return None;
+        };
+        let raised_by = *raised_by;
+        let before = matches!(**to, Operation::Blend { .. })
+            .then(|| (self.history.clone(), self.state.clone()));
+        self.history.push(change);
+        self.rebuild();
+        match (self.declined_because(raised_by), before) {
+            (Some(reason), Some((history, state))) => {
+                self.history = history;
+                self.state = state;
+                Some(Outcome::BlendDeclined(reason))
+            }
+            _ => None,
+        }
+    }
+
     /// The faces of the part a step of matter made, by the number of its
     /// operation — nothing for any other step, and nothing when a geometry
     /// cached before the faces were noted leaves them unknown: better none
