@@ -11,6 +11,20 @@
 //!   buttons — against the reader's card and the history's header, lines and
 //!   link, at every length the fixture passes through from none to ten, folded
 //!   and unfolded
+//! - found in review: the tree keeps three rows in view above the longest
+//!   history, the history's list scrolling rather than take them —
+//!   `at_the_frames_height_the_tree_keeps_three_rows_in_view_above_a_long_history`
+//! - found in review: wherever the reader's card, the history's header, two
+//!   lines and the link fit in the panel — a window of 520 points and up —
+//!   the history's list keeps two lines in view, the tree giving way first,
+//!   and a click on one goes back to it —
+//!   `on_a_short_window_the_history_keeps_two_lines_in_view_and_a_click_on_one_goes_back_to_it`;
+//!   below that the list takes what is left and nothing of the history runs
+//!   off the window's bottom —
+//!   `on_a_window_too_short_for_two_lines_nothing_of_the_history_runs_off_its_bottom`
+//! - found on the rendered frames: at rest, no row of the tree and no line of
+//!   the history shows in part, at 713 and at 600 points high —
+//!   `at_rest_no_row_of_the_tree_nor_line_of_the_history_shows_in_part`
 //!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
@@ -33,6 +47,21 @@ use egui_kittest::kittest::{NodeT, Queryable};
 use glam::DVec2;
 
 const THE_FRAMES_WINDOW: egui::Vec2 = egui::vec2(1280.0, 713.0);
+
+/// The shortest window whose Part panel holds the reader's card, the
+/// history's header, two of its lines and its link, measured on the branch:
+/// at 450 the panel is 206 points high where they need about 250.
+const A_SHORT_WINDOW: egui::Vec2 = egui::vec2(1280.0, 520.0);
+
+/// A window too short for the card, the header, two lines and the link.
+const A_WINDOW_TOO_SHORT_FOR_TWO_LINES: egui::Vec2 = egui::vec2(1280.0, 450.0);
+
+/// A row of the tree, 28 points high: C10, which `the_part_panel.rs` holds.
+const ROW: f32 = 28.0;
+
+/// How tall the tree's list stays above the longest history, at the frames'
+/// height: three rows, short of half a row for the margins between them.
+const THE_TREE_KEEPS_IN_VIEW: f32 = 3.0 * ROW - ROW / 2.0;
 
 /// How far two rects may run into each other and still be taken as side by
 /// side: a hair of anti-aliasing, not a row.
@@ -159,8 +188,14 @@ fn the_bottom(app: &driver::App) -> Vec<(String, egui::Rect)> {
         .query_all_by_role(Role::Button)
         .filter_map(|node| Some((node.accesskit_node().label()?, node.rect())))
         .filter(|(label, rect)| is_the_history_s(label) && in_the_part_panel(app, *rect));
-    the_card(app)
-        .map(|card| ("the reader's card".to_string(), card))
+    let history: Vec<(String, egui::Rect)> = history.collect();
+    let card = the_card(app);
+    assert!(
+        card.is_some() || history.is_empty(),
+        "the history has lines and no reader's card was found filled around ◀: {:?}",
+        driver::on_screen(app),
+    );
+    card.map(|card| ("the reader's card".to_string(), card))
         .into_iter()
         .chain(history)
         .collect()
@@ -451,5 +486,249 @@ fn no_widget_of_the_tree_is_drawn_under_the_reader_or_the_history_however_long_i
         "on a {THE_FRAMES_WINDOW:?} window, widgets of the tree drawn where the bottom of \
          the Part panel is:\n  {}",
         overlaps.join("\n  "),
+    );
+}
+
+fn spanning(one: egui::Rangef, other: egui::Rangef) -> egui::Rangef {
+    egui::Rangef::new(one.min.min(other.min), one.max.max(other.max))
+}
+
+fn inside(rect: egui::Rect, span: egui::Rangef) -> bool {
+    span.min <= rect.top() + TOLERANCE && rect.bottom() - TOLERANCE <= span.max
+}
+
+fn outside(rect: egui::Rect, span: egui::Rangef) -> bool {
+    rect.bottom() <= span.min + TOLERANCE || span.max - TOLERANCE <= rect.top()
+}
+
+/// The buttons of the tree, whole, whether its list shows them or not.
+fn the_tree_s_buttons(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    the_tree_s_widgets(app, None)
+        .into_iter()
+        .filter(|(widget, _)| !THE_TREE_S_HEADINGS.contains(&widget.as_str()))
+        .collect()
+}
+
+/// The span the tree's list shows, its whole extent when it does not scroll.
+fn the_tree_s_height(app: &driver::App) -> f32 {
+    let bottom = the_bottom(app);
+    match the_tree_s_window(app, &bottom) {
+        Some(window) => window.span(),
+        None => the_tree_s_buttons(app)
+            .into_iter()
+            .map(|(_, rect)| rect.y_range())
+            .reduce(spanning)
+            .map_or(0.0, |extent| extent.span()),
+    }
+}
+
+/// The lines of the history unfolded, whole, whether its list shows them or
+/// not.
+fn the_history_s_lines(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    app.query_all_by_role(Role::Button)
+        .filter_map(|node| Some((node.accesskit_node().label()?, node.rect())))
+        .filter(|(label, rect)| {
+            is_the_history_s(label)
+                && label != "Historique"
+                && !label.starts_with("Compacter")
+                && in_the_part_panel(app, *rect)
+        })
+        .collect()
+}
+
+/// What the history's list shows, top to bottom: the span of the vertical
+/// scroll bar that runs most along its lines. `None` when no bar runs along
+/// them: ten lines never fit whole on the windows these tests open, so the
+/// list then shows none of them.
+fn the_history_s_bar(app: &driver::App, lines: &[(String, egui::Rect)]) -> Option<egui::Rangef> {
+    let extent = lines
+        .iter()
+        .map(|(_, rect)| rect.y_range())
+        .reduce(spanning)
+        .expect("the history unfolded lists its lines");
+    let along = |bar: &egui::Rect| extent.intersection(bar.y_range()).span().max(0.0);
+    app.query_all_by_role(Role::ScrollBar)
+        .map(|node| node.rect())
+        .filter(|bar| bar.height() > bar.width() && in_the_part_panel(app, *bar))
+        .max_by(|one, other| along(one).total_cmp(&along(other)))
+        .filter(|bar| along(bar) > 0.0)
+        .map(|bar| bar.y_range())
+}
+
+/// `the_history_s_bar`, where the list has to be showing some of its lines.
+fn the_history_s_window(app: &driver::App, lines: &[(String, egui::Rect)]) -> egui::Rangef {
+    the_history_s_bar(app, lines).unwrap_or_else(|| {
+        panic!(
+            "{} lines of history on a {:?} window and no scroll bar beside them: the list \
+                 cannot be showing them all, lines at {lines:?}",
+            lines.len(),
+            app.ctx.content_rect().size(),
+        )
+    })
+}
+
+/// The lines of the history its list shows whole, inside the window.
+fn history_lines_in_view(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    let lines = the_history_s_lines(app);
+    let list = the_history_s_window(app, &lines);
+    let window = app.ctx.content_rect();
+    lines
+        .into_iter()
+        .filter(|(_, rect)| inside(*rect, list) && window.contains_rect(*rect))
+        .collect()
+}
+
+/// A block with a hole and sketches after it, ten lines of history unfolded,
+/// on a window of this size, nothing scrolled.
+fn ten_lines_unfolded_on(test: &str, size: egui::Vec2) -> driver::App {
+    let mut app = a_block_with_a_hole(test);
+    while history_length(&mut app) < 10 {
+        add_a_sketch(&mut app);
+    }
+    assert_eq!(
+        history_length(&mut app),
+        10,
+        "the fixture wants ten lines of history"
+    );
+    unfold_or_fold_the_history(&mut app, true);
+    app.set_size(size);
+    app.run();
+    app
+}
+
+#[test]
+fn at_the_frames_height_the_tree_keeps_three_rows_in_view_above_a_long_history() {
+    let app = ten_lines_unfolded_on("the_tree_keeps_three_rows_in_view", THE_FRAMES_WINDOW);
+
+    let height = the_tree_s_height(&app);
+
+    assert!(
+        height >= THE_TREE_KEEPS_IN_VIEW,
+        "on a {THE_FRAMES_WINDOW:?} window, ten lines of history unfolded, the tree's list \
+         shows {height} points, short of {THE_TREE_KEEPS_IN_VIEW}: the bottom of the panel \
+         took its room",
+    );
+}
+
+#[test]
+fn on_a_short_window_the_history_keeps_two_lines_in_view_and_a_click_on_one_goes_back_to_it() {
+    let mut app = ten_lines_unfolded_on(
+        "on_a_short_window_the_history_keeps_two_lines",
+        A_SHORT_WINDOW,
+    );
+    assert!(
+        !driver::is_enabled(&app, "Rétablir"),
+        "the fixture wants nothing undone before the click",
+    );
+
+    let seen = history_lines_in_view(&app);
+    assert!(
+        seen.len() >= 2,
+        "on a {A_SHORT_WINDOW:?} window, ten lines of history unfolded, the list shows {} \
+         of them whole: {seen:?}",
+        seen.len(),
+    );
+    let line = seen
+        .iter()
+        .map(|(label, _)| label.clone())
+        .find(|label| !label.starts_with("10. "))
+        .expect("a line other than the last one in view");
+    app.get_by_label(&line).click();
+    app.run();
+
+    assert!(
+        driver::is_enabled(&app, "Rétablir"),
+        "a click on « {line} », seen in the list, did not take the part back to it: {:?}",
+        driver::on_screen(&app),
+    );
+}
+
+/// Each row of the tree and each line of the history that its list shows
+/// only in part.
+fn cut_short(app: &driver::App) -> Vec<String> {
+    let bottom = the_bottom(app);
+    let mut cut = Vec::new();
+    if let Some(tree) = the_tree_s_window(app, &bottom) {
+        for (row, rect) in the_tree_s_buttons(app) {
+            if !inside(rect, tree) && !outside(rect, tree) {
+                cut.push(format!(
+                    "the tree's « {row} » at {rect:?}, its list showing {tree:?}"
+                ));
+            }
+        }
+    }
+    let lines = the_history_s_lines(app);
+    let list = the_history_s_window(app, &lines);
+    for (line, rect) in lines {
+        if !inside(rect, list) && !outside(rect, list) {
+            cut.push(format!(
+                "the history's « {line} » at {rect:?}, its list showing {list:?}"
+            ));
+        }
+    }
+    cut
+}
+
+#[test]
+fn at_rest_no_row_of_the_tree_nor_line_of_the_history_shows_in_part() {
+    let mut cut = Vec::new();
+    for (test, size) in [
+        (
+            "at_rest_no_row_shows_in_part_at_the_frames_height",
+            THE_FRAMES_WINDOW,
+        ),
+        (
+            "at_rest_no_row_shows_in_part_at_600",
+            egui::vec2(1280.0, 600.0),
+        ),
+    ] {
+        let app = ten_lines_unfolded_on(test, size);
+        cut.extend(
+            cut_short(&app)
+                .into_iter()
+                .map(|which| format!("{size:?}: {which}")),
+        );
+    }
+
+    assert!(
+        cut.is_empty(),
+        "ten lines of history unfolded, nothing scrolled, shown in part:\n  {}",
+        cut.join("\n  "),
+    );
+}
+
+#[test]
+fn on_a_window_too_short_for_two_lines_nothing_of_the_history_runs_off_its_bottom() {
+    let app = ten_lines_unfolded_on(
+        "on_a_window_too_short_for_two_lines_nothing_runs_off",
+        A_WINDOW_TOO_SHORT_FOR_TWO_LINES,
+    );
+    let window = app.ctx.content_rect();
+    let lines = the_history_s_lines(&app);
+    let drawn = the_history_s_bar(&app, &lines).map_or_else(Vec::new, |list| {
+        lines
+            .into_iter()
+            .filter(|(_, rect)| !outside(*rect, list))
+            .collect()
+    });
+    let link = driver::where_it_reads(&app, "Compacter l'historique…").unwrap_or_else(|| {
+        panic!(
+            "no « Compacter l'historique… » under the unfolded history: {:?}",
+            driver::on_screen(&app),
+        )
+    });
+
+    let off: Vec<String> = drawn
+        .into_iter()
+        .chain([("Compacter l'historique…".to_string(), link)])
+        .filter(|(_, rect)| rect.bottom() > window.bottom() + TOLERANCE)
+        .map(|(what, rect)| format!("« {what} » at {rect:?}"))
+        .collect();
+    assert!(
+        off.is_empty(),
+        "on a {A_WINDOW_TOO_SHORT_FOR_TWO_LINES:?} window, ten lines of history unfolded, \
+         run off the window's bottom at {}:\n  {}",
+        window.bottom(),
+        off.join("\n  "),
     );
 }
