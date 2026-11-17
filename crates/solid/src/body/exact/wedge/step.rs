@@ -78,7 +78,7 @@ impl Exact {
         for (wedge, reach) in wedges.iter_mut().zip(reaches) {
             wedge.reach = reach;
         }
-        let facing = pairs::facing(&wedges);
+        let facing = pairs::facing(&self.brep, &edges, &wedges);
         Ok(Step {
             edges,
             wedges,
@@ -145,8 +145,8 @@ impl Exact {
     /// shares a corner with, and the upright at a point's tip, whose round
     /// the pair's meets on an ellipse until a point edge laid after both cuts
     /// between them. With the body, `taken`, or the nearer a slope stands to
-    /// its edges where it runs through a riser's top edge, as
-    /// [`Exact::sloped`] reads it. Declined as [`Exact::cut_off`] says.
+    /// its edges, as [`Exact::sloped`] reads it. Declined as
+    /// [`Exact::cut_off`] says.
     pub(super) fn in_turn(
         &self,
         names: &[EdgeName],

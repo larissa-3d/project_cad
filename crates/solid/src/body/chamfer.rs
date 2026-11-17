@@ -44,15 +44,17 @@ impl Body {
     /// whichever is named first. A chain of such edges — a flight's noses and
     /// feet, each tread as deep as each riser is high — is one slope across
     /// it, the treads and risers gone, answering to every edge's number,
-    /// whatever their order; a chain holding a crease is declined
-    /// `Unsupported` before anything is laid (#926), and so is one whose
-    /// flats stand a hair off one plane (#929). Such a slope or crease is
-    /// laid at the distance whose set-backs meet across that face, which may
-    /// stand a hair above the distance taken: its own distance is read off
+    /// whatever their order, and so is one whose riser strays from the
+    /// flight's one plane by a hair (#929); a chain holding a crease is
+    /// declined `Unsupported` before anything is laid (#926). Such a slope or
+    /// crease is laid at the distance whose set-backs meet across that face,
+    /// which may stand a hair above the distance taken: its own distance is read off
     /// its faces, never from [`Chamfered::taken`]. Where the slope takes the
-    /// riser whole, it runs through the riser's top edge (#928), and the
-    /// distance taken is the nearest it stands to either edge, down the
-    /// nose's front at one end where the riser is turned by a hair. Two edges
+    /// riser whole, it runs through the riser's top edge (#928). The distance
+    /// taken is the nearest a slope stands to any of its edges, along either
+    /// face at either end: down the nose's front, or along the tread, at one
+    /// end of a ramp whose riser is turned by a hair or of a flight whose
+    /// riser strays from its one plane (#929). Two edges
     /// meeting at a convex corner are mitred there, the corner's third edge
     /// left sharp, and three are
     /// closed there by a triangle, cut off at a convex corner and filled in at
