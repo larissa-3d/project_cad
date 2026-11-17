@@ -140,11 +140,15 @@ impl Exact {
     /// the faces numbered from where the steps' numbers ended by the edges'
     /// ranks, the closings' past them in the order of the step's corners.
     /// Each edge meets in a mitre the faces
-    /// laid before it on edges it shares a corner with, and a pair those of
-    /// the edges [`pairs::at_their_ends`] lays against it: every edge it
-    /// shares a corner with, and the upright at a point's tip, whose round
-    /// the pair's meets on an ellipse until a point edge laid after both cuts
-    /// between them. With the body, `taken`, or the nearer a slope stands to
+    /// laid before it on edges it shares a corner with, and on edges sharing
+    /// one with an edge laid after it that it shares a corner with — the
+    /// cut of such an edge, carried past that later edge's other end, may
+    /// reach its own until the later one cuts between them: a point's far
+    /// edge and the upright at a blunt point's shoulder (#911) — and a pair
+    /// those of the edges [`pairs::at_their_ends`] lays against it: every
+    /// edge it shares a corner with, and the upright at a point's tip, whose
+    /// round the pair's meets on an ellipse until a point edge laid after
+    /// both cuts between them. With the body, `taken`, or the nearer a slope stands to
     /// its edges where it runs through a riser's top edge, as
     /// [`Exact::sloped`] reads it. Declined as [`Exact::cut_off`] says.
     pub(super) fn in_turn(
@@ -186,6 +190,7 @@ impl Exact {
         let closes = closing::closings(closed, &wedges, laid_at, set_back, meeting.closing)?;
         let given: Vec<(EdgeId, &Wedge)> = edges.iter().copied().zip(&wedges).collect();
         let crossing = set_backs::crossing_on(&self.brep, &edges, &wedges, set_back);
+        let meet = |one: usize, other: usize| corners::meet(&self.brep, [edges[one], edges[other]]);
         let start = self.next;
         let mut reported = taken;
         let mut cut = self.cleared(&closes, meeting.closing.apex.clear)?;
@@ -200,7 +205,11 @@ impl Exact {
                 .filter(|before| !joined.contains(before))
                 .filter(|&before| match partner {
                     Some(_) => ends.contains_key(&before),
-                    None => corners::meet(&self.brep, [edges[before], edges[rank]]),
+                    None => {
+                        meet(before, rank)
+                            || (rank + 1..edges.len())
+                                .any(|later| meet(before, later) && meet(later, rank))
+                    }
                 })
                 .map(|before| start + before as u32)
                 .collect();
