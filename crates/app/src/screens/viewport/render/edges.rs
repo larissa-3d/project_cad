@@ -19,11 +19,13 @@ pub(super) fn push_lit_edges(
 ) {
     let camera = &state.camera;
     let eye = camera.eye();
-    let pixel_per_unit_of_sight = camera.world_units_per_pixel(height_px) / camera.distance();
+    let units_per_pixel_per_unit_of_sight =
+        camera.world_units_per_pixel(height_px) / camera.distance();
     let pulled = |point: Vec3| {
         let sight = point - eye;
         point
-            - sight.normalize_or_zero() * (PULLED_PIXELS * pixel_per_unit_of_sight * sight.length())
+            - sight.normalize_or_zero()
+                * (PULLED_PIXELS * units_per_pixel_per_unit_of_sight * sight.length())
     };
     let [r, g, b, a] = tokens::ACCENT_AMBER.to_normalized_gamma_f32();
     let colour = srgb(r, g, b, a);
