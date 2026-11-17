@@ -993,6 +993,49 @@
 //!   Set aside, unchanged: the crease meeting the front's upright at the
 //!   nose's end, which reduces the value before a crease forms —
 //!   `a_chamfer_on_the_nose_and_foot_of_a_tread_whose_front_leans_and_the_front_s_upright_edge_at_one_end_of_the_nose_is_reduced_short_of_the_crease_and_lays_the_body_main_lays_in_every_order`
+//! - Decided on the way, after the review (2026-11-17): the leaning flight
+//!   whose riser is turned by a hair lays one crease within a hair, the
+//!   tread and the riser gone, or is declined in every order — never a
+//!   sliver of tread left between two crease edges, nor three flats apart —
+//!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_leaning_flight_whose_riser_is_turned_by_a_hair_lays_one_crease_within_a_hair_the_tread_gone_or_is_declined_in_every_order`.
+//!   Read as: the [`leaning_flight_turned_by`] 1e-7 and −1e-7 about its
+//!   middle and about its left end, and, first, upright and drawn the same
+//!   way, as a control; asked 4 and 6 in each of the six orders, either all
+//!   twelve declined `Unsupported`, or each built: the value asked reported
+//!   and taken within the stray of 4 — [`MEETING_HAIR`] and 30 times the
+//!   turn; the tread and the riser gone and every other face kept; the first
+//!   nose's flat answering to its own number alone and meeting the leaning
+//!   front, the slope by one crease and the flight's two ends by one edge
+//!   each; the slope one face answering to the foot's and the second nose's
+//!   numbers, meeting the top, the first nose's flat and the two ends by one
+//!   edge each; every corner of both within the stray of the leaning
+//!   flight's, and the same in every order to the place's tolerance; the
+//!   body exact, closed, uncrossed, holding the matter its section gives
+//!   through those corners along the flight, its triangles enclosing that,
+//!   and that the leaning flight's 30·(270 − 80/√104) within 30 by 20 times
+//!   twice the stray. A probe of the branch declined the riser turned about
+//!   its middle in every order; turned by 1e-7 about its left end it left a
+//!   sliver of tread between two crease edges, and by −1e-7 three flats
+//!   apart, a strip of the tread and of the riser kept
+//! - Decided on the way, after the review (2026-11-17): a flight whose front
+//!   and riser lean back alike, its tread 8 deep and its riser 8 up its
+//!   slant, is one slope across it in every order. The review read its
+//!   three flats as two facings meeting in two creases; the arithmetic puts
+//!   all three on one line of the section, from 4 down the front to 4 back
+//!   on the top — the foot's flat parallel to the noses', since the riser is
+//!   parallel to the front, and sharing their set-backs on the tread and the
+//!   riser — so it is #813's slope, sheared —
+//!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_sheared_flight_whose_front_and_riser_lean_alike_takes_half_in_one_slope_across_it_in_every_order`.
+//!   Read as: the three set-backs on one line, checked first; in each of the
+//!   six orders, asked 4 and 6, the value asked reported and 4 taken; the
+//!   tread and the riser gone and every other face kept; one flat face
+//!   answering to the three numbers, no edge between any two, meeting the
+//!   leaning front, the top and the two ends by one edge each, its corners
+//!   4 down the front and 4 back on the top at either end; the body exact,
+//!   closed, uncrossed, holding the section's matter less each nose's
+//!   triangle and more the foot's, three triangles of 80/√104, 7633.438875,
+//!   and its triangles enclosing that. The branch laid it so before the
+//!   review: the test pins it
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
@@ -9744,6 +9787,411 @@ fn a_chamfer_on_a_leaning_flight_s_first_nose_the_foot_between_and_the_second_no
                 promised,
                 EXACT * promised,
                 &format!("{what}: what the noses give up taken off, what the foot takes in added"),
+            );
+        }
+    }
+}
+
+/// The numbers the faces of the [`leaning_flight_turned_by`] answer to: the
+/// leaning lower part raised along X first, its start nought, its end one,
+/// its floor two, its back three, gone inside the taller block, its tread
+/// four and its leaning front five; then the taller block raised along Z,
+/// its floor six, its top seven, its riser eight, its right nine and its
+/// left eleven, its ends merged with the lower part's.
+const TURNED_LEANING_TREAD: usize = 4;
+const TURNED_LEANING_FRONT: usize = 5;
+const TURNED_LEANING_TOP: usize = 7;
+const TURNED_LEANING_RISER: usize = 8;
+const TURNED_LEANING_ENDS: [[u32; 2]; 2] = [[0, 11], [1, 9]];
+
+/// The [`LEANING_FLIGHT`] with its riser turned by `turn` about the upright
+/// through x = `about`: its leaning front and tread a prism raised along X
+/// and reaching in under the taller block, and that block raised along Z
+/// from its turned front back to y = 20.
+fn leaning_flight_turned_by(turn: f64, about: f64) -> Body {
+    let part = Body::default();
+    let lower = part
+        .union(&raised_along_x(
+            &part,
+            vec![
+                DVec2::ZERO,
+                DVec2::new(1.5 * TREAD, 0.0),
+                DVec2::new(1.5 * TREAD, TREAD_HEIGHT),
+                LEANING_FLIGHT[5],
+            ],
+            [0.0, LENGTH],
+        ))
+        .expect("the lower part is built");
+    let at = |x: f64| TREAD + turn * (x - about);
+    raised_with(
+        &lower,
+        Contour::straight(vec![
+            DVec2::new(0.0, at(0.0)),
+            DVec2::new(LENGTH, at(LENGTH)),
+            DVec2::new(LENGTH, 2.0 * TREAD),
+            DVec2::new(0.0, 2.0 * TREAD),
+        ]),
+        LEANING_FLIGHT[3].y,
+    )
+}
+
+/// Holds that every corner of the face numbered `face` stands within
+/// `within` of one of `expected`, and each of `expected` within `within` of
+/// one of its corners.
+fn corners_near(body: &Body, face: usize, expected: &[DVec3], within: f64, what: &str) {
+    let corners = corners_of(body, face, what);
+    for corner in &corners {
+        assert!(
+            expected
+                .iter()
+                .any(|point| point.distance(*corner) <= within),
+            "{what}: a corner at {corner}, where the corners are {expected:?}, to {within}"
+        );
+    }
+    for point in expected {
+        assert!(
+            corners
+                .iter()
+                .any(|corner| corner.distance(*point) <= within),
+            "{what}: no corner within {within} of {point}, among {corners:?}"
+        );
+    }
+}
+
+/// The matter of a leaning flight under the first nose's flat, numbered
+/// `nose_flat`, and the slope answering to `slope`, read off their corners:
+/// at each end and halfway along, the section from the floor's front up the
+/// leaning front to the first nose's flat, along it to the crease, up the
+/// slope to the top and back to the flight's back, summed by Simpson's rule,
+/// exact for what is a square in x.
+fn leaning_matter_under(body: &Body, nose_flat: usize, slope: usize, what: &str) -> f64 {
+    let nose = corners_of(body, nose_flat, what);
+    let rising = corners_of(body, slope, what);
+    let section_at = |x: f64| {
+        let at = |corners: &[DVec3], is: &dyn Fn(DVec3) -> bool| {
+            *corners
+                .iter()
+                .find(|corner| (corner.x - x).abs() < PLACE && is(**corner))
+                .unwrap_or_else(|| panic!("{what}: a corner at x = {x} among {corners:?}"))
+        };
+        let crease = at(&nose, &|corner| {
+            rising.iter().any(|c| c.distance(corner) < PLACE)
+        });
+        let front = at(&nose, &|corner| corner.distance(crease) >= PLACE);
+        let top = at(&rising, &|corner| corner.distance(crease) >= PLACE);
+        [front, crease, top].map(|corner| DVec2::new(corner.y, corner.z))
+    };
+    let [left, right] = [section_at(0.0), section_at(LENGTH)];
+    let area = |share: f64| {
+        let [front, crease, top] = [0, 1, 2].map(|rank| left[rank].lerp(right[rank], share));
+        area_of(&[
+            LEANING_FLIGHT[0],
+            LEANING_FLIGHT[1],
+            LEANING_FLIGHT[2],
+            top,
+            crease,
+            front,
+        ])
+    };
+    LENGTH / 6.0 * (area(0.0) + 4.0 * area(0.5) + area(1.0))
+}
+
+#[test]
+fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_leaning_flight_whose_riser_is_turned_by_a_hair_lays_one_crease_within_a_hair_the_tread_gone_or_is_declined_in_every_order()
+ {
+    let limit = LEANING_TREAD / 2.0;
+    let [nose_on_tread, on_front, _, _] = leaning_set_backs(limit);
+    let [_, on_top] = second_nose_set_backs(limit);
+    let exact = leaning_flight_matter(limit);
+    let ends = TURNED_LEANING_ENDS.map(|end| end.to_vec());
+
+    for (turn, about, which) in [
+        (0.0, 0.0, "its riser upright, drawn so"),
+        (
+            RISER_TURN,
+            LENGTH / 2.0,
+            "its riser turned by 1e-7 about its middle",
+        ),
+        (
+            -RISER_TURN,
+            LENGTH / 2.0,
+            "its riser turned by −1e-7 about its middle",
+        ),
+        (
+            RISER_TURN,
+            0.0,
+            "its riser turned by 1e-7 about its left end",
+        ),
+        (
+            -RISER_TURN,
+            0.0,
+            "its riser turned by −1e-7 about its left end",
+        ),
+    ] {
+        let flight = leaning_flight_turned_by(turn, about);
+        let stray = MEETING_HAIR + LENGTH * turn.abs();
+        let start = flight.faces_end();
+        let edges = [
+            edge_between(&flight, TURNED_LEANING_TREAD, TURNED_LEANING_FRONT),
+            edge_between(&flight, TURNED_LEANING_RISER, TURNED_LEANING_TREAD),
+            edge_between(&flight, TURNED_LEANING_TOP, TURNED_LEANING_RISER),
+        ];
+        let mut outcomes = Vec::new();
+        for asked in [limit, 6.0] {
+            for order in every_order(&[0, 1, 2]) {
+                let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+                outcomes.push((asked, order, flight.chamfer_edges(&names, asked)));
+            }
+        }
+        if outcomes.iter().all(|(_, _, outcome)| outcome.is_err()) {
+            for (asked, order, outcome) in &outcomes {
+                assert_eq!(
+                    outcome.as_ref().err(),
+                    Some(&Declined::Unsupported),
+                    "the leaning flight {which}, named in the order {order:?}, asked {asked}: \
+                     declined Unsupported, as in every other order"
+                );
+            }
+            continue;
+        }
+
+        let mut first: Option<[Vec<DVec3>; 2]> = None;
+        for (asked, order, outcome) in &outcomes {
+            let what = format!(
+                "the chamfer on the first nose, foot and second nose of the leaning flight \
+                 {which}, named in the order {order:?}, asked {asked}"
+            );
+            let chamfered = outcome.as_ref().unwrap_or_else(|declined| {
+                panic!("{what}: declined, {declined:?}, where another order builds")
+            });
+            let number_of = |edge: usize| {
+                start
+                    + order
+                        .iter()
+                        .position(|&named| named == edge)
+                        .expect("each edge is named")
+            };
+
+            assert!(
+                (chamfered.asked - asked).abs() < PLACE && (chamfered.taken - limit).abs() <= stray,
+                "{what}: asked {} and took {}, where the flats meet within {stray} of {limit}",
+                chamfered.asked,
+                chamfered.taken
+            );
+            let body = &chamfered.body;
+            let nose_flat = number_of(0);
+            let mut slope = [number_of(1), number_of(2)];
+            slope.sort_unstable();
+            let mut kept_and_laid = numbers(&flight);
+            for gone in [TURNED_LEANING_TREAD, TURNED_LEANING_RISER] {
+                assert!(
+                    !body.has_face(gone),
+                    "{what}: face {gone} is gone, no sliver of it left"
+                );
+                kept_and_laid.remove(&gone);
+            }
+            kept_and_laid.extend(start..start + 3);
+            assert_eq!(
+                numbers(body),
+                kept_and_laid,
+                "{what}: every face of the flight but its tread and its riser, the first nose's \
+                 flat and the slope"
+            );
+            let slope_sides: Vec<u32> = slope.iter().map(|&number| number as u32).collect();
+            assert_eq!(
+                sides_met(body, nose_flat),
+                sides_by(
+                    &[
+                        &ends[..],
+                        &[vec![TURNED_LEANING_FRONT as u32], slope_sides.clone()],
+                    ]
+                    .concat()
+                ),
+                "{what}: the first nose's flat, answering to its own number alone, meets the \
+                 leaning front, the slope by one crease and the flight's two ends, by one edge \
+                 each"
+            );
+            one_flat_face_answers_to(body, &slope, &what);
+            assert!(
+                body.edge_names()
+                    .iter()
+                    .all(|name| !lies_between(name, slope[0], slope[1])),
+                "{what}: no edge stands between {} and {}: they are one face",
+                slope[0],
+                slope[1]
+            );
+            assert_eq!(
+                sides_met_by(body, &slope),
+                sides_by(
+                    &[
+                        &ends[..],
+                        &[vec![TURNED_LEANING_TOP as u32], vec![nose_flat as u32]],
+                    ]
+                    .concat()
+                ),
+                "{what}: the slope meets the top, the first nose's flat by one crease and the \
+                 flight's two ends, by one edge each"
+            );
+            corners_near(
+                body,
+                nose_flat,
+                &strip(on_section(nose_on_tread, 0.0), on_section(on_front, 0.0)),
+                stray,
+                &format!("{what}: the first nose's flat"),
+            );
+            corners_near(
+                body,
+                slope[0],
+                &strip(on_section(nose_on_tread, 0.0), on_section(on_top, 0.0)),
+                stray,
+                &format!("{what}: the slope"),
+            );
+            let corners = [
+                corners_of(body, nose_flat, &what),
+                corners_of(body, slope[0], &what),
+            ];
+            match &first {
+                None => first = Some(corners),
+                Some(seen) => {
+                    for (face, (again, before)) in corners.iter().zip(seen).enumerate() {
+                        corners_near(body, [nose_flat, slope[0]][face], before, PLACE, &what);
+                        assert_eq!(
+                            again.len(),
+                            before.len(),
+                            "{what}: the corners of the first order"
+                        );
+                    }
+                }
+            }
+            let promised = leaning_matter_under(body, nose_flat, slope[0], &what);
+            let within = 2.0 * LENGTH * 2.0 * TREAD * stray;
+            assert!(
+                (promised - exact).abs() <= within,
+                "{what}: under its two flats the flight holds {promised}, where the leaning \
+                 flight's holds {exact}, to {within}"
+            );
+            sound_drawn_within(
+                body,
+                promised,
+                EXACT * promised,
+                &format!("{what}: the matter under the two flats' own corners"),
+            );
+        }
+    }
+}
+
+/// The section of a flight whose front and riser lean back alike, drawn on
+/// the plane of Y and Z and raised along X: the [`LEANING_FLIGHT`]'s floor,
+/// leaning front and tread 8 deep, its riser leaning as the front does, 8
+/// long up its slant, and the top back from there to y = 20. Its faces
+/// answer to the numbers the [`LEANING_STAIR`]'s do.
+fn sheared_flight_section() -> Vec<DVec2> {
+    let lean = (LEANING_FLIGHT[5] - LEANING_FLIGHT[0]).normalize();
+    let foot = LEANING_FLIGHT[4];
+    let top = foot + lean * LEANING_TREAD;
+    vec![
+        DVec2::ZERO,
+        DVec2::new(2.0 * TREAD, 0.0),
+        DVec2::new(2.0 * TREAD, top.y),
+        top,
+        foot,
+        LEANING_FLIGHT[5],
+    ]
+}
+
+#[test]
+fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_sheared_flight_whose_front_and_riser_lean_alike_takes_half_in_one_slope_across_it_in_every_order()
+ {
+    let section = sheared_flight_section();
+    let part = Body::default();
+    let flight = part
+        .union(&raised_along_x(&part, section.clone(), [0.0, LENGTH]))
+        .expect("the flight is built");
+    let limit = LEANING_TREAD / 2.0;
+    let [first_nose, foot, second_nose] = [section[5], section[4], section[3]];
+    let lean = (section[5] - section[0]).normalize();
+    let on_front = first_nose - lean * limit;
+    let on_tread = first_nose + DVec2::X * limit;
+    let on_riser = foot + lean * limit;
+    let on_top = second_nose + DVec2::X * limit;
+    assert!(
+        on_tread.distance(foot - DVec2::X * limit) < PLACE
+            && on_riser.distance(second_nose - lean * limit) < PLACE
+            && (on_tread - on_front).perp_dot(on_top - on_front).abs() < PLACE,
+        "at {limit} the set-backs meet on the tread and on the riser, and the three flats lie \
+         on one line of the section, from {on_front} to {on_top}"
+    );
+    let triangle = |corner: DVec2, one: DVec2, other: DVec2| {
+        (one - corner).perp_dot(other - corner).abs() / 2.0
+    };
+    let promised = LENGTH
+        * (area_of(&section) - triangle(first_nose, on_tread, on_front)
+            + triangle(foot, on_tread, on_riser)
+            - triangle(second_nose, on_riser, on_top));
+    let start = flight.faces_end();
+    let laid = [start, start + 1, start + 2];
+    let edges = [
+        edge_between(&flight, LEANING_TREAD_TOP, LEANING_FRONT),
+        edge_between(&flight, LEANING_RISER, LEANING_TREAD_TOP),
+        edge_between(&flight, LEANING_TOP, LEANING_RISER),
+    ];
+
+    for asked in [limit, 6.0] {
+        for order in every_order(&[0, 1, 2]) {
+            let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+            let what = format!(
+                "the chamfer on the first nose, foot and second nose of the sheared flight, \
+                 named in the order {order:?}, asked {asked}"
+            );
+
+            let chamfered = flight
+                .chamfer_edges(&names, asked)
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+            reduced(chamfered.asked, chamfered.taken, [asked, limit], &what);
+            let body = &chamfered.body;
+            let mut kept_and_laid = numbers(&flight);
+            for gone in [LEANING_TREAD_TOP, LEANING_RISER] {
+                assert!(!body.has_face(gone), "{what}: face {gone} is gone");
+                kept_and_laid.remove(&gone);
+            }
+            kept_and_laid.extend(laid);
+            assert_eq!(
+                numbers(body),
+                kept_and_laid,
+                "{what}: every face of the flight but its tread and its riser, and the slope \
+                 answering to {laid:?}"
+            );
+            one_flat_face_answers_to(body, &laid, &what);
+            for (rank, &one) in laid.iter().enumerate() {
+                for &other in &laid[rank + 1..] {
+                    assert!(
+                        body.edge_names()
+                            .iter()
+                            .all(|name| !lies_between(name, one, other)),
+                        "{what}: no edge stands between {one} and {other}: they are one face"
+                    );
+                }
+            }
+            assert_eq!(
+                sides_met_by(body, &laid),
+                sides(&[LEANING_START, LEANING_END, LEANING_FRONT, LEANING_TOP]),
+                "{what}: the slope meets the leaning front, the top and the flight's two ends, \
+                 by one edge each"
+            );
+            let which = format!("{what}: the slope, from {on_front} to {on_top}");
+            face_facing(body, &laid[..1], facing_out_of(on_top, on_front), &which);
+            corners_are(
+                body,
+                laid[0],
+                &strip(on_section(on_front, 0.0), on_section(on_top, 0.0)),
+                &which,
+            );
+            sound_drawn_within(
+                body,
+                promised,
+                EXACT * promised,
+                &format!("{what}: each nose's triangle given up, the foot's taken in"),
             );
         }
     }

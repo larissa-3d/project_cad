@@ -45,10 +45,13 @@ impl Body {
     /// feet, each tread as deep as each riser is high — is one slope across
     /// it, the treads and risers gone, answering to every edge's number,
     /// whatever their order, and so is one whose riser strays from the
-    /// flight's one plane by a hair (#929). One whose front leans is a slope
-    /// across the riser and the first nose's flat meeting it in a crease
-    /// (#926); a chain holding two creases — a leaning flight whose top
-    /// rises — is declined `Unsupported` before anything is laid (#985).
+    /// flight's one plane by a hair (#929). One whose front leans, its riser
+    /// upright, is a slope across the riser and the first nose's flat
+    /// meeting it in a crease (#926); declined `Unsupported` in every order
+    /// are such a flight whose riser is turned by a hair, the crease leaving
+    /// a sliver of the tread, one whose second nose's flat stands a hair off
+    /// the foot's, and one whose flats meet in two creases, a leaning flight
+    /// whose top rises (#985).
     /// Such a slope or crease is laid at the distance whose set-backs meet
     /// across that face, which may stand a hair above the distance taken: its
     /// own distance is read off its faces, never from [`Chamfered::taken`]. Where the slope takes the

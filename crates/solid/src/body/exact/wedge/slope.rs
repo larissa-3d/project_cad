@@ -10,9 +10,11 @@
 //! as deep as each riser is high — is one slope across it, every fill raised
 //! on the first cut's plane (#813), and every other cut too, so that a flight
 //! whose riser strays from one plane by a hair is one slope (#929). A chain
-//! whose flats lie on two planes — a flight whose front leans — is a slope
-//! and the flat meeting it in a crease, each edge laid by its own prism
-//! (#926). The front's upright at an end of the
+//! whose flats lie on two planes — a flight whose front leans, its riser
+//! upright — is a slope and the flat meeting it in a crease, each edge laid
+//! by its own prism, and declined where that leaves a sliver of a face two
+//! of its edges share — the same flight, its riser turned by a hair (#926).
+//! The front's upright at an end of the
 //! nose is mitred against the slope as against the nose's own flat (#814).
 //! Where the fill takes the riser whole, the slope is laid through the
 //! riser's top edge instead, the cut raised on it too, so that it meets the
@@ -164,16 +166,22 @@ impl Exact {
     /// the slope stands to any of its edges, as [`Wedge::nearest_on`] reads
     /// it, or `value` where it stands nowhere nearer and for a crease, which
     /// the step then reports as taken. Flats at an angle the kernel tells
-    /// meet in a crease: where they lie on two planes, each flat within
-    /// [`TANGENT`] of one of them — a leaning flight's first nose beside the
-    /// slope its foot and second nose lay across the riser — every edge is
-    /// laid by the prism `tool` raises, cuts first, and those on one plane
-    /// are one face. Declined as [`Exact::cut_off`] says, and `Unsupported`
-    /// before anything is laid where the flats lie on more than two planes —
-    /// a leaning flight whose top rises, two creases, until #985 — where the
-    /// kernel left the flats of one plane in more faces than one, or where a
-    /// crease's fill left something else than its face, as
-    /// [`Exact::cut_along`] reads it.
+    /// meet in a crease: where they lie on two planes, each flat facing
+    /// within [`TANGENT`] of one of them and standing off it by no more than
+    /// [`past`] — a leaning flight's first nose beside the slope its foot and
+    /// second nose lay across the upright riser — every edge is laid by the
+    /// prism `tool` raises, cuts first, each left its one face on the body
+    /// as [`Exact::cut_along`] reads it of the edges on its plane, and those
+    /// on one plane are one face. Declined as [`Exact::cut_off`] says, and
+    /// `Unsupported`: before anything is laid where the flats lie on more
+    /// than two planes — a leaning flight whose top rises, two creases, until
+    /// #985 — and, once the edges are laid, where a flat laid by its own
+    /// prism left something else than its one face, where the flats of one
+    /// plane are in more faces than one — the second nose's flat a hair off
+    /// the foot's, until #985 — or where a crease left a sliver of a face two
+    /// of the chain's edges share — the riser of a leaning flight turned by a
+    /// hair, the first nose's set-backs and the foot's parting along the
+    /// tread.
     pub(super) fn sloped(
         &self,
         given: &brep::Body,
@@ -188,15 +196,19 @@ impl Exact {
             laying.sort_by_key(|&rank| chain[rank].1.numbers.clone());
         }
         let first = chain[*cuts.first().ok_or(Declined::Unsupported)?].1;
-        let mut planes = vec![first.square().1];
+        let (scale, bounds) = (given.scale(), given.bounds().ok_or(Declined::Unsupported)?);
+        let set_back = |wedge: &Wedge| wedge.point + wedge.into[0] * value;
+        let mut planes = vec![(first.square().1, first)];
         let on: Vec<usize> = (chain.iter())
-            .map(|(_, wedge)| {
+            .map(|&(_, wedge)| {
                 let facing = wedge.square().1;
-                let found = planes
-                    .iter()
-                    .position(|way| way.cross(facing).length() <= TANGENT);
+                let found = planes.iter().position(|&(way, seed)| {
+                    let off = way.dot(set_back(wedge) - set_back(seed)).abs();
+                    way.cross(facing).length() <= TANGENT
+                        && off <= past(seed.along, wedge, scale, bounds)
+                });
                 found.unwrap_or_else(|| {
-                    planes.push(facing);
+                    planes.push((facing, wedge));
                     planes.len() - 1
                 })
             })
@@ -205,6 +217,14 @@ impl Exact {
         if planes.len() > 2 {
             return Err(Declined::Unsupported);
         }
+        let alone = |laying: Exact, before: &Exact, rank: usize| {
+            let beside: Vec<&Wedge> = (0..chain.len())
+                .filter(|&other| on[other] == on[rank])
+                .map(|other| chain[other].1)
+                .collect();
+            let kept = !crease || laying.cut_along(&beside, before, 1, &[], &[], &[]);
+            kept.then_some(laying).ok_or(Declined::Unsupported)
+        };
         let whole = match (&cuts[..], &fills[..]) {
             (&[cut], &[fill]) if !crease => {
                 let fill = chain[fill].1;
@@ -215,7 +235,11 @@ impl Exact {
         let flush = Flush::at(given, chain[cuts[0]].0);
         let mut laid = match &whole {
             Some((along, slope)) => self.cut_on(&flush, first, *along, slope)?,
-            None => self.cut_or_filled(&flush, first, value, tool)?,
+            None => alone(
+                self.cut_or_filled(&flush, first, value, tool)?,
+                self,
+                cuts[0],
+            )?,
         };
         let way = whole.map_or(first.along, |(along, _)| along);
         let made = self.next as usize;
@@ -226,7 +250,7 @@ impl Exact {
             let (edge, wedge) = chain[rank];
             let flush = Flush::at(given, edge);
             laid = if crease {
-                laid.cut_or_filled(&flush, wedge, value, tool)?
+                alone(laid.cut_or_filled(&flush, wedge, value, tool)?, &laid, rank)?
             } else {
                 laid.cut_on(&flush, wedge, way, &slope)?
             };
@@ -236,15 +260,7 @@ impl Exact {
             let (edge, wedge) = chain[rank];
             let flush = Flush::at(given, edge);
             let filled = if crease {
-                let filled = laid.cut_or_filled(&flush, wedge, value, tool)?;
-                let beside: Vec<&Wedge> = (0..chain.len())
-                    .filter(|&other| on[other] == on[rank])
-                    .map(|other| chain[other].1)
-                    .collect();
-                if !filled.cut_along(&beside, &laid, 1, &[], &[], &[]) {
-                    return Err(Declined::Unsupported);
-                }
-                filled
+                alone(laid.cut_or_filled(&flush, wedge, value, tool)?, &laid, rank)?
             } else {
                 laid.filled_on_slope(given, (&flush, wedge), &cut_faces, (way, &slope))?
             };
@@ -257,7 +273,16 @@ impl Exact {
                     || laid.named(made + before).eq(laid.named(made + laying))
             })
         });
-        if !one {
+        let shared = |face: &FaceId| {
+            let holding = (chain.iter()).filter(|(_, wedge)| wedge.faces.contains(face));
+            holding.count() > 1
+        };
+        let mut between = (chain.iter())
+            .flat_map(|(_, wedge)| wedge.faces.iter().zip(&wedge.numbers))
+            .filter(|&(face, _)| shared(face))
+            .flat_map(|(_, numbers)| numbers.iter());
+        let left = crease && between.any(|&number| laid.has_face(number as usize));
+        if !one || left {
             return Err(Declined::Unsupported);
         }
         let nearest = (chain.iter())

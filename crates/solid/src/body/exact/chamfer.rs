@@ -101,8 +101,10 @@ impl Exact {
     /// — a cut and a fill —, three or more edges meeting at a corner where
     /// another edge, left out of the list, ends too, four or more whose
     /// flats cross on no one plane there, an edge
-    /// of a chain holding two creases — a leaning flight's whose top rises
-    /// (#985) — or one of a
+    /// of a chain holding a crease whose other flats stand a hair off one
+    /// plane or meet in a second crease — a leaning flight's whose top rises
+    /// (#985) — or whose crease would leave a sliver of the face its two flats
+    /// share — a leaning flight's whose riser is turned by a hair — or one of a
     /// slope or a crease meeting another edge of the list at a corner — but an upright meeting
     /// its cut at a convex corner, the front's at an end of the nose, mitred
     /// against the slope (#814) — a face so nearly flush
