@@ -4,6 +4,7 @@
 use cao_part::PartDocument;
 
 use crate::commands;
+use crate::screens::blend::BlendState;
 use crate::screens::extrusion::ExtrusionState;
 use crate::screens::part_tree::TreeAction;
 use crate::screens::ribbon::Ribbon;
@@ -17,6 +18,7 @@ use crate::screens::{self, SketchContext};
 pub(crate) struct Beside<'a> {
     pub ribbon: &'a mut Ribbon,
     pub variables: &'a mut VariablesPanel,
+    pub blend: &'a mut BlendState,
 }
 
 /// Draws the panels the ribbon has open beside the part, and carries out what
@@ -26,7 +28,11 @@ pub(crate) fn beside_the_part(
     ui: &mut egui::Ui,
     context: &mut SketchContext<'_>,
     viewport: &mut ViewportState,
-    Beside { ribbon, variables }: Beside<'_>,
+    Beside {
+        ribbon,
+        variables,
+        blend,
+    }: Beside<'_>,
     alerted: TreeAction,
 ) -> bool {
     let (doc, editor, extrusion, lang) = (
@@ -35,13 +41,13 @@ pub(crate) fn beside_the_part(
         &mut *context.extrusion,
         context.lang,
     );
-    let mut changed = carry_out(alerted, doc, editor, extrusion, viewport, ribbon);
+    let mut changed = carry_out(alerted, doc, editor, extrusion, blend, viewport, ribbon);
     if ribbon.part_tree_open {
         let unfolded = ribbon.history_unfolded;
         let (action, hovered) =
             screens::part_tree::panel(ui, doc, editor, viewport, unfolded, lang);
         screens::part_tree::state::hover(doc, editor, viewport, hovered);
-        changed |= carry_out(action, doc, editor, extrusion, viewport, ribbon);
+        changed |= carry_out(action, doc, editor, extrusion, blend, viewport, ribbon);
     } else {
         screens::part_tree::state::hover(doc, editor, viewport, None);
         viewport.light_out();
@@ -102,6 +108,7 @@ pub(crate) fn carry_out(
     doc: &mut PartDocument,
     editor: &mut SketchEditor,
     extrusion: &mut ExtrusionState,
+    blend: &mut BlendState,
     viewport: &mut ViewportState,
     ribbon: &mut Ribbon,
 ) -> bool {
@@ -127,6 +134,14 @@ pub(crate) fn carry_out(
             if let Some(reopened) = ExtrusionState::reopened(doc, step) {
                 editor.close();
                 *extrusion = reopened;
+                ribbon.tab = 1;
+            }
+        }
+        TreeAction::EditBlend(step) => {
+            if let Some(reopened) = BlendState::reopened(doc, step) {
+                editor.close();
+                extrusion.close();
+                *blend = reopened;
                 ribbon.tab = 1;
             }
         }

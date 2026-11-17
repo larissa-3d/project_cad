@@ -265,7 +265,11 @@ impl CaoApp {
             }
         }
 
-        let beside = crate::panels::Beside { ribbon, variables };
+        let beside = crate::panels::Beside {
+            ribbon,
+            variables,
+            blend,
+        };
         changed |= crate::panels::beside_the_part(ui, &mut worked_on, viewport, beside, alerted);
 
         let view = egui::CentralPanel::no_frame().show(ui, |ui| {

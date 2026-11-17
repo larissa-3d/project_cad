@@ -60,13 +60,19 @@ impl CaoApp {
         }
     }
 
-    /// The points of every edge the edge panel holds as chosen.
+    /// The points of every edge the edge panel holds as chosen, on the part
+    /// they are named on: the part as it stood before the step reopened.
     pub fn the_edges_chosen(&self) -> Vec<Vec<DVec3>> {
         self.part_opened().map_or_else(Vec::new, |part| {
+            let before = part
+                .blend
+                .reopened
+                .map(|step| part.doc.shown_before(step).body);
+            let body = before.as_ref().unwrap_or(part.doc.body());
             part.blend
                 .edges
                 .iter()
-                .filter_map(|name| part.viewport.edge_points(part.doc.body(), name))
+                .filter_map(|name| part.viewport.edge_points(body, name))
                 .collect()
         })
     }

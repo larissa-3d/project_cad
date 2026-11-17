@@ -8,7 +8,7 @@
 //! always given it.
 
 use cao_part::feature::Feature;
-use cao_part::history::{Operation, PointRef};
+use cao_part::history::{BlendShape, Operation, PointRef};
 use cao_part::{Formula, PartDocument, Variables};
 
 use super::numbered;
@@ -33,6 +33,9 @@ pub struct HistoryLine {
     /// The sketch this action started, which a sketch's line offers to reopen;
     /// none once undone, when there is no sketch left to reopen.
     pub sketch: Option<usize>,
+    /// The place in the history and the kind of the blend step this action
+    /// opened, which its line offers to reopen; none once undone.
+    pub blend: Option<(usize, BlendShape)>,
     /// What a pattern laying a full turn short of its count says of itself.
     pub capped: Option<String>,
 }
@@ -89,6 +92,7 @@ impl History {
                 current: step < applied && applied <= ends,
                 back_to: applied.clamp(step + 1, ends),
                 sketch: (started && step < applied).then(|| sketches - 1),
+                blend: blend_shape(document, step),
                 capped: document
                     .history
                     .number_at(step)
@@ -110,6 +114,16 @@ impl History {
             .filter(|operation| !operation.is_about_a_section())
             .count();
         (count > 0).then(|| counted(lang, count))
+    }
+}
+
+/// Where the blend step the action at `step` opened stands, and its kind as
+/// the part now replays it.
+fn blend_shape(document: &PartDocument, step: usize) -> Option<(usize, BlendShape)> {
+    let number = document.history.number_at(step)?;
+    match document.raised_as(number)? {
+        Operation::Blend { shape, .. } => Some((step, *shape)),
+        _ => None,
     }
 }
 

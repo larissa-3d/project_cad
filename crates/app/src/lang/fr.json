@@ -108,6 +108,8 @@
   "part_tree.history.title": "Historique",
   "part_tree.history.actions_many": "{count} actions",
   "part_tree.history.edit_sketch": "Modifier l'esquisse",
+  "part_tree.history.edit_fillet": "Modifier le congé",
+  "part_tree.history.edit_chamfer": "Modifier le chanfrein",
   "part_tree.history.compact": "Compacter l'historique…",
   "part_tree.history.compact_confirm_title": "Compacter l'historique ?",
   "part_tree.history.compact_confirm_body": "L'historique va être réécrit pour ne garder que les étapes qui décrivent encore la pièce. Cette action ne peut pas être annulée.",

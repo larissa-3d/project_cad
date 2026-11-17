@@ -17,9 +17,29 @@ pub struct BlendState {
     /// Why the kernel declined the last « Appliquer », until the edges
     /// chosen change.
     pub declined: Option<Declined>,
+    /// The number of the step the panel was reopened on, which « Appliquer »
+    /// changes in place rather than laying a new one.
+    pub reopened: Option<u32>,
 }
 
 impl BlendState {
+    /// The panel reopened on the blend step at `step` in the history, as the
+    /// part now replays it: its kind, its size as written and its edges.
+    /// Nothing for any other step.
+    pub fn reopened(document: &PartDocument, step: usize) -> Option<Self> {
+        let raised_by = document.history.number_at(step)?;
+        let Operation::Blend { edges, shape, size } = document.raised_as(raised_by)? else {
+            return None;
+        };
+        Some(Self {
+            shape: Some(*shape),
+            edges: edges.clone(),
+            size_input: document.variables().written(size),
+            declined: None,
+            reopened: Some(raised_by),
+        })
+    }
+
     /// Opens the panel on a chamfer or a fillet, or turns the one open into
     /// the other, keeping the edges chosen and the size typed.
     pub fn offer(&mut self, shape: BlendShape) {
