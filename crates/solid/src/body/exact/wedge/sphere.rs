@@ -26,6 +26,8 @@
 //! round, carried past the corner, meets air there, and the faces that leaves
 //! replaced once all are laid.
 
+mod chart;
+
 use glam::DVec3;
 
 use super::closing::{Corner, slab};
@@ -123,7 +125,15 @@ pub(in crate::body::exact) fn sphere_across(
 /// cut took whole, between this corner and another the step closes, and read
 /// about the edge of such a round where there is
 /// one, so that no pole stands inside an arc the piece meets another round
-/// along, which then stays one edge.
+/// along, which then stays one edge — or, where a pole of that chart would
+/// stand where no corner anchors it all the same, about [`axis`], or the way
+/// to one of the piece's corners, as [`chart::about`] chooses: where the two
+/// corners' uprights' rounds are one face, meeting the piece along one arc
+/// past the line of the edge whose round closes to nothing — the tip and a
+/// shoulder of a sharp point (#911), whose crown stays a corner, and a
+/// tongue's slanted end (#910), whose lying round meets the piece along one
+/// half circle, read about the line through its two feet. Declined
+/// `Unsupported` where no such axis anchors both poles.
 fn sphered(
     body: &Exact,
     laid: Exact,
@@ -145,9 +155,9 @@ fn sphered(
         .ok_or(Declined::Unsupported)?;
     let (gone, kept): (Vec<usize>, Vec<usize>) = (0..rounds.len())
         .partition(|&at| corner.between[at] && !laid.has_face(rounds[at] as usize));
-    let about = gone
-        .first()
-        .map_or(axis(&corner.along), |&at| corner.along[at]);
+    let ways = (gone.first().map(|&at| corner.along[at]).into_iter()).chain([axis(&corner.along)]);
+    let about =
+        chart::about(&laid.brep, &lap, (centre, radius), ways).ok_or(Declined::Unsupported)?;
     let sphere = Sphere::through(centre, about, 0.0, radius);
     let mut numbers: Vec<u32> = (gone.iter().map(|&at| rounds[at]))
         .chain(

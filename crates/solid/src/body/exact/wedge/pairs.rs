@@ -162,8 +162,11 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// meets neither of the pair, the three closed there (#837) — and each edge
 /// whose faces meet outwards, not bounding that face, that meets one of the
 /// pair at a corner where no third edge of the list ends but one at their
-/// end — the edge across it, or, of a pair laid outwards, an edge of a
-/// pointed end — the three closed there, convex, `beside` holding the
+/// end — the edge across it, or, of a pair laid outwards, any edge bounding
+/// that face that reaches both of the pair, a pointed end's or a notched
+/// end's, the latter held off only by the value, which stops short of the
+/// full round wherever an upright stands at a notch's shoulder — the three
+/// closed there, convex, `beside` holding the
 /// corners that are not — an upright at either end, one of a standing full
 /// round among them (#837), and the upright at a point's shoulder, closed
 /// there with the full round and the point's edge (#911) — and, of a pair
