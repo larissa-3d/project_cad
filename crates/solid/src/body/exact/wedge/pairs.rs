@@ -217,8 +217,9 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// meeting there do not commute. Declined `Unsupported` where
 /// an edge of a pair meets another of `edges` at a corner any other way: a
 /// full round meeting an edge bounding its face at one of its edges alone,
-/// carried past its other end, or an upright where a third edge of the list ends but one at their end
-/// (#837), a notched end with the upright at its bottom, a corner of
+/// carried past its other end, or an upright where a third edge of the list
+/// ends but one at their end (#837), a notched end with the upright at its
+/// bottom, a corner of
 /// mixed sense gone round that upright first (#914), a round bottom, a slope
 /// or a crease meeting any other edge — the uprights at a round bottom's end
 /// (#919), the edges of a pointed or a notched one (#921).
