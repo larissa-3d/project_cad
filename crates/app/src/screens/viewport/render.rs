@@ -214,7 +214,7 @@ pub(crate) fn frame_of(
     let named_on = before
         .as_ref()
         .map_or(context.document.body(), |before| &before.body);
-    edges::push_lit_edges(&mut lines, state, named_on);
+    edges::push_lit_edges(&mut world_lines, state, named_on);
     section_panel::push_section_plane(&mut surfaces, &mut lines, state, scale, context);
 
     let mut cube_triangles = Vec::new();

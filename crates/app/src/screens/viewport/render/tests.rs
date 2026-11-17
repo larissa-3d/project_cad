@@ -328,6 +328,35 @@
 //!   left it for « Appliquer », and nothing is drawn of it once the panel
 //!   holds none —
 //!   `the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere`
+//!
+//! Closes #990.
+//! - With both rims of a disc chosen, the rim on the far side is not drawn
+//!   where the cylinder stands in front of it, and the near rim is drawn whole
+//!   — read as: both rims are drawn in the pass the part hides, the world's
+//!   lines, and nothing of them in the pass drawn over everything; the fixture
+//!   holds the far rim partly behind the cylinder's solid matter and the near
+//!   rim behind none of it. The pixels themselves are checked on rendered
+//!   frames, not here —
+//!   `both_rims_of_a_disc_chosen_are_drawn_in_the_pass_the_part_hides`
+//! - An edge lying on a face turned to the camera is drawn whole, not stippled
+//!   by the face — read as: the edge under the hand, lying on faces turned to
+//!   the eye, is drawn in the world's lines, the pass nudged towards the eye
+//!   that keeps the grid lying on a face whole; the stippling is a pixel fact,
+//!   checked on rendered frames —
+//!   `an_edge_under_the_hand_lying_on_a_face_turned_to_the_eye_is_drawn_in_the_nudged_pass`
+//! - Hovering and choosing an edge behave as before, with the section view on
+//!   or off — the click is not touched, and the picking tests of
+//!   `crates/app/tests/the_edge_panel.rs` and
+//!   `crates/app/tests/picking_an_edge_through_a_section.rs` hold it as they
+//!   were; what is lit stays the edge through its points, section off or on,
+//!   by `the_edge_under_the_hand_is_drawn_through_the_points_the_kernel_draws_it_through`,
+//!   `the_edge_chosen_is_drawn_through_its_points_with_the_hand_elsewhere`,
+//!   `the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane`
+//! - from the issue's "What it does": what the user sees through a see-through
+//!   volume or the see-through side of a section, they still see lit through
+//!   it — read as: the edge behind that matter is drawn in the world's lines,
+//!   and no solid, the only geometry that writes depth, stands in front of it —
+//!   `an_edge_behind_see_through_matter_is_drawn_in_the_pass_only_solid_matter_hides`
 
 use cao_part::{ExtrusionMode, Operation, PartDocument, PointRef, VolumeState};
 use cao_prefs::config::ViewportConfig;
@@ -4043,4 +4072,286 @@ fn the_edge_chosen_across_the_section_is_drawn_whole_on_both_sides_of_the_plane(
         "the section on, what the frame adds for the upright chosen is not the upright whole, \
          its part on the hidden side included",
     );
+}
+
+/// A disc of radius 4 round the origin of XY, raised 4.
+fn a_disc() -> PartDocument {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(DVec2::ZERO),
+        radius: 4.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas: document.areas_at(0, &[DVec2::new(1.0, 0.5)]),
+        distance: 4.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    document
+}
+
+fn segments_through(points: &[DVec3]) -> BTreeSet<[[u32; 3]; 2]> {
+    points
+        .windows(2)
+        .map(|pair| {
+            let mut ends = [pair[0], pair[1]].map(|end| end.as_vec3().to_array().map(f32::to_bits));
+            ends.sort();
+            ends
+        })
+        .collect()
+}
+
+/// What lighting edges adds to a frame, pass by pass, and the frame lit.
+struct Lit {
+    frame: SceneFrame,
+    eye: Vec3,
+    hidden_by_the_part: BTreeSet<[[u32; 3]; 2]>,
+    over_everything: BTreeSet<[[u32; 3]; 2]>,
+}
+
+fn lit(
+    document: &mut PartDocument,
+    mut state: ViewportState,
+    light: impl FnOnce(&mut ViewportState),
+) -> Lit {
+    let plain = a_frame_of(&state, document, &mut SketchEditor::default());
+    light(&mut state);
+    let frame = a_frame_of(&state, document, &mut SketchEditor::default());
+    let added = |lit: &[cao_render::Vertex], plain: &[cao_render::Vertex]| {
+        segments_drawn(lit)
+            .difference(&segments_drawn(plain))
+            .copied()
+            .collect()
+    };
+    Lit {
+        hidden_by_the_part: added(&frame.scene_world_lines, &plain.scene_world_lines),
+        over_everything: added(&frame.scene_lines, &plain.scene_lines),
+        eye: state.camera.eye(),
+        frame,
+    }
+}
+
+/// Points spread along an edge drawn through `points`, its ends included.
+fn along(points: &[DVec3]) -> Vec<Vec3> {
+    const STEPS: u32 = 16;
+    points
+        .windows(2)
+        .flat_map(|pair| {
+            (0..=STEPS).map(move |step| {
+                pair[0]
+                    .lerp(pair[1], f64::from(step) / f64::from(STEPS))
+                    .as_vec3()
+            })
+        })
+        .collect()
+}
+
+/// How much nearer the eye than a point a triangle has to be met to stand in
+/// front of it: well above what `f32` loses at the camera's distance, well
+/// under the size of anything a fixture here draws.
+const IN_FRONT_BY: f32 = 1e-2;
+
+/// Whether a triangle of `layer` stands between the eye and `point`, worked
+/// out in `f64`: along a silhouette the ray grazes a face, and `f32` there
+/// meets it on the wrong side of the point.
+fn stands_in_front(layer: &[cao_render::Vertex], eye: Vec3, point: Vec3) -> bool {
+    let (eye, point) = (eye.as_dvec3(), point.as_dvec3());
+    let to = point - eye;
+    let reach = to.length();
+    let towards = to / reach;
+    triangles(layer).into_iter().any(|triangle| {
+        let [a, b, c] = triangle.map(|corner| Vec3::from(corner.position).as_dvec3());
+        let (ab, ac) = (b - a, c - a);
+        let across = towards.cross(ac);
+        let det = ab.dot(across);
+        if det.abs() <= 1e-12 * ab.length() * ac.length() {
+            return false;
+        }
+        let from_a = eye - a;
+        let u = from_a.dot(across) / det;
+        let up = from_a.cross(ab);
+        let v = towards.dot(up) / det;
+        let met = ac.dot(up) / det;
+        u >= 0.0 && v >= 0.0 && u + v <= 1.0 && met > 0.0 && met < reach - f64::from(IN_FRONT_BY)
+    })
+}
+
+fn edges_where(document: &PartDocument, all: impl Fn(&DVec3) -> bool) -> Vec<cao_solid::DrawnEdge> {
+    document
+        .body()
+        .drawn_edges()
+        .into_iter()
+        .filter(|edge| edge.points.iter().all(&all))
+        .collect()
+}
+
+#[test]
+fn both_rims_of_a_disc_chosen_are_drawn_in_the_pass_the_part_hides() {
+    let mut document = a_disc();
+    let far = edges_where(&document, |point| point.z.abs() < 1e-9);
+    let near = edges_where(&document, |point| (point.z - 4.0).abs() < 1e-9);
+    assert!(
+        !far.is_empty() && !near.is_empty(),
+        "the fixture wants the disc's two rims, the bottom one {far:?}, the top one {near:?}",
+    );
+    let chosen: Vec<_> = far
+        .iter()
+        .chain(&near)
+        .map(|edge| edge.name.clone())
+        .collect();
+
+    let lit = lit(&mut document, ViewportState::default(), |state| {
+        state.edges_chosen = chosen;
+    });
+
+    let behind_the_disc = |edges: &[cao_solid::DrawnEdge]| {
+        edges
+            .iter()
+            .flat_map(|edge| along(&edge.points))
+            .filter(|point| stands_in_front(&lit.frame.scene_solids, lit.eye, *point))
+            .count()
+    };
+    assert!(
+        behind_the_disc(&far) > 0 && behind_the_disc(&near) == 0,
+        "the fixture wants the bottom rim partly behind the cylinder from the eye and the top \
+         rim behind none of it: {} points of the bottom rim behind it, {} of the top rim",
+        behind_the_disc(&far),
+        behind_the_disc(&near),
+    );
+    let rims: BTreeSet<_> = far
+        .iter()
+        .chain(&near)
+        .flat_map(|edge| segments_through(&edge.points))
+        .collect();
+
+    assert!(
+        lit.over_everything.is_empty(),
+        "the rims chosen are drawn in the scene's lines, over the matter, where the cylinder \
+         cannot hide the far one: {} segments there",
+        lit.over_everything.len(),
+    );
+    assert_eq!(
+        lit.hidden_by_the_part, rims,
+        "the rims chosen are not drawn, segment for segment, in the world's lines, the pass the \
+         part hides",
+    );
+}
+
+#[test]
+fn an_edge_under_the_hand_lying_on_a_face_turned_to_the_eye_is_drawn_in_the_nudged_pass() {
+    let mut document = a_block();
+    let [edge] = edges_where(&document, |point| {
+        point.y.abs() < 1e-9 && (point.z - 4.0).abs() < 1e-9
+    })
+    .try_into()
+    .expect("the edge between the top and the front");
+    let name = edge.name.clone();
+
+    let lit = lit(&mut document, ViewportState::default(), |state| {
+        state.edge_under_the_hand = Some(name);
+    });
+
+    let lies_on_a_face_turned_to_the_eye =
+        triangles(&lit.frame.scene_solids).iter().any(|triangle| {
+            let [a, b, c] = triangle.map(|corner| Vec3::from(corner.position));
+            let normal = (b - a).cross(c - a).normalize_or_zero();
+            normal.dot(lit.eye - a) > 0.0
+                && edge
+                    .points
+                    .iter()
+                    .all(|point| normal.dot(point.as_vec3() - a).abs() < 1e-4)
+        });
+    let behind: Vec<Vec3> = along(&edge.points)
+        .into_iter()
+        .filter(|point| stands_in_front(&lit.frame.scene_solids, lit.eye, *point))
+        .collect();
+    assert!(
+        lies_on_a_face_turned_to_the_eye && behind.is_empty(),
+        "the fixture wants the edge lying on a face of the block turned to the eye and behind \
+         none of its matter: on such a face {lies_on_a_face_turned_to_the_eye}, behind it at \
+         {behind:?}",
+    );
+
+    assert!(
+        lit.over_everything.is_empty(),
+        "the edge under the hand is drawn in the scene's lines, over the matter, rather than in \
+         the pass nudged towards the eye: {} segments there",
+        lit.over_everything.len(),
+    );
+    assert_eq!(
+        lit.hidden_by_the_part,
+        segments_through(&edge.points),
+        "the edge under the hand is not drawn, segment for segment, in the world's lines, the \
+         pass nudged towards the eye that keeps a line lying on a face whole",
+    );
+}
+
+#[test]
+fn an_edge_behind_see_through_matter_is_drawn_in_the_pass_only_solid_matter_hides() {
+    let [upright] = edges_where(&a_block(), |point| {
+        point.x.abs() < 1e-9 && (point.y - 10.0).abs() < 1e-9
+    })
+    .try_into()
+    .expect("the upright at the back corner, the one furthest from the eye");
+
+    let mut see_through_block = ViewportState::default();
+    body_drawn(&mut see_through_block, VolumeState::SeeThrough);
+    let see_through_side = sectioned(|section| section.in_front = MatterInFront::SeeThrough);
+
+    for (seen, state, past) in [
+        (
+            "the block see-through",
+            see_through_block,
+            f32::NEG_INFINITY,
+        ),
+        (
+            "the section's side over it see-through",
+            see_through_side,
+            MID_HEIGHT,
+        ),
+    ] {
+        let name = upright.name.clone();
+        let lit = lit(&mut a_block(), state, |state| {
+            state.edges_chosen = vec![name];
+        });
+        let veiled = &lit.frame.scene_surfaces[lit.frame.scene_veiled_matter.clone()];
+        let seen_through: Vec<Vec3> = along(&upright.points)
+            .into_iter()
+            .filter(|point| point.z > past + IN_FRONT_BY)
+            .collect();
+        let behind_the_veil = seen_through
+            .iter()
+            .filter(|point| stands_in_front(veiled, lit.eye, **point))
+            .count();
+        let behind_a_solid: Vec<&Vec3> = seen_through
+            .iter()
+            .filter(|point| stands_in_front(&lit.frame.scene_solids, lit.eye, **point))
+            .collect();
+        assert!(
+            behind_the_veil > 0 && behind_a_solid.is_empty(),
+            "with {seen}, the fixture wants the upright behind see-through matter and behind no \
+             solid: {behind_the_veil} points behind the see-through matter, behind a solid at \
+             {behind_a_solid:?}",
+        );
+
+        assert!(
+            lit.over_everything.is_empty(),
+            "with {seen}, the upright chosen is drawn in the scene's lines, over everything: {} \
+             segments there",
+            lit.over_everything.len(),
+        );
+        assert_eq!(
+            lit.hidden_by_the_part,
+            segments_through(&upright.points),
+            "with {seen}, the upright chosen is not drawn, segment for segment, in the world's \
+             lines, which the see-through matter, writing no depth, leaves seen",
+        );
+    }
 }
