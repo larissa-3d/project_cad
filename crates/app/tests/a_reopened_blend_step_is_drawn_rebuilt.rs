@@ -20,6 +20,17 @@
 //!   nothing in it changed; the later steps are not replayed before
 //!   « Appliquer » —
 //!   `the_step_is_rebuilt_once_per_change_and_the_later_steps_wait_for_apply`
+//! - decided on the way: the step is laid on the part before it kept from the
+//!   reopening, every volume opaque, so each change lays one operation — the
+//!   count, in the test above; and a volume before the step made see-through
+//!   changes nothing the panel says, which is what « Appliquer » meets —
+//!   `with_a_volume_before_the_step_see_through_the_panel_says_what_apply_will_meet`
+//! - decided on the way: a size that reads but is not above zero keeps the
+//!   last body drawn and says something beside the field —
+//!   `a_size_not_above_zero_keeps_the_last_body_drawn_and_says_something_beside_the_field`
+//! - found in review: another step reopened after a change cancelled draws
+//!   its own step, never the preview of the one before —
+//!   `another_step_reopened_after_a_change_cancelled_draws_its_own_step_not_the_last_preview`
 
 mod driver;
 
@@ -403,9 +414,9 @@ fn on_the_disc_s_top_rim(app: &driver::App) -> DVec3 {
 }
 
 /// What the view bar reads of the part under the pointer, held on the top of
-/// the block of `a_block_chamfered_beside_a_disc` half a millimetre in from
-/// the middle of its front edge: matter the chamfer of 2 takes away.
-fn read_just_inside_the_chamfered_edge(app: &mut driver::App) -> String {
+/// a block 30 by 10 by 20 raised from XY, half a millimetre in from the middle
+/// of its front edge: matter a chamfer or a fillet of 2 there takes away.
+fn read_just_inside_the_front_top_edge(app: &mut driver::App) -> String {
     driver::hold_the_canvas(app);
     let at = driver::world_point_on_screen(app, DVec3::new(15.0, 0.5, 20.0));
     app.hover_at(at);
@@ -434,7 +445,7 @@ fn a_choice_the_kernel_declines_says_why_as_it_is_made_draws_the_part_before_the
     let mut app = driver::a_block(test);
     driver::the_part_put_away(&mut app, test, "Bloc");
     open_in_the_app(&mut app, test, &a_block_chamfered_beside_a_disc());
-    let chamfered = read_just_inside_the_chamfered_edge(&mut app);
+    let chamfered = read_just_inside_the_front_top_edge(&mut app);
     assert!(
         !on_the_block_s_top(&chamfered),
         "the fixture's chamfer is drawn where the pointer stands, which meets « {chamfered} »",
@@ -464,7 +475,7 @@ fn a_choice_the_kernel_declines_says_why_as_it_is_made_draws_the_part_before_the
     if driver::is_enabled(&app, "Appliquer") {
         wrong.push("« Appliquer » is offered".to_string());
     }
-    let drawn = read_just_inside_the_chamfered_edge(&mut app);
+    let drawn = read_just_inside_the_front_top_edge(&mut app);
     if !on_the_block_s_top(&drawn) {
         wrong.push(format!(
             "half a millimetre in from the block's top front edge, the pointer meets « {drawn} », \
@@ -662,10 +673,11 @@ fn the_step_is_rebuilt_once_per_change_and_the_later_steps_wait_for_apply() {
             ));
         }
         let laid = app.state().the_steps_laid_by_the_last_preview();
-        if laid == 0 || laid > through_the_fillet {
+        if laid != 1 {
             wrong.push(format!(
-                "{change}, the preview laid {laid} operations, where the history holds \
-                 {through_the_fillet} up to and with « {line} » and {in_all} in all",
+                "{change}, the preview laid {laid} operations, not the step alone on the part \
+                 before it kept from the reopening; the history holds {through_the_fillet} up to \
+                 and with « {line} » and {in_all} in all",
             ));
         }
     }
@@ -675,5 +687,271 @@ fn the_step_is_rebuilt_once_per_change_and_the_later_steps_wait_for_apply() {
         "the fillet of the four top edges reopened under a box raised after it, then \
          changed:\n  {}",
         wrong.join("\n  "),
+    );
+}
+
+/// A block 30 by 10 by 20 and a boss 20 by 10 by 30 over its right end,
+/// both raised from one sketch on XY and joined, then the edge where the boss
+/// rises from the block's top rounded 2: an edge the boss carries, gone from
+/// the block alone. One sketch, so that every line of the history stands on
+/// screen.
+fn a_block_with_a_boss_rounded_at_its_foot() -> cao_part::PartDocument {
+    let mut part =
+        cao_part::PartDocument::new("Bloc", "2026-11-17T09:00:00Z".parse().expect("a date"));
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    rectangle(&mut part, 0, DVec2::ZERO, DVec2::new(30.0, 10.0));
+    rectangle(&mut part, 0, DVec2::new(20.0, 0.0), DVec2::new(40.0, 10.0));
+    for (inside, height) in [
+        (vec![DVec2::new(10.0, 5.0), DVec2::new(25.0, 5.0)], 20.0),
+        (vec![DVec2::new(25.0, 5.0), DVec2::new(35.0, 5.0)], 30.0),
+    ] {
+        part.apply(Operation::Extrude {
+            sketch: 0,
+            areas: part.areas_at(0, &inside),
+            distance: height.into(),
+            mode: ExtrusionMode::Add,
+        });
+    }
+    let foot_of_the_boss = the_drawn_edge(&part, |point| {
+        (point.x - 20.0).abs() < 1e-9 && (point.z - 20.0).abs() < 1e-9
+    });
+    let outcome = part.apply(Operation::Blend {
+        edges: vec![foot_of_the_boss],
+        shape: BlendShape::Fillet,
+        size: 2.0.into(),
+    });
+    assert_eq!(outcome, None, "the fixture's fillet is built");
+    part
+}
+
+/// Clicks « Rendre transparente » on the row of the part panel that names
+/// this volume.
+fn make_see_through(app: &mut driver::App, volume: &str) {
+    let row = driver::the_row(app, volume)
+        .unwrap_or_else(|| panic!("no row « {volume} »: {:?}", driver::on_screen(app)))
+        .rect();
+    let button = app
+        .query_all_by_label("Rendre transparente")
+        .min_by(|one, other| {
+            let off = |rect: egui::Rect| (rect.center().y - row.center().y).abs();
+            off(one.rect()).total_cmp(&off(other.rect()))
+        })
+        .expect("a volume to make see-through");
+    assert!(
+        (button.rect().center().y - row.center().y).abs() < row.height(),
+        "no « Rendre transparente » on the row « {volume} »",
+    );
+    button.click();
+    app.run();
+    driver::hold_the_canvas(app);
+}
+
+#[test]
+fn with_a_volume_before_the_step_see_through_the_panel_says_what_apply_will_meet() {
+    let test = "with_a_volume_before_the_step_see_through";
+    let mut app = driver::a_block(test);
+    driver::the_part_put_away(&mut app, test, "Bloc");
+    open_in_the_app(&mut app, test, &a_block_with_a_boss_rounded_at_its_foot());
+    make_see_through(&mut app, "Extrusion 2");
+    let left = app.query_all_by_label("Rendre transparente").count();
+    assert_eq!(
+        left,
+        1,
+        "the fixture makes the boss see-through and leaves the block opaque, showing {:?}",
+        driver::on_screen(&app),
+    );
+    driver::open_the_history(&mut app);
+    let line = driver::steps(&app)
+        .into_iter()
+        .find(|line| line.ends_with("Arête arrondie"))
+        .unwrap_or_else(|| panic!("no line of the fillet: {:?}", driver::steps(&app)));
+    driver::right_click(&mut app, &line);
+    driver::click_the_button(&mut app, "Modifier le congé");
+    assert!(
+        driver::reads(&app, "Rayon :"),
+        "« Modifier le congé » on « {line} » opened no panel, showing {:?}",
+        driver::on_screen(&app),
+    );
+    let reduced = "50 mm demandé, 10 mm appliqué";
+    let declined = [
+        "Cette arête n'est plus dans la pièce : choisissez-en une autre.",
+        "Ce congé n'est pas encore possible sur cette arête : la pièce reste comme elle était.",
+        "Le calcul de ce congé n'a pas abouti : la pièce reste comme elle était.",
+    ];
+
+    driver::type_beside(&mut app, "Rayon :", "50");
+
+    let mut wrong = Vec::new();
+    for sentence in declined {
+        if driver::reads(&app, sentence) {
+            wrong.push(format!("the panel reads « {sentence} »"));
+        }
+    }
+    if !driver::is_enabled(&app, "Appliquer") {
+        wrong.push("« Appliquer » is greyed".to_string());
+    }
+    if !driver::reads(&app, reduced) {
+        wrong.push(format!("the panel does not read « {reduced} »"));
+    }
+    let said_before = wrong.is_empty();
+    driver::click(&mut app, "Appliquer");
+    let after = driver::detail_of(&app, &line);
+    if said_before && after.as_deref() != Some(reduced) {
+        wrong.push(format!(
+            "the panel read « {reduced} », and « Appliquer » left « {line} » reading {after:?}"
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "the fillet at the foot of a boss made see-through, reopened and typed 50, where the \
+         part with the boss opaque takes 10 of it:\n  {}\n showing {:?}",
+        wrong.join("\n  "),
+        driver::on_screen(&app),
+    );
+}
+
+/// Every text said on screen but the view bar's coordinates, which move with
+/// the pointer.
+fn said_but_the_coordinates(app: &driver::App) -> Vec<String> {
+    driver::said(app)
+        .into_iter()
+        .filter(|said| !said.starts_with("X "))
+        .collect()
+}
+
+#[test]
+fn a_size_not_above_zero_keeps_the_last_body_drawn_and_says_something_beside_the_field() {
+    let test = "a_size_not_above_zero_while_reopened";
+    let (mut app, top, _) = a_fillet_at_twice_r_reopened(test);
+    driver::type_beside(&mut app, "Rayon :", "3");
+    let said_at_three = said_but_the_coordinates(&app);
+    let at_three = read_just_inside_the_first_top_edge(&mut app, &top);
+    assert!(
+        !on_the_top(&at_three, &top),
+        "the fixture's fillet of 3 is drawn where the pointer stands, which meets « {at_three} »",
+    );
+    let mut wrong = Vec::new();
+
+    for typed in ["0", "-2"] {
+        driver::type_beside(&mut app, "Rayon :", typed);
+        let new: Vec<String> = said_but_the_coordinates(&app)
+            .into_iter()
+            .filter(|said| !said_at_three.contains(said))
+            .collect();
+        if new.is_empty() {
+            wrong.push(format!(
+                "« {typed} » typed, nothing is said that was not said at 3: {said_at_three:?}"
+            ));
+        }
+        if driver::is_enabled(&app, "Appliquer") {
+            wrong.push(format!("« {typed} » typed, « Appliquer » is offered"));
+        }
+        let drawn = read_just_inside_the_first_top_edge(&mut app, &top);
+        if drawn != at_three {
+            wrong.push(format!(
+                "« {typed} » typed, the pointer meets « {drawn} », where the fillet of 3 met it \
+                 at « {at_three} »"
+            ));
+        }
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "the fillet of the four top edges reopened, its radius typed 3 and then not above \
+         zero:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+/// A block 30 by 10 by 20 raised from XY, the edge at the top of its front
+/// rounded 2, then the upright edge at its back right chamfered 1: two blend
+/// steps, the second clear of the first.
+fn a_block_rounded_then_chamfered() -> cao_part::PartDocument {
+    let mut part =
+        cao_part::PartDocument::new("Bloc", "2026-11-17T09:00:00Z".parse().expect("a date"));
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    rectangle(&mut part, 0, DVec2::ZERO, DVec2::new(30.0, 10.0));
+    part.apply(Operation::Extrude {
+        sketch: 0,
+        areas: part.areas_at(0, &[DVec2::new(15.0, 5.0)]),
+        distance: 20.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    let top_of_the_front = the_drawn_edge(&part, |point| {
+        point.y.abs() < 1e-9 && (point.z - 20.0).abs() < 1e-9
+    });
+    let back_right = the_drawn_edge(&part, |point| {
+        (point.x - 30.0).abs() < 1e-9 && (point.y - 10.0).abs() < 1e-9
+    });
+    for (edge, shape, size) in [
+        (top_of_the_front, BlendShape::Fillet, 2.0),
+        (back_right, BlendShape::Chamfer, 1.0),
+    ] {
+        let outcome = part.apply(Operation::Blend {
+            edges: vec![edge],
+            shape,
+            size: size.into(),
+        });
+        assert_eq!(outcome, None, "the fixture's {shape:?} is built");
+    }
+    part
+}
+
+#[test]
+fn another_step_reopened_after_a_change_cancelled_draws_its_own_step_not_the_last_preview() {
+    let test = "another_step_reopened_after_a_change_cancelled";
+    let mut app = driver::a_block(test);
+    driver::the_part_put_away(&mut app, test, "Bloc");
+    open_in_the_app(&mut app, test, &a_block_rounded_then_chamfered());
+    let as_laid = read_just_inside_the_front_top_edge(&mut app);
+    assert!(
+        !on_the_block_s_top(&as_laid),
+        "the fixture's fillet of 2 is drawn where the pointer stands, which meets « {as_laid} »",
+    );
+    driver::open_the_history(&mut app);
+    let line_of = |app: &driver::App, name: &str| {
+        driver::steps(app)
+            .into_iter()
+            .find(|line| line.ends_with(name))
+            .unwrap_or_else(|| panic!("no line « {name} »: {:?}", driver::steps(app)))
+    };
+    let fillet = line_of(&app, "Arête arrondie");
+    driver::right_click(&mut app, &fillet);
+    driver::click_the_button(&mut app, "Modifier le congé");
+    driver::type_beside(&mut app, "Rayon :", "4");
+    let at_four = read_just_inside_the_front_top_edge(&mut app);
+    assert_ne!(
+        at_four, as_laid,
+        "the fixture's fillet typed 4 is drawn otherwise than at 2",
+    );
+    driver::click_the_button(&mut app, "Annuler");
+    assert!(
+        !driver::reads(&app, "Rayon :"),
+        "the fixture cancels the fillet reopened, showing {:?}",
+        driver::on_screen(&app),
+    );
+
+    let chamfer = line_of(&app, "Arête chanfreinée");
+    driver::right_click(&mut app, &chamfer);
+    driver::click_the_button(&mut app, "Modifier le chanfrein");
+    assert!(
+        driver::reads(&app, "Distance :"),
+        "« Modifier le chanfrein » on « {chamfer} » opened no panel, showing {:?}",
+        driver::on_screen(&app),
+    );
+
+    let drawn = read_just_inside_the_front_top_edge(&mut app);
+    assert_eq!(
+        drawn, as_laid,
+        "« {chamfer} » reopened after « {fillet} » was typed 4 and cancelled, the pointer beside \
+         the fillet meets « {drawn} », where the fillet of 2 meets it at « {as_laid} » and the \
+         fillet of 4 cancelled at « {at_four} »",
     );
 }

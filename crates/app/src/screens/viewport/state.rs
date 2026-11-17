@@ -4,7 +4,6 @@
 //! Nothing here draws: the presenter answers what the view asks, and the
 //! drawing lives in [`super::view`].
 
-use cao_part::Operation;
 use cao_prefs::{Modifier, Shortcuts, ViewportConfig, config::ViewportCorner, theme::Theme};
 use cao_render::camera::{CubeZone, view_angles_towards};
 use cao_render::{OrbitCamera, ViewTransition, adaptive_step};
@@ -86,8 +85,6 @@ pub struct ViewportState {
     /// The step the edge panel was reopened on: the part is drawn, and its
     /// edges named, as it stood before it.
     pub reopened: Option<u32>,
-    /// The step reopened as its panel holds it, drawn in its place.
-    pub reopened_as: Option<Operation>,
     pub(super) edges: DrawnEdges,
 }
 
@@ -116,7 +113,6 @@ impl Default for ViewportState {
             edge_under_the_hand: None,
             edges_chosen: Vec::new(),
             reopened: None,
-            reopened_as: None,
             edges: DrawnEdges::default(),
         }
     }

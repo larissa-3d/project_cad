@@ -6,6 +6,16 @@ use cao_part::{Formula, Outcome, PartDocument, Reduced, Unusable, Variables};
 use cao_prefs::Command;
 use cao_solid::{Declined, EdgeName};
 
+/// The smallest size an edge can be given, in millimetres.
+const SMALLEST: f64 = 1e-6;
+
+/// What is wrong with a size typed in the edge panel.
+#[derive(Clone, Debug, PartialEq)]
+pub enum WrongSize {
+    Unusable(Unusable),
+    NotAboveZero,
+}
+
 /// What the edge panel remembers between frames. Closed while `shape` is
 /// nothing.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -103,15 +113,19 @@ impl BlendState {
         variables
             .size_of(&self.size_input)
             .ok()
-            .filter(|(_, value)| *value > 1e-6)
+            .filter(|(_, value)| *value > SMALLEST)
     }
 
-    /// What is wrong with the size typed, when it does not read; nothing for
-    /// a field left empty.
-    pub fn wrong(&self, variables: &Variables) -> Option<Unusable> {
-        match self.size_input.trim().is_empty() {
-            true => None,
-            false => variables.size_of(&self.size_input).err(),
+    /// What is wrong with the size typed, when it is none an edge can be
+    /// given; nothing for a field left empty.
+    pub fn wrong(&self, variables: &Variables) -> Option<WrongSize> {
+        if self.size_input.trim().is_empty() {
+            return None;
+        }
+        match variables.size_of(&self.size_input) {
+            Err(wrong) => Some(WrongSize::Unusable(wrong)),
+            Ok((_, value)) if value <= SMALLEST => Some(WrongSize::NotAboveZero),
+            Ok(_) => None,
         }
     }
 
@@ -127,7 +141,10 @@ impl BlendState {
     /// for a step reopened, one the kernel does not decline as it stands.
     pub fn is_ready(&self, variables: &Variables) -> bool {
         let declined = self.reopened.is_some() && self.declined.is_some();
-        !declined && self.laid(variables).is_some()
+        !declined
+            && self.shape.is_some()
+            && !self.edges.is_empty()
+            && self.size(variables).is_some()
     }
 
     /// The step the panel holds, as « Appliquer » would lay it: its kind, an

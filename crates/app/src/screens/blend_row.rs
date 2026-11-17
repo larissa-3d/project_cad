@@ -3,10 +3,10 @@ use cao_part::history::BlendShape;
 use cao_prefs::Command;
 
 use crate::lang::Catalogue;
-use crate::screens::blend::BlendState;
+use crate::screens::blend::{BlendState, WrongSize};
 use crate::screens::variables::{NAMING, offered};
 use crate::ui::formula_field::formula_field;
-use crate::wording::{blend as said, command, outcome};
+use crate::wording::{blend as said, command, formula, outcome};
 
 /// The size an edge is chamfered or rounded by, shown while the edge panel is
 /// open, in the place the extrusion's values take.
@@ -34,12 +34,6 @@ pub(super) fn blend_row(
             &offers,
             NAMING,
         );
-        if let Some(wrong) = blend.wrong(document.variables()) {
-            ui.colored_label(
-                ui.visuals().error_fg_color,
-                crate::wording::formula::unusable(lang, &wrong),
-            );
-        }
         ui.separator();
         ui.add_enabled_ui(blend.is_ready(document.variables()), |ui| {
             if ui.button(lang.t("extrusion.apply")).clicked() {
@@ -52,6 +46,13 @@ pub(super) fn blend_row(
         }
         if !blend.edges.is_empty() {
             ui.label(said::edges_chosen(lang, blend.edges.len()));
+        }
+        if let Some(wrong) = blend.wrong(document.variables()) {
+            let wrong = match wrong {
+                WrongSize::Unusable(wrong) => formula::unusable(lang, &wrong),
+                WrongSize::NotAboveZero => said::not_above_zero(lang),
+            };
+            ui.colored_label(ui.visuals().error_fg_color, wrong);
         }
         match (blend.declined, blend.edges.is_empty()) {
             (Some(reason), _) => {

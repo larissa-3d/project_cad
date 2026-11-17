@@ -25,3 +25,8 @@ pub fn reduced(lang: &Catalogue, reduced: Reduced) -> String {
         ],
     )
 }
+
+/// Said of a size that reads but comes to nothing above zero.
+pub fn not_above_zero(lang: &Catalogue) -> String {
+    lang.t("blend.not_above_zero")
+}

@@ -23,11 +23,10 @@
 use std::collections::BTreeMap;
 
 use cao_sketch::WorkPlane;
-use cao_solid::{Body, Declined};
+use cao_solid::Body;
 
-use crate::blending::Reduced;
 use crate::document::PartDocument;
-use crate::history::{ExtrusionMode, History, Operation};
+use crate::history::{ExtrusionMode, History};
 use crate::state::PartState;
 
 /// How one volume of the part is shown.
@@ -51,17 +50,6 @@ pub struct Shown {
 pub struct Ghost {
     pub step: u32,
     pub body: Body,
-}
-
-/// The part shown through a step of matter changed, and what the kernel made
-/// of the change: why it declined it, or the size it took when it gave less.
-#[derive(Clone, Debug)]
-pub struct Tried {
-    pub shown: Shown,
-    pub declined: Option<Declined>,
-    pub reduced: Option<Reduced>,
-    /// How many operations of the history were laid to show it.
-    pub operations_laid: usize,
 }
 
 /// What a replay of the part shown carries besides the part: each volume's
@@ -108,37 +96,6 @@ impl PartDocument {
         self.replayed_showing(not_opaque(states), Some(step))
     }
 
-    /// The part shown as the step of matter opened by the operation of that
-    /// number would stand changed to `to`, read through that step: replayed
-    /// as recording the change would, the steps after it left out.
-    pub fn shown_changed(
-        &self,
-        states: &BTreeMap<u32, VolumeState>,
-        step: u32,
-        to: Operation,
-    ) -> Tried {
-        let mut history = self.history.clone();
-        let place = history
-            .steps()
-            .iter()
-            .position(|opened| opened.operations().first() == Some(&step));
-        let stops_at = place.and_then(|place| history.opening_after(place));
-        history.push(Operation::EditMatter {
-            raised_by: step,
-            to: Box::new(to),
-        });
-        let replayed = self.replayed(&history, not_opaque(states), stops_at);
-        Tried {
-            declined: replayed.declined.get(&step).copied(),
-            reduced: replayed.reduced.get(&step).copied(),
-            operations_laid: replayed.replay.operations_laid,
-            shown: Shown {
-                body: replayed.body,
-                ghosts: replayed.showing.ghosts,
-            },
-        }
-    }
-
     /// The part as it stood just before the step opened by the operation of
     /// that number, every volume opaque: the whole of its replay.
     pub(crate) fn state_before(&self, step: u32) -> PartState {
@@ -153,28 +110,19 @@ impl PartDocument {
     }
 
     fn replayed_showing(&self, states: BTreeMap<u32, VolumeState>, stops_at: Option<u32>) -> Shown {
-        let replayed = self.replayed(&self.history, states, stops_at);
-        Shown {
-            body: replayed.body,
-            ghosts: replayed.showing.ghosts,
-        }
-    }
-
-    fn replayed(
-        &self,
-        history: &History,
-        states: BTreeMap<u32, VolumeState>,
-        stops_at: Option<u32>,
-    ) -> PartState {
-        PartState::rebuild_showing(
-            history,
+        let replayed = PartState::rebuild_showing(
+            &self.history,
             Showing {
                 states,
                 planes: self.sketches().iter().map(|sketch| sketch.plane).collect(),
                 ghosts: Vec::new(),
                 stops_at,
             },
-        )
+        );
+        Shown {
+            body: replayed.body,
+            ghosts: replayed.showing.ghosts,
+        }
     }
 }
 

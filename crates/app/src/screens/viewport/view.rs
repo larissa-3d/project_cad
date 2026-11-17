@@ -66,10 +66,6 @@ pub fn show(
         !handled_cube && point_the_section(ui, state, &response, (rect, scale), sketch);
     state.edge_under_the_hand = None;
     state.edges_chosen.clone_from(&blend.edges);
-    state.reopened_as = state
-        .reopened_as
-        .take()
-        .filter(|_| state.reopened == blend.reopened);
     state.reopened = blend.reopened;
     let mut changed = match gesture_goes_to(handled_cube, sketch) {
         _ if sectioning => false,

@@ -1,7 +1,7 @@
 //! Edges of the part chamfered or rounded together by the kernel, at the size
 //! asked or at the most their faces give.
 
-use cao_solid::{Declined, EdgeName};
+use cao_solid::{Body, Declined, EdgeName};
 use serde::{Deserialize, Serialize};
 
 use crate::document::PartDocument;
@@ -155,5 +155,62 @@ impl PartDocument {
             .map(|edge| before.edge_named_by(edge, naming))
             .filter(|edge| found.contains(edge))
             .collect()
+    }
+}
+
+/// The part as it stood just before a blend step, every volume opaque, kept
+/// to lay the step on as each change of it would be recorded.
+#[derive(Clone, Debug)]
+pub struct StepReopened {
+    before: PartState,
+    step: u32,
+    /// The number the change would be recorded under, which its edges are
+    /// named against.
+    change: u32,
+}
+
+/// The step laid on the part before it, and what the kernel made of it: why
+/// it declined it, or the size it took when it gave less.
+#[derive(Clone, Debug)]
+pub struct Tried {
+    pub body: Body,
+    pub declined: Option<Declined>,
+    pub reduced: Option<Reduced>,
+}
+
+impl PartDocument {
+    /// The blend step of that number reopened: the part as it stood before
+    /// it, replayed once.
+    pub fn step_reopened(&self, step: u32) -> StepReopened {
+        StepReopened {
+            before: self.state_before(step),
+            step,
+            change: self.history.next_number(),
+        }
+    }
+}
+
+impl StepReopened {
+    /// The part as it stood before the step.
+    pub fn body(&self) -> &Body {
+        &self.before.body
+    }
+
+    /// The step laid as `blend`, on the part before it, as the replay of its
+    /// change would lay it: under its own number, in the block of face
+    /// numbers it was first laid with, its edges named as the change names
+    /// them.
+    pub fn laid(&self, blend: &Operation) -> Tried {
+        let mut state = self.before.clone();
+        state.replay.changes_named_by.insert(self.step, self.change);
+        let outcome = state.applied_live(self.step, blend);
+        Tried {
+            declined: match outcome {
+                Some(Outcome::BlendDeclined(reason)) => Some(reason),
+                _ => None,
+            },
+            reduced: state.reduced.get(&self.step).copied(),
+            body: state.body,
+        }
     }
 }
