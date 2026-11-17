@@ -68,7 +68,10 @@ impl Body {
     /// their edges in the list, then the next; two triangles at the ends of an
     /// edge whose flat has no width between them — the tip of a tongue as wide
     /// as two distances, its end edge and both uprights named — meet on a ridge
-    /// in its place, that flat gone. Four or more meeting at a convex corner,
+    /// in its place, that flat gone, and so do the two at a pocket's end as
+    /// wide, filled in, its floor edge there, both uprights and the floor's
+    /// two edges along it named, meeting in a crease (#919). Four or more
+    /// meeting at a convex corner,
     /// every edge ending there named — a right pyramid's apex — are closed
     /// there by one polygon through the points where each two beside each
     /// other cross, where those lie on one plane, and declined `Unsupported`

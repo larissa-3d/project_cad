@@ -6,7 +6,10 @@
 //! tip as wide as two distances (#837) — meet on a ridge in its place: the
 //! later corner's cut takes that flat whole. At a concave corner, a
 //! pocket's bottom (#801), the three fills leave a hollow behind that point,
-//! which the same prism fills, joined, cut back into the corner's walls.
+//! which the same prism fills, joined, cut back into the corner's walls — and
+//! at the two ends of a pocket's floor edge as wide as two distances, the
+//! later corner's prism fills that edge's flat whole, the two meeting in a
+//! crease in its place (#919).
 //! Four or more chamfers meeting outwards (#804), a pyramid's apex, are closed
 //! by the polygon through the crossings where those lie on one plane: the
 //! tip past it cut off by the same prism before any flat is laid, so that
@@ -61,9 +64,10 @@ pub(in crate::body::exact) fn cut_across(
 /// The body with a concave corner closed flat through the crossings: the
 /// hollow the three fills leave behind them filled by the prism [`across`]
 /// raises, cut back as [`Corner::sunk`] keeps it inside the corner's walls,
-/// joined, its floor the face it lays. Declined as [`cut_across`] declines —
-/// a face of the prism left standing, past a wall thinner than the prism is
-/// sunk into it.
+/// joined, its floor the face it lays, a flat of `flats` it fills whole gone
+/// where its edge runs to another corner the step closes. Declined as
+/// [`cut_across`] declines — a face of the prism left standing, past a wall
+/// thinner than the prism is sunk into it.
 pub(in crate::body::exact) fn joined_across(
     body: &Exact,
     corner: &Corner,
@@ -77,7 +81,11 @@ pub(in crate::body::exact) fn joined_across(
         + travel.length();
     let tool = corner.sunk(Exact::raised(&outline, &[], frame, travel)?, reach)?;
     let joined = body.joined(&Exact { next: 1, ..tool })?;
-    if joined.cut_along(&[], body, 1, flats, &[], &[]) {
+    let filled: Vec<u32> = (0..flats.len())
+        .filter(|&at| corner.between[at] && !joined.has_face(flats[at] as usize))
+        .map(|at| flats[at])
+        .collect();
+    if joined.cut_along(&[], body, 1, flats, &[], &filled) {
         Ok(joined)
     } else {
         Err(Declined::Unsupported)

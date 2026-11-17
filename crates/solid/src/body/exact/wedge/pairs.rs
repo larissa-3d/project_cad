@@ -1,15 +1,15 @@
-//! Two edges of one step facing each other across a face they share
-//! (#698): the bound they set on the one value, so that their set-backs do
-//! not cross on it, the pairs whose set-backs meet across it, which are laid
-//! as one — a chain of cuts beside fills as one slope (#813) — and the edges
-//! of the list such a pair is mitred against at a corner (#803): each edge
-//! at its end, bounding the face that is gone, one across it or the two of a
-//! pointed or a V-notched end (#843) — one of a V-notched end's alone, the
-//! other left sharp (#917) —, the upright at a point's tip with
-//! them, and any upright meeting one of the pair, at either end, alone or
-//! with the edge at their end (#837) or a point's edge at its shoulder
-//! (#911) — the front's upright at a slope's nose among them (#814); and the
-//! edge at a round bottom's end, which its fill meets in a valley (#838).
+//! Two edges of one step facing each other across a face they share (#698): the
+//! bound they set on the one value, so that their set-backs do not cross on it,
+//! the pairs whose set-backs meet across it, which are laid as one — a chain of
+//! cuts beside fills as one slope (#813) — and the edges of the list such a
+//! pair is mitred against at a corner (#803): each edge at its end, bounding
+//! the face that is gone, one across it or the two of a pointed or a V-notched
+//! end (#843) — one of a V-notched end's alone, the other left sharp (#917) —,
+//! the upright at a point's tip with them, and any upright meeting one of the
+//! pair, at either end, alone or with the edge at their end (#837) or a point's
+//! edge at its shoulder (#911) — the front's upright at a slope's nose among
+//! them (#814); and the edge at a round bottom's end, which its fill meets in a
+//! valley (#838), and the uprights there, alone or with that edge (#919).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -173,56 +173,58 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// Each edge of `edges` bounding the face a pair of `pairs` whose faces meet
 /// outwards meet across, of no pair itself, that meets both of the pair at a
 /// corner — the edge at their end — or one of them and another such edge that
-/// meets the other — each edge of a pointed or a notched end (#843) — with
-/// the third edge of the list ending where those two meet, as `closed` holds
-/// the corners three or more of them meet at — the upright at a point's tip, which
+/// meets the other — each edge of a pointed or a notched end (#843) — with the
+/// third edge of the list ending where those two meet, as `closed` holds the
+/// corners three or more of them meet at — the upright at a point's tip, which
 /// meets neither of the pair, the three closed there (#837) — or, of a pair
-/// laid outwards, one of them alone and stops flush at its other end, no
-/// other edge of the list ending there, as [`flush::stops`] reads it — one
-/// edge of a V-notched end, the other left sharp, its round stopping on the
-/// sharp wall's plane past the notch's bottom while the pair's prism, cut
-/// whole, ends on that wall along an ellipse (#917) — and each edge
-/// whose faces meet outwards, not bounding that face, that meets one of the
-/// pair at a corner where no third edge of the list ends but one at their
-/// end — the edge across it, or, of a pair laid outwards, any edge bounding
-/// that face that reaches both of the pair, a pointed end's or a notched
-/// end's, the latter held off only by the value, which stops short of the
-/// full round wherever an upright stands at a notch's shoulder — the three
-/// closed there, convex, `beside` holding the
+/// laid outwards, one of them alone and stops flush at its other end, no other
+/// edge of the list ending there, as [`flush::stops`] reads it — one edge of a
+/// V-notched end, the other left sharp, its round stopping on the sharp wall's
+/// plane past the notch's bottom while the pair's prism, cut whole, ends on
+/// that wall along an ellipse (#917) — and each edge whose faces meet outwards,
+/// not bounding that face, that meets one of the pair at a corner where no
+/// third edge of the list ends but one at their end — the edge across it, or,
+/// of a pair laid outwards, any edge bounding that face that reaches both of
+/// the pair, a pointed end's or a notched end's, the latter held off only by
+/// the value, which stops short of the full round wherever an upright stands at
+/// a notch's shoulder — the three closed there, convex, `beside` holding the
 /// corners that are not — an upright at either end, one of a standing full
-/// round among them (#837), and the upright at a point's shoulder, closed
-/// there with the full round and the point's edge (#911) — and, of a pair
-/// not laid outwards, a round bottom, a
-/// slope or a crease, each edge bounding the face they meet across that
-/// meets both of the pair at a corner, whatever its own sense, and each such
-/// upright — the front's upright at a slope's nose, meeting the slope's cut
-/// (#814); one meeting its fill, the riser's upright at the foot's end,
-/// makes a corner of mixed sense with it, the tread's side edge left out,
-/// which the step goes round its odd edge first, as [`Exact::round_the_odd`]
-/// lays it, the fill laid alone, so that the pair never forms here — whose
-/// cut or fill is laid in turn against the one prism they are taken off or
-/// filled in with and against its neighbours, by its rank, with the pair's
-/// value, the radius that prism is raised at, so that it meets theirs where
-/// they meet across the face even where the value taken stands a hair short
-/// of it. Of a pair not laid outwards, an edge at their end is built only
-/// where it meets inwards: the floor's edge on a pocket's end wall, or the
-/// edge at the foot of a standing round bottom of two uprights at that end,
-/// its fill joined to theirs in a valley (#838). An upright beside a slope
-/// is built too, convex, its flat mitred against the slope's as two flats
-/// meeting at a convex corner are (#814). A list mixing senses at their end
-/// — a slope or a crease with the tread's end edge, a round bottom with a
-/// convex end edge such as an open slot's end, a standing round bottom with
-/// the rim above it — is let in here and refused by the laying, as
-/// [`Exact::cut_along`] and [`Exact::sloped`] refuse it: a cut and a fill
-/// meeting there do not commute. Declined `Unsupported` where
-/// an edge of a pair meets another of `edges` at a corner any other way: a
-/// full round meeting an edge bounding its face at one of its edges alone,
-/// carried past its other end, or an upright where a third edge of the list
-/// ends but one at their end (#837), a notched end with the upright at its
-/// bottom, a corner of
-/// mixed sense gone round that upright first (#914), a round bottom, a slope
-/// or a crease meeting any other edge — the uprights at a round bottom's end
-/// (#919), the edges of a pointed or a notched one (#921).
+/// round among them (#837), and the upright at a point's shoulder, closed there
+/// with the full round and the point's edge (#911) — and, of a pair not laid
+/// outwards, a round bottom, a slope or a crease, each edge bounding the face
+/// they meet across that meets both of the pair at a corner, whatever its own
+/// sense, and each such upright — the front's upright at a slope's nose,
+/// meeting the slope's cut (#814); one meeting its fill, the riser's upright at
+/// the foot's end, makes a corner of mixed sense with it, the tread's side edge
+/// left out, which the step goes round its odd edge first, as
+/// [`Exact::round_the_odd`] lays it, the fill laid alone, so that the pair
+/// never forms here — whose cut or fill is laid in turn against the one prism
+/// they are taken off or filled in with and against its neighbours, by its
+/// rank, with the pair's value, the radius that prism is raised at, so that it
+/// meets theirs where they meet across the face even where the value taken
+/// stands a hair short of it. Of a pair not laid outwards, an edge at their end
+/// is built only where it meets inwards: the floor's edge on a pocket's end
+/// wall, or the edge at the foot of a standing round bottom of two uprights at
+/// that end, its fill joined to theirs in a valley (#838). Of a pair laid
+/// inwards, an upright meeting inwards is built too: closed, as `closed` holds
+/// the corner, with the edge at their end, or beside an edge left sharp, as
+/// `beside` holds it, its fill meeting theirs in a valley — the uprights at a
+/// round bottom's end, closing both corners on one hollow quarter of a ball
+/// with the floor's edge between them where the pocket is as wide as two radii
+/// (#919). An upright beside a slope is built too, convex, its flat mitred
+/// against the slope's as two flats meeting at a convex corner are (#814). A
+/// list mixing senses at their end — a slope or a crease with the tread's end
+/// edge, a round bottom with a convex end edge such as an open slot's end, a
+/// standing round bottom with the rim above it — is let in here and refused by
+/// the laying, as [`Exact::cut_along`] and [`Exact::sloped`] refuse it: a cut
+/// and a fill meeting there do not commute. Declined `Unsupported` where an
+/// edge of a pair meets another of `edges` at a corner any other way: a full
+/// round meeting an edge bounding its face at one of its edges alone, carried
+/// past its other end, or an upright where a third edge of the list ends but
+/// one at their end (#837), a notched end with the upright at its bottom, a
+/// corner of mixed sense gone round that upright first (#914), a round bottom,
+/// a slope or a crease meeting any other edge — the edges of a pointed or a
+/// notched round bottom's end (#921).
 pub(super) fn at_their_ends(
     body: &brep::Body,
     edges: &[EdgeId],
@@ -269,15 +271,17 @@ pub(super) fn at_their_ends(
         };
         let upright = |rank: usize| {
             let member = if meets(one, rank) { one } else { other };
+            let filled = first.inwards && second.inwards && wedges[rank].inwards;
             meets(one, rank) != meets(other, rank)
-                && !wedges[rank].inwards
+                && (filled || !wedges[rank].inwards)
                 && !across.is_some_and(|face| wedges[rank].faces.contains(face))
                 && (closed.iter())
                     .filter(|(_, at, _)| at.contains(&rank) && at.contains(&member))
                     .all(|(_, at, _)| {
                         (at.iter()).all(|&third| [rank, member].contains(&third) || ending(third))
                     })
-                && !(beside.iter()).any(|(_, at)| at.contains(&rank) && at.contains(&member))
+                && (filled
+                    || !(beside.iter()).any(|(_, at)| at.contains(&rank) && at.contains(&member)))
         };
         let stopping = |rank: usize| {
             let alone = |end: VertexId| {
