@@ -43,6 +43,19 @@ impl History {
         )
     }
 
+    /// How many edges each blend step was first laid with, by the number of
+    /// its operation: a change keeps the block of face numbers that gave it.
+    pub(crate) fn blends_first_laid(&self) -> BTreeMap<u32, usize> {
+        self.numbers
+            .iter()
+            .zip(&self.operations)
+            .filter_map(|(number, operation)| match operation {
+                Operation::Blend { edges, .. } => Some((*number, edges.len())),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// The operations in effect, in the order they were done, each step of
     /// matter as it now stands: what compaction writes the part down from.
     pub(crate) fn applied_as_raised(&self) -> Vec<Operation> {

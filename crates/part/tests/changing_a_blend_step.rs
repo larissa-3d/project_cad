@@ -29,7 +29,7 @@
 //! Each part changed is held against the same part laid with the step that way
 //! from the start.
 
-use cao_part::history::{BlendShape, Operation, PointRef, StepKind};
+use cao_part::history::{BlendShape, FaceAnchor, Operation, PointRef, StepKind};
 use cao_part::{ExtrusionMode, Outcome, PartDocument};
 use cao_sketch::WorkPlane;
 use cao_solid::{Body, EdgeName};
@@ -418,5 +418,97 @@ fn a_change_of_blend_step_the_kernel_declines_records_nothing_and_says_why() {
         "the chamfer of a block's top, changed to the rim of a disc beside it, which the kernel \
          declines, was taken:\n  {}",
         wrong.join("\n  "),
+    );
+}
+
+/// The one face facing up 5 high with every corner at x = 40 or further: the
+/// top of the boss raised beside the block.
+fn the_boss_s_top(body: &Body) -> usize {
+    let faces: Vec<usize> = (0..body.faces_end())
+        .filter(|face| {
+            body.plane_of(*face).is_some_and(|plane| {
+                plane.normal.distance(DVec3::Z) < EXACT
+                    && (plane.corners[0].z - 5.0).abs() < EXACT
+                    && plane.corners.iter().all(|corner| corner.x >= 40.0 - EXACT)
+            })
+        })
+        .collect();
+    assert_eq!(faces.len(), 1, "one top to the boss: {faces:?}");
+    faces[0]
+}
+
+/// Where the sketch `sketch` stands, if not on the boss's top, as a sentence.
+fn off_the_boss_s_top(part: &PartDocument, sketch: usize) -> Option<String> {
+    if part.is_adrift(sketch) {
+        return Some("the sketch on the boss is adrift".to_string());
+    }
+    let plane = part.sketches()[sketch].plane;
+    let facing = plane.u.cross(plane.v);
+    let on_it = facing.distance(DVec3::Z) < 1e-6
+        && (plane.origin.z - 5.0).abs() < 1e-6
+        && plane.origin.x >= 40.0 - 1e-6;
+    (!on_it).then(|| {
+        format!(
+            "the sketch on the boss stands at {} facing {facing}, where the boss's top stands 5 \
+             high facing up from x = 40",
+            plane.origin,
+        )
+    })
+}
+
+#[test]
+fn taking_an_edge_out_of_a_blend_step_leaves_a_sketch_laid_after_it_on_its_face() {
+    let mut failures = Vec::new();
+    for shape in [BlendShape::Chamfer, BlendShape::Fillet] {
+        let (mut part, blend) = a_block_blended(a_blend(4, shape, SIZE));
+        let top = the_boss_s_top(part.body());
+        part.apply(Operation::CreateSketch {
+            plane: WorkPlane::XY,
+            on: Some(FaceAnchor {
+                face: top,
+                up: DVec3::Y,
+            }),
+        });
+        let on_the_boss = part.sketches().len() - 1;
+        assert_eq!(
+            off_the_boss_s_top(&part, on_the_boss),
+            None,
+            "{shape:?} of four edges: the fixture means a sketch laid on the boss's top",
+        );
+
+        let outcome = part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(a_blend(3, shape, SIZE)),
+        });
+
+        let mut wrong = Vec::new();
+        if outcome.is_some() {
+            wrong.push(format!("the change comes back {outcome:?}"));
+        }
+        if changes_recorded(&part) != 1 {
+            wrong.push(format!(
+                "{} changes are recorded where one is",
+                changes_recorded(&part),
+            ));
+        }
+        let top_now = the_boss_s_top(part.body());
+        if top_now != top {
+            wrong.push(format!(
+                "the boss's top is face {top_now} where it was face {top}"
+            ));
+        }
+        wrong.extend(off_the_boss_s_top(&part, on_the_boss));
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "{shape:?} of four edges, one taken out:\n    {}",
+                wrong.join("\n    ")
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "an edge taken out of a blend step moved the faces of a boss raised after it:\n  {}",
+        failures.join("\n  "),
     );
 }

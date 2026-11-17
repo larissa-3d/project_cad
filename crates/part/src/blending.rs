@@ -61,7 +61,8 @@ impl PartState {
         size: &Formula,
     ) -> Option<Outcome> {
         let from = self.body.faces_end();
-        let block = numbers_taken(edges.len());
+        let first_laid = self.replay.blends_first_laid.get(&self.replaying);
+        let block = numbers_taken(edges.len().max(first_laid.copied().unwrap_or(0)));
         let Some(size) = self.size(size, |size| size >= 1e-6) else {
             self.body.count_past_cut(block);
             return None;
