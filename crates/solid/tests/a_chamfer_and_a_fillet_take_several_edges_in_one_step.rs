@@ -1000,8 +1000,12 @@
 //!   `a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_leaning_flight_whose_riser_is_turned_by_a_hair_lays_one_crease_within_a_hair_the_tread_gone_or_is_declined_in_every_order`.
 //!   Read as: the [`leaning_flight_turned_by`] 1e-7 and −1e-7 about its
 //!   middle and about its left end, and, first, upright and drawn the same
-//!   way, as a control; asked 4 and 6 in each of the six orders, either all
-//!   twelve declined `Unsupported`, or each built: the value asked reported
+//!   way, as a control, which must be built — its first nose's faces
+//!   answering to the lower numbers, the foot's flat and the second nose's
+//!   open the second plane between them and are read as one face, as
+//!   after the mutants (2026-11-17) the control was found to need; asked 4
+//!   and 6 in each of the six orders, the turned ones either all twelve
+//!   declined `Unsupported`, or each built: the value asked reported
 //!   and taken within the stray of 4 — [`MEETING_HAIR`] and 30 times the
 //!   turn; the tread and the riser gone and every other face kept; the first
 //!   nose's flat answering to its own number alone and meeting the leaning
@@ -9928,6 +9932,7 @@ fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_leaning_flight_
             "its riser turned by −1e-7 about its left end",
         ),
     ] {
+        let may_decline = turn != 0.0;
         let flight = leaning_flight_turned_by(turn, about);
         let stray = MEETING_HAIR + LENGTH * turn.abs();
         let start = flight.faces_end();
@@ -9943,7 +9948,7 @@ fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_leaning_flight_
                 outcomes.push((asked, order, flight.chamfer_edges(&names, asked)));
             }
         }
-        if outcomes.iter().all(|(_, _, outcome)| outcome.is_err()) {
+        if may_decline && outcomes.iter().all(|(_, _, outcome)| outcome.is_err()) {
             for (asked, order, outcome) in &outcomes {
                 assert_eq!(
                     outcome.as_ref().err(),
@@ -9962,7 +9967,12 @@ fn a_chamfer_on_the_first_nose_the_foot_and_the_second_nose_of_a_leaning_flight_
                  {which}, named in the order {order:?}, asked {asked}"
             );
             let chamfered = outcome.as_ref().unwrap_or_else(|declined| {
-                panic!("{what}: declined, {declined:?}, where another order builds")
+                let where_ = if may_decline {
+                    "another order builds"
+                } else {
+                    "the leaning flight builds however it is drawn"
+                };
+                panic!("{what}: declined, {declined:?}, where {where_}")
             });
             let number_of = |edge: usize| {
                 start
