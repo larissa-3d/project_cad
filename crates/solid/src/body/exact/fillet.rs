@@ -45,7 +45,11 @@ impl Exact {
     /// the upright at either shoulder, or both, each closed there with the
     /// full round and the point's edge by a piece of the same sphere, the full
     /// round ending square on the plane through its centre and the pieces at
-    /// both shoulders sharing the crown alone (#911). The edge
+    /// both shoulders sharing the crown alone (#911); one edge of a V-notched
+    /// end alone, rounded at that radius too and mitred against the full round
+    /// at its shoulder, stopping flush on the sharp wall's plane past the
+    /// notch's bottom, as [`Exact::laid_flush`] stops it, the full round ending
+    /// on that wall along an ellipse (#917). The edge
     /// at a round bottom's end whose faces meet inwards too, bounding the face
     /// that is gone and meeting both its edges at a corner — the floor's edge
     /// on a pocket's end wall — is filled in at that same radius, its round
@@ -138,7 +142,8 @@ impl Exact {
     /// one sphere of the radius, an edge whose set-backs meet those of two others
     /// — rounds closing on themselves, #790 — an edge of a full round meeting
     /// another edge of the list at a corner but the edge at its end, the two
-    /// of a pointed or a V-notched end or an upright, a notch's two where the
+    /// of a pointed or a V-notched end, one of a notch's stopping flush at its
+    /// bottom, or an upright, a notch's two where the
     /// upright at its bottom is named too and an upright where a third edge
     /// of the list ends but the edge at its end, one of a round bottom meeting
     /// any but the edge at its end — the uprights at a pocket's end with the

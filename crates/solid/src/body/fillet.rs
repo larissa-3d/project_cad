@@ -65,7 +65,12 @@ impl Body {
     /// round's edges and the other, mitred against both their neighbours, the
     /// three mitres meeting at the crown — a point's tip, its upright named
     /// too, closed by a piece of sphere about the crown's axis, the two point
-    /// edges' rounds meeting it in place of each other; and any upright
+    /// edges' rounds meeting it in place of each other; one edge of a notch
+    /// alone, the other left sharp, is rounded at that radius too, mitred
+    /// against the full round at its shoulder and stopping flush on the sharp
+    /// wall's plane past the notch's bottom, which grows by its end and keeps
+    /// its number, while the full round runs on whole and ends on that wall
+    /// along an ellipse (#917); and any upright
     /// meeting one of the full round's edges at a convex corner where no
     /// third edge of the list ends — at either end of the part, under a full
     /// round along the top or over one along the floor, the two uprights at
