@@ -32,6 +32,8 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      CAO_REQUIRE_GPU: "1"
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/ci-deps-ubuntu.sh

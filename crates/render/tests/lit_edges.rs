@@ -7,8 +7,10 @@
 //! the least it may for the edge that must stay whole, by the most it may for
 //! the edge that must stay hidden.
 //!
-//! It wants a GPU adapter. The CI runner has none, so there it prints that it
-//! was skipped and passes; it is held on a machine that has one.
+//! It wants a GPU adapter. Without one it prints that it was skipped and
+//! passes, unless `CAO_REQUIRE_GPU=1` is set, which turns the skip into a
+//! failure. The CI sets it, a software adapter being installed there; a
+//! machine without a GPU and without the variable still skips.
 
 use cao_render::{
     OrbitCamera, SceneFrame, SceneRenderer, Size, Vertex, ViewportRect, push_solid, srgb,
@@ -223,10 +225,18 @@ fn on_screen(camera: &OrbitCamera, point: Vec3) -> Vec2 {
 
 fn a_gpu() -> Option<(wgpu::Device, wgpu::Queue)> {
     pollster::block_on(async {
-        let adapter = wgpu::Instance::default()
+        let Ok(adapter) = wgpu::Instance::default()
             .request_adapter(&wgpu::RequestAdapterOptions::default())
             .await
-            .ok()?;
+        else {
+            assert!(
+                std::env::var("CAO_REQUIRE_GPU").as_deref() != Ok("1"),
+                "no GPU adapter was found though CAO_REQUIRE_GPU=1 asks for one",
+            );
+            return None;
+        };
+        let info = adapter.get_info();
+        println!("drawn by {} ({:?})", info.name, info.backend);
         adapter
             .request_device(&wgpu::DeviceDescriptor::default())
             .await
