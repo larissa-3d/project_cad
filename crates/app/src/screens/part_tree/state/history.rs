@@ -8,7 +8,7 @@
 //! always given it.
 
 use cao_part::feature::Feature;
-use cao_part::history::{Operation, PointRef};
+use cao_part::history::{BlendShape, Operation, PointRef};
 use cao_part::{Formula, PartDocument, Variables};
 
 use super::numbered;
@@ -33,6 +33,9 @@ pub struct HistoryLine {
     /// The sketch this action started, which a sketch's line offers to reopen;
     /// none once undone, when there is no sketch left to reopen.
     pub sketch: Option<usize>,
+    /// The place in the history and the kind of the blend step this action
+    /// opened, which its line offers to reopen; none once undone.
+    pub blend: Option<(usize, BlendShape)>,
     /// What a pattern laying a full turn short of its count says of itself.
     pub capped: Option<String>,
 }
@@ -58,6 +61,7 @@ impl History {
                 operation,
                 Operation::CreateSketch { .. } | Operation::CreateSketchOnSection { .. }
             );
+            let mut blend = None;
             let (name, detail) = match operation {
                 Operation::CreateSketch { plane, on } => {
                     sketches += 1;
@@ -75,7 +79,15 @@ impl History {
                     (name, matter(lang, variables, operation))
                 }
                 Operation::Blend { size, .. } => {
-                    let name = wording::history::label(lang, variables, operation);
+                    let number = document.history.number_at(step);
+                    let (laid, size) = match number.and_then(|at| document.raised_as(at)) {
+                        Some(changed @ Operation::Blend { size, shape, .. }) => {
+                            blend = Some((step, *shape));
+                            (changed, size)
+                        }
+                        _ => (operation, size),
+                    };
+                    let name = wording::history::label(lang, variables, laid);
                     (name, blended(lang, document, step, size))
                 }
                 _ => drawn(lang, document, operation),
@@ -89,6 +101,7 @@ impl History {
                 current: step < applied && applied <= ends,
                 back_to: applied.clamp(step + 1, ends),
                 sketch: (started && step < applied).then(|| sketches - 1),
+                blend,
                 capped: document
                     .history
                     .number_at(step)

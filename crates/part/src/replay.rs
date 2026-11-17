@@ -15,7 +15,7 @@
 //! so is never seen leaving. Before anything is decided, it is tried against
 //! the table it was written with: that shows whether it leaves, and where.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use cao_sketch::Sketch;
 
@@ -51,6 +51,11 @@ pub(crate) struct Replay {
     /// The numbers of the operations that opened the sketches, in the order
     /// they were made.
     sketches_made: Vec<u32>,
+    /// How many edges each blend step was first laid with, by number.
+    pub(crate) blends_first_laid: BTreeMap<u32, usize>,
+    /// The number of the change in effect of each step changed, by the number
+    /// of the step.
+    pub(crate) changes_named_by: BTreeMap<u32, u32>,
 }
 
 /// How many of each element — points, traits, circles, arcs, ellipses — a
@@ -130,6 +135,8 @@ impl PartState {
         let mut state = Self::default();
         state.replay.superseded = superseded;
         state.replay.sketches_made = history.sketches_made();
+        state.replay.blends_first_laid = history.blends_first_laid();
+        state.replay.changes_named_by = history.changes_named_by();
         state.showing = showing;
         state.read_variables(history);
         if history.first_size_is_off_the_drawing() {

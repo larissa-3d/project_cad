@@ -115,6 +115,7 @@ pub(crate) fn run(
                 clamp_editor_to_document(editor, doc);
             }
             extrusion.history_moved();
+            blend.history_moved();
             viewport.light_out();
             if doc.body().is_empty() {
                 viewport.close_section();
@@ -190,9 +191,7 @@ pub(crate) fn run(
                 Command::ToolChamfer => BlendShape::Chamfer,
                 _ => BlendShape::Fillet,
             };
-            if let Some(sketch) = extrusion.sketch {
-                extrusion.offer(sketch);
-            }
+            extrusion.set_aside();
             blend.offer(shape);
             false
         }

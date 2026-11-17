@@ -3,6 +3,7 @@
 //! one line each, newest last.
 
 use cao_part::PartDocument;
+use cao_part::history::BlendShape;
 
 use super::reader::reader;
 use crate::lang::Catalogue;
@@ -106,10 +107,24 @@ fn history(
                 if response.clicked() {
                     action = TreeAction::RewindTo(line.back_to);
                 }
-                if let Some(sketch) = line.sketch {
+                let offered = match (line.sketch, line.blend) {
+                    (Some(sketch), _) => Some((
+                        "part_tree.history.edit_sketch",
+                        TreeAction::EditSketch(sketch),
+                    )),
+                    (None, Some((step, BlendShape::Fillet))) => {
+                        Some(("part_tree.history.edit_fillet", TreeAction::EditBlend(step)))
+                    }
+                    (None, Some((step, BlendShape::Chamfer))) => Some((
+                        "part_tree.history.edit_chamfer",
+                        TreeAction::EditBlend(step),
+                    )),
+                    (None, None) => None,
+                };
+                if let Some((key, asked)) = offered {
                     response.context_menu(|ui| {
-                        if ui.button(lang.t("part_tree.history.edit_sketch")).clicked() {
-                            action = TreeAction::EditSketch(sketch);
+                        if ui.button(lang.t(key)).clicked() {
+                            action = asked;
                             ui.close();
                         }
                     });

@@ -160,6 +160,14 @@ impl ExtrusionState {
         *self = Self::default();
     }
 
+    /// Puts the tool down for the edge panel, the sketch it stood on still
+    /// offered, a step reopened let go.
+    pub fn set_aside(&mut self) {
+        if let Some(sketch) = self.sketch {
+            self.offer(sketch);
+        }
+    }
+
     /// A panel reopened on a step closes once the history moves under it: the
     /// step it names may no longer be the one in effect. One armed afresh
     /// stays.

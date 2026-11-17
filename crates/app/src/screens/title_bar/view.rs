@@ -91,14 +91,12 @@ fn list(
             ui.push_id(alert.about, |ui| {
                 let said = (alert.title.as_str(), alert.sentence.as_str());
                 let (_, ink) = worn(theme, alert.level);
-                let actions = (actions.0.as_str(), actions.1.as_str());
-                let actions = alert.can_be_acted_on().then_some(actions);
-                let Some([show, modify]) = alert_line(ui, (alert.level, ink), said, actions) else {
-                    return;
-                };
-                for (response, button) in [(show, AlertButton::Show), (modify, AlertButton::Modify)]
-                {
-                    if response.clicked() {
+                let buttons = [AlertButton::Show, AlertButton::Modify];
+                let actions = [actions.0.as_str(), actions.1.as_str()];
+                let offered = [0, 1].map(|at| alert.offers(buttons[at]).then_some(actions[at]));
+                let responses = alert_line(ui, (alert.level, ink), said, offered);
+                for (response, button) in responses.into_iter().zip(buttons) {
+                    if response.is_some_and(|response| response.clicked()) {
                         pressed = Some((alert, button));
                     }
                 }

@@ -97,10 +97,18 @@ pub fn label(lang: &Catalogue, variables: &Variables, operation: &Operation) -> 
             }
         },
         Operation::CutChange(change) => cut_change::label(lang, change),
-        Operation::EditMatter { to, .. } => lang.t(match **to {
-            Operation::Revolve { .. } => "history.revolution_changed",
-            _ => "history.extrusion_changed",
-        }),
+        Operation::EditMatter { to, .. } => match **to {
+            Operation::Revolve { .. } => lang.t("history.revolution_changed"),
+            Operation::Blend {
+                shape: BlendShape::Fillet,
+                ..
+            } => lang.t("history.edges_rounded_changed"),
+            Operation::Blend {
+                shape: BlendShape::Chamfer,
+                ..
+            } => lang.t("history.edges_chamfered_changed"),
+            _ => lang.t("history.extrusion_changed"),
+        },
         Operation::Mirror { .. } => lang.t("history.mirrored"),
         Operation::CircularPattern { .. } => lang.t("history.circular_pattern"),
         Operation::RectangularPattern { .. } => lang.t("history.rectangular_pattern"),

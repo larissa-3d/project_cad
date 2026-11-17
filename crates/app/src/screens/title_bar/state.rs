@@ -74,10 +74,10 @@ impl Alert {
         }
     }
 
-    /// Whether « Montrer » and « Modifier » answer to it: a chamfer or a
-    /// fillet not built has nothing to show, and is not edited in place.
-    pub fn can_be_acted_on(&self) -> bool {
-        !matches!(self.about, About::Blend { .. })
+    /// Whether that button answers to it: a chamfer or a fillet not built
+    /// has nothing to show, and is only reopened.
+    pub fn offers(&self, button: AlertButton) -> bool {
+        button == AlertButton::Modify || !matches!(self.about, About::Blend { .. })
     }
 
     /// What one of its buttons asks of the tree. « Modifier » reopens what
@@ -92,7 +92,8 @@ impl Alert {
             (AlertButton::Modify, About::Sketch(sketch)) => TreeAction::EditSketch(sketch),
             (AlertButton::Modify, About::Section(id)) => TreeAction::EditSection(id),
             (AlertButton::Modify, About::Volume { step }) => TreeAction::EditExtrusion(step),
-            (_, About::Blend { .. }) => TreeAction::None,
+            (AlertButton::Modify, About::Blend { step }) => TreeAction::EditBlend(step),
+            (AlertButton::Show, About::Blend { .. }) => TreeAction::None,
         }
     }
 }
@@ -190,10 +191,12 @@ fn blends_not_built<'a>(
 ) -> impl Iterator<Item = Alert> + 'a {
     let applied = document.history.applied_operations().iter().enumerate();
     applied.filter_map(move |(step, operation)| {
+        let number = document.history.number_at(step)?;
+        let operation = document.raised_as(number).unwrap_or(operation);
         let Operation::Blend { edges, shape, .. } = operation else {
             return None;
         };
-        let reason = document.declined_because(document.history.number_at(step)?)?;
+        let reason = document.declined_because(number)?;
         let name = wording::history::label(lang, document.variables(), operation);
         Some(Alert {
             about: About::Blend { step },

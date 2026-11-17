@@ -23,6 +23,9 @@ pub enum TreeAction {
     /// Reopen the extrusion or the revolution at this step of the history, its
     /// panel filled with its values.
     EditExtrusion(usize),
+    /// Reopen the chamfer or the fillet at this step of the history, its edge
+    /// panel filled with its values.
+    EditBlend(usize),
     /// Show this sketch on the canvas, or stop showing it.
     ToggleEye(usize),
     /// Take this into the open sketch's selection, alone or added to it.

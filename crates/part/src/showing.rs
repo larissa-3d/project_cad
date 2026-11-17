@@ -89,6 +89,26 @@ impl PartDocument {
         }
     }
 
+    /// The part shown as it stood just before the step opened by the
+    /// operation of that number, that step and every one after it left out:
+    /// what a step reopened names its edges on.
+    pub fn shown_before(&self, states: &BTreeMap<u32, VolumeState>, step: u32) -> Shown {
+        self.replayed_showing(not_opaque(states), Some(step))
+    }
+
+    /// The part as it stood just before the step opened by the operation of
+    /// that number, every volume opaque: the whole of its replay.
+    pub(crate) fn state_before(&self, step: u32) -> PartState {
+        PartState::rebuild_showing(
+            &self.history,
+            Showing {
+                planes: self.sketches().iter().map(|sketch| sketch.plane).collect(),
+                stops_at: Some(step),
+                ..Showing::default()
+            },
+        )
+    }
+
     fn replayed_showing(&self, states: BTreeMap<u32, VolumeState>, stops_at: Option<u32>) -> Shown {
         let replayed = PartState::rebuild_showing(
             &self.history,

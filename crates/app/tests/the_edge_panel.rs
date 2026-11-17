@@ -897,17 +897,14 @@ fn a_chamfer_whose_edge_is_lost_is_an_alert_saying_so_in_the_user_s_words() {
             driver::on_screen(&app),
         );
     }
-    for button in ["Montrer", "Modifier"] {
-        let offered = app
-            .query_all_by_label(button)
-            .filter(|node| node.accesskit_node().role() == egui::accesskit::Role::Button)
-            .count();
-        assert_eq!(
-            offered, 0,
-            "the alert of a chamfer not built offers « {button} », which nothing built \
-             answers to and nothing in this slice reopens",
-        );
-    }
+    let shown = app
+        .query_all_by_label("Montrer")
+        .filter(|node| node.accesskit_node().role() == egui::accesskit::Role::Button)
+        .count();
+    assert_eq!(
+        shown, 0,
+        "the alert of a chamfer not built offers « Montrer », which nothing built answers to",
+    );
 }
 
 fn chamfers_in_the_history(app: &driver::App) -> usize {

@@ -17,9 +17,29 @@ pub struct BlendState {
     /// Why the kernel declined the last « Appliquer », until the edges
     /// chosen change.
     pub declined: Option<Declined>,
+    /// The number of the step the panel was reopened on, which « Appliquer »
+    /// changes in place rather than laying a new one.
+    pub reopened: Option<u32>,
 }
 
 impl BlendState {
+    /// The panel reopened on the blend step at `step` in the history, as the
+    /// part now replays it: its kind, its size as written and its edges.
+    /// Nothing for any other step.
+    pub fn reopened(document: &PartDocument, step: usize) -> Option<Self> {
+        let raised_by = document.history.number_at(step)?;
+        let Operation::Blend { shape, size, .. } = document.raised_as(raised_by)? else {
+            return None;
+        };
+        Some(Self {
+            shape: Some(*shape),
+            edges: document.edges_before(raised_by),
+            size_input: document.variables().written(size),
+            declined: None,
+            reopened: Some(raised_by),
+        })
+    }
+
     /// Opens the panel on a chamfer or a fillet, or turns the one open into
     /// the other, keeping the edges chosen and the size typed.
     pub fn offer(&mut self, shape: BlendShape) {
@@ -64,6 +84,15 @@ impl BlendState {
         *self = Self::default();
     }
 
+    /// A panel reopened on a step closes once the history moves under it: the
+    /// step it names may no longer be the one in effect. One armed afresh
+    /// stays.
+    pub fn history_moved(&mut self) {
+        if self.reopened.is_some() {
+            self.close();
+        }
+    }
+
     /// The size typed, as written and as what it comes to, when it is one an
     /// edge can be given.
     pub fn size(&self, variables: &Variables) -> Option<(Formula, f64)> {
@@ -79,9 +108,10 @@ impl BlendState {
     }
 }
 
-/// Chamfers or rounds the chosen edges as one step and closes the panel.
-/// Edges the kernel declines record nothing and leave the panel open, saying
-/// why. True when the part changed.
+/// Chamfers or rounds the chosen edges as one step, or changes the step
+/// reopened to them, and closes the panel; a step left as it was records
+/// nothing. Edges the kernel declines record nothing and leave the panel open,
+/// saying why. True when the part changed.
 pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool {
     let (Some(shape), Some((size, _))) = (blend.shape, blend.size(document.variables())) else {
         return false;
@@ -90,12 +120,44 @@ pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool 
         return false;
     }
     let edges = blend.edges.clone();
-    if let Some(Outcome::BlendDeclined(reason)) =
-        document.apply(Operation::Blend { edges, shape, size })
-    {
+    let laid = Operation::Blend { edges, shape, size };
+    let operation = match blend.reopened {
+        Some(raised_by) if leaves_as_it_was(document, raised_by, &laid) => {
+            blend.close();
+            return false;
+        }
+        Some(raised_by) => Operation::EditMatter {
+            raised_by,
+            to: Box::new(laid),
+        },
+        None => laid,
+    };
+    if let Some(Outcome::BlendDeclined(reason)) = document.apply(operation) {
         blend.declined = Some(reason);
         return false;
     }
     blend.close();
     true
+}
+
+/// Whether `laid` is the step of that number as it stands: its kind, its size
+/// as written, and its edges whatever their order, none of them lost.
+fn leaves_as_it_was(document: &PartDocument, raised_by: u32, laid: &Operation) -> bool {
+    let (
+        Some(Operation::Blend {
+            edges: was,
+            shape,
+            size,
+        }),
+        Operation::Blend { edges, .. },
+    ) = (document.raised_as(raised_by), laid)
+    else {
+        return false;
+    };
+    let found = document.edges_before(raised_by);
+    let same_edges = found.len() == was.len()
+        && edges.len() == found.len()
+        && edges.iter().all(|edge| found.contains(edge));
+    same_edges
+        && matches!(laid, Operation::Blend { shape: now, size: typed, .. } if now == shape && typed == size)
 }

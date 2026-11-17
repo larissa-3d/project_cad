@@ -66,6 +66,7 @@ pub fn show(
         !handled_cube && point_the_section(ui, state, &response, (rect, scale), sketch);
     state.edge_under_the_hand = None;
     state.edges_chosen.clone_from(&blend.edges);
+    state.reopened = blend.reopened;
     let mut changed = match gesture_goes_to(handled_cube, sketch) {
         _ if sectioning => false,
         GestureGoesTo::TheCube => false,
@@ -76,7 +77,11 @@ pub fn show(
         GestureGoesTo::TheToolInHand
             if blend.is_active() && sketch.editor.active_sketch().is_none() =>
         {
-            pick_an_edge(state, &response, rect, sketch.document.body(), blend);
+            let before = state.part_reopened(sketch.document);
+            let body = before
+                .as_ref()
+                .map_or(sketch.document.body(), |before| &before.body);
+            pick_an_edge(state, &response, rect, body, blend);
             false
         }
         // A click is refused while a field at the cursor holds what cannot be

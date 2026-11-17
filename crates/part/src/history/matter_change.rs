@@ -39,7 +39,37 @@ impl History {
             (self.at(raised_by), to),
             (Some(Operation::Extrude { .. }), Operation::Extrude { .. })
                 | (Some(Operation::Revolve { .. }), Operation::Revolve { .. })
+                | (Some(Operation::Blend { .. }), Operation::Blend { .. })
         )
+    }
+
+    /// The number of the change in effect of each step of matter changed
+    /// since it was raised, by the number of the operation that raised it:
+    /// what the faces the change names were numbered against.
+    pub(crate) fn changes_named_by(&self) -> BTreeMap<u32, u32> {
+        self.numbers[..self.applied]
+            .iter()
+            .zip(self.applied_operations())
+            .filter_map(|(number, operation)| match operation {
+                Operation::EditMatter { raised_by, to } if self.stands_for(*raised_by, to) => {
+                    Some((*raised_by, *number))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// How many edges each blend step was first laid with, by the number of
+    /// its operation: a change keeps the block of face numbers that gave it.
+    pub(crate) fn blends_first_laid(&self) -> BTreeMap<u32, usize> {
+        self.numbers
+            .iter()
+            .zip(&self.operations)
+            .filter_map(|(number, operation)| match operation {
+                Operation::Blend { edges, .. } => Some((*number, edges.len())),
+                _ => None,
+            })
+            .collect()
     }
 
     /// The operations in effect, in the order they were done, each step of

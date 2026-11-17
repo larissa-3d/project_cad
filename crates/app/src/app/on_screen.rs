@@ -2,6 +2,7 @@
 //! click it there: through the camera and the canvas of the last frame drawn.
 #![cfg(feature = "test-support")]
 
+use cao_solid::EdgeName;
 use glam::{DVec2, DVec3};
 
 use super::CaoApp;
@@ -47,8 +48,7 @@ impl CaoApp {
     /// panel is open.
     pub fn the_edge_lit_by_the_hand(&self) -> Option<Vec<DVec3>> {
         let part = self.part_opened()?;
-        let name = part.viewport.edge_under_the_hand.as_ref()?;
-        part.viewport.edge_points(part.doc.body(), name)
+        points_of(part, part.viewport.edge_under_the_hand.as_ref()?)
     }
 
     /// The points of the edge the edge panel holds as chosen, while it holds
@@ -63,11 +63,8 @@ impl CaoApp {
     /// The points of every edge the edge panel holds as chosen.
     pub fn the_edges_chosen(&self) -> Vec<Vec<DVec3>> {
         self.part_opened().map_or_else(Vec::new, |part| {
-            part.blend
-                .edges
-                .iter()
-                .filter_map(|name| part.viewport.edge_points(part.doc.body(), name))
-                .collect()
+            let chosen = part.blend.edges.iter();
+            chosen.filter_map(|name| points_of(part, name)).collect()
         })
     }
 
@@ -80,7 +77,7 @@ impl CaoApp {
                 .edges_chosen
                 .iter()
                 .chain(&viewport.edge_under_the_hand)
-                .filter_map(|name| viewport.edge_points(part.doc.body(), name))
+                .filter_map(|name| points_of(part, name))
                 .collect()
         })
     }
@@ -110,4 +107,14 @@ impl CaoApp {
             Screen::StartMenu => None,
         }
     }
+}
+
+/// The points the edge of that name is drawn through, on the part its edges
+/// are named on: the part as it stood before the step reopened, while one is.
+fn points_of(part: &OpenPart, name: &EdgeName) -> Option<Vec<DVec3>> {
+    let before = part.viewport.part_reopened(&part.doc);
+    let body = before
+        .as_ref()
+        .map_or(part.doc.body(), |before| &before.body);
+    part.viewport.edge_points(body, name)
 }
