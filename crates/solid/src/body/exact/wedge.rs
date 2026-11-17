@@ -110,7 +110,8 @@ impl Exact {
     /// together meet across, meeting both at a corner, or one and an edge of a
     /// pointed end with it that meets the other, the upright at the point's
     /// tip with them, and an upright meeting one of them at a convex corner
-    /// where no third edge of the list ends but the edge at their end, meets
+    /// where no third edge of the list ends but one at their end, the edge
+    /// across it or a pointed end's at its shoulder, meets
     /// their one prism the same way, at their value, as
     /// [`pairs::at_their_ends`] reads it, the two read on the body as given,
     /// and so does a concave edge bounding the face two fills laid together
@@ -158,7 +159,7 @@ impl Exact {
     /// [`Exact::closed_round`] cuts it, or one of two laid together that meets another
     /// edge of the list at a corner any other way — a notch's two edges among
     /// them where a third ends at its bottom, meeting inwards, an upright
-    /// where a third edge of the list ends but the edge at their end — a cut
+    /// where a third edge of the list ends but one at their end — a cut
     /// or a fill that left something else than its one face, as
     /// [`Exact::cut_along`] reads it, a face of an overlap no edge covered, and
     /// a corner gone round its odd edge as [`Exact::round_the_odd`] declines
@@ -358,8 +359,9 @@ pub(super) fn too_short(length: f64, scale: Scale) -> bool {
 /// What an edge a step lays meets.
 #[derive(Clone, Copy)]
 struct Met<'a> {
-    /// The numbers of the faces laid before it at a corner it shares, which
-    /// its own face meets in a mitre.
+    /// The numbers of the faces laid before it at a corner it shares, or on an
+    /// edge sharing one with an edge laid after it that shares one with it,
+    /// which its own face meets in a mitre.
     mitred: &'a [u32],
     /// Where it stops at a corner an edge laid after it completes, as
     /// [`flush::open`] reads them.

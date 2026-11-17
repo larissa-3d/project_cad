@@ -142,11 +142,12 @@
 //!   end, bounding the face that is gone and meeting both edges of the pair.
 //!   The pointed end, tip (33,3), its four top edges named with the upright
 //!   at one of its shoulders, (30,0) or (30,6) — where the third edge is the
-//!   point's, meeting one edge of the pair alone — is declined `Unsupported`
-//!   in each of the 120 orders of the five, at either shoulder, as one body
-//!   in every order or a decline in every order is the rule (#822); building
-//!   it is #911 —
-//!   `a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_either_shoulder_is_declined_as_unsupported_whatever_the_order`
+//!   point's, meeting one edge of the pair alone — was held here declined
+//!   `Unsupported` in each of the 120 orders of the five, at either shoulder,
+//!   as one body in every order or a decline in every order is the rule
+//!   (#822), until #911 built it — no test: the decline went with #911, and
+//!   the bodies, each shoulder closed by a piece of sphere, are held under its
+//!   block below
 //!
 //! Closes #837 — its third and last slice, the pointed end's tip. Its first
 //! two slices, the mitres and the spheres, are held in
@@ -277,11 +278,144 @@
 //!   end; building it is #917 —
 //!   `a_fillet_on_a_full_round_and_one_edge_of_its_v_notched_end_alone_or_with_its_square_far_end_s_edge_is_declined_as_unsupported_whatever_the_order`
 //!
+//! Closes #911.
+//! - The plate with the point at (33, 3), its four top edges and the upright
+//!   at the front shoulder, filleted at 3: built in every order, one body,
+//!   exact, closed, uncrossed; the volume the arithmetic gives, which the
+//!   booleans give too —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_its_front_shoulder_closes_that_shoulder_with_a_piece_of_sphere_whatever_the_order`.
+//!   Read as: the shoulder (30, 0), where the full round's front edge, the
+//!   point's front edge and the upright meet, three convex rounds, closed as
+//!   #699 closes such a corner, by the piece of sphere of 3 about
+//!   (33 − 3√2, 3, 7), one radius from the top, the front and the point's
+//!   front wall — the tip's centre, under #843's crown; in each of the 120
+//!   orders, the value taken whole; the body exact, closed, uncrossed,
+//!   holding `1386 − 45√2 + (141 − 12√2)·9π/8`, which the booleans give too,
+//!   and its triangles enclosing that within the drawing's tolerance; the top
+//!   gone; the full round one face answering to both its edges' ranks, each
+//!   other round one face answering to its own, and the piece one face
+//!   answering to the patch #699 numbers after every edge's, the next step
+//!   numbering past it; the piece drawn on its sphere in its cell only, met
+//!   there from outside, meeting the full round along the quarter circle of
+//!   its end section from the front's foot up to the crown, the point's front
+//!   edge's round along its own from its wall's foot, and the upright's round
+//!   along the arc z = 7 between the two feet, and nothing else; the
+//!   upright's round on its cylinder within its turn and under the centre,
+//!   met there from outside, meeting the floor, its two walls and the piece;
+//!   each round of the top on its cylinder over its share, met there from
+//!   outside — the full round's front share and the point's front edge's
+//!   closed square at their feet, the others as #843 lays them, the full
+//!   round mitred against the point's back edge's round at the back shoulder
+//!   and the point's two rounds against each other on y = 3 —; the full round
+//!   and the point's front edge's round sharing the crown only, and each with
+//!   the upright's round its foot only; one vertex at the crown, where the
+//!   full round, the point's two rounds and the piece meet, one at each foot,
+//!   one at the back shoulder and one at the tip; the walls cut back to the
+//!   feet and the floor given up to the upright's round along its arc; every
+//!   face meeting the faces it bounds by one edge each; and every order
+//!   laying the body the first lays
+//! - The same with the back shoulder, and with both —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_its_back_shoulder_or_at_both_closes_each_shoulder_with_a_piece_of_sphere_whatever_the_order`.
+//!   Read as: every check of the first criterion, the back shoulder (30, 6)
+//!   closed by its mirror about the same centre and holding the same, in each
+//!   of the 120 orders; and both shoulders, two pieces of the one sphere
+//!   sharing the crown only, the full round square at x = 33 − 3√2, holding
+//!   `1467 − 126√2 + (75 − 6√2)·9π/4`, which the booleans give too: in the
+//!   gate, 24 of the 720 orders, every order of the four top edges with the
+//!   front shoulder's upright at each of the five places in turn and the
+//!   back's at each of the six counted from the last; all 720 in the
+//!   campaign —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_both_shoulders_closes_each_shoulder_with_a_piece_of_sphere_in_each_of_the_720_orders_of_its_six_edges`
+//! - Likewise tips (39, 3) and (32, 3) —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_a_sharper_or_a_blunter_point_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_piece_of_sphere_whatever_the_order`.
+//!   Read as: every check of the first criterion, at the front shoulder, at
+//!   the back one and at both: on (39, 3), about (39 − 3√10, 3, 7), holding
+//!   `1638 − 45√10 + (81/2)·atan(1/3) + (78 − 6√10)·9π/4` with one shoulder
+//!   closed and `1881 − 126√10 + 81·atan(1/3) + (78 − 6√10)·9π/4` with both;
+//!   on (32, 3), about (32 − √13, 3, 7), holding
+//!   `1344 − 15√13 + (81/2)·atan(3/2) + (64 − 2√13)·9π/4` and
+//!   `1398 − 42√13 + 81·atan(3/2) + (64 − 2√13)·9π/4`; each which the
+//!   booleans give too. In the gate, 24 orders of each list, every order of
+//!   the four top edges with each upright placed as above; every order of
+//!   each in the campaign —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_a_sharper_or_a_blunter_point_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_piece_of_sphere_in_each_of_their_orders`
+//! - Throughout: #843's pointed end without an upright, #837's tongue and its
+//!   tip's upright keep their bodies — no test: their tests, above in this
+//!   file and in
+//!   `a_full_round_meets_the_round_of_an_upright_at_its_end_on_an_ellipse.rs`,
+//!   hold them and run beside these
+//! - Decided on the way, after the review (2026-11-17): what admitting a point's
+//!   edge as a full round's upright's third lets in beside the issue's lists is
+//!   held as they are. The four top edges with the uprights at the tip and at
+//!   one shoulder, which `main` declined: the two corners share the centre,
+//!   and the two uprights' rounds leave the point's wall between them at one
+//!   foot, so that wall is gone, that point edge's round closes to nothing
+//!   between the two corners, and the two close on one piece of sphere, as
+//!   #837 closes two corners of one centre — the piece answering to both
+//!   corners' patches and to the rank of the edge whose round closes to
+//!   nothing, the two uprights' rounds one face standing on one cylinder,
+//!   answering to both their ranks. Built in every order, one body, exact,
+//!   closed, uncrossed, the value taken whole, holding
+//!   `1305 − 45√2 + (159 − 12√2)·9π/8` on (33, 3), which the booleans give too:
+//!   in the gate 24 of the 720 orders at either shoulder, as the shoulders'
+//!   both are —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_uprights_at_its_tip_and_at_one_shoulder_closes_both_on_one_piece_of_sphere_whatever_the_order`;
+//!   likewise on (32, 3),
+//!   `1290 − 15√13 + 81·atan(2/3) + (81/2)·atan(3/2) + (64 − 2√13)·9π/4`, and
+//!   on (39, 3), `1395 − 45√10 + 81·atan 3 + (81/2)·atan(1/3) +
+//!   (78 − 6√10)·9π/4` —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_a_blunter_or_a_sharper_point_and_the_uprights_at_its_tip_and_at_one_shoulder_closes_both_on_one_piece_of_sphere_whatever_the_order`;
+//!   all 720 of each in the campaign —
+//!   `a_fillet_on_a_full_round_the_two_edges_of_a_pointed_end_and_the_uprights_at_its_tip_and_at_one_shoulder_closes_both_on_one_piece_of_sphere_in_each_of_the_720_orders_of_its_six_edges`.
+//!   The plate pointed at both ends with the upright at its front right
+//!   shoulder, (30, 0), closed about (33 − 3√2, 3, 7), the other corners
+//!   mitred: `1305 − 9√2 + (141 − 24√2)·9π/8`, which the booleans give too;
+//!   in the gate, the 8 orders its blocks turn — the front and that upright,
+//!   the right point's two, the back, the left point's two —, the piece on its
+//!   sphere in its cell meeting the full round, the point edge's round and the
+//!   upright's by one edge each —
+//!   `a_fillet_on_a_full_round_pointed_at_both_ends_and_the_upright_at_one_shoulder_closes_that_shoulder_with_a_piece_of_sphere_whichever_block_is_named_first`;
+//!   in the campaign, every order of its blocks with the upright a block of
+//!   its own, 480 —
+//!   `a_fillet_on_a_full_round_pointed_at_both_ends_and_the_upright_at_one_shoulder_closes_that_shoulder_with_a_piece_of_sphere_in_each_of_the_480_orders_of_its_blocks`
+//! - Decided on the way, after the review (2026-11-17): the same lists
+//!   chamfered at 3, which `main` built in some orders and declined in others,
+//!   are built in every order, one body, each shoulder closed by #699's
+//!   triangle: on (33, 3), `1611 − 27√2` with one shoulder and `1611 − 45√2`
+//!   with both; on (39, 3), `1773 − 63√10/5` and `1773 − 81√10/5`; on
+//!   (32, 3), `1584 − 147√13/13` and `1584 − 255√13/13`; each which the
+//!   booleans give too; exact, closed, uncrossed, its triangles enclosing that;
+//!   one flat for each edge in the order the list names them, each triangle
+//!   past them; each top edge's flat over its share, each upright's flat one
+//!   distance along both its walls, each triangle at its three corners and
+//!   meeting the three flats there; the four top edges' flats and the
+//!   triangles meeting at the crown. On (33, 3), each shoulder alone in each
+//!   of the 120 orders and both in 24 of the 720 —
+//!   `a_chamfer_on_a_full_round_pair_s_edges_the_two_edges_of_a_pointed_end_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_triangle_whatever_the_order`;
+//!   on (39, 3) and (32, 3), 24 orders of each —
+//!   `a_chamfer_on_a_full_round_pair_s_edges_the_two_edges_of_a_sharper_or_a_blunter_point_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_triangle_whatever_the_order`;
+//!   every order of each in the campaign —
+//!   `a_chamfer_on_a_full_round_pair_s_edges_the_two_edges_of_a_pointed_end_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_triangle_in_each_of_their_orders`
+//! - Found on the way, by the review's probe (2026-11-17): lists with no full
+//!   round among them, which `main` declined in every order it tried, that the
+//!   branch builds in some orders and declines in others — what one body in
+//!   every order or a decline in every order (#822) refuses. On the plate 6
+//!   wide at 3, the point's back edge, the top's back edge, and the uprights
+//!   at the front shoulder and at the tip, on (33, 3) and on (39, 3); on
+//!   (33, 3) with the left end's top edge too; on (39, 3) with the upright at
+//!   the front left corner too. Held in every order of each, 24 or 120: every
+//!   order declined, or every order built — the body exact, closed and
+//!   uncrossed, its triangles enclosing its volume within two thousandths,
+//!   the value taken the same, and the one body the first order built lays,
+//!   the same matter, its faces meeting alike and the plate's flat faces at
+//!   the same corners —
+//!   `a_fillet_on_the_point_s_back_edges_and_the_uprights_at_its_front_shoulder_and_its_tip_is_declined_in_every_order_or_built_as_one_body_in_every_order`
+//!
 //! The campaign is run by hand, out of the gate, compiled only under the
 //! `campaigns` feature: every one of the 720 orders of the plate pointed at
 //! both ends, where the gate takes 48 of them, and the orders of the lists
-//! slice 3's review let in that the gate samples, each held as the gate holds
-//! its own —
+//! slice 3's review let in and of #911's shoulders that the gate samples, each
+//! held as the gate holds its own —
 //!
 //! ```text
 //! cargo test --release -p cao_solid --features campaigns \
@@ -384,6 +518,87 @@
 //! point rounds kept on their side of the mitre there as #843's are. Along
 //! the floor, the mirror that takes the plate onto itself, `z` to `H − z`,
 //! takes the top's body onto the floor's, which holds the same.
+//!
+//! With the upright at a shoulder named instead, the shoulder is three convex
+//! rounds at a corner as the tip is — the full round's edge there, the point's
+//! edge and the upright — and #699 closes it by the piece of sphere of `r`
+//! about the point one radius from the top and from the two walls there. On a
+//! plate two radii wide, one radius in from the front or the back is the
+//! middle line, and one radius in from a point's wall along it is `x_c`: the
+//! centre is the tip's, `c = (x_c, 3, H − r)`, under #843's crown, on the axes
+//! of the full round, of the point edge's round and of the upright's. The
+//! upright's round leaves each wall at its foot, one radius out from `c`
+//! square to the wall, `s − a` back from the shoulder — `r` times the tangent
+//! of half the turn the outline takes there, `φ = atan(r/a)` — and turns by
+//! `φ` between the two. The full round stops on the plane `x = x_c` square to
+//! its axis, where it meets the sphere along the quarter circle from the
+//! front's foot up to the crown; the point edge's round stops on the plane
+//! through `c` square to its wall, where it meets the sphere along the quarter
+//! circle from its foot up to the crown; and the upright's round meets the
+//! sphere along the arc at `H − r` between the two feet. Nothing is left to
+//! mitre the upright's round against: it meets the floor, its two walls and
+//! the piece, and the piece the three rounds. Seen from above, the kite
+//! between `c`, the two feet and the shoulder is a closed tip's kite again,
+//! its angle at the shoulder `π − φ`, and its two halves are the full round's
+//! share and the point edge's in #843's body, each a triangle of legs `r` and
+//! `s − a` under a quarter round laid from its wall. So closing the shoulder
+//! takes off #843's body what closing a tip of angle `π − φ` takes,
+//! `(H − r)(r(s − a) − r²φ/2) + 2(s − a)r²/3 − r³φ/3`. On the tip (33, 3),
+//! `s − a = 3√2 − 3` and `φ = π/4`: `81√2 − 81 − 81π/8`, 1.74 off 1762.46, so
+//! either shoulder closed holds `1386 − 45√2 + (141 − 12√2)·9π/8`, 1760.72 —
+//! the 1760.716 #837's branch measured with the guard loosened by a mutant —,
+//! and both `1467 − 126√2 + (75 − 6√2)·9π/4`, 1758.97: the two pieces lie on
+//! the one sphere and share its top, the crown, and the full round ends square
+//! at `x = x_c`. On (39, 3), #843's body,
+//! `1395 + 36√10 + (78 − 6√10)·9π/4`, 1926.07, gives up
+//! `81√10 − 243 − (81/2)·atan(1/3)`, 0.11, at each shoulder closed; on
+//! (32, 3), `1290 + 12√13 + (64 − 2√13)·9π/4`, 1734.68, gives up
+//! `27√13 − 54 − (81/2)·atan(3/2)`, 3.55. The booleans give each as for a
+//! closed tip: the full round's prism and each point edge's raised whole, the
+//! point's two kept on their side of the mitre at the tip, and each closed
+//! shoulder's upright's prism raised whole up the plate, cut away; then each
+//! closed shoulder's cell — on the shoulder's side of the planes through `c`
+//! square to its two walls, over the level one — taken away, and the ball's
+//! sector over it, `r³φ/3`, given back.
+//!
+//! Name the tip's upright with a shoulder's, and the two corners share their
+//! centre `c`. The tip's upright's round leaves the point's wall `a` back from
+//! the tip and the shoulder's `s − a` on from the shoulder: at the one foot,
+//! `c` one radius out square to the wall, whatever the point. That wall keeps
+//! no breadth between the two rounds and goes, and its edge's round, whose
+//! share between the two corners' kites has none either, closes to nothing:
+//! the two pieces of sphere lie on the one sphere and meet along that round's
+//! end section, one piece, and the two uprights' rounds on the one cylinder
+//! about the vertical through `c`, one round standing from the full round's
+//! wall to the point's far wall. The two kites lie side by side, so each
+//! corner takes off #843's body what it takes alone:
+//! `closing_takes(π − φ) + closing_takes(α)`, the tip's angle `α`. On (33, 3),
+//! #837's tip body less the shoulder's 1.74,
+//! `1305 − 45√2 + (159 − 12√2)·9π/8`, 1743.33; on (39, 3),
+//! `1395 − 45√10 + 81·atan 3 + (81/2)·atan(1/3) + (78 − 6√10)·9π/4`, 1784.13;
+//! on (32, 3), `1290 − 15√13 + 81·atan(2/3) + (81/2)·atan(3/2) +
+//! (64 − 2√13)·9π/4`, 1724.77. The booleans give each as for any closed
+//! corner, the two cells side by side. Pointed at both ends, the shoulder at
+//! (30, 0) closed takes the same 1.74 off 1672.39:
+//! `1305 − 9√2 + (141 − 24√2)·9π/8`, 1670.65.
+//!
+//! Chamfered at `r` instead, the upright's flat cuts the shoulder `r` along
+//! both its walls, and #699's triangle closes the corner, its corners where
+//! the flats' edges cross: on the full round's wall and on the point's at
+//! `H − r`, at the upright's flat's feet, and over the top that is gone at the
+//! crown, where the front's flat and the point edge's meet. Seen from above,
+//! the quadrilateral between the shoulder, the two feet and the crown is the
+//! two flats' shares near the shoulder in the hip, two triangles of base `r`
+//! and height `r`, each holding `r³/6` over `H − r`. The upright's flat takes
+//! whole the triangle between the shoulder and its feet, `r² sin θ/2` for the
+//! angle `θ` at the shoulder, and over the rest of the quadrilateral,
+//! `r² − r² sin θ/2`, the corner's triangle keeps above `H − r` only what lies
+//! under its plane, that area times `r/3`. So a chamfered
+//! shoulder takes off the hip `r² sin θ((H − r)/2 + r/6)`, `36 sin θ`, with
+//! `sin θ = r/s`: on (33, 3), `18√2` off `1611 − 9√2`, 1598.27; on (39, 3),
+//! `18√10/5` off `1773 − 9√10`, 1744.54; on (32, 3), `108√13/13` off
+//! `1584 − 3√13`, 1573.18, for each shoulder chamfered. The booleans give each:
+//! the plate cut beyond the plane of every flat and of every triangle.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::{PI, SQRT_2};
@@ -403,6 +618,11 @@ const EXACT: f64 = 1e-9;
 /// How far the triangles may stand from a round, as a share of the reach the
 /// body carries: the drawing's tolerance.
 const DRAWN: f64 = 2e-4;
+
+/// How near the volume a body's triangles enclose comes to its exact volume,
+/// as a share of it, where no area of its rounds is reckoned: well over the
+/// drawing's tolerance on rounds of this plate, well under a round gone wrong.
+const DRAWN_ROUGHLY: f64 = 2e-3;
 
 /// How far inside a round's own share of the top a ray aims, clear of every
 /// side of it, to meet that round's triangles rather than a neighbour's: well
@@ -2168,40 +2388,6 @@ fn a_fillet_on_a_full_round_the_two_edges_of_a_v_notched_end_and_the_upright_at_
     );
 }
 
-#[test]
-fn a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_either_shoulder_is_declined_as_unsupported_whatever_the_order()
- {
-    let plate = Plate::pointed(33.0, DVec3::ZERO);
-    let top_edges = [
-        ([TOP, FRONT], "the top's front edge"),
-        ([TOP, POINT_FRONT], "the point's front edge"),
-        ([TOP, POINT_BACK], "the point's back edge"),
-        ([TOP, BACK], "the top's back edge"),
-    ];
-    let shoulders = [
-        (
-            [FRONT, POINT_FRONT],
-            "the upright at the front shoulder, (30, 0)",
-        ),
-        (
-            [POINT_BACK, BACK],
-            "the upright at the back shoulder, (30, 6)",
-        ),
-    ];
-    for shoulder in shoulders {
-        let listed: Vec<([usize; 2], &str)> = top_edges.into_iter().chain([shoulder]).collect();
-        declined_in_every_order(
-            &plate.part,
-            &listed,
-            &format!(
-                "a full round, the two edges of the point and {}, whose third edge is the \
-                 point's and meets one edge of the pair alone, on {}",
-                shoulder.1, plate.called
-            ),
-        );
-    }
-}
-
 /// Where the list of a [`Tip`] names the upright at the tip: after the four
 /// top edges, as [`Plate::pointed`] lists them.
 const AT_THE_TIP: usize = 4;
@@ -3157,12 +3343,12 @@ fn closing_takes(angle: f64) -> f64 {
         - r.powi(3) * turn / 3.0
 }
 
-/// A tip of a plate's outline whose upright is named with its two walls'
-/// edges along the face the full round lies along: the corner of the outline;
-/// the three edges meeting there, as indices into the list — the wall's
-/// arriving there, the wall's leaving it, and the upright; and the centre of
-/// the piece of sphere that closes it, one radius from both walls and from
-/// that face.
+/// A tip of a plate's outline — or a shoulder, #911's — whose upright is
+/// named with its two walls' edges along the face the full round lies along:
+/// the corner of the outline; the three edges meeting there, as indices into
+/// the list — the wall's arriving there, the wall's leaving it, and the
+/// upright; and the centre of the piece of sphere that closes it, one radius
+/// from both walls and from that face.
 struct ClosedTip {
     corner: usize,
     edges: [usize; 3],
@@ -3170,7 +3356,7 @@ struct ClosedTip {
 }
 
 /// A plate #843 raises, filleted at [`RADIUS`] on one of the lists the third
-/// slice of #837 lets in: the plate, whose edges [`Plate::pointed`] or
+/// slice of #837 or #911 lets in: the plate, whose edges [`Plate::pointed`] or
 /// [`Plate::raised`] lists along the top; the face the full round lies along
 /// here, the top or the floor, and the way out of the plate across it; the
 /// list, each edge as the two faces it lies between with what it is called,
@@ -3350,26 +3536,41 @@ impl Closing {
         rounds + tips
     }
 
-    /// The fillet at [`RADIUS`] on the list's edges, named in `order`.
-    fn filleted(&self, order: &[usize]) -> Result<Filleted, Declined> {
-        let names: Vec<EdgeName> = order
+    /// The names of the list's edges, in `order`.
+    fn names(&self, order: &[usize]) -> Vec<EdgeName> {
+        order
             .iter()
             .map(|&edge| {
                 let [one, other] = self.listed[edge].0;
                 edge_between(&self.plate.part, one, other)
             })
-            .collect();
-        self.plate.part.fillet_edges(&names, RADIUS)
+            .collect()
+    }
+
+    /// The fillet at [`RADIUS`] on the list's edges, named in `order`.
+    fn filleted(&self, order: &[usize]) -> Result<Filleted, Declined> {
+        self.plate.part.fillet_edges(&self.names(order), RADIUS)
+    }
+
+    /// The chamfer at [`RADIUS`] on the list's edges, named in `order`.
+    fn chamfered(&self, order: &[usize]) -> Result<Chamfered, Declined> {
+        self.plate.part.chamfer_edges(&self.names(order), RADIUS)
     }
 
     /// What the fillet on the edges named in `order` is called.
     fn called(&self, order: &[usize]) -> String {
+        self.called_as("fillet", order)
+    }
+
+    /// What the `cut` — a fillet or a chamfer — on the edges named in `order`
+    /// is called.
+    fn called_as(&self, cut: &str, order: &[usize]) -> String {
         let called: Vec<&str> = order
             .iter()
             .map(|&edge| self.listed[edge].1.as_str())
             .collect();
         format!(
-            "the fillet at {RADIUS} on {}, on {}",
+            "the {cut} at {RADIUS} on {}, on {}",
             called.join(", then "),
             self.plate.called
         )
@@ -3510,16 +3711,28 @@ fn closes_each_tip(closing: &Closing, order: &[usize], filleted: &Filleted, what
     }
 }
 
+/// Holds that the closing's tips are closed in each of `orders`, as
+/// [`closes_each_corner_in_each_order`] holds it, each order laid as
+/// [`closes_each_tip`] holds it.
+fn closes_each_tip_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<usize>]) {
+    closes_each_corner_in_each_order(closing, volume, orders, closes_each_tip);
+}
+
 /// Holds that the closing's centres stand one radius in from both walls at
-/// their tips and from the face the full round lies along, that the
+/// their corners and from the face the full round lies along, that the
 /// arithmetic gives `volume`, and along the top that the booleans give it
 /// too; then that the fillet at [`RADIUS`] on its list, in each of `orders`,
-/// is laid, closing each tip as [`closes_each_tip`] holds it, each order
+/// is laid, closing each of its corners as `closes` holds it, each order
 /// laying the body the first lays: the same matter, the same faces meeting by
 /// the same edges, each laid face read by the edge it was laid on and each
-/// patch by the tip it closes, and the plate's flat faces at the same
+/// patch by the corner it closes, and the plate's flat faces at the same
 /// corners.
-fn closes_each_tip_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<usize>]) {
+fn closes_each_corner_in_each_order(
+    closing: &Closing,
+    volume: f64,
+    orders: &[Vec<usize>],
+    closes: fn(&Closing, &[usize], &Filleted, &str),
+) {
     let r = RADIUS;
     let called = &closing.plate.called;
     let level = if closing.level == TOP { HEIGHT } else { 0.0 };
@@ -3539,16 +3752,16 @@ fn closes_each_tip_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<u
     let promised = closing.kept();
     assert!(
         (promised - volume).abs() <= EXACT * volume,
-        "{called}, its tips closed: the arithmetic gives {promised}, where the documentation \
+        "{called}, its corners closed: the arithmetic gives {promised}, where the documentation \
          writes {volume}"
     );
     if closing.level == TOP {
         let by_booleans = closing.by_booleans();
         assert!(
             (by_booleans - promised).abs() <= EXACT * promised,
-            "{called}: the rounds' prisms cut from the plate by the booleans, each closed tip's \
-             cell taken away and its piece of sphere given back, leave {by_booleans}, where \
-             arithmetic promises {promised}"
+            "{called}: the rounds' prisms cut from the plate by the booleans, each closed \
+             corner's cell taken away and its piece of sphere given back, leave {by_booleans}, \
+             where arithmetic promises {promised}"
         );
     }
 
@@ -3568,8 +3781,8 @@ fn closes_each_tip_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<u
         .collect();
     assert!(
         declined.is_empty(),
-        "the fillet at {RADIUS} on {called} closes each tip whichever edge the list names first; \
-         declined:\n{}",
+        "the fillet at {RADIUS} on {called} closes each corner it names the upright at, whichever \
+         edge the list names first; declined:\n{}",
         declined.join("\n")
     );
     let (reference_order, reference) = (laid.first())
@@ -3578,7 +3791,7 @@ fn closes_each_tip_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<u
     for (order, laid) in &laid {
         let what = closing.called(order);
         let filleted = laid.as_ref().expect("declines are held above");
-        closes_each_tip(closing, order, filleted, &what);
+        closes(closing, order, filleted, &what);
         let otherwise = met_otherwise(
             start,
             order,
@@ -3754,6 +3967,2358 @@ fn a_fillet_on_a_full_round_pointed_at_one_end_square_at_the_other_its_edge_ther
  {
     let (closing, volume) = the_square_ended_plate_s_tip_closed();
     closes_each_tip_in_each_order(&closing, volume, &blocks_turned(&SQUARE_ENDED_BLOCKS));
+}
+
+/// The corners of [`Plate::pointed`]'s outline where the front and the back
+/// meet the point's walls, its shoulders: (30, 0) and (30, 6).
+const FRONT_SHOULDER: usize = 1;
+const BACK_SHOULDER: usize = 3;
+
+/// The shoulders a list closes: the front alone, the back alone, and both.
+const SHOULDERS: [&[usize]; 3] = [
+    &[FRONT_SHOULDER],
+    &[BACK_SHOULDER],
+    &[FRONT_SHOULDER, BACK_SHOULDER],
+];
+
+/// #843's pointed plate, its tip at `x` on the middle line, filleted at
+/// [`RADIUS`] on its four top edges, then on the upright at each of its
+/// `corners` — a shoulder or the tip —, each closed by the piece of sphere
+/// about `centre`: one radius from the top and from both walls there — on a
+/// plate two radii wide, from all four walls named along the top, under the
+/// crown #843's mitres meet at.
+fn pointed_and_closed_at(x: f64, centre: DVec3, corners: &[usize]) -> Closing {
+    let plate = Plate::pointed(x, centre + DVec3::Z * RADIUS);
+    let called: Vec<String> = plate
+        .edges
+        .iter()
+        .map(|(_, called)| called.clone())
+        .collect();
+    let called: Vec<&str> = called.iter().map(String::as_str).collect();
+    let closed: Vec<(usize, DVec3)> = corners.iter().map(|&corner| (corner, centre)).collect();
+    Closing::of(plate, TOP, &called, &closed)
+}
+
+/// #843's point, its tip at (33, 3), its `shoulders` closed about
+/// (33 − 3√2, 3, 7); with the volume the module's documentation writes for
+/// one shoulder closed, or for both.
+fn the_point_s_shoulders_closed(shoulders: &[usize]) -> (Closing, f64) {
+    let volumes = [
+        1386.0 - 45.0 * SQRT_2 + (141.0 - 12.0 * SQRT_2) * 9.0 * PI / 8.0,
+        1467.0 - 126.0 * SQRT_2 + (75.0 - 6.0 * SQRT_2) * 9.0 * PI / 4.0,
+    ];
+    let centre = DVec3::new(33.0 - 3.0 * SQRT_2, 3.0, 7.0);
+    (
+        pointed_and_closed_at(33.0, centre, shoulders),
+        volumes[shoulders.len() - 1],
+    )
+}
+
+/// The sharper point, its tip at (39, 3), its `shoulders` closed about
+/// (39 − 3√10, 3, 7), each turning by `atan(1/3)`; with the volume the
+/// module's documentation writes for one shoulder closed, or for both.
+fn the_sharper_point_s_shoulders_closed(shoulders: &[usize]) -> (Closing, f64) {
+    let root_ten = 10f64.sqrt();
+    let turn = (1.0f64 / 3.0).atan();
+    let along_the_axes = (78.0 - 6.0 * root_ten) * 9.0 * PI / 4.0;
+    let volumes = [
+        1638.0 - 45.0 * root_ten + 81.0 / 2.0 * turn + along_the_axes,
+        1881.0 - 126.0 * root_ten + 81.0 * turn + along_the_axes,
+    ];
+    let centre = DVec3::new(39.0 - 3.0 * root_ten, 3.0, 7.0);
+    (
+        pointed_and_closed_at(39.0, centre, shoulders),
+        volumes[shoulders.len() - 1],
+    )
+}
+
+/// The blunter point, its tip at (32, 3), its `shoulders` closed about
+/// (32 − √13, 3, 7), each turning by `atan(3/2)`; with the volume the
+/// module's documentation writes for one shoulder closed, or for both.
+fn the_blunter_point_s_shoulders_closed(shoulders: &[usize]) -> (Closing, f64) {
+    let root_thirteen = 13f64.sqrt();
+    let turn = 1.5f64.atan();
+    let along_the_axes = (64.0 - 2.0 * root_thirteen) * 9.0 * PI / 4.0;
+    let volumes = [
+        1344.0 - 15.0 * root_thirteen + 81.0 / 2.0 * turn + along_the_axes,
+        1398.0 - 42.0 * root_thirteen + 81.0 * turn + along_the_axes,
+    ];
+    let centre = DVec3::new(32.0 - root_thirteen, 3.0, 7.0);
+    (
+        pointed_and_closed_at(32.0, centre, shoulders),
+        volumes[shoulders.len() - 1],
+    )
+}
+
+/// A closed shoulder of #843's pointed plate, read off its closing: the
+/// closing's corner there; the wall the full round lies along there, the
+/// front or the back, and the point's wall there; and the list's edge along
+/// the point's wall.
+struct Shoulder<'a> {
+    corner: &'a ClosedTip,
+    full_wall: Wall,
+    point_wall: Wall,
+    point_edge: usize,
+}
+
+impl Shoulder<'_> {
+    /// Each corner the closing closes, read as a shoulder, as
+    /// [`Shoulder::at`] reads it.
+    fn of(closing: &Closing) -> Vec<Shoulder<'_>> {
+        (closing.tips.iter())
+            .map(|corner| Shoulder::at(closing, corner))
+            .collect()
+    }
+
+    /// The closing's `corner`, read as a shoulder: at the front one the front
+    /// arrives and the point's front wall leaves it, at the back one the
+    /// point's back wall arrives and the back leaves it.
+    fn at<'a>(closing: &'a Closing, corner: &'a ClosedTip) -> Shoulder<'a> {
+        let plate = &closing.plate;
+        let full = plate.full_round.map(|run| {
+            plate
+                .edge_of(run)
+                .expect("the full round's edges are named")
+        });
+        let [arriving, leaving, _] = corner.edges;
+        let [arriving_wall, leaving_wall] = closing.walls_at(corner);
+        if full.contains(&arriving) {
+            Shoulder {
+                corner,
+                full_wall: arriving_wall,
+                point_wall: leaving_wall,
+                point_edge: leaving,
+            }
+        } else {
+            Shoulder {
+                corner,
+                full_wall: leaving_wall,
+                point_wall: arriving_wall,
+                point_edge: arriving,
+            }
+        }
+    }
+
+    /// Where the upright's round leaves the full round's wall and the point's,
+    /// at the centre's height: one radius out from the centre, square to each.
+    fn feet(&self) -> [DVec3; 2] {
+        [&self.full_wall, &self.point_wall].map(|wall| self.corner.centre + wall.outward() * RADIUS)
+    }
+
+    /// The upright's round: a cylinder of [`RADIUS`] about the vertical
+    /// through the centre, from the floor up to the centre's height, turning
+    /// from facing out of the wall arriving at the shoulder to facing out of
+    /// the wall leaving it.
+    fn upright_round(&self, closing: &Closing) -> Round {
+        Round {
+            start: self.corner.centre.truncate().extend(0.0),
+            along: DVec3::Z,
+            length: self.corner.centre.z,
+            radius: RADIUS,
+            facing: closing.walls_at(self.corner).map(|wall| wall.outward()),
+        }
+    }
+}
+
+/// The share of the top the round of the list's edge `edge` is laid over, the
+/// closing's corners closed: #843's share, but at an end of its wall where a
+/// corner is closed — a shoulder or the tip —, closed square to the wall at
+/// the foot there, its corner over the centre.
+fn share_short_of_the_closed_corners(closing: &Closing, edge: usize) -> Share {
+    let plate = &closing.plate;
+    let run = plate.edges[edge].0;
+    let wall = plate.wall(run);
+    let closed_at = |end: DVec2, closing_there: DVec2| -> (DVec2, DVec2) {
+        (closing.tips.iter())
+            .find(|corner| plate.corner(corner.corner).distance(end) < PLACE)
+            .map_or((end, closing_there), |corner| {
+                let centre = corner.centre.truncate();
+                (centre + wall.outward().truncate() * RADIUS, centre)
+            })
+    };
+    let (from, at_the_start) = closed_at(wall.from, plate.closing(run, false));
+    let (to, at_the_end) = closed_at(wall.to, plate.closing(run, true));
+    let mut corners = vec![from, to, at_the_end];
+    if at_the_start.distance(at_the_end) > PLACE {
+        corners.push(at_the_start);
+    }
+    Share { corners }
+}
+
+/// Holds that the fillet at [`RADIUS`] on the closing's list — #843's four
+/// top edges, then the upright at each closed shoulder —, named in `order`
+/// and laid as `filleted`, takes the value whole and closes each of its
+/// shoulders with a piece of sphere, its faces numbered as #698 and #699
+/// number them: the body exact, closed, uncrossed and drawn, holding what the
+/// arithmetic promises; the top gone, the full round one face answering to
+/// both its edges' ranks, each other round to its own and each shoulder's
+/// piece to its patch, the next step numbering past the patches; each round
+/// of the top drawn on its own cylinder over its own share and met there from
+/// outside, the point's two rounds meeting on the middle line from the tip up
+/// to the crown, and the full round meeting the round of the point's edge at
+/// an open shoulder on the vertical plane through it and the crown, at a
+/// closed one at the crown only; at each closed shoulder, the upright's round
+/// drawn within its turn and under the centre, the piece on its sphere in its
+/// cell, each met there from outside, the piece meeting the full round and
+/// the point edge's round along their end sections' quarter circles and the
+/// upright's round along the level arc between its feet, the upright's round
+/// sharing with each of the two others its foot only; one vertex at each
+/// foot, at the crown and at the tip; the walls and the floor cut back to the
+/// rounds; and every face meeting the faces it bounds by one edge each.
+fn closes_each_shoulder(closing: &Closing, order: &[usize], filleted: &Filleted, what: &str) {
+    let r = RADIUS;
+    let low = HEIGHT - r;
+    let plate = &closing.plate;
+    let part = &plate.part;
+    let start = part.faces_end();
+    let laid = order.len() + closing.tips.len();
+    let pieces = patches(start, order, &closing.corners());
+    let shoulders = Shoulder::of(closing);
+    let walls = plate.walls();
+    let shares: Vec<Share> = (0..walls.len())
+        .map(|edge| share_short_of_the_closed_corners(closing, edge))
+        .collect();
+    let rounds: Vec<Round> = walls
+        .iter()
+        .zip(&shares)
+        .map(|(wall, share)| wall.round_over(share))
+        .collect();
+    let crown = plate.crowns[0];
+    let tip = plate.corner(2);
+    let at_the_tip = tip.extend(low);
+    let left_end = plate.wall(4).number;
+
+    taken_as_asked(filleted.asked, filleted.taken, r, what);
+    let body = &filleted.body;
+    sound_drawn_within(
+        body,
+        closing.kept(),
+        DRAWN * reach_of(part) * closing.area(),
+        what,
+    );
+
+    assert!(
+        !body.has_face(TOP),
+        "{what}: the top is gone, the full round over it"
+    );
+    let mut kept_and_laid = numbers(part);
+    kept_and_laid.remove(&TOP);
+    kept_and_laid.extend(start..start + laid);
+    assert_eq!(
+        numbers(body),
+        kept_and_laid,
+        "{what}: every face of the plate but its top, one for each edge's rank, and the \
+         shoulders' patches {pieces:?}"
+    );
+    assert_eq!(
+        body.faces_end(),
+        start + laid,
+        "{what}: the next step numbers its faces past the edges' ranks and the shoulders' patches"
+    );
+    let full = ranks_of(start, order, &[0, 3]);
+    one_curved_face_answers_to(body, &full, &format!("{what}: the full round"));
+    let point_rounds = [1, 2].map(|edge| ranks_of(start, order, &[edge])[0]);
+    let uprights: Vec<usize> = (shoulders.iter())
+        .map(|shoulder| ranks_of(start, order, &[shoulder.corner.edges[2]])[0])
+        .collect();
+    for &number in point_rounds.iter().chain(&uprights).chain(&pieces) {
+        assert!(
+            !body.is_flat(number) && body.plane_of(number).is_none(),
+            "{what}: face {number}, a point edge's round, an upright's round or a piece of \
+             sphere, is curved, and offers no plane to draw on"
+        );
+    }
+
+    let drawn_of = |number: usize| -> Vec<DVec3> { body.triangles_of(number).flatten().collect() };
+    let drawn_only_where =
+        |drawn: &[DVec3], on_it: &dyn Fn(DVec3) -> bool, which: &str, where_it_lies: &str| {
+            assert!(!drawn.is_empty(), "{what}: {which} is drawn");
+            let off: Vec<&DVec3> = drawn.iter().filter(|&&point| !on_it(point)).collect();
+            assert!(
+                off.is_empty(),
+                "{what}: {which} is drawn through {off:?}, off {where_it_lies}"
+            );
+        };
+    let over_its_share = |edge: usize, point: DVec3| {
+        rounds[edge].holds(point) && shares[edge].inside_by(point) >= -PLACE
+    };
+    let full_drawn = drawn_of(full[0]);
+    let point_drawn = point_rounds.map(drawn_of);
+    drawn_only_where(
+        &full_drawn,
+        &|point| over_its_share(0, point) || over_its_share(3, point),
+        "the full round",
+        "its half cylinder over the front's and the back's shares",
+    );
+    for (drawn, edge) in point_drawn.iter().zip([1, 2]) {
+        drawn_only_where(
+            drawn,
+            &|point| over_its_share(edge, point),
+            &format!("the round of {}", walls[edge].called),
+            "its quarter cylinder over its share",
+        );
+    }
+    for (edge, number) in [
+        (0, full[0]),
+        (3, full[0]),
+        (1, point_rounds[0]),
+        (2, point_rounds[1]),
+    ] {
+        met_from_outside_where(
+            body,
+            number,
+            &rounds[edge],
+            |aim| shares[edge].inside_by(aim) > CLEAR_OF_THE_MITRE,
+            &format!(
+                "{what}: the round over the wall under {}, clear of its share's sides",
+                walls[edge].called
+            ),
+        );
+    }
+
+    let mitre = shared_points(&point_drawn[0], &point_drawn[1]);
+    let middle = WIDTH / 2.0;
+    let off: Vec<&DVec3> = mitre
+        .iter()
+        .filter(|point| (point.y - middle).abs() >= PLACE)
+        .collect();
+    assert!(
+        off.is_empty(),
+        "{what}: the point's two rounds meet at {off:?}, off the plane y = {middle} through the \
+         tip and the crown"
+    );
+    assert!(
+        mitre.len() > 2 && drawn_through(&mitre, at_the_tip) && drawn_through(&mitre, crown),
+        "{what}: the point's two rounds meet along their mitre, drawn from the tip, {at_the_tip}, \
+         up to the crown, {crown}, through the points between: {mitre:?}"
+    );
+    let closed_at = |corner: usize| {
+        (shoulders.iter().zip(&uprights).zip(&pieces))
+            .find(|((shoulder, _), _)| shoulder.corner.corner == corner)
+            .map(|((_, &standing), &piece)| (standing, piece))
+    };
+    for (corner, point_round, drawn, called) in [
+        (
+            FRONT_SHOULDER,
+            point_rounds[0],
+            &point_drawn[0],
+            "the point's front edge",
+        ),
+        (
+            BACK_SHOULDER,
+            point_rounds[1],
+            &point_drawn[1],
+            "the point's back edge",
+        ),
+    ] {
+        let shoulder = plate.corner(corner);
+        let shared = shared_points(&full_drawn, drawn);
+        if closed_at(corner).is_some() {
+            assert!(
+                same_points(&shared, &[crown]),
+                "{what}: the full round and the round of {called}, the shoulder {shoulder} \
+                 closed, share no point but the crown, {crown}: {shared:?}"
+            );
+            continue;
+        }
+        let across = (crown.truncate() - shoulder).perp().normalize();
+        let off: Vec<&DVec3> = shared
+            .iter()
+            .filter(|&&point| (point.truncate() - shoulder).dot(across).abs() >= PLACE)
+            .collect();
+        assert!(
+            off.is_empty(),
+            "{what}: the full round and the round of {called} meet at {off:?}, off the vertical \
+             plane through the shoulder {shoulder} and the crown"
+        );
+        let foot = shoulder.extend(low);
+        assert!(
+            shared.len() > 2 && drawn_through(&shared, foot) && drawn_through(&shared, crown),
+            "{what}: the full round and the round of {called} meet along their mitre, drawn from \
+             {foot} to the crown, {crown}, through the points between: {shared:?}"
+        );
+        let [arriving, leaving] = [corner - 1, corner].map(|run| plate.wall(run).number);
+        assert_eq!(
+            vertices_among(body, &[&[arriving][..], &[leaving], &full, &[point_round]]),
+            1,
+            "{what}: one vertex at {foot}, where the shoulder's two walls, the full round and the \
+             round of {called} meet"
+        );
+    }
+
+    for ((shoulder, &standing), &piece) in shoulders.iter().zip(&uprights).zip(&pieces) {
+        let centre = shoulder.corner.centre;
+        let at = plate.corner(shoulder.corner.corner);
+        let point_round = ranks_of(start, order, &[shoulder.point_edge])[0];
+        let upright = shoulder.upright_round(closing);
+        let [full_out, point_out] = [&shoulder.full_wall, &shoulder.point_wall].map(Wall::outward);
+        let [full_foot, point_foot] = shoulder.feet();
+        let [point_drawn_here, standing_drawn, piece_drawn] =
+            [point_round, standing, piece].map(drawn_of);
+        drawn_only_where(
+            &standing_drawn,
+            &|point| upright.holds_within_its_turn(point),
+            &format!("the upright's round at the shoulder {at}"),
+            "its cylinder about the vertical through the centre, within its turn and under the \
+             centre",
+        );
+        drawn_only_where(
+            &piece_drawn,
+            &|point| {
+                (point.distance(centre) - r).abs() < PLACE
+                    && closing.in_the_cell(shoulder.corner, point)
+            },
+            &format!("the piece of sphere at the shoulder {at}"),
+            "the sphere about the centre, in the cell on the shoulder's side of its three planes",
+        );
+        met_from_outside_where(
+            body,
+            standing,
+            &upright,
+            |aim| aim.z < centre.z - CLEAR_OF_THE_MITRE,
+            &format!("{what}: the upright's round at the shoulder {at}, under the piece of sphere"),
+        );
+        for way in [
+            DVec3::Z + full_out + point_out,
+            DVec3::Z * 2.0 + full_out + point_out,
+            DVec3::Z + full_out * 2.0 + point_out,
+            DVec3::Z + full_out + point_out * 2.0,
+        ] {
+            let facing = way.normalize();
+            let from = centre + facing * (r + 10.0);
+            let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
+                panic!(
+                    "{what}: a ray from {from} toward the centre at the shoulder {at} meets nothing"
+                )
+            });
+            assert!(
+                hit.face == piece && hit.normal.distance(facing) < PLACE,
+                "{what}: a ray from {from} toward the centre at the shoulder {at} meets face {}, \
+                 facing {}, where it meets the piece of sphere, face {piece}, facing {facing}",
+                hit.face,
+                hit.normal
+            );
+        }
+        for (drawn, arc, ends, called) in [
+            (
+                &full_drawn,
+                [full_out, DVec3::Z],
+                [full_foot, crown],
+                "the full round, along its end section",
+            ),
+            (
+                &point_drawn_here,
+                [point_out, DVec3::Z],
+                [point_foot, crown],
+                "the round of the point's edge there, along its end section",
+            ),
+            (
+                &standing_drawn,
+                [full_out, point_out],
+                [full_foot, point_foot],
+                "the upright's round, along its top",
+            ),
+        ] {
+            let seam = shared_points(drawn, &piece_drawn);
+            let off: Vec<&DVec3> = seam
+                .iter()
+                .filter(|&&point| !on_the_arc(point, centre, r, arc))
+                .collect();
+            assert!(
+                off.is_empty(),
+                "{what}: at the shoulder {at}, {called}, meets the piece of sphere at {off:?}, off \
+                 the arc of {r} about {centre} from {} to {}",
+                ends[0],
+                ends[1]
+            );
+            assert!(
+                seam.len() > 2 && ends.iter().all(|&end| drawn_through(&seam, end)),
+                "{what}: at the shoulder {at}, {called}, meets the piece of sphere along the arc \
+                 drawn from {} to {} through the points between: {seam:?}",
+                ends[0],
+                ends[1]
+            );
+        }
+        for (other, foot, called) in [
+            (&full_drawn, full_foot, "the full round"),
+            (
+                &point_drawn_here,
+                point_foot,
+                "the round of the point's edge there",
+            ),
+        ] {
+            let shared = shared_points(other, &standing_drawn);
+            assert!(
+                same_points(&shared, &[foot]),
+                "{what}: at the shoulder {at}, {called} and the upright's round share no point but \
+                 {foot}: {shared:?}"
+            );
+        }
+        for (faces, foot) in [
+            (
+                [
+                    &[shoulder.full_wall.number][..],
+                    &full,
+                    &[standing],
+                    &[piece],
+                ],
+                full_foot,
+            ),
+            (
+                [
+                    &[shoulder.point_wall.number][..],
+                    &[point_round],
+                    &[standing],
+                    &[piece],
+                ],
+                point_foot,
+            ),
+        ] {
+            assert_eq!(
+                vertices_among(body, &faces),
+                1,
+                "{what}: one vertex at {foot}, where faces {faces:?} meet"
+            );
+        }
+        assert_eq!(
+            sides_met_by(body, &[piece]),
+            sides_answering(&[&full, &[point_round], &[standing]]),
+            "{what}: the piece of sphere at the shoulder {at} meets the full round, the round of \
+             the point's edge there and the upright's round, by one edge each, and nothing else"
+        );
+        assert_eq!(
+            sides_met_by(body, &[standing]),
+            sides_answering(&[
+                &[FLOOR],
+                &[shoulder.full_wall.number],
+                &[shoulder.point_wall.number],
+                &[piece]
+            ]),
+            "{what}: the upright's round at the shoulder {at} meets the floor, its two walls and \
+             the piece of sphere, by one edge each"
+        );
+    }
+    if let [one, other] = pieces[..] {
+        let shared = shared_points(&drawn_of(one), &drawn_of(other));
+        assert!(
+            same_points(&shared, &[crown]),
+            "{what}: the two shoulders' pieces of sphere share no point but the crown, {crown}: \
+             {shared:?}"
+        );
+    }
+    let alone: Vec<[usize; 1]> = (point_rounds.iter().chain(&pieces))
+        .map(|&number| [number])
+        .collect();
+    let mut at_the_crown: Vec<&[usize]> = vec![&full];
+    at_the_crown.extend(alone.iter().map(|number| &number[..]));
+    assert_eq!(
+        vertices_among(body, &at_the_crown),
+        1,
+        "{what}: one vertex at the crown, {crown}, where the full round, the point's two rounds \
+         and each closed shoulder's piece of sphere meet"
+    );
+    assert_eq!(
+        vertices_among(
+            body,
+            &[
+                &[POINT_FRONT][..],
+                &[POINT_BACK],
+                &[point_rounds[0]],
+                &[point_rounds[1]]
+            ]
+        ),
+        1,
+        "{what}: one vertex at the tip, {at_the_tip}, where the point's two walls and their \
+         rounds meet"
+    );
+
+    let end_at = |run: usize, corner: usize| -> DVec2 {
+        let wall = plate.wall(run);
+        (shoulders.iter())
+            .find(|shoulder| shoulder.corner.corner == corner)
+            .map_or(plate.corner(corner), |shoulder| {
+                shoulder.corner.centre.truncate() + wall.outward().truncate() * r
+            })
+    };
+    let [front_end, point_front_end, point_back_end, back_end] = [
+        (0, FRONT_SHOULDER),
+        (1, FRONT_SHOULDER),
+        (2, BACK_SHOULDER),
+        (3, BACK_SHOULDER),
+    ]
+    .map(|(run, corner)| end_at(run, corner));
+    let at = |point: DVec2, height: f64| point.extend(height);
+    let [left_front, left_back] = [DVec2::ZERO, DVec2::new(0.0, WIDTH)];
+    for (wall, corners, called) in [
+        (
+            FRONT,
+            [
+                at(left_front, 0.0),
+                at(front_end, 0.0),
+                at(front_end, low),
+                at(left_front, low),
+            ],
+            "the front, up to the full round, out to its shoulder or to the upright's round there",
+        ),
+        (
+            POINT_FRONT,
+            [
+                at(point_front_end, 0.0),
+                at(tip, 0.0),
+                at(tip, low),
+                at(point_front_end, low),
+            ],
+            "the point's front wall, up to its edge's round, from its shoulder or the upright's \
+             round there out to the tip",
+        ),
+        (
+            POINT_BACK,
+            [
+                at(tip, 0.0),
+                at(point_back_end, 0.0),
+                at(point_back_end, low),
+                at(tip, low),
+            ],
+            "the point's back wall, up to its edge's round, from the tip out to its shoulder or \
+             the upright's round there",
+        ),
+        (
+            BACK,
+            [
+                at(back_end, 0.0),
+                at(left_back, 0.0),
+                at(left_back, low),
+                at(back_end, low),
+            ],
+            "the back, up to the full round, from its shoulder or the upright's round there",
+        ),
+    ] {
+        corners_are(body, wall, &corners, &format!("{what}: {called}"));
+    }
+    let mut on_the_floor = vec![
+        left_front,
+        front_end,
+        point_front_end,
+        tip,
+        point_back_end,
+        back_end,
+        left_back,
+    ];
+    on_the_floor.dedup_by(|one, other| one.distance(*other) < PLACE);
+    let on_the_floor: Vec<DVec3> = on_the_floor
+        .into_iter()
+        .map(|point| at(point, 0.0))
+        .collect();
+    corners_are_along_an_arc(
+        body,
+        FLOOR,
+        &on_the_floor,
+        |corner| {
+            shoulders.iter().any(|shoulder| {
+                let ways = closing.walls_at(shoulder.corner).map(|wall| wall.outward());
+                on_the_arc(corner, at(shoulder.corner.centre.truncate(), 0.0), r, ways)
+            })
+        },
+        &format!(
+            "{what}: the floor, given up at each closed shoulder to the upright's round along its \
+             arc"
+        ),
+    );
+
+    let one = |number: usize| vec![number];
+    let [front_round, back_round] = point_rounds;
+    let [at_the_front, at_the_back] = [FRONT_SHOULDER, BACK_SHOULDER].map(closed_at);
+    let mut the_floor_meets = vec![
+        one(FRONT),
+        one(POINT_FRONT),
+        one(POINT_BACK),
+        one(BACK),
+        one(left_end),
+    ];
+    the_floor_meets.extend(uprights.iter().map(|&standing| one(standing)));
+    for (face, met, called) in [
+        (
+            full.clone(),
+            vec![
+                one(FRONT),
+                one(BACK),
+                one(left_end),
+                at_the_front.map_or(one(front_round), |(_, piece)| one(piece)),
+                at_the_back.map_or(one(back_round), |(_, piece)| one(piece)),
+            ],
+            "the full round meets the front, the back and the left end along its sides, and at \
+             each shoulder the piece of sphere there along its end section, or the round of the \
+             point's edge there along their mitre",
+        ),
+        (
+            one(front_round),
+            vec![
+                one(POINT_FRONT),
+                one(back_round),
+                at_the_front.map_or(full.clone(), |(_, piece)| one(piece)),
+            ],
+            "the round of the point's front edge meets its wall, the round of the point's back \
+             edge along their mitre, and at its shoulder the piece of sphere along its end \
+             section, or the full round along their mitre",
+        ),
+        (
+            one(back_round),
+            vec![
+                one(POINT_BACK),
+                one(front_round),
+                at_the_back.map_or(full.clone(), |(_, piece)| one(piece)),
+            ],
+            "the round of the point's back edge meets its wall, the round of the point's front \
+             edge along their mitre, and at its shoulder the piece of sphere along its end \
+             section, or the full round along their mitre",
+        ),
+        (
+            one(FRONT),
+            vec![
+                one(FLOOR),
+                one(left_end),
+                full.clone(),
+                at_the_front.map_or(one(POINT_FRONT), |(standing, _)| one(standing)),
+            ],
+            "the front meets the floor, the left end, the full round, and at its shoulder the \
+             upright's round, or the point's front wall along the upright left sharp",
+        ),
+        (
+            one(POINT_FRONT),
+            vec![
+                one(FLOOR),
+                one(front_round),
+                one(POINT_BACK),
+                at_the_front.map_or(one(FRONT), |(standing, _)| one(standing)),
+            ],
+            "the point's front wall meets the floor, its edge's round, the point's back wall along \
+             the tip's upright, left sharp, and at its shoulder the upright's round, or the front \
+             along the upright left sharp",
+        ),
+        (
+            one(POINT_BACK),
+            vec![
+                one(FLOOR),
+                one(back_round),
+                one(POINT_FRONT),
+                at_the_back.map_or(one(BACK), |(standing, _)| one(standing)),
+            ],
+            "the point's back wall meets the floor, its edge's round, the point's front wall along \
+             the tip's upright, left sharp, and at its shoulder the upright's round, or the back \
+             along the upright left sharp",
+        ),
+        (
+            one(BACK),
+            vec![
+                one(FLOOR),
+                one(left_end),
+                full.clone(),
+                at_the_back.map_or(one(POINT_BACK), |(standing, _)| one(standing)),
+            ],
+            "the back meets the floor, the left end, the full round, and at its shoulder the \
+             upright's round, or the point's back wall along the upright left sharp",
+        ),
+        (
+            one(FLOOR),
+            the_floor_meets,
+            "the floor meets the five walls and each closed shoulder's upright's round",
+        ),
+        (
+            one(left_end),
+            vec![one(FLOOR), one(FRONT), one(BACK), full.clone()],
+            "the left end meets the floor, the front, the back and the full round",
+        ),
+    ] {
+        let met: Vec<&[usize]> = met.iter().map(Vec::as_slice).collect();
+        assert_eq!(
+            sides_met_by(body, &face),
+            sides_answering(&met),
+            "{what}: {called}, by one edge each"
+        );
+    }
+}
+
+/// Holds that the closing's shoulders are closed in each of `orders`, as
+/// [`closes_each_corner_in_each_order`] holds it, each order laid as
+/// [`closes_each_shoulder`] holds it.
+fn closes_each_shoulder_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<usize>]) {
+    closes_each_corner_in_each_order(closing, volume, orders, closes_each_shoulder);
+}
+
+/// Every order of a list's first four edges, the fifth named at each place
+/// round the five in turn and the sixth at each place round the six counted
+/// from the last: in the `n`-th order of the four, the fifth at place `n`
+/// modulo five, then the sixth at place five less `n` modulo six.
+fn the_fifth_and_the_sixth_at_each_place_in_turn() -> Vec<Vec<usize>> {
+    every_order(4)
+        .into_iter()
+        .enumerate()
+        .map(|(turn, mut order)| {
+            order.insert(turn % 5, 4);
+            order.insert(5 - turn % 6, 5);
+            order
+        })
+        .collect()
+}
+
+/// The orders the gate names a closing of a point's shoulders in: every order
+/// of the four top edges, each shoulder's upright at each place in turn.
+fn each_upright_at_each_place_in_turn(closing: &Closing) -> Vec<Vec<usize>> {
+    if closing.tips.len() == 1 {
+        the_fifth_at_each_place_in_turn()
+    } else {
+        the_fifth_and_the_sixth_at_each_place_in_turn()
+    }
+}
+
+#[test]
+fn a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_its_front_shoulder_closes_that_shoulder_with_a_piece_of_sphere_whatever_the_order()
+ {
+    let (closing, volume) = the_point_s_shoulders_closed(&[FRONT_SHOULDER]);
+    closes_each_shoulder_in_each_order(&closing, volume, &every_order(5));
+}
+
+#[test]
+fn a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_its_back_shoulder_or_at_both_closes_each_shoulder_with_a_piece_of_sphere_whatever_the_order()
+ {
+    let (closing, volume) = the_point_s_shoulders_closed(&[BACK_SHOULDER]);
+    closes_each_shoulder_in_each_order(&closing, volume, &every_order(5));
+    let (closing, volume) = the_point_s_shoulders_closed(&[FRONT_SHOULDER, BACK_SHOULDER]);
+    closes_each_shoulder_in_each_order(
+        &closing,
+        volume,
+        &the_fifth_and_the_sixth_at_each_place_in_turn(),
+    );
+}
+
+#[test]
+fn a_fillet_on_a_full_round_the_two_edges_of_a_sharper_or_a_blunter_point_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_piece_of_sphere_whatever_the_order()
+ {
+    for point in [
+        the_sharper_point_s_shoulders_closed,
+        the_blunter_point_s_shoulders_closed,
+    ] {
+        for shoulders in SHOULDERS {
+            let (closing, volume) = point(shoulders);
+            closes_each_shoulder_in_each_order(
+                &closing,
+                volume,
+                &each_upright_at_each_place_in_turn(&closing),
+            );
+        }
+    }
+}
+
+/// The corner of [`Plate::pointed`]'s outline at its tip.
+const TIP_CORNER: usize = 2;
+
+/// #843's point, its tip at (33, 3), its four top edges, then the upright at
+/// `shoulder` and the one at its tip named, both corners closed about
+/// (33 − 3√2, 3, 7); with the volume the module's documentation writes.
+fn the_point_s_tip_and_shoulder_closed(shoulder: usize) -> (Closing, f64) {
+    let volume = 1305.0 - 45.0 * SQRT_2 + (159.0 - 12.0 * SQRT_2) * 9.0 * PI / 8.0;
+    let centre = DVec3::new(33.0 - 3.0 * SQRT_2, 3.0, 7.0);
+    (
+        pointed_and_closed_at(33.0, centre, &[shoulder, TIP_CORNER]),
+        volume,
+    )
+}
+
+/// The sharper point, its tip at (39, 3), its tip and `shoulder` closed about
+/// (39 − 3√10, 3, 7); with the volume the module's documentation writes.
+fn the_sharper_point_s_tip_and_shoulder_closed(shoulder: usize) -> (Closing, f64) {
+    let root_ten = 10f64.sqrt();
+    let volume = 1395.0 - 45.0 * root_ten
+        + 81.0 * 3f64.atan()
+        + 81.0 / 2.0 * (1.0f64 / 3.0).atan()
+        + (78.0 - 6.0 * root_ten) * 9.0 * PI / 4.0;
+    let centre = DVec3::new(39.0 - 3.0 * root_ten, 3.0, 7.0);
+    (
+        pointed_and_closed_at(39.0, centre, &[shoulder, TIP_CORNER]),
+        volume,
+    )
+}
+
+/// The blunter point, its tip at (32, 3), its tip and `shoulder` closed about
+/// (32 − √13, 3, 7); with the volume the module's documentation writes.
+fn the_blunter_point_s_tip_and_shoulder_closed(shoulder: usize) -> (Closing, f64) {
+    let root_thirteen = 13f64.sqrt();
+    let volume = 1290.0 - 15.0 * root_thirteen
+        + 81.0 * (2.0f64 / 3.0).atan()
+        + 81.0 / 2.0 * 1.5f64.atan()
+        + (64.0 - 2.0 * root_thirteen) * 9.0 * PI / 4.0;
+    let centre = DVec3::new(32.0 - root_thirteen, 3.0, 7.0);
+    (
+        pointed_and_closed_at(32.0, centre, &[shoulder, TIP_CORNER]),
+        volume,
+    )
+}
+
+/// Holds that the fillet at [`RADIUS`] on the closing's list — #843's four
+/// top edges, then the upright at one shoulder and the one at the tip —,
+/// named in `order` and laid as `filleted`, takes the value whole and closes
+/// both corners on one piece of sphere, their centre one: the body exact,
+/// closed, uncrossed and drawn, holding what the arithmetic promises; the top
+/// gone, and the point's wall between the two corners, whose uprights' rounds
+/// leave it at one foot; the full round one face answering to both its
+/// edges' ranks, the piece one face answering to both corners' patches and to
+/// the rank of the point's edge between them, whose round closes to nothing,
+/// the two uprights' rounds one face standing on one cylinder answering to
+/// both their ranks, and the point's far edge's round to its own; each round
+/// drawn on its surface over its share and met there from outside, the piece
+/// on its sphere in the two corners' cells; the piece meeting the full round
+/// and the far edge's round along their end sections' quarter circles and the
+/// standing round along the level arc between its feet; the full round
+/// meeting the far edge's round on the mitre at the open shoulder; one vertex
+/// at each foot, at the open shoulder and at the crown; the walls and the
+/// floor cut back to the rounds; and every face meeting the faces it bounds by
+/// one edge each.
+fn closes_the_tip_and_a_shoulder_on_one_piece(
+    closing: &Closing,
+    order: &[usize],
+    filleted: &Filleted,
+    what: &str,
+) {
+    let r = RADIUS;
+    let low = HEIGHT - r;
+    let plate = &closing.plate;
+    let part = &plate.part;
+    let start = part.faces_end();
+    let laid = order.len() + closing.tips.len();
+    let [at_the_shoulder, at_the_tip] = [&closing.tips[0], &closing.tips[1]];
+    let shoulder = Shoulder::at(closing, at_the_shoulder);
+    let centre = at_the_tip.centre;
+    let crown = centre + DVec3::Z * r;
+    let between = shoulder.point_edge;
+    let far_edge = 3 - between;
+    let full_wall = &shoulder.full_wall;
+    let far_wall = plate.wall(plate.edges[far_edge].0);
+    let gone = shoulder.point_wall.number;
+    let other_wall = plate.wall(
+        (plate.full_round.into_iter())
+            .find(|&run| 2 + run != full_wall.number)
+            .expect("the full round lies along two walls"),
+    );
+    let open = if at_the_shoulder.corner == FRONT_SHOULDER {
+        BACK_SHOULDER
+    } else {
+        FRONT_SHOULDER
+    };
+    let open_at = plate.corner(open);
+    let [first, last] = if at_the_shoulder.corner < at_the_tip.corner {
+        [at_the_shoulder, at_the_tip]
+    } else {
+        [at_the_tip, at_the_shoulder]
+    };
+    let turn = [
+        closing.walls_at(first)[0].outward(),
+        closing.walls_at(last)[1].outward(),
+    ];
+    let [full_out, far_out] = [full_wall.outward(), far_wall.outward()];
+    let [full_foot, far_foot] = [full_out, far_out].map(|out| centre + out * r);
+    let walls = plate.walls();
+    let shares: Vec<Share> = (0..walls.len())
+        .map(|edge| share_short_of_the_closed_corners(closing, edge))
+        .collect();
+    let rounds: Vec<Round> = walls
+        .iter()
+        .zip(&shares)
+        .map(|(wall, share)| wall.round_over(share))
+        .collect();
+    let standing_round = Round {
+        start: centre.truncate().extend(0.0),
+        along: DVec3::Z,
+        length: centre.z,
+        radius: r,
+        facing: turn,
+    };
+    let left_end = plate.wall(4).number;
+
+    taken_as_asked(filleted.asked, filleted.taken, r, what);
+    let body = &filleted.body;
+    sound_drawn_within(
+        body,
+        closing.kept(),
+        DRAWN * reach_of(part) * closing.area(),
+        what,
+    );
+
+    for (face, why) in [
+        (TOP, "the full round over it"),
+        (gone, "the two uprights' rounds leaving it at one foot"),
+    ] {
+        assert!(!body.has_face(face), "{what}: face {face} is gone, {why}");
+    }
+    let mut kept_and_laid = numbers(part);
+    kept_and_laid.remove(&TOP);
+    kept_and_laid.remove(&gone);
+    kept_and_laid.extend(start..start + laid);
+    assert_eq!(
+        numbers(body),
+        kept_and_laid,
+        "{what}: every face of the plate but its top and the point's wall between the two \
+         corners, one for each edge's rank, and both corners' patches"
+    );
+    assert_eq!(
+        body.faces_end(),
+        start + laid,
+        "{what}: the next step numbers its faces past the edges' ranks and the corners' patches"
+    );
+    let full = ranks_of(start, order, &[0, 3]);
+    let mut piece = patches(start, order, &closing.corners());
+    piece.extend(ranks_of(start, order, &[between]));
+    piece.sort();
+    let standing = ranks_of(
+        start,
+        order,
+        &[at_the_shoulder.edges[2], at_the_tip.edges[2]],
+    );
+    let far_round = ranks_of(start, order, &[far_edge])[0];
+    for (face, which) in [
+        (&full, "the full round"),
+        (
+            &piece,
+            "the piece of sphere, taking in the round of the point's edge between the two \
+             corners, closed to nothing",
+        ),
+        (
+            &standing,
+            "the two uprights' rounds, standing on one cylinder",
+        ),
+    ] {
+        one_curved_face_answers_to(body, face, &format!("{what}: {which}"));
+    }
+    assert!(
+        !body.is_flat(far_round) && body.plane_of(far_round).is_none(),
+        "{what}: the round of {}, face {far_round}, is curved, and offers no plane to draw on",
+        far_wall.called
+    );
+
+    let drawn_of = |number: usize| -> Vec<DVec3> { body.triangles_of(number).flatten().collect() };
+    let drawn_only_where =
+        |drawn: &[DVec3], on_it: &dyn Fn(DVec3) -> bool, which: &str, where_it_lies: &str| {
+            assert!(!drawn.is_empty(), "{what}: {which} is drawn");
+            let off: Vec<&DVec3> = drawn.iter().filter(|&&point| !on_it(point)).collect();
+            assert!(
+                off.is_empty(),
+                "{what}: {which} is drawn through {off:?}, off {where_it_lies}"
+            );
+        };
+    let over_its_share = |edge: usize, point: DVec3| {
+        rounds[edge].holds(point) && shares[edge].inside_by(point) >= -PLACE
+    };
+    let [full_drawn, piece_drawn, standing_drawn, far_drawn] =
+        [full[0], piece[0], standing[0], far_round].map(drawn_of);
+    drawn_only_where(
+        &full_drawn,
+        &|point| over_its_share(0, point) || over_its_share(3, point),
+        "the full round",
+        "its half cylinder over the front's and the back's shares",
+    );
+    drawn_only_where(
+        &far_drawn,
+        &|point| over_its_share(far_edge, point),
+        &format!("the round of {}", far_wall.called),
+        "its quarter cylinder over its share",
+    );
+    drawn_only_where(
+        &piece_drawn,
+        &|point| {
+            (point.distance(centre) - r).abs() < PLACE
+                && (closing.in_the_cell(at_the_shoulder, point)
+                    || closing.in_the_cell(at_the_tip, point))
+        },
+        "the piece of sphere",
+        "the sphere about the centre, in the cells of the shoulder and of the tip",
+    );
+    drawn_only_where(
+        &standing_drawn,
+        &|point| standing_round.holds_within_its_turn(point),
+        "the standing round",
+        "its cylinder about the vertical through the centre, within its turn and under the \
+         centre",
+    );
+    for (edge, number) in [(0, full[0]), (3, full[0]), (far_edge, far_round)] {
+        met_from_outside_where(
+            body,
+            number,
+            &rounds[edge],
+            |aim| shares[edge].inside_by(aim) > CLEAR_OF_THE_MITRE,
+            &format!(
+                "{what}: the round over the wall under {}, clear of its share's sides",
+                walls[edge].called
+            ),
+        );
+    }
+    met_from_outside_where(
+        body,
+        standing[0],
+        &standing_round,
+        |aim| aim.z < centre.z - CLEAR_OF_THE_MITRE,
+        &format!("{what}: the standing round, under the piece of sphere"),
+    );
+    let [from, to] = turn;
+    for way in [
+        DVec3::Z + from + to,
+        DVec3::Z * 2.0 + from + to,
+        DVec3::Z + from * 2.0 + to,
+        DVec3::Z + from + to * 2.0,
+    ] {
+        let facing = way.normalize();
+        let ray_from = centre + facing * (r + 10.0);
+        let hit = body.ray_hit(ray_from, -facing).unwrap_or_else(|| {
+            panic!("{what}: a ray from {ray_from} toward the centre meets nothing")
+        });
+        assert!(
+            hit.face == piece[0] && hit.normal.distance(facing) < PLACE,
+            "{what}: a ray from {ray_from} toward the centre meets face {}, facing {}, where it \
+             meets the piece of sphere, face {}, facing {facing}",
+            hit.face,
+            hit.normal,
+            piece[0]
+        );
+    }
+
+    for (drawn, arc, ends, called) in [
+        (
+            &full_drawn,
+            [full_out, DVec3::Z],
+            [full_foot, crown],
+            "the full round, along its end section",
+        ),
+        (
+            &far_drawn,
+            [far_out, DVec3::Z],
+            [far_foot, crown],
+            "the round of the point's far edge, along its end section",
+        ),
+        (
+            &standing_drawn,
+            turn,
+            [full_foot, far_foot],
+            "the standing round, along its top",
+        ),
+    ] {
+        let seam = shared_points(drawn, &piece_drawn);
+        let off: Vec<&DVec3> = seam
+            .iter()
+            .filter(|&&point| !on_the_arc(point, centre, r, arc))
+            .collect();
+        assert!(
+            off.is_empty(),
+            "{what}: {called}, meets the piece of sphere at {off:?}, off the arc of {r} about \
+             {centre} from {} to {}",
+            ends[0],
+            ends[1]
+        );
+        assert!(
+            seam.len() > 2 && ends.iter().all(|&end| drawn_through(&seam, end)),
+            "{what}: {called}, meets the piece of sphere along the arc drawn from {} to {} \
+             through the points between: {seam:?}",
+            ends[0],
+            ends[1]
+        );
+    }
+    for (other, foot, called) in [
+        (&full_drawn, full_foot, "the full round"),
+        (&far_drawn, far_foot, "the round of the point's far edge"),
+    ] {
+        let shared = shared_points(other, &standing_drawn);
+        assert!(
+            same_points(&shared, &[foot]),
+            "{what}: {called} and the standing round share no point but {foot}: {shared:?}"
+        );
+    }
+    let mitre = shared_points(&full_drawn, &far_drawn);
+    let across = (crown.truncate() - open_at).perp().normalize();
+    let off: Vec<&DVec3> = mitre
+        .iter()
+        .filter(|&&point| (point.truncate() - open_at).dot(across).abs() >= PLACE)
+        .collect();
+    let open_foot = open_at.extend(low);
+    assert!(
+        off.is_empty()
+            && mitre.len() > 2
+            && drawn_through(&mitre, open_foot)
+            && drawn_through(&mitre, crown),
+        "{what}: the full round and the round of the point's far edge meet along their mitre, on \
+         the vertical plane through the open shoulder {open_at} and the crown, drawn from \
+         {open_foot} to the crown, {crown}, through the points between: {mitre:?}, off it at \
+         {off:?}"
+    );
+    for (faces, at) in [
+        (
+            [&[full_wall.number][..], &full, &piece, &standing],
+            full_foot,
+        ),
+        (
+            [&[far_wall.number][..], &[far_round], &piece, &standing],
+            far_foot,
+        ),
+        (
+            [
+                &[far_wall.number][..],
+                &[other_wall.number],
+                &full,
+                &[far_round],
+            ],
+            open_foot,
+        ),
+    ] {
+        assert_eq!(
+            vertices_among(body, &faces),
+            1,
+            "{what}: one vertex at {at}, where faces {faces:?} meet"
+        );
+    }
+    assert_eq!(
+        vertices_among(body, &[&full, &[far_round], &piece]),
+        1,
+        "{what}: one vertex at the crown, {crown}, where the full round, the round of the \
+         point's far edge and the piece of sphere meet"
+    );
+
+    let at = |point: DVec2, height: f64| point.extend(height);
+    let shoulder_at = plate.corner(at_the_shoulder.corner);
+    let away_from = |wall: &Wall, end: DVec2| {
+        if wall.to.distance(end) < PLACE {
+            wall.from
+        } else {
+            wall.to
+        }
+    };
+    let full_left = away_from(full_wall, shoulder_at);
+    let other_left = away_from(&other_wall, open_at);
+    let [full_foot_below, far_foot_below] = [full_foot, far_foot].map(DVec3::truncate);
+    for (wall, corners, called) in [
+        (
+            full_wall.number,
+            [
+                at(full_left, 0.0),
+                at(full_foot_below, 0.0),
+                full_foot,
+                at(full_left, low),
+            ],
+            "the full round's wall at the closed shoulder, out to the standing round",
+        ),
+        (
+            far_wall.number,
+            [
+                at(far_foot_below, 0.0),
+                at(open_at, 0.0),
+                at(open_at, low),
+                far_foot,
+            ],
+            "the point's far wall, from the standing round out to the open shoulder",
+        ),
+        (
+            other_wall.number,
+            [
+                at(open_at, 0.0),
+                at(other_left, 0.0),
+                at(other_left, low),
+                at(open_at, low),
+            ],
+            "the full round's wall at the open shoulder, up to the full round",
+        ),
+    ] {
+        corners_are(body, wall, &corners, &format!("{what}: {called}"));
+    }
+    corners_are_along_an_arc(
+        body,
+        FLOOR,
+        &[
+            at(full_left, 0.0),
+            at(full_foot_below, 0.0),
+            at(far_foot_below, 0.0),
+            at(open_at, 0.0),
+            at(other_left, 0.0),
+        ],
+        |corner| on_the_arc(corner, at(centre.truncate(), 0.0), r, turn),
+        &format!("{what}: the floor, given up to the standing round along its arc"),
+    );
+
+    for (face, met, called) in [
+        (
+            &full[..],
+            vec![
+                &[full_wall.number][..],
+                &[other_wall.number],
+                &[left_end],
+                &piece,
+                &[far_round],
+            ],
+            "the full round meets its two walls, the left end, the piece of sphere along its end \
+             section and the round of the point's far edge along their mitre",
+        ),
+        (
+            &piece[..],
+            vec![&full[..], &[far_round], &standing],
+            "the piece of sphere meets the full round, the round of the point's far edge and the \
+             standing round, and nothing else",
+        ),
+        (
+            &standing[..],
+            vec![
+                &[FLOOR][..],
+                &[full_wall.number],
+                &[far_wall.number],
+                &piece,
+            ],
+            "the standing round meets the floor, the full round's wall at the closed shoulder, \
+             the point's far wall and the piece of sphere",
+        ),
+        (
+            &[far_round][..],
+            vec![&[far_wall.number][..], &full, &piece],
+            "the round of the point's far edge meets its wall, the full round and the piece of \
+             sphere",
+        ),
+        (
+            &[full_wall.number][..],
+            vec![&[FLOOR][..], &[left_end], &full, &standing],
+            "the full round's wall at the closed shoulder meets the floor, the left end, the full \
+             round and the standing round",
+        ),
+        (
+            &[far_wall.number][..],
+            vec![&[FLOOR][..], &[other_wall.number], &[far_round], &standing],
+            "the point's far wall meets the floor, the wall at the open shoulder along its \
+             upright, left sharp, its edge's round and the standing round",
+        ),
+        (
+            &[other_wall.number][..],
+            vec![&[FLOOR][..], &[left_end], &[far_wall.number], &full],
+            "the full round's wall at the open shoulder meets the floor, the left end, the \
+             point's far wall and the full round",
+        ),
+        (
+            &[FLOOR][..],
+            vec![
+                &[full_wall.number][..],
+                &[other_wall.number],
+                &[far_wall.number],
+                &[left_end],
+                &standing,
+            ],
+            "the floor meets the four walls left and the standing round",
+        ),
+        (
+            &[left_end][..],
+            vec![
+                &[FLOOR][..],
+                &[full_wall.number],
+                &[other_wall.number],
+                &full,
+            ],
+            "the left end meets the floor, the full round's two walls and the full round",
+        ),
+    ] {
+        assert_eq!(
+            sides_met_by(body, face),
+            sides_answering(&met),
+            "{what}: {called}, by one edge each"
+        );
+    }
+}
+
+/// Holds that the fillet at [`RADIUS`] on the closing's list, named in
+/// `order` and laid as `filleted`, takes the value whole and closes each of
+/// its shoulders with a piece of sphere, on any plate: the body exact,
+/// closed, uncrossed and drawn, holding what the arithmetic promises; the top
+/// gone, every rank and every shoulder's patch answering to a face, the full
+/// round to both its edges' ranks; and at each shoulder the point edge's
+/// round, the upright's and the piece curved, the piece drawn on its sphere in
+/// its cell only and met there from outside, meeting the full round, the
+/// point edge's round and the upright's round by one edge each and nothing
+/// else, the upright's round meeting the floor, its two walls and the piece,
+/// and one vertex at each foot.
+fn closes_each_shoulder_on_its_sphere(
+    closing: &Closing,
+    order: &[usize],
+    filleted: &Filleted,
+    what: &str,
+) {
+    let r = RADIUS;
+    let plate = &closing.plate;
+    let part = &plate.part;
+    let start = part.faces_end();
+    let laid = order.len() + closing.tips.len();
+    let pieces = patches(start, order, &closing.corners());
+
+    taken_as_asked(filleted.asked, filleted.taken, r, what);
+    let body = &filleted.body;
+    sound_drawn_within(
+        body,
+        closing.kept(),
+        DRAWN * reach_of(part) * closing.area(),
+        what,
+    );
+    assert!(
+        !body.has_face(TOP),
+        "{what}: the top is gone, the full round over it"
+    );
+    let mut kept_and_laid = numbers(part);
+    kept_and_laid.remove(&TOP);
+    kept_and_laid.extend(start..start + laid);
+    assert_eq!(
+        numbers(body),
+        kept_and_laid,
+        "{what}: every face of the plate but its top, one for each edge's rank, and the \
+         shoulders' patches {pieces:?}"
+    );
+    assert_eq!(
+        body.faces_end(),
+        start + laid,
+        "{what}: the next step numbers its faces past the edges' ranks and the shoulders' patches"
+    );
+    let full = ranks_of(
+        start,
+        order,
+        &plate.full_round.map(|run| {
+            plate
+                .edge_of(run)
+                .expect("the full round's edges are named")
+        }),
+    );
+    one_curved_face_answers_to(body, &full, &format!("{what}: the full round"));
+
+    for (shoulder, &piece) in Shoulder::of(closing).iter().zip(&pieces) {
+        let centre = shoulder.corner.centre;
+        let at = plate.corner(shoulder.corner.corner);
+        let point_round = ranks_of(start, order, &[shoulder.point_edge])[0];
+        let standing = ranks_of(start, order, &[shoulder.corner.edges[2]])[0];
+        for (number, which) in [
+            (point_round, "the round of the point's edge there"),
+            (standing, "the upright's round"),
+            (piece, "the piece of sphere"),
+        ] {
+            assert!(
+                !body.is_flat(number) && body.plane_of(number).is_none(),
+                "{what}: at the shoulder {at}, {which}, face {number}, is curved, and offers no \
+                 plane to draw on"
+            );
+        }
+        let drawn: Vec<DVec3> = body.triangles_of(piece).flatten().collect();
+        let off: Vec<&DVec3> = drawn
+            .iter()
+            .filter(|&&point| {
+                (point.distance(centre) - r).abs() >= PLACE
+                    || !closing.in_the_cell(shoulder.corner, point)
+            })
+            .collect();
+        assert!(
+            !drawn.is_empty() && off.is_empty(),
+            "{what}: the piece of sphere at the shoulder {at}, face {piece}, is drawn, and only on \
+             the sphere of {r} about {centre} in the cell on the shoulder's side of its three \
+             planes; drawn through {off:?}"
+        );
+        let [full_out, point_out] = [&shoulder.full_wall, &shoulder.point_wall].map(Wall::outward);
+        for way in [
+            DVec3::Z + full_out + point_out,
+            DVec3::Z * 2.0 + full_out + point_out,
+            DVec3::Z + full_out * 2.0 + point_out,
+            DVec3::Z + full_out + point_out * 2.0,
+        ] {
+            let facing = way.normalize();
+            let from = centre + facing * (r + 10.0);
+            let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
+                panic!(
+                    "{what}: a ray from {from} toward the centre at the shoulder {at} meets nothing"
+                )
+            });
+            assert!(
+                hit.face == piece && hit.normal.distance(facing) < PLACE,
+                "{what}: a ray from {from} toward the centre at the shoulder {at} meets face {}, \
+                 facing {}, where it meets the piece of sphere, face {piece}, facing {facing}",
+                hit.face,
+                hit.normal
+            );
+        }
+        assert_eq!(
+            sides_met_by(body, &[piece]),
+            sides_answering(&[&full, &[point_round], &[standing]]),
+            "{what}: the piece of sphere at the shoulder {at} meets the full round, the round of \
+             the point's edge there and the upright's round, by one edge each, and nothing else"
+        );
+        assert_eq!(
+            sides_met_by(body, &[standing]),
+            sides_answering(&[
+                &[closing.opposite()],
+                &[shoulder.full_wall.number],
+                &[shoulder.point_wall.number],
+                &[piece]
+            ]),
+            "{what}: the upright's round at the shoulder {at} meets the floor, its two walls and \
+             the piece of sphere, by one edge each"
+        );
+        let [full_foot, point_foot] = shoulder.feet();
+        for (faces, foot) in [
+            (
+                [
+                    &[shoulder.full_wall.number][..],
+                    &full,
+                    &[standing],
+                    &[piece],
+                ],
+                full_foot,
+            ),
+            (
+                [
+                    &[shoulder.point_wall.number][..],
+                    &[point_round],
+                    &[standing],
+                    &[piece],
+                ],
+                point_foot,
+            ),
+        ] {
+            assert_eq!(
+                vertices_among(body, &faces),
+                1,
+                "{what}: one vertex at {foot}, where faces {faces:?} meet"
+            );
+        }
+    }
+}
+
+/// The plate pointed at both ends, its six top edges and the upright at its
+/// front right shoulder, (30, 0), closed about (33 − 3√2, 3, 7), both tips
+/// mitred as #843 mitres them; with the volume the module's documentation
+/// writes for it.
+fn both_ends_pointed_and_a_shoulder_closed() -> (Closing, f64) {
+    let volume = 1305.0 - 9.0 * SQRT_2 + (141.0 - 24.0 * SQRT_2) * 9.0 * PI / 8.0;
+    let shoulder = (2, DVec3::new(33.0 - 3.0 * SQRT_2, 3.0, 7.0));
+    (pointed_at_both_ends_closing(&[shoulder]), volume)
+}
+
+/// The blocks of the plate pointed at both ends with its front right shoulder
+/// closed: the front and that shoulder's upright, the right point's two, the
+/// back, the left point's two.
+const BOTH_ENDS_AND_A_SHOULDER_BLOCKS: [&[usize]; 4] = [&[0, 6], &[1, 2], &[3], &[4, 5]];
+
+/// What chamfering at [`RADIUS`] the upright at a shoulder whose angle is
+/// `angle`, with the two top edges there, takes off the hip #843 chamfers, as
+/// the module's documentation derives it: the triangle the upright's flat cuts
+/// off, whole, and over the rest of its two flats' quadrilateral what lies
+/// above the corner's triangle, `r² sin θ ((H − r)/2 + r/6)`.
+fn chamfered_shoulder_takes(angle: f64) -> f64 {
+    let r = RADIUS;
+    r * r * angle.sin() * ((HEIGHT - r) / 2.0 + r / 6.0)
+}
+
+/// What the plate keeps once the closing's list is chamfered at [`RADIUS`]:
+/// the hip #843 chamfers, less what each chamfered shoulder takes.
+fn chamfered_kept(closing: &Closing) -> f64 {
+    closing.plate.hipped()
+        - (closing.tips.iter())
+            .map(|corner| chamfered_shoulder_takes(closing.plate.angle_at(corner.corner)))
+            .sum::<f64>()
+}
+
+impl Shoulder<'_> {
+    /// Where the upright's flat leaves the full round's wall and the point's,
+    /// seen from above: one distance along each from the shoulder.
+    fn flat_feet(&self, plate: &Plate) -> [DVec2; 2] {
+        let at = plate.corner(self.corner.corner);
+        [&self.full_wall, &self.point_wall].map(|wall| {
+            let along = (wall.to - wall.from).normalize();
+            if wall.to.distance(at) < PLACE {
+                at - along * RADIUS
+            } else {
+                at + along * RADIUS
+            }
+        })
+    }
+
+    /// The corner's triangle a chamfer closes the shoulder with, #699's: its
+    /// corners where the flats' edges cross on the full round's wall, on the
+    /// point's wall, and over the face that is gone, at the crown.
+    fn triangle(&self, plate: &Plate) -> [DVec3; 3] {
+        let [on_the_full, on_the_point] = self.flat_feet(plate);
+        let low = HEIGHT - RADIUS;
+        [
+            on_the_full.extend(low),
+            on_the_point.extend(low),
+            plate.crowns[0],
+        ]
+    }
+}
+
+/// The way the triangle with `corners` faces out of the plate: square to it,
+/// upwards.
+fn facing_up(corners: [DVec3; 3]) -> DVec3 {
+    let [one, other, third] = corners;
+    let normal = (one - third).cross(other - third).normalize();
+    if normal.z < 0.0 { -normal } else { normal }
+}
+
+/// The share of the top the flat of the list's edge `edge` is laid over, the
+/// closing's shoulders chamfered: #843's share, but at an end of its wall
+/// where a shoulder is closed, closed at the upright's flat's foot there, one
+/// distance along the wall from the shoulder, its corner at the crown.
+fn flat_share_short_of_the_shoulders(closing: &Closing, edge: usize) -> Share {
+    let plate = &closing.plate;
+    let run = plate.edges[edge].0;
+    let wall = plate.wall(run);
+    let along = (wall.to - wall.from).normalize();
+    let closed_at = |end: DVec2, closing_there: DVec2, inward: DVec2| -> (DVec2, DVec2) {
+        (closing.tips.iter())
+            .find(|corner| plate.corner(corner.corner).distance(end) < PLACE)
+            .map_or((end, closing_there), |corner| {
+                (end + inward * RADIUS, corner.centre.truncate())
+            })
+    };
+    let (from, at_the_start) = closed_at(wall.from, plate.closing(run, false), along);
+    let (to, at_the_end) = closed_at(wall.to, plate.closing(run, true), -along);
+    let mut corners = vec![from, to, at_the_end];
+    if at_the_start.distance(at_the_end) > PLACE {
+        corners.push(at_the_start);
+    }
+    Share { corners }
+}
+
+/// What the plate keeps once the closing's list is chamfered at [`RADIUS`],
+/// computed apart from the step: the plate cut by the booleans beyond the
+/// plane of every flat — each top edge's, one distance down its wall and in
+/// across the top, each closed shoulder's upright's, one distance along both
+/// its walls — and beyond the plane of each shoulder's triangle.
+fn chamfered_by_booleans(closing: &Closing) -> f64 {
+    let plate = &closing.plate;
+    let low = HEIGHT - RADIUS;
+    let mut planes: Vec<(DVec3, DVec3)> = (plate.walls().iter())
+        .map(|wall| (wall.from.extend(low), wall.outward() + DVec3::Z))
+        .collect();
+    for shoulder in Shoulder::of(closing) {
+        let [on_the_full, _] = shoulder.flat_feet(plate);
+        let outwards = shoulder.full_wall.outward() + shoulder.point_wall.outward();
+        planes.push((on_the_full.extend(0.0), outwards));
+        let triangle = shoulder.triangle(plate);
+        planes.push((triangle[2], facing_up(triangle)));
+    }
+    (planes.into_iter())
+        .fold(plate.part.clone(), |left, (through, away)| {
+            left.difference(&beyond(&left, through, away, 100.0))
+                .expect("a flat's plane cuts the plate")
+        })
+        .volume()
+}
+
+/// Holds that the chamfer at [`RADIUS`] on the closing's list — #843's four
+/// top edges, then the upright at each closed shoulder —, named in `order`
+/// and laid as `chamfered`, takes the value whole and closes each shoulder
+/// with #699's triangle: the body exact, closed and uncrossed, its triangles
+/// enclosing what the arithmetic promises; the top gone, one flat for each
+/// edge, numbered in the order the list names them, and each shoulder's
+/// triangle past them; each top edge's flat over its share, facing halfway
+/// between the top's way and its wall's; each upright's flat standing on the
+/// floor between its feet, facing halfway between its two walls' ways; each
+/// triangle at its three corners, meeting the two top edges' flats and the
+/// upright's there; the flats and the triangles reaching the crown meeting at
+/// one vertex there; the walls and the floor cut back to the flats; and every
+/// face meeting the faces it bounds by one edge each.
+fn chamfers_each_shoulder(closing: &Closing, order: &[usize], chamfered: &Chamfered, what: &str) {
+    let r = RADIUS;
+    let low = HEIGHT - r;
+    let plate = &closing.plate;
+    let part = &plate.part;
+    let start = part.faces_end();
+    let laid = order.len() + closing.tips.len();
+    let triangles = patches(start, order, &closing.corners());
+    let shoulders = Shoulder::of(closing);
+    let walls = plate.walls();
+    let shares: Vec<Share> = (0..walls.len())
+        .map(|edge| flat_share_short_of_the_shoulders(closing, edge))
+        .collect();
+    let crown = plate.crowns[0];
+    let tip = plate.corner(TIP_CORNER);
+    let left_end = plate.wall(4).number;
+    let flat_of = |edge: usize| ranks_of(start, order, &[edge])[0];
+
+    taken_as_asked(chamfered.asked, chamfered.taken, r, what);
+    let body = &chamfered.body;
+    let promised = chamfered_kept(closing);
+    sound_drawn_within(body, promised, EXACT * promised, what);
+    assert!(
+        !body.has_face(TOP),
+        "{what}: the top is gone, the front's and the back's flats meeting in a ridge over it"
+    );
+    let mut kept_and_laid = numbers(part);
+    kept_and_laid.remove(&TOP);
+    kept_and_laid.extend(start..start + laid);
+    assert_eq!(
+        numbers(body),
+        kept_and_laid,
+        "{what}: every face of the plate but its top, one flat for each edge, numbered in the \
+         order the list names them, and the shoulders' triangles {triangles:?}"
+    );
+    assert_eq!(
+        body.faces_end(),
+        start + laid,
+        "{what}: the next step numbers its faces past the edges' flats and the shoulders' \
+         triangles"
+    );
+
+    for (edge, wall) in walls.iter().enumerate() {
+        let inward = -wall.outward().truncate();
+        let lifted: Vec<DVec3> = (shares[edge].corners.iter())
+            .map(|&corner| corner.extend(low + (corner - wall.from).dot(inward)))
+            .collect();
+        let which = format!("{what}: the flat of {}", wall.called);
+        corners_are(
+            body,
+            flat_of(edge),
+            &lifted,
+            &format!("{which}, over its share of the top"),
+        );
+        faces_toward(
+            body,
+            flat_of(edge),
+            (wall.outward() + DVec3::Z).normalize(),
+            &which,
+        );
+    }
+    let closed_at = |corner: usize| {
+        (shoulders.iter().zip(&triangles))
+            .find(|(shoulder, _)| shoulder.corner.corner == corner)
+            .map(|(shoulder, &triangle)| (flat_of(shoulder.corner.edges[2]), triangle))
+    };
+    for (shoulder, &triangle) in shoulders.iter().zip(&triangles) {
+        let at = plate.corner(shoulder.corner.corner);
+        let [on_the_full, on_the_point] = shoulder.flat_feet(plate);
+        let upright = flat_of(shoulder.corner.edges[2]);
+        let outwards = shoulder.full_wall.outward() + shoulder.point_wall.outward();
+        corners_are(
+            body,
+            upright,
+            &[
+                on_the_full.extend(0.0),
+                on_the_point.extend(0.0),
+                on_the_point.extend(low),
+                on_the_full.extend(low),
+            ],
+            &format!(
+                "{what}: the upright's flat at the shoulder {at}, one distance along both its \
+                 walls"
+            ),
+        );
+        faces_toward(
+            body,
+            upright,
+            outwards.normalize(),
+            &format!("{what}: the upright's flat at the shoulder {at}"),
+        );
+        let corners = shoulder.triangle(plate);
+        corners_are(
+            body,
+            triangle,
+            &corners,
+            &format!(
+                "{what}: the triangle at the shoulder {at}, where the flats' edges cross on its \
+                 two walls and at the crown"
+            ),
+        );
+        faces_toward(
+            body,
+            triangle,
+            facing_up(corners),
+            &format!("{what}: the triangle at the shoulder {at}"),
+        );
+        let full_edge = (plate.edge_of(shoulder.full_wall.number - 2))
+            .expect("the full round's edges are named");
+        assert_eq!(
+            sides_met_by(body, &[triangle]),
+            sides_answering(&[
+                &[flat_of(full_edge)],
+                &[flat_of(shoulder.point_edge)],
+                &[upright]
+            ]),
+            "{what}: the triangle at the shoulder {at} meets the flats of the two top edges there \
+             and the upright's, by one edge each, and nothing else"
+        );
+        assert_eq!(
+            sides_met_by(body, &[upright]),
+            sides_answering(&[
+                &[FLOOR],
+                &[shoulder.full_wall.number],
+                &[shoulder.point_wall.number],
+                &[triangle]
+            ]),
+            "{what}: the upright's flat at the shoulder {at} meets the floor, its two walls and \
+             the triangle, by one edge each"
+        );
+    }
+    let mut at_the_crown: Vec<Vec<u32>> = (0..walls.len())
+        .map(|edge| vec![flat_of(edge) as u32])
+        .chain(triangles.iter().map(|&triangle| vec![triangle as u32]))
+        .collect();
+    at_the_crown.sort();
+    assert_eq!(
+        (body.vertex_names().into_iter())
+            .filter(|vertex| vertex.faces == at_the_crown)
+            .count(),
+        1,
+        "{what}: the four top edges' flats and each shoulder's triangle meet at one vertex, the \
+         crown {crown}"
+    );
+
+    let end_at = |run: usize, corner: usize| -> DVec2 {
+        let shoulder = shoulders
+            .iter()
+            .find(|shoulder| shoulder.corner.corner == corner);
+        let at = plate.corner(corner);
+        shoulder.map_or(at, |shoulder| {
+            let [on_the_full, on_the_point] = shoulder.flat_feet(plate);
+            if shoulder.full_wall.number == 2 + run {
+                on_the_full
+            } else {
+                on_the_point
+            }
+        })
+    };
+    let [front_end, point_front_end, point_back_end, back_end] = [
+        (0, FRONT_SHOULDER),
+        (1, FRONT_SHOULDER),
+        (2, BACK_SHOULDER),
+        (3, BACK_SHOULDER),
+    ]
+    .map(|(run, corner)| end_at(run, corner));
+    let at = |point: DVec2, height: f64| point.extend(height);
+    let [left_front, left_back] = [DVec2::ZERO, DVec2::new(0.0, WIDTH)];
+    for (wall, corners, called) in [
+        (
+            FRONT,
+            [
+                at(left_front, 0.0),
+                at(front_end, 0.0),
+                at(front_end, low),
+                at(left_front, low),
+            ],
+            "the front, up to its flat, out to its shoulder or to the upright's flat there",
+        ),
+        (
+            POINT_FRONT,
+            [
+                at(point_front_end, 0.0),
+                at(tip, 0.0),
+                at(tip, low),
+                at(point_front_end, low),
+            ],
+            "the point's front wall, up to its flat, from its shoulder or the upright's flat \
+             there out to the tip",
+        ),
+        (
+            POINT_BACK,
+            [
+                at(tip, 0.0),
+                at(point_back_end, 0.0),
+                at(point_back_end, low),
+                at(tip, low),
+            ],
+            "the point's back wall, up to its flat, from the tip out to its shoulder or the \
+             upright's flat there",
+        ),
+        (
+            BACK,
+            [
+                at(back_end, 0.0),
+                at(left_back, 0.0),
+                at(left_back, low),
+                at(back_end, low),
+            ],
+            "the back, up to its flat, from its shoulder or the upright's flat there",
+        ),
+    ] {
+        corners_are(body, wall, &corners, &format!("{what}: {called}"));
+    }
+    let mut on_the_floor = vec![
+        left_front,
+        front_end,
+        point_front_end,
+        tip,
+        point_back_end,
+        back_end,
+        left_back,
+    ];
+    on_the_floor.dedup_by(|one, other| one.distance(*other) < PLACE);
+    let on_the_floor: Vec<DVec3> = on_the_floor
+        .into_iter()
+        .map(|point| at(point, 0.0))
+        .collect();
+    corners_are(
+        body,
+        FLOOR,
+        &on_the_floor,
+        &format!("{what}: the floor, given up at each closed shoulder to the upright's flat"),
+    );
+
+    let one = |number: usize| vec![number];
+    let [front, point_front, point_back, back] = [0, 1, 2, 3].map(flat_of);
+    let [at_the_front, at_the_back] = [FRONT_SHOULDER, BACK_SHOULDER].map(closed_at);
+    let mut the_floor_meets = vec![
+        one(FRONT),
+        one(POINT_FRONT),
+        one(POINT_BACK),
+        one(BACK),
+        one(left_end),
+    ];
+    the_floor_meets.extend(
+        shoulders
+            .iter()
+            .map(|shoulder| one(flat_of(shoulder.corner.edges[2]))),
+    );
+    for (face, met, called) in [
+        (
+            front,
+            vec![
+                one(FRONT),
+                one(back),
+                one(left_end),
+                at_the_front.map_or(one(point_front), |(_, triangle)| one(triangle)),
+            ],
+            "the front's flat meets its wall, the back's across the ridge, the left end, and at \
+             its shoulder the triangle, or the point's front flat along their hip",
+        ),
+        (
+            back,
+            vec![
+                one(BACK),
+                one(front),
+                one(left_end),
+                at_the_back.map_or(one(point_back), |(_, triangle)| one(triangle)),
+            ],
+            "the back's flat meets its wall, the front's across the ridge, the left end, and at \
+             its shoulder the triangle, or the point's back flat along their hip",
+        ),
+        (
+            point_front,
+            vec![
+                one(POINT_FRONT),
+                one(point_back),
+                at_the_front.map_or(one(front), |(_, triangle)| one(triangle)),
+            ],
+            "the point's front flat meets its wall, the point's back flat along their hip, and at \
+             its shoulder the triangle, or the front's flat along their hip",
+        ),
+        (
+            point_back,
+            vec![
+                one(POINT_BACK),
+                one(point_front),
+                at_the_back.map_or(one(back), |(_, triangle)| one(triangle)),
+            ],
+            "the point's back flat meets its wall, the point's front flat along their hip, and at \
+             its shoulder the triangle, or the back's flat along their hip",
+        ),
+        (
+            FRONT,
+            vec![
+                one(FLOOR),
+                one(left_end),
+                one(front),
+                at_the_front.map_or(one(POINT_FRONT), |(upright, _)| one(upright)),
+            ],
+            "the front meets the floor, the left end, its flat, and at its shoulder the upright's \
+             flat, or the point's front wall along the upright left sharp",
+        ),
+        (
+            POINT_FRONT,
+            vec![
+                one(FLOOR),
+                one(point_front),
+                one(POINT_BACK),
+                at_the_front.map_or(one(FRONT), |(upright, _)| one(upright)),
+            ],
+            "the point's front wall meets the floor, its flat, the point's back wall along the \
+             tip's upright, left sharp, and at its shoulder the upright's flat, or the front along \
+             the upright left sharp",
+        ),
+        (
+            POINT_BACK,
+            vec![
+                one(FLOOR),
+                one(point_back),
+                one(POINT_FRONT),
+                at_the_back.map_or(one(BACK), |(upright, _)| one(upright)),
+            ],
+            "the point's back wall meets the floor, its flat, the point's front wall along the \
+             tip's upright, left sharp, and at its shoulder the upright's flat, or the back along \
+             the upright left sharp",
+        ),
+        (
+            BACK,
+            vec![
+                one(FLOOR),
+                one(left_end),
+                one(back),
+                at_the_back.map_or(one(POINT_BACK), |(upright, _)| one(upright)),
+            ],
+            "the back meets the floor, the left end, its flat, and at its shoulder the upright's \
+             flat, or the point's back wall along the upright left sharp",
+        ),
+        (
+            FLOOR,
+            the_floor_meets,
+            "the floor meets the five walls and each closed shoulder's upright's flat",
+        ),
+        (
+            left_end,
+            vec![one(FLOOR), one(FRONT), one(BACK), one(front), one(back)],
+            "the left end meets the floor, the front, the back and their two flats",
+        ),
+    ] {
+        let met: Vec<&[usize]> = met.iter().map(Vec::as_slice).collect();
+        assert_eq!(
+            sides_met_by(body, &[face]),
+            sides_answering(&met),
+            "{what}: {called}, by one edge each"
+        );
+    }
+}
+
+/// Holds that the arithmetic gives the closing's list chamfered `volume`,
+/// and that the booleans give it too; then that the chamfer at [`RADIUS`] on
+/// its list, in each of `orders`, is laid, closing each shoulder as
+/// [`chamfers_each_shoulder`] holds it, each order laying the body the first
+/// lays: the same matter, the same faces meeting by the same edges, each flat
+/// read by the edge it was laid on and each triangle by the shoulder it
+/// closes, and the plate's flat faces at the same corners.
+fn chamfers_each_shoulder_in_each_order(closing: &Closing, volume: f64, orders: &[Vec<usize>]) {
+    let called = &closing.plate.called;
+    let promised = chamfered_kept(closing);
+    assert!(
+        (promised - volume).abs() <= EXACT * volume,
+        "{called}, its shoulders chamfered: the arithmetic gives {promised}, where the \
+         documentation writes {volume}"
+    );
+    let by_booleans = chamfered_by_booleans(closing);
+    assert!(
+        (by_booleans - promised).abs() <= EXACT * promised,
+        "{called}: the plate cut by the booleans beyond every flat's plane and every triangle's \
+         leaves {by_booleans}, where arithmetic promises {promised}"
+    );
+    let start = closing.plate.part.faces_end();
+    let corners = closing.corners();
+    let laid: Vec<(&Vec<usize>, Result<Chamfered, Declined>)> = orders
+        .iter()
+        .map(|order| (order, closing.chamfered(order)))
+        .collect();
+    let declined: Vec<String> = laid
+        .iter()
+        .filter_map(|(order, laid)| {
+            laid.as_ref().err().map(|declined| {
+                format!(
+                    "{}: declined, {declined:?}",
+                    closing.called_as("chamfer", order)
+                )
+            })
+        })
+        .collect();
+    assert!(
+        declined.is_empty(),
+        "the chamfer at {RADIUS} on {called} closes each shoulder it names the upright at, \
+         whichever edge the list names first; declined:\n{}",
+        declined.join("\n")
+    );
+    let (reference_order, reference) = (laid.first())
+        .and_then(|(order, laid)| laid.as_ref().ok().map(|laid| (*order, &laid.body)))
+        .expect("some order is laid");
+    for (order, laid) in &laid {
+        let what = closing.called_as("chamfer", order);
+        let chamfered = laid.as_ref().expect("declines are held above");
+        chamfers_each_shoulder(closing, order, chamfered, &what);
+        let otherwise = met_otherwise(
+            start,
+            order,
+            &chamfered.body,
+            reference_order,
+            reference,
+            &corners,
+        );
+        assert!(
+            otherwise.is_empty(),
+            "{what}: the body is the one the first order lays, its faces meeting alike; not so:\n{}",
+            otherwise.join("\n")
+        );
+        same_body_as(&closing.plate, &chamfered.body, reference, &what);
+    }
+}
+
+/// #843's point, its tip at (33, 3), its `shoulders` named and chamfered; with
+/// the volume the module's documentation writes for one shoulder, or both.
+fn the_point_s_shoulders_chamfered(shoulders: &[usize]) -> (Closing, f64) {
+    let volumes = [1611.0 - 27.0 * SQRT_2, 1611.0 - 45.0 * SQRT_2];
+    let centre = DVec3::new(33.0 - 3.0 * SQRT_2, 3.0, 7.0);
+    (
+        pointed_and_closed_at(33.0, centre, shoulders),
+        volumes[shoulders.len() - 1],
+    )
+}
+
+/// The sharper point, its tip at (39, 3), its `shoulders` named and
+/// chamfered; with the volume the module's documentation writes.
+fn the_sharper_point_s_shoulders_chamfered(shoulders: &[usize]) -> (Closing, f64) {
+    let root_ten = 10f64.sqrt();
+    let volumes = [
+        1773.0 - 63.0 / 5.0 * root_ten,
+        1773.0 - 81.0 / 5.0 * root_ten,
+    ];
+    let centre = DVec3::new(39.0 - 3.0 * root_ten, 3.0, 7.0);
+    (
+        pointed_and_closed_at(39.0, centre, shoulders),
+        volumes[shoulders.len() - 1],
+    )
+}
+
+/// The blunter point, its tip at (32, 3), its `shoulders` named and
+/// chamfered; with the volume the module's documentation writes.
+fn the_blunter_point_s_shoulders_chamfered(shoulders: &[usize]) -> (Closing, f64) {
+    let root_thirteen = 13f64.sqrt();
+    let volumes = [
+        1584.0 - 147.0 / 13.0 * root_thirteen,
+        1584.0 - 255.0 / 13.0 * root_thirteen,
+    ];
+    let centre = DVec3::new(32.0 - root_thirteen, 3.0, 7.0);
+    (
+        pointed_and_closed_at(32.0, centre, shoulders),
+        volumes[shoulders.len() - 1],
+    )
+}
+
+#[test]
+fn a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_uprights_at_its_tip_and_at_one_shoulder_closes_both_on_one_piece_of_sphere_whatever_the_order()
+ {
+    for shoulder in [FRONT_SHOULDER, BACK_SHOULDER] {
+        let (closing, volume) = the_point_s_tip_and_shoulder_closed(shoulder);
+        closes_each_corner_in_each_order(
+            &closing,
+            volume,
+            &the_fifth_and_the_sixth_at_each_place_in_turn(),
+            closes_the_tip_and_a_shoulder_on_one_piece,
+        );
+    }
+}
+
+#[test]
+fn a_fillet_on_a_full_round_the_two_edges_of_a_blunter_or_a_sharper_point_and_the_uprights_at_its_tip_and_at_one_shoulder_closes_both_on_one_piece_of_sphere_whatever_the_order()
+ {
+    for point in [
+        the_blunter_point_s_tip_and_shoulder_closed,
+        the_sharper_point_s_tip_and_shoulder_closed,
+    ] {
+        for shoulder in [FRONT_SHOULDER, BACK_SHOULDER] {
+            let (closing, volume) = point(shoulder);
+            closes_each_corner_in_each_order(
+                &closing,
+                volume,
+                &the_fifth_and_the_sixth_at_each_place_in_turn(),
+                closes_the_tip_and_a_shoulder_on_one_piece,
+            );
+        }
+    }
+}
+
+#[test]
+fn a_fillet_on_a_full_round_pointed_at_both_ends_and_the_upright_at_one_shoulder_closes_that_shoulder_with_a_piece_of_sphere_whichever_block_is_named_first()
+ {
+    let (closing, volume) = both_ends_pointed_and_a_shoulder_closed();
+    closes_each_corner_in_each_order(
+        &closing,
+        volume,
+        &blocks_turned(&BOTH_ENDS_AND_A_SHOULDER_BLOCKS),
+        closes_each_shoulder_on_its_sphere,
+    );
+}
+
+#[test]
+fn a_chamfer_on_a_full_round_pair_s_edges_the_two_edges_of_a_pointed_end_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_triangle_whatever_the_order()
+ {
+    for shoulder in [FRONT_SHOULDER, BACK_SHOULDER] {
+        let (closing, volume) = the_point_s_shoulders_chamfered(&[shoulder]);
+        chamfers_each_shoulder_in_each_order(&closing, volume, &every_order(5));
+    }
+    let (closing, volume) = the_point_s_shoulders_chamfered(&[FRONT_SHOULDER, BACK_SHOULDER]);
+    chamfers_each_shoulder_in_each_order(
+        &closing,
+        volume,
+        &the_fifth_and_the_sixth_at_each_place_in_turn(),
+    );
+}
+
+#[test]
+fn a_chamfer_on_a_full_round_pair_s_edges_the_two_edges_of_a_sharper_or_a_blunter_point_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_triangle_whatever_the_order()
+ {
+    for point in [
+        the_sharper_point_s_shoulders_chamfered,
+        the_blunter_point_s_shoulders_chamfered,
+    ] {
+        for shoulders in SHOULDERS {
+            let (closing, volume) = point(shoulders);
+            chamfers_each_shoulder_in_each_order(
+                &closing,
+                volume,
+                &each_upright_at_each_place_in_turn(&closing),
+            );
+        }
+    }
+}
+
+/// The number of [`Plate::pointed`]'s left end, the wall its run from (0, 6)
+/// back to (0, 0) raises.
+const LEFT_END: usize = 6;
+
+/// A list of a plate's edges, each as the two faces it lies between, with
+/// what it is called.
+type Listed = Vec<([usize; 2], &'static str)>;
+
+/// What a list laid in each order: the order, and the step's outcome.
+type LaidInEachOrder = Vec<(Vec<usize>, Result<Filleted, Declined>)>;
+
+/// The lists #911's review probe found built by the branch in some orders and
+/// declined in others, where `main` declined every order it tried: on
+/// [`Plate::pointed`]'s plate, its tip at the `x` given, edges along the
+/// point's back and the uprights at its front shoulder and its tip, no full
+/// round among them; each edge as the two faces it lies between, with what it
+/// is called.
+fn lists_main_declined_and_the_branch_splits() -> Vec<(f64, Listed)> {
+    let back_and_two_uprights = vec![
+        ([TOP, POINT_BACK], "the point's back edge"),
+        ([TOP, BACK], "the top's back edge"),
+        ([FRONT, POINT_FRONT], "the upright at the front shoulder"),
+        ([POINT_FRONT, POINT_BACK], "the upright at the tip"),
+    ];
+    let with = |extra: ([usize; 2], &'static str)| {
+        let mut listed = back_and_two_uprights.clone();
+        listed.push(extra);
+        listed
+    };
+    vec![
+        (33.0, back_and_two_uprights.clone()),
+        (39.0, back_and_two_uprights.clone()),
+        (33.0, with(([TOP, LEFT_END], "the left end's top edge"))),
+        (
+            39.0,
+            with(([LEFT_END, FRONT], "the upright at the front left corner")),
+        ),
+    ]
+}
+
+/// The fillet at [`RADIUS`] on `listed`, on `plate`, in each order its edges
+/// can be named in: each order with what it laid.
+fn laid_in_every_order(plate: &Plate, listed: &[([usize; 2], &str)]) -> LaidInEachOrder {
+    every_order(listed.len())
+        .into_iter()
+        .map(|order| {
+            let names: Vec<EdgeName> = order
+                .iter()
+                .map(|&edge| {
+                    let [one, other] = listed[edge].0;
+                    edge_between(&plate.part, one, other)
+                })
+                .collect();
+            let laid = plate.part.fillet_edges(&names, RADIUS);
+            (order, laid)
+        })
+        .collect()
+}
+
+/// What the fillet at [`RADIUS`] on `listed`, named in `order`, on `plate`, is
+/// called.
+fn called_on(plate: &Plate, listed: &[([usize; 2], &str)], order: &[usize]) -> String {
+    let called: Vec<&str> = order.iter().map(|&edge| listed[edge].1).collect();
+    format!(
+        "the fillet at {RADIUS} on {}, on {}",
+        called.join(", then "),
+        plate.called
+    )
+}
+
+#[test]
+fn a_fillet_on_the_point_s_back_edges_and_the_uprights_at_its_front_shoulder_and_its_tip_is_declined_in_every_order_or_built_as_one_body_in_every_order()
+ {
+    let lists = lists_main_declined_and_the_branch_splits();
+    let plates: Vec<Plate> = (lists.iter())
+        .map(|(x, _)| Plate::pointed(*x, DVec3::ZERO))
+        .collect();
+    let laid: Vec<LaidInEachOrder> = (lists.iter())
+        .zip(&plates)
+        .map(|((_, listed), plate)| laid_in_every_order(plate, listed))
+        .collect();
+    let split: Vec<String> = (lists.iter())
+        .zip(&plates)
+        .zip(&laid)
+        .filter_map(|(((_, listed), plate), laid)| {
+            let mut declined: BTreeMap<String, usize> = BTreeMap::new();
+            for (_, outcome) in laid {
+                if let Err(reason) = outcome {
+                    *declined.entry(format!("{reason:?}")).or_insert(0) += 1;
+                }
+            }
+            let refused: usize = declined.values().sum();
+            let built = laid.len() - refused;
+            (refused > 0 && built > 0).then(|| {
+                let first_declined = laid
+                    .iter()
+                    .find(|(_, outcome)| outcome.is_err())
+                    .map(|(order, _)| called_on(plate, listed, order))
+                    .unwrap_or_default();
+                format!(
+                    "on {}: built in {built} of the {} orders, declined in {refused}, {declined:?}; \
+                     declined, for one: {first_declined}",
+                    plate.called,
+                    laid.len()
+                )
+            })
+        })
+        .collect();
+    assert!(
+        split.is_empty(),
+        "the fillet at {RADIUS} on a list is declined in every order or built in every order \
+         (#822); split:\n{}",
+        split.join("\n")
+    );
+
+    for (((_, listed), plate), laid) in lists.iter().zip(&plates).zip(&laid) {
+        let start = plate.part.faces_end();
+        let built: Vec<(&Vec<usize>, &Filleted)> = (laid.iter())
+            .filter_map(|(order, outcome)| outcome.as_ref().ok().map(|filleted| (order, filleted)))
+            .collect();
+        let Some(&(reference_order, reference)) = built.first() else {
+            continue;
+        };
+        for &(order, filleted) in &built {
+            let what = called_on(plate, listed, order);
+            let body = &filleted.body;
+            assert!(
+                body.is_exact(),
+                "{what}: the exact kernel computed the body"
+            );
+            let triangles = body.triangles();
+            assert_eq!(closed(&triangles), Ok(()), "{what}");
+            assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
+            let enclosed = enclosed(&triangles);
+            assert!(
+                (enclosed - body.volume()).abs() <= DRAWN_ROUGHLY * body.volume(),
+                "{what}: its triangles enclose {enclosed}, where the body holds {}",
+                body.volume()
+            );
+            assert!(
+                (filleted.taken - reference.taken).abs() < PLACE,
+                "{what}: takes {}, where the first order built takes {}",
+                filleted.taken,
+                reference.taken
+            );
+            let otherwise =
+                met_otherwise(start, order, body, reference_order, &reference.body, &[]);
+            assert!(
+                otherwise.is_empty(),
+                "{what}: the body is the one the first order built lays, its faces meeting \
+                 alike; not so:\n{}",
+                otherwise.join("\n")
+            );
+            same_body_as(plate, body, &reference.body, &what);
+        }
+    }
 }
 
 /// The plate pointed at both ends, top (0, 3), (3, 0), (30, 0), (33, 3),
@@ -4052,5 +6617,85 @@ mod campaign {
      {
         let (closing, volume) = the_square_ended_plate_s_tip_closed();
         closes_each_tip_in_each_order(&closing, volume, &every_order(6));
+    }
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_fillet_on_a_full_round_the_two_edges_of_its_pointed_end_and_the_upright_at_both_shoulders_closes_each_shoulder_with_a_piece_of_sphere_in_each_of_the_720_orders_of_its_six_edges()
+     {
+        let (closing, volume) = the_point_s_shoulders_closed(&[FRONT_SHOULDER, BACK_SHOULDER]);
+        closes_each_shoulder_in_each_order(&closing, volume, &every_order(6));
+    }
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_fillet_on_a_full_round_the_two_edges_of_a_sharper_or_a_blunter_point_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_piece_of_sphere_in_each_of_their_orders()
+     {
+        for point in [
+            the_sharper_point_s_shoulders_closed,
+            the_blunter_point_s_shoulders_closed,
+        ] {
+            for shoulders in SHOULDERS {
+                let (closing, volume) = point(shoulders);
+                closes_each_shoulder_in_each_order(
+                    &closing,
+                    volume,
+                    &every_order(closing.listed.len()),
+                );
+            }
+        }
+    }
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_fillet_on_a_full_round_the_two_edges_of_a_pointed_end_and_the_uprights_at_its_tip_and_at_one_shoulder_closes_both_on_one_piece_of_sphere_in_each_of_the_720_orders_of_its_six_edges()
+     {
+        for point in [
+            the_point_s_tip_and_shoulder_closed,
+            the_blunter_point_s_tip_and_shoulder_closed,
+            the_sharper_point_s_tip_and_shoulder_closed,
+        ] {
+            for shoulder in [FRONT_SHOULDER, BACK_SHOULDER] {
+                let (closing, volume) = point(shoulder);
+                closes_each_corner_in_each_order(
+                    &closing,
+                    volume,
+                    &every_order(6),
+                    closes_the_tip_and_a_shoulder_on_one_piece,
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_fillet_on_a_full_round_pointed_at_both_ends_and_the_upright_at_one_shoulder_closes_that_shoulder_with_a_piece_of_sphere_in_each_of_the_480_orders_of_its_blocks()
+     {
+        let (closing, volume) = both_ends_pointed_and_a_shoulder_closed();
+        closes_each_corner_in_each_order(
+            &closing,
+            volume,
+            &blocks_in_every_order(&[&[0], &[6], &[1, 2], &[3], &[4, 5]]),
+            closes_each_shoulder_on_its_sphere,
+        );
+    }
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_chamfer_on_a_full_round_pair_s_edges_the_two_edges_of_a_pointed_end_and_the_upright_at_either_shoulder_or_both_closes_each_shoulder_with_a_triangle_in_each_of_their_orders()
+     {
+        for point in [
+            the_point_s_shoulders_chamfered,
+            the_sharper_point_s_shoulders_chamfered,
+            the_blunter_point_s_shoulders_chamfered,
+        ] {
+            for shoulders in SHOULDERS {
+                let (closing, volume) = point(shoulders);
+                chamfers_each_shoulder_in_each_order(
+                    &closing,
+                    volume,
+                    &every_order(closing.listed.len()),
+                );
+            }
+        }
     }
 }

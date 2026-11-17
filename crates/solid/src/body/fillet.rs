@@ -77,7 +77,15 @@ impl Body {
     /// at their corner by a piece of sphere, and the tip of a tongue as wide
     /// as two radii, its end edge and both uprights named, is one quarter of a
     /// ball, the end edge's round closing to nothing between the two corners
-    /// and the ball answering to its number and both corners'. The edge at a
+    /// and the ball answering to its number and both corners'. An upright at a
+    /// point's shoulder, named with the four top edges, is rounded at that
+    /// radius too, the shoulder closed with the full round and the point's
+    /// edge by a piece of the sphere about the crown's axis — at both
+    /// shoulders two pieces of it, sharing the crown alone — and, named with
+    /// the upright at the tip as well, the point's wall between them gone,
+    /// the two corners close on one piece, the two uprights' rounds one face
+    /// and the point edge's round closing to nothing between them (#911). The
+    /// edge at a
     /// round bottom's end whose faces meet inwards too, bounding the face that
     /// is gone and meeting both its edges, is filled in at the round bottom's
     /// own radius, the two meeting
@@ -88,7 +96,8 @@ impl Body {
     /// round bottom meeting the edge at its foot. An
     /// edge of a full round meeting any other edge of the list at a corner, a
     /// notch's two where its concave upright is named too (#914), an upright
-    /// where a third edge of the list ends but the edge at its end (#837), or
+    /// where a third edge of the list ends but one at its end — the edge
+    /// across it, or a pointed end's (#837, #911) —, or
     /// one of a round bottom meeting any but the edge at its end — the
     /// uprights at a pocket's end with the round bottom along its floor
     /// (#919), the edges of a pointed or a notched end (#921) — or that edge

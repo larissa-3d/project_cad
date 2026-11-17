@@ -17,12 +17,16 @@
 //! two radii, whose round closes to nothing between them (#837) — close on
 //! one sphere: the later corner's cut takes that round whole, and its piece
 //! takes in the earlier corner's, one face answering to the round's number
-//! and both corners'. Four or more rounds meeting outwards (#804), a
+//! and both corners'. Two whose pieces touch at a point alone — the shoulders
+//! of a full round's pointed end, under its crown (#911) — keep a piece
+//! each. Four or more rounds meeting outwards (#804), a
 //! pyramid's apex, are closed the same way where the faces round the corner
 //! are all one radius from one centre: the corner cut back to the planes
 //! through it square to the edges before any round is laid, so that each
 //! round, carried past the corner, meets air there, and the faces that leaves
 //! replaced once all are laid.
+
+mod chart;
 
 use glam::DVec3;
 
@@ -121,7 +125,15 @@ pub(in crate::body::exact) fn sphere_across(
 /// cut took whole, between this corner and another the step closes, and read
 /// about the edge of such a round where there is
 /// one, so that no pole stands inside an arc the piece meets another round
-/// along, which then stays one edge.
+/// along, which then stays one edge — or, where a pole of that chart would
+/// stand where no corner anchors it all the same, about [`axis`], or the way
+/// to one of the piece's corners, as [`chart::about`] chooses: where the two
+/// corners' uprights' rounds are one face, meeting the piece along one arc
+/// past the line of the edge whose round closes to nothing — the tip and a
+/// shoulder of a sharp point (#911), whose crown stays a corner, and a
+/// tongue's slanted end (#910), whose lying round meets the piece along one
+/// half circle, read about the line through its two feet. Declined
+/// `Unsupported` where no such axis anchors both poles.
 fn sphered(
     body: &Exact,
     laid: Exact,
@@ -143,9 +155,9 @@ fn sphered(
         .ok_or(Declined::Unsupported)?;
     let (gone, kept): (Vec<usize>, Vec<usize>) = (0..rounds.len())
         .partition(|&at| corner.between[at] && !laid.has_face(rounds[at] as usize));
-    let about = gone
-        .first()
-        .map_or(axis(&corner.along), |&at| corner.along[at]);
+    let ways = (gone.first().map(|&at| corner.along[at]).into_iter()).chain([axis(&corner.along)]);
+    let about =
+        chart::about(&laid.brep, &lap, (centre, radius), ways).ok_or(Declined::Unsupported)?;
     let sphere = Sphere::through(centre, about, 0.0, radius);
     let mut numbers: Vec<u32> = (gone.iter().map(|&at| rounds[at]))
         .chain(
@@ -276,9 +288,11 @@ fn bounding(
 }
 
 /// The faces a corner closed before laid on the sphere of `radius` about
-/// `centre`, none of `walls`: the other end of an edge whose round, between
-/// two corners whose centres are one, closes to nothing, so that the two
-/// pieces are one.
+/// `centre`, none of `walls`, meeting one of them along an edge: the other
+/// end of an edge whose round, between two corners whose centres are one,
+/// closes to nothing, so that the two pieces are one. A piece touching them
+/// at a point alone — the other shoulder of a full round's pointed end,
+/// whose piece shares only the crown with this one (#911) — stays its own.
 fn laid_before(
     body: &brep::Body,
     walls: &[FaceId],
@@ -292,8 +306,12 @@ fn laid_before(
         }
         _ => false,
     };
+    let beside = |face: FaceId| {
+        (body.face(face).loops.iter().flatten())
+            .any(|coedge| (body.uses(coedge.edge).iter()).any(|(wall, _)| walls.contains(wall)))
+    };
     body.face_ids()
-        .filter(|&face| !walls.contains(&face) && sphere(face))
+        .filter(|&face| !walls.contains(&face) && sphere(face) && beside(face))
         .collect()
 }
 
