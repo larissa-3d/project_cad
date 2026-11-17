@@ -8,15 +8,15 @@ use crate::ui::theme::tokens::{
 };
 
 /// One alert of a list: the icon of its level on the left of its title, in
-/// the level's ink, why under it in a sentence, then the two things that can
-/// be done about it, when anything can. Hands back the two buttons, in the
+/// the level's ink, why under it in a sentence, then those of the two things
+/// that can be done about it it is offered. Hands back their buttons, in the
 /// order they are named.
 pub fn alert_line(
     ui: &mut Ui,
     (level, ink): (Level, Color32),
     (title, sentence): (&str, &str),
-    actions: Option<(&str, &str)>,
-) -> Option<[Response; 2]> {
+    actions: [Option<&str>; 2],
+) -> [Option<Response>; 2] {
     let drawn = match level {
         Level::Warning => icon::WARNING,
         Level::Error => icon::ERROR,
@@ -28,14 +28,13 @@ pub fn alert_line(
             ui.label(title.color(TEXT_TITLE));
             let sentence = RichText::new(sentence).size(TYPOGRAPHY_SIZES_DETAIL);
             ui.label(sentence.color(TEXT_SECONDARY));
-            let (first, second) = actions?;
+            if actions.iter().all(Option::is_none) {
+                return [None, None];
+            }
             let buttons = ui.horizontal(|ui| {
-                [
-                    secondary_button(ui, true, first),
-                    secondary_button(ui, true, second),
-                ]
+                actions.map(|action| action.map(|label| secondary_button(ui, true, label)))
             });
-            Some(buttons.inner)
+            buttons.inner
         })
         .inner
     })

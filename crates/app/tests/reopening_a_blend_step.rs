@@ -32,10 +32,17 @@
 //!   `a_reopened_step_with_every_edge_taken_out_greys_apply`
 //! - Undoing or rewinding the history while a step is reopened closes the
 //!   panel — `undoing_or_rewinding_while_a_step_is_reopened_closes_the_panel`
+//! - decided while the work went on, beyond the issue's eleven: « Appliquer »
+//!   on a reopened step with nothing changed records nothing, so that Cmd+Z
+//!   then takes the step itself back rather than a change that changed nothing
+//!   — `apply_on_a_reopened_step_with_nothing_changed_records_nothing_and_cmd_z_takes_the_step_back`
 
 mod driver;
 
-use glam::DVec3;
+use cao_part::history::{BlendShape, ExtrusionMode, Operation, PointRef};
+use cao_sketch::WorkPlane;
+use egui_kittest::kittest::{NodeT, Queryable};
+use glam::{DVec2, DVec3};
 
 /// The four edges of the top of `driver::a_block`'s block, as the part held
 /// before any of them was blended: its top faces +X.
@@ -373,4 +380,460 @@ fn apply_on_a_reopened_step_lays_no_new_step_and_its_history_line_reads_the_new_
             wrong.join("\n  "),
         );
     }
+}
+
+/// Whether the pointer, half a millimetre in from the first top edge, meets
+/// the fillet laid on it rather than the block's sharp top: the whole part
+/// drawn. What it reads otherwise.
+fn the_fillet_drawn(app: &mut driver::App, top: &[[DVec3; 2]; 4]) -> Result<(), String> {
+    hover_at_world_point(app, just_inside_the_first_top_edge(top));
+    match x_read_under_the_pointer(app) {
+        Some(x) if (x - top[0][0].x).abs() > ON_THE_TOP => Ok(()),
+        _ => Err(format!(
+            "half a millimetre in from a top edge, the pointer meets « {} », not the fillet laid \
+             on it",
+            driver::the_bar_s_coordinates(app),
+        )),
+    }
+}
+
+fn the_lines_and_their_details(app: &driver::App) -> Vec<(String, Option<String>)> {
+    driver::steps(app)
+        .into_iter()
+        .map(|line| {
+            let detail = driver::detail_of(app, &line);
+            (line, detail)
+        })
+        .collect()
+}
+
+fn changes_in(part: &cao_part::PartDocument) -> usize {
+    part.history
+        .operations()
+        .iter()
+        .filter(|operation| matches!(operation, Operation::EditMatter { .. }))
+        .count()
+}
+
+#[test]
+fn a_reopened_step_with_every_edge_taken_out_greys_apply() {
+    let test = "a_reopened_step_with_every_edge_taken_out";
+    let (mut app, top, _) = reopened(test, &FILLET);
+
+    for edge in top {
+        driver::click_at_world_point_with(&mut app, middle(edge), egui::Modifiers::SHIFT);
+    }
+
+    assert!(
+        app.state().the_edges_chosen().is_empty(),
+        "Shift + click on each of the four edges of the step leaves {:?} chosen",
+        app.state().the_edges_chosen(),
+    );
+    assert!(
+        !driver::is_enabled(&app, "Appliquer"),
+        "« Appliquer » offered on a reopened step with every edge taken out",
+    );
+}
+
+#[test]
+fn cancel_on_a_reopened_step_records_nothing_and_draws_the_whole_part_again() {
+    let test = "cancel_on_a_reopened_step";
+    let (mut app, top, _) = reopened(test, &FILLET);
+    let lines = the_lines_and_their_details(&app);
+    let held = the_part(test).history;
+    driver::type_beside(&mut app, FILLET.value, "3");
+    driver::click_at_world_point_with(&mut app, middle(top[2]), egui::Modifiers::COMMAND);
+
+    driver::click_the_button(&mut app, "Annuler");
+
+    let mut wrong = Vec::new();
+    if driver::reads(&app, FILLET.value) {
+        wrong.push("the panel is still open".to_string());
+    }
+    if the_part(test).history != held {
+        wrong.push(format!(
+            "the history moved: {} changes are recorded",
+            changes_in(&the_part(test)),
+        ));
+    }
+    if the_lines_and_their_details(&app) != lines {
+        wrong.push(format!(
+            "the history reads {:?} where it read {lines:?}",
+            the_lines_and_their_details(&app),
+        ));
+    }
+    wrong.extend(the_fillet_drawn(&mut app, &top).err());
+
+    assert!(
+        wrong.is_empty(),
+        "« Annuler » on the fillet of the four top edges reopened, its size typed 3 and an edge \
+         taken out:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn apply_on_a_reopened_step_with_nothing_changed_records_nothing_and_cmd_z_takes_the_step_back() {
+    let test = "apply_on_a_reopened_step_with_nothing_changed";
+    let (mut app, top, line) = reopened(test, &FILLET);
+    let lines = the_lines_and_their_details(&app);
+
+    driver::click(&mut app, "Appliquer");
+
+    let mut wrong = Vec::new();
+    if driver::reads(&app, FILLET.value) {
+        wrong.push("the panel is still open".to_string());
+    }
+    if changes_in(&the_part(test)) != 0 {
+        wrong.push(format!(
+            "{} changes are recorded for nothing changed",
+            changes_in(&the_part(test)),
+        ));
+    }
+    if the_lines_and_their_details(&app) != lines {
+        wrong.push(format!(
+            "the history reads {:?} where it read {lines:?}",
+            the_lines_and_their_details(&app),
+        ));
+    }
+    driver::press_with_command(&mut app, egui::Key::Z);
+    hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
+    if !x_read_under_the_pointer(&app).is_some_and(|x| (x - top[0][0].x).abs() <= ON_THE_TOP) {
+        wrong.push(format!(
+            "after Cmd+Z, half a millimetre in from a top edge, the pointer meets « {} », where \
+             « {line} » taken back leaves the block's sharp top",
+            driver::the_bar_s_coordinates(&app),
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "« Appliquer » on the fillet of the four top edges reopened, nothing changed:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn undoing_or_rewinding_while_a_step_is_reopened_closes_the_panel() {
+    let mut failures = Vec::new();
+    for how in ["undone", "rewound"] {
+        let test = format!("{how}_while_a_step_is_reopened");
+        let (mut app, top, line) = a_block_blended_at_twice_r(&test, &FILLET);
+        driver::click_the_button(&mut app, "Variables");
+        driver::type_into(&mut app, "nom", "s");
+        driver::type_into(&mut app, "formule", "1");
+        driver::click_exactly(&mut app, "Ajouter");
+        driver::click_the_button(&mut app, "Variables");
+        driver::open_the_history(&mut app);
+        driver::right_click(&mut app, &line);
+        driver::click_the_button(&mut app, FILLET.edit);
+        assert!(
+            driver::reads(&app, FILLET.value),
+            "the fixture reopens « {line} », showing {:?}",
+            driver::on_screen(&app),
+        );
+
+        match how {
+            "undone" => driver::press_with_command(&mut app, egui::Key::Z),
+            _ => driver::click_the_button(&mut app, &line),
+        }
+
+        let mut wrong = Vec::new();
+        if driver::reads(&app, FILLET.value) {
+            wrong.push("the panel is still open".to_string());
+        }
+        wrong.extend(the_fillet_drawn(&mut app, &top).err());
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "the variable laid after « {line} » {how}:\n    {}",
+                wrong.join("\n    ")
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "the history moved while a step is reopened:\n  {}",
+        failures.join("\n  "),
+    );
+}
+
+/// The edge the drawing of `part` holds whose every point satisfies `on`.
+fn the_drawn_edge(
+    part: &cao_part::PartDocument,
+    on: impl Fn(DVec3) -> bool,
+) -> cao_solid::EdgeName {
+    part.body()
+        .drawn_edges()
+        .into_iter()
+        .find(|edge| edge.points.iter().all(|point| on(*point)))
+        .expect("the edge is drawn")
+        .name
+}
+
+fn rectangle(part: &mut cao_part::PartDocument, sketch: usize, corner: DVec2, opposite: DVec2) {
+    part.apply(Operation::AddRectangle {
+        sketch,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(opposite),
+        construction: false,
+    });
+}
+
+/// Opens in `app`, standing on the start menu, `part` written where the
+/// application keeps the part « Bloc » of `test`.
+fn open_in_the_app(app: &mut driver::App, test: &str, part: &cao_part::PartDocument) {
+    part.save(
+        &cao_app::adapters::files::DiskFiles,
+        &driver::the_part_s_file(test, "Bloc"),
+        "2026-11-17T10:00:00Z".parse().expect("a date"),
+    )
+    .expect("the part is written");
+    app.query_all_by_label("Bloc")
+        .last()
+        .expect("the start menu lists the part")
+        .click();
+    app.run();
+    driver::hold_the_canvas(app);
+    assert!(
+        !driver::a_sketch_is_open(app),
+        "the part opened on a sketch being edited, showing {:?}",
+        driver::on_screen(app),
+    );
+}
+
+/// The centre of the disc of `a_block_chamfered_beside_a_disc`, its radius
+/// and its height.
+const THE_DISC: (DVec2, f64, f64) = (DVec2::new(45.0, 5.0), 5.0, 10.0);
+
+/// A block 30 by 10 by 20 raised from XY, a disc of `THE_DISC` raised beside
+/// it from the same sketch, short enough a history for every line to stand on
+/// screen, then the edge at the top of the block's front chamfered 2: the part
+/// `changing_a_blend_step.rs` declines a change of, with one edge to its
+/// chamfer.
+fn a_block_chamfered_beside_a_disc() -> cao_part::PartDocument {
+    let mut part =
+        cao_part::PartDocument::new("Bloc", "2026-11-17T09:00:00Z".parse().expect("a date"));
+    let (centre, radius, height) = THE_DISC;
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    rectangle(&mut part, 0, DVec2::ZERO, DVec2::new(30.0, 10.0));
+    part.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(centre),
+        radius,
+        rim: Vec::new(),
+        construction: false,
+    });
+    for (inside, distance) in [(DVec2::new(15.0, 5.0), 20.0), (centre, height)] {
+        part.apply(Operation::Extrude {
+            sketch: 0,
+            areas: part.areas_at(0, &[inside]),
+            distance: distance.into(),
+            mode: ExtrusionMode::Add,
+        });
+    }
+    let top_of_the_front = the_drawn_edge(&part, |point| {
+        point.y.abs() < 1e-9 && (point.z - 20.0).abs() < 1e-9
+    });
+    let outcome = part.apply(Operation::Blend {
+        edges: vec![top_of_the_front],
+        shape: BlendShape::Chamfer,
+        size: 2.0.into(),
+    });
+    assert_eq!(outcome, None, "the fixture's chamfer is built");
+    part
+}
+
+/// Of the disc's top rim, the point standing furthest on screen from the
+/// middle of its foot: on the far side of its top, in sight from above.
+fn on_the_disc_s_top_rim(app: &driver::App) -> DVec3 {
+    let (centre, radius, height) = THE_DISC;
+    let around = |z: f64| {
+        (0..64).map(move |step| {
+            let angle = std::f64::consts::TAU * f64::from(step) / 64.0;
+            DVec3::new(
+                centre.x + radius * angle.cos(),
+                centre.y + radius * angle.sin(),
+                z,
+            )
+        })
+    };
+    let foot = driver::world_point_on_screen(app, centre.extend(0.0));
+    around(height)
+        .max_by(|a, b| {
+            let from = |point: DVec3| driver::world_point_on_screen(app, point).distance(foot);
+            from(*a).total_cmp(&from(*b))
+        })
+        .expect("points around the rim")
+}
+
+const NOT_YET_A_CHAMFER: &str =
+    "Ce chanfrein n'est pas encore possible sur cette arête : la pièce reste comme elle était.";
+
+#[test]
+fn a_reopened_step_whose_new_choice_the_kernel_declines_keeps_the_panel_open_with_the_reason_and_the_edges()
+ {
+    let test = "a_reopened_step_the_kernel_declines";
+    let mut app = driver::a_block(test);
+    driver::the_part_put_away(&mut app, test, "Bloc");
+    open_in_the_app(&mut app, test, &a_block_chamfered_beside_a_disc());
+    driver::open_the_history(&mut app);
+    let line = driver::steps(&app)
+        .into_iter()
+        .find(|line| line.ends_with("Arête chanfreinée"))
+        .unwrap_or_else(|| panic!("no line of the chamfer: {:?}", driver::steps(&app)));
+    let lines = the_lines_and_their_details(&app);
+    let held = the_part(test).history;
+    driver::right_click(&mut app, &line);
+    assert!(
+        driver::a_button_reads(&app, CHAMFER.edit),
+        "a right-click on « {line} » offers no « {} », showing {:?}",
+        CHAMFER.edit,
+        driver::on_screen(&app),
+    );
+    driver::click_the_button(&mut app, CHAMFER.edit);
+    let rim = on_the_disc_s_top_rim(&app);
+    driver::click_at_world_point(&mut app, rim);
+    let (centre, radius, height) = THE_DISC;
+    let on_the_rim = |chosen: &[Vec<DVec3>]| {
+        chosen.len() == 1
+            && chosen[0].iter().all(|point| {
+                (point.z - height).abs() < 1e-6
+                    && (point.truncate().distance(centre) - radius).abs() < 1e-6
+            })
+    };
+    assert!(
+        on_the_rim(&app.state().the_edges_chosen()),
+        "the fixture chooses the disc's top rim in place of the chamfer's edge, choosing {:?}",
+        app.state().the_edges_chosen(),
+    );
+
+    driver::click(&mut app, "Appliquer");
+
+    let mut wrong = Vec::new();
+    if !driver::reads(&app, CHAMFER.value) {
+        wrong.push("the panel closed".to_string());
+    }
+    if !driver::reads(&app, NOT_YET_A_CHAMFER) {
+        wrong.push(format!("the panel does not read « {NOT_YET_A_CHAMFER} »"));
+    }
+    if !on_the_rim(&app.state().the_edges_chosen()) {
+        wrong.push(format!(
+            "{:?} are chosen, not the disc's top rim",
+            app.state().the_edges_chosen(),
+        ));
+    }
+    if the_part(test).history != held {
+        wrong.push(format!(
+            "the history moved: {} changes are recorded",
+            changes_in(&the_part(test)),
+        ));
+    }
+    if the_lines_and_their_details(&app) != lines {
+        wrong.push(format!(
+            "the history reads {:?} where it read {lines:?}",
+            the_lines_and_their_details(&app),
+        ));
+    }
+    assert!(
+        wrong.is_empty(),
+        "the chamfer of the block's top front, reopened and moved to the rim of a disc the \
+         kernel declines:\n  {}\n showing {:?}",
+        wrong.join("\n  "),
+        driver::on_screen(&app),
+    );
+}
+
+/// A block 30 by 10 by 20 notched at its foot across its back, the edge at
+/// the foot of its front chamfered 2, then the notch moved across the front:
+/// the chamfer's edge is parted in two, and the step not built.
+fn a_block_whose_chamfer_lost_its_edge() -> cao_part::PartDocument {
+    let mut part =
+        cao_part::PartDocument::new("Bloc", "2026-11-17T09:00:00Z".parse().expect("a date"));
+    let on_xy = Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    };
+    part.apply(on_xy.clone());
+    rectangle(&mut part, 0, DVec2::ZERO, DVec2::new(30.0, 10.0));
+    part.apply(Operation::Extrude {
+        sketch: 0,
+        areas: part.areas_at(0, &[DVec2::new(15.0, 5.0)]),
+        distance: 20.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    part.apply(on_xy);
+    rectangle(&mut part, 1, DVec2::new(10.0, 7.0), DVec2::new(20.0, 13.0));
+    rectangle(&mut part, 1, DVec2::new(10.0, -3.0), DVec2::new(20.0, 3.0));
+    let notch = |part: &cao_part::PartDocument, at: DVec2| Operation::Extrude {
+        sketch: 1,
+        areas: part.areas_at(1, &[at]),
+        distance: 5.0.into(),
+        mode: ExtrusionMode::Cut,
+    };
+    part.apply(notch(&part, DVec2::new(15.0, 10.0)));
+    let notched = part.history.steps().last().expect("the notch").operations()[0];
+    let foot_of_the_front =
+        the_drawn_edge(&part, |point| point.y.abs() < 1e-9 && point.z.abs() < 1e-9);
+    let outcome = part.apply(Operation::Blend {
+        edges: vec![foot_of_the_front],
+        shape: BlendShape::Chamfer,
+        size: 2.0.into(),
+    });
+    assert_eq!(outcome, None, "the fixture's chamfer is built");
+    part.apply(Operation::EditMatter {
+        raised_by: notched,
+        to: Box::new(notch(&part, DVec2::new(15.0, 0.0))),
+    });
+    part
+}
+
+#[test]
+fn modify_on_the_alert_of_a_blend_step_not_rebuilt_opens_the_panel_on_it_and_show_offers_nothing() {
+    let test = "modify_on_the_alert_of_a_blend_step";
+    let mut app = driver::a_block(test);
+    driver::the_part_put_away(&mut app, test, "Bloc");
+    open_in_the_app(&mut app, test, &a_block_whose_chamfer_lost_its_edge());
+    driver::click_the_button(&mut app, "1 alerte");
+    assert!(
+        driver::reads(&app, "Arête chanfreinée · non construite"),
+        "the fixture's alert is the chamfer's, showing {:?}",
+        driver::on_screen(&app),
+    );
+    let buttons = |app: &driver::App, label: &str| {
+        app.query_all_by_label(label)
+            .filter(|node| node.accesskit_node().role() == egui::accesskit::Role::Button)
+            .count()
+    };
+
+    let mut wrong = Vec::new();
+    if buttons(&app, "Montrer") != 0 {
+        wrong.push("the alert offers « Montrer »".to_string());
+    }
+    if buttons(&app, "Modifier") == 1 {
+        driver::click_the_button(&mut app, "Modifier");
+        if !driver::reads(&app, CHAMFER.value) || driver::reads(&app, CHAMFER.other_value) {
+            wrong.push("« Modifier » opened no chamfer's panel".to_string());
+        } else if driver::field_beside(&app, CHAMFER.value) != "2" {
+            wrong.push(format!(
+                "the panel reads « {} », not the chamfer's 2",
+                driver::field_beside(&app, CHAMFER.value),
+            ));
+        }
+    } else {
+        wrong.push(format!(
+            "the alert offers {} « Modifier », not one",
+            buttons(&app, "Modifier"),
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "the alert of a chamfer whose edge is lost:\n  {}\n showing {:?}",
+        wrong.join("\n  "),
+        driver::on_screen(&app),
+    );
 }

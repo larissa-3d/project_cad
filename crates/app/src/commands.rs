@@ -115,6 +115,7 @@ pub(crate) fn run(
                 clamp_editor_to_document(editor, doc);
             }
             extrusion.history_moved();
+            blend.history_moved();
             viewport.light_out();
             if doc.body().is_empty() {
                 viewport.close_section();

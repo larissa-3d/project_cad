@@ -68,6 +68,7 @@ pub(crate) fn beside_the_part(
         if confirmed {
             commands::compact_history(doc, editor, viewport);
             extrusion.history_moved();
+            blend.history_moved();
             changed = true;
         }
     }
@@ -175,6 +176,7 @@ pub(crate) fn carry_out(
             viewport.light_out();
             commands::clamp_editor_to_document(editor, doc);
             extrusion.history_moved();
+            blend.history_moved();
             changed = true;
         }
         TreeAction::AskToCompact => ribbon.history_compact_confirm = true,

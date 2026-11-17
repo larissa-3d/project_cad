@@ -84,6 +84,15 @@ impl BlendState {
         *self = Self::default();
     }
 
+    /// A panel reopened on a step closes once the history moves under it: the
+    /// step it names may no longer be the one in effect. One armed afresh
+    /// stays.
+    pub fn history_moved(&mut self) {
+        if self.reopened.is_some() {
+            self.close();
+        }
+    }
+
     /// The size typed, as written and as what it comes to, when it is one an
     /// edge can be given.
     pub fn size(&self, variables: &Variables) -> Option<(Formula, f64)> {
@@ -100,8 +109,9 @@ impl BlendState {
 }
 
 /// Chamfers or rounds the chosen edges as one step, or changes the step
-/// reopened to them, and closes the panel. Edges the kernel declines record
-/// nothing and leave the panel open, saying why. True when the part changed.
+/// reopened to them, and closes the panel; a step left as it was records
+/// nothing. Edges the kernel declines record nothing and leave the panel open,
+/// saying why. True when the part changed.
 pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool {
     let (Some(shape), Some((size, _))) = (blend.shape, blend.size(document.variables())) else {
         return false;
@@ -112,6 +122,10 @@ pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool 
     let edges = blend.edges.clone();
     let laid = Operation::Blend { edges, shape, size };
     let operation = match blend.reopened {
+        Some(raised_by) if document.raised_as(raised_by) == Some(&laid) => {
+            blend.close();
+            return false;
+        }
         Some(raised_by) => Operation::EditMatter {
             raised_by,
             to: Box::new(laid),
