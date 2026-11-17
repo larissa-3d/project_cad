@@ -339,8 +339,10 @@
 //!   behind the cylinder's solid matter and the near rim behind none of it —
 //!   `both_rims_of_a_disc_chosen_are_drawn_in_the_pass_the_part_hides`; the
 //!   pixels, an edge behind the matter drawn not at all, by
-//!   `a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all`
-//!   in `crates/render/tests/lit_edges.rs`, where a GPU adapter exists
+//!   `a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all`,
+//!   and behind a wall barely thicker than the most an end is pulled, by
+//!   `a_lit_edge_behind_a_wall_a_little_thicker_than_the_most_it_is_pulled_is_not_drawn`,
+//!   both in `crates/render/tests/lit_edges.rs`, where a GPU adapter exists
 //! - An edge lying on a face turned to the camera is drawn whole, not stippled
 //!   by the face — read as: the edge under the hand, lying on faces turned to
 //!   the eye, is drawn in the lit lines, each end on its point's pixel and

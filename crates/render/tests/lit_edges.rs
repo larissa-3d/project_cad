@@ -99,7 +99,8 @@ fn a_boss_on_a_plate() -> Vec<[Vec3; 3]> {
 const INSIDE_EDGE: [Vec3; 2] = [Vec3::new(10.0, 0.0, 4.0), Vec3::new(10.0, 40.0, 4.0)];
 
 /// On the boss's back face, which the eye does not see: the matter between
-/// them is far thicker than the most a lit end is pulled.
+/// them is far thicker than the most a lit end is pulled, so this holds the
+/// pass's depth test, not the ceiling of the pull.
 const BEHIND_THE_BOSS: [Vec3; 2] = [Vec3::new(0.0, 15.0, 8.0), Vec3::new(0.0, 35.0, 8.0)];
 
 fn the_camera() -> OrbitCamera {
@@ -112,19 +113,50 @@ fn the_camera() -> OrbitCamera {
     camera
 }
 
+/// How thick the wall in front of a lit edge is, along the line of sight, in
+/// pixels' worth: a little over the most a lit end is pulled, and over it by
+/// more than the half width the line draws at its centre's depth against an
+/// inclined face — at 11.5, a few pixels of the line's side showed.
+const THE_WALL_S_DEPTH: f32 = 12.5;
+
+/// A wall 30 wide and 16 high, its back face on x = 20, so thin that the
+/// line of sight to `BEHIND_THE_WALL` crosses `THE_WALL_S_DEPTH` pixels' worth
+/// of matter and no more.
+fn a_thin_wall(camera: &OrbitCamera) -> Vec<[Vec3; 3]> {
+    let [start, end] = BEHIND_THE_WALL;
+    let middle = start.lerp(end, 0.5);
+    let sight = (camera.eye() - middle).normalize();
+    let along_the_sight = a_pixel_s_worth(camera, middle) * THE_WALL_S_DEPTH;
+    let thickness = along_the_sight * sight.x;
+    a_box(
+        Vec3::new(20.0, 5.0, 0.0),
+        Vec3::new(20.0 + thickness, 35.0, 16.0),
+    )
+}
+
+const BEHIND_THE_WALL: [Vec3; 2] = [Vec3::new(20.0, 15.0, 8.0), Vec3::new(20.0, 25.0, 8.0)];
+
+fn a_pixel_s_worth(camera: &OrbitCamera, point: Vec3) -> f32 {
+    let depth = (point - camera.eye()).dot(camera.forward());
+    camera.world_units_per_pixel(HEIGHT as f32) * depth / camera.distance()
+}
+
 /// `point` pulled towards the eye along its own line of sight by `pixels`
 /// pixels' worth at its depth: it lands on the same pixel, nearer.
 fn pulled(camera: &OrbitCamera, point: Vec3, pixels: f32) -> Vec3 {
-    let depth = (point - camera.eye()).dot(camera.forward());
-    let a_pixel_s_worth = camera.world_units_per_pixel(HEIGHT as f32) * depth / camera.distance();
-    point + (camera.eye() - point).normalize() * a_pixel_s_worth * pixels
+    point + (camera.eye() - point).normalize() * a_pixel_s_worth(camera, point) * pixels
 }
 
-fn a_frame(camera: &OrbitCamera, lit: [Vec3; 2], pulled_by: f32) -> SceneFrame {
+fn a_frame(
+    camera: &OrbitCamera,
+    matter: &[[Vec3; 3]],
+    lit: [Vec3; 2],
+    pulled_by: f32,
+) -> SceneFrame {
     let mut solids = Vec::new();
     push_solid(
         &mut solids,
-        &a_boss_on_a_plate(),
+        matter,
         srgb(0.62, 0.64, 0.68, 1.0),
         camera.forward(),
     );
@@ -236,7 +268,7 @@ fn a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all(
     let inside = drawn(
         &device,
         &queue,
-        &a_frame(&camera, INSIDE_EDGE, PULLED_AT_LEAST),
+        &a_frame(&camera, &a_boss_on_a_plate(), INSIDE_EDGE, PULLED_AT_LEAST),
     );
     let [start, end] = INSIDE_EDGE.map(|end| on_screen(&camera, end));
     let across = (end - start).perp().normalize();
@@ -263,7 +295,12 @@ fn a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all(
     let behind = drawn(
         &device,
         &queue,
-        &a_frame(&camera, BEHIND_THE_BOSS, PULLED_AT_MOST),
+        &a_frame(
+            &camera,
+            &a_boss_on_a_plate(),
+            BEHIND_THE_BOSS,
+            PULLED_AT_MOST,
+        ),
     );
     let mut amber_pixels = Vec::new();
     for y in 0..HEIGHT {
@@ -277,6 +314,48 @@ fn a_lit_inside_edge_is_drawn_whole_and_a_lit_edge_behind_the_matter_not_at_all(
         amber_pixels.is_empty(),
         "a lit edge on the far face of the boss, pulled {PULLED_AT_MOST} pixels' worth towards \
          the eye, still shows through the matter in front of it: {} amber pixels, first {:?}",
+        amber_pixels.len(),
+        amber_pixels.first(),
+    );
+}
+
+#[test]
+fn a_lit_edge_behind_a_wall_a_little_thicker_than_the_most_it_is_pulled_is_not_drawn() {
+    let Some((device, queue)) = a_gpu() else {
+        println!("skipped: no GPU adapter here to draw a lit edge with");
+        return;
+    };
+    let camera = the_camera();
+    let wall = a_thin_wall(&camera);
+    let amber_in = |picture: &Picture| -> Vec<(u32, u32)> {
+        (0..HEIGHT)
+            .flat_map(|y| (0..WIDTH).map(move |x| (x, y)))
+            .filter(|(x, y)| is_amber(picture.at(*x, *y)))
+            .collect()
+    };
+    let bare = drawn(
+        &device,
+        &queue,
+        &a_frame(&camera, &[], BEHIND_THE_WALL, PULLED_AT_MOST),
+    );
+    assert!(
+        amber_in(&bare).len() > 100,
+        "the fixture wants the edge drawn plainly with no wall in front of it, and {} pixels \
+         of it are amber",
+        amber_in(&bare).len(),
+    );
+
+    let behind = drawn(
+        &device,
+        &queue,
+        &a_frame(&camera, &wall, BEHIND_THE_WALL, PULLED_AT_MOST),
+    );
+    let amber_pixels = amber_in(&behind);
+    assert!(
+        amber_pixels.is_empty(),
+        "a lit edge behind a wall {THE_WALL_S_DEPTH} pixels' worth thick along the line of \
+         sight, pulled {PULLED_AT_MOST} pixels' worth towards the eye, shows through it: {} \
+         amber pixels, first {:?}",
         amber_pixels.len(),
         amber_pixels.first(),
     );
