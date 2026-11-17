@@ -54,7 +54,7 @@ impl History {
         let (mut sketches, mut volumes) = (0, 0);
         let mut lines = Vec::new();
         for (step, operation) in document.history.operations().iter().enumerate() {
-            if operation.is_about_a_section() {
+            if operation.stays_off_the_list() {
                 continue;
             }
             let started = matches!(
@@ -78,7 +78,12 @@ impl History {
                     (name, matter(lang, variables, operation))
                 }
                 Operation::Blend { size, .. } => {
-                    let name = wording::history::label(lang, variables, operation);
+                    let number = document.history.number_at(step);
+                    let (laid, size) = match number.and_then(|at| document.raised_as(at)) {
+                        Some(changed @ Operation::Blend { size, .. }) => (changed, size),
+                        _ => (operation, size),
+                    };
+                    let name = wording::history::label(lang, variables, laid);
                     (name, blended(lang, document, step, size))
                 }
                 _ => drawn(lang, document, operation),
@@ -111,7 +116,7 @@ impl History {
             .history
             .operations()
             .iter()
-            .filter(|operation| !operation.is_about_a_section())
+            .filter(|operation| !operation.stays_off_the_list())
             .count();
         (count > 0).then(|| counted(lang, count))
     }

@@ -55,12 +55,12 @@ impl Feature {
         features
     }
 
-    /// Where the line at `at` ends: past the sections kept right after it,
-    /// which the list leaves out, so that going back to that line keeps them.
+    /// Where the line at `at` ends: past what the list leaves out right after
+    /// it, so that going back to that line keeps it.
     pub fn line_ends(history: &History, at: usize) -> usize {
         let operations = history.operations();
         (at + 1..operations.len())
-            .find(|after| !operations[*after].is_about_a_section())
+            .find(|after| !operations[*after].stays_off_the_list())
             .unwrap_or(operations.len())
     }
 }
