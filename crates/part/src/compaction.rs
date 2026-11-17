@@ -15,7 +15,7 @@ use cao_sketch::{ArcId, CircleId, Constraint, PointId, Segment, SegmentId, Sketc
 
 use crate::history::{History, Operation, PointRef, RevolutionAxis};
 use crate::state::PartState;
-use matter::{renamed, revolve_axis_segments};
+use matter::{blend_written, renamed, revolve_axis_segments};
 use remap::{SketchIdMap, remap_constraint, remap_target, without_order};
 use variables::{Renumbered, compact_variables};
 
@@ -39,7 +39,7 @@ pub fn compact(history: &History) -> History {
     let mut sketch_maps: Vec<SketchIdMap> = Vec::new();
     let renumbered = compact_variables(&old_state.variables, &mut new_history, &mut new_state);
 
-    for operation in operations {
+    for (at, operation) in operations.iter().enumerate() {
         match operation {
             Operation::CreateSketch { .. } | Operation::CreateSketchOnSection { .. } => {
                 record(operation.clone(), &mut new_history, &mut new_state);
@@ -107,15 +107,13 @@ pub fn compact(history: &History) -> History {
                     &mut new_state,
                 );
             }
-            Operation::Blend { edges, shape, size } => record(
-                Operation::Blend {
-                    edges: edges.clone(),
-                    shape: *shape,
-                    size: renumbered.formula(size),
-                },
-                &mut new_history,
-                &mut new_state,
-            ),
+            Operation::Blend { .. } => {
+                let first = &history.operations()[at];
+                let raised_by = new_history.next_number();
+                for written in blend_written(first, operation, &renumbered, raised_by) {
+                    record(written, &mut new_history, &mut new_state);
+                }
+            }
             Operation::SaveSection(_)
             | Operation::EditSection { .. }
             | Operation::DeleteSection { .. } => {

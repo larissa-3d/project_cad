@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use cao_sketch::{Area, SegmentId};
 
 use super::remap::{SketchIdMap, remap_area};
+use super::variables::Renumbered;
 use crate::history::{Operation, RevolutionAxis};
 use crate::state::PartState;
 
@@ -63,4 +64,38 @@ pub(super) fn renamed(
                 .unwrap_or_else(|| area.clone())
         })
         .collect()
+}
+
+/// A blend step as compaction writes it, `raised_by` the number it is about
+/// to be given: with its values as they now stand, or, when a change took
+/// edges out of it, as first laid and then changed, so that it keeps the block
+/// of face numbers the faces after it are named by.
+pub(super) fn blend_written(
+    first: &Operation,
+    now: &Operation,
+    renumbered: &Renumbered,
+    raised_by: u32,
+) -> Vec<Operation> {
+    let written = |blend: &Operation| match blend {
+        Operation::Blend { edges, shape, size } => Operation::Blend {
+            edges: edges.clone(),
+            shape: *shape,
+            size: renumbered.formula(size),
+        },
+        other => other.clone(),
+    };
+    match (first, now) {
+        (Operation::Blend { edges: laid, .. }, Operation::Blend { edges, .. })
+            if edges.len() < laid.len() =>
+        {
+            vec![
+                written(first),
+                Operation::EditMatter {
+                    raised_by,
+                    to: Box::new(written(now)),
+                },
+            ]
+        }
+        _ => vec![written(now)],
+    }
 }

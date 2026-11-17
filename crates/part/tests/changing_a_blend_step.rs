@@ -512,3 +512,195 @@ fn taking_an_edge_out_of_a_blend_step_leaves_a_sketch_laid_after_it_on_its_face(
         failures.join("\n  "),
     );
 }
+
+#[test]
+fn one_undo_takes_back_a_change_of_blend_step() {
+    let cases = [
+        (
+            "a chamfer of the four top edges given a new size",
+            a_blend(4, BlendShape::Chamfer, SIZE),
+            a_blend(4, BlendShape::Chamfer, 3.0),
+        ),
+        (
+            "a chamfer of the four top edges turned into a fillet",
+            a_blend(4, BlendShape::Chamfer, SIZE),
+            a_blend(4, BlendShape::Fillet, SIZE),
+        ),
+        (
+            "a fillet of the four top edges with one taken out",
+            a_blend(4, BlendShape::Fillet, SIZE),
+            a_blend(3, BlendShape::Fillet, SIZE),
+        ),
+    ];
+    let mut failures = Vec::new();
+    for (what, laid, changed) in cases {
+        let (mut part, blend) = a_block_blended(laid);
+        let as_laid = part.raised_as(blend).cloned();
+        let before = part.body().clone();
+        part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(changed),
+        });
+
+        let undone = part.undo();
+
+        let mut wrong = Vec::new();
+        if !undone {
+            wrong.push("nothing to undo".to_string());
+        }
+        if changes_recorded(&part) != 0 {
+            wrong.push(format!(
+                "{} changes are still in effect",
+                changes_recorded(&part)
+            ));
+        }
+        if part.raised_as(blend).cloned() != as_laid {
+            wrong.push(format!(
+                "the step reads {:?}, not its values as laid",
+                part.raised_as(blend),
+            ));
+        }
+        wrong.extend(how_the_bodies_differ(
+            part.body(),
+            &before,
+            "the part before the change",
+        ));
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "{what}, then one undo:\n    {}",
+                wrong.join("\n    ")
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "one undo does not take back a change of blend step whole:\n  {}",
+        failures.join("\n  "),
+    );
+}
+
+/// A sketch laid on the boss's top, a square drawn on it so that compaction
+/// has a reason to keep it: its index.
+fn a_sketch_drawn_on_the_boss_s_top(part: &mut PartDocument) -> usize {
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: Some(FaceAnchor {
+            face: the_boss_s_top(part.body()),
+            up: DVec3::Y,
+        }),
+    });
+    let sketch = part.sketches().len() - 1;
+    rectangle(part, sketch, DVec2::new(-1.0, -1.0), DVec2::new(1.0, 1.0));
+    assert_eq!(
+        off_the_boss_s_top(part, sketch),
+        None,
+        "the fixture means a sketch laid on the boss's top",
+    );
+    sketch
+}
+
+#[test]
+fn compacting_the_history_keeps_the_change_of_a_blend_step() {
+    let cases = [
+        (
+            "a chamfer of the four top edges turned into a fillet of 3",
+            a_blend(4, BlendShape::Chamfer, SIZE),
+            a_blend(4, BlendShape::Fillet, 3.0),
+        ),
+        (
+            "a chamfer of the four top edges with one taken out",
+            a_blend(4, BlendShape::Chamfer, SIZE),
+            a_blend(3, BlendShape::Chamfer, SIZE),
+        ),
+        (
+            "a fillet of the four top edges with one taken out",
+            a_blend(4, BlendShape::Fillet, SIZE),
+            a_blend(3, BlendShape::Fillet, SIZE),
+        ),
+    ];
+    let mut failures = Vec::new();
+    for (what, laid, changed) in cases {
+        let (mut part, blend) = a_block_blended(laid.clone());
+        let on_the_boss = a_sketch_drawn_on_the_boss_s_top(&mut part);
+        let sketches = part.sketches().len();
+        let changed_by_one_edge_less = matches!(
+            (&laid, &changed),
+            (Operation::Blend { edges: before, .. }, Operation::Blend { edges: after, .. })
+                if after.len() < before.len()
+        );
+        part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(changed.clone()),
+        });
+        let before = part.body().clone();
+
+        part.compact_history();
+
+        let mut wrong = Vec::new();
+        let blends: Vec<u32> = part
+            .history
+            .steps()
+            .iter()
+            .filter(|step| step.kind() == StepKind::Blend)
+            .map(|step| step.operations()[0])
+            .collect();
+        match blends.as_slice() {
+            [step] => {
+                if part.raised_as(*step) != Some(&changed) {
+                    wrong.push(format!(
+                        "the step reads {:?}, not its new values",
+                        part.raised_as(*step),
+                    ));
+                }
+                if part.declined_because(*step).is_some() {
+                    wrong.push(format!(
+                        "the step is declined: {:?}",
+                        part.declined_because(*step),
+                    ));
+                }
+            }
+            _ => wrong.push(format!("{} blend steps where there is one", blends.len())),
+        }
+        if !changed_by_one_edge_less {
+            let blends: Vec<&Operation> = part
+                .history
+                .applied_operations()
+                .iter()
+                .filter(|operation| matches!(operation, Operation::Blend { .. }))
+                .collect();
+            if blends != [&changed] || changes_recorded(&part) != 0 {
+                wrong.push(format!(
+                    "the step is not written down as a blend of its new values: {blends:?}, and \
+                     {} changes",
+                    changes_recorded(&part),
+                ));
+            }
+        }
+        if part.sketches().len() != sketches {
+            wrong.push(format!(
+                "{} sketches where there were {sketches}",
+                part.sketches().len()
+            ));
+        } else {
+            wrong.extend(off_the_boss_s_top(&part, on_the_boss));
+        }
+        wrong.extend(how_the_bodies_differ(
+            part.body(),
+            &before,
+            "the part before compaction",
+        ));
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "{what}, then the history compacted:\n    {}",
+                wrong.join("\n    ")
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "compacting the history does not keep a blend step as it was changed:\n  {}",
+        failures.join("\n  "),
+    );
+}
