@@ -34,6 +34,12 @@ pub(super) fn blend_row(
             &offers,
             NAMING,
         );
+        if let Some(wrong) = blend.wrong(document.variables()) {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                crate::wording::formula::unusable(lang, &wrong),
+            );
+        }
         ui.separator();
         ui.add_enabled_ui(blend.is_ready(document.variables()), |ui| {
             if ui.button(lang.t("extrusion.apply")).clicked() {
@@ -62,6 +68,9 @@ pub(super) fn blend_row(
                 ui.weak(command::hint_on_the_part(lang, tool).unwrap_or_default());
             }
             (None, false) => {}
+        }
+        if let Some(reduced) = blend.reduced {
+            ui.label(said::reduced(lang, reduced));
         }
     });
 }

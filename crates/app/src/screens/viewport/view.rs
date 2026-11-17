@@ -66,10 +66,11 @@ pub fn show(
         !handled_cube && point_the_section(ui, state, &response, (rect, scale), sketch);
     state.edge_under_the_hand = None;
     state.edges_chosen.clone_from(&blend.edges);
+    state.reopened_as = state
+        .reopened_as
+        .take()
+        .filter(|_| state.reopened == blend.reopened);
     state.reopened = blend.reopened;
-    state.reopened_as = blend
-        .reopened
-        .and_then(|_| blend.laid(sketch.document.variables()));
     let mut changed = match gesture_goes_to(handled_cube, sketch) {
         _ if sectioning => false,
         GestureGoesTo::TheCube => false,
@@ -135,6 +136,9 @@ pub fn show(
     // and before the part is drawn; the panel, drawn earlier, catches up on
     // the next frame.
     if state.keep_reading_up_with(sketch.document) {
+        ui.ctx().request_repaint();
+    }
+    if state.keep_up_with_the_step_reopened(sketch.document, blend) {
         ui.ctx().request_repaint();
     }
     let drawn = seen(state, sketch.editor, sketch.document);

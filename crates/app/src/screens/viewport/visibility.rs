@@ -8,7 +8,7 @@
 
 mod shown;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
 
 use cao_part::history::StepKind;
@@ -44,6 +44,9 @@ pub(super) struct Visibility {
     /// The part as it stood before the step reopened, and what it was
     /// replayed from.
     before: RefCell<Option<Before>>,
+    /// How many times the step reopened was laid as its panel held it, and
+    /// how many operations the last of them laid.
+    previews: Cell<(usize, usize)>,
 }
 
 /// One sketch, or the volume made at a step of the history.
@@ -64,6 +67,7 @@ impl Default for Visibility {
             shown: RefCell::new(None),
             block: RefCell::new(None),
             before: RefCell::new(None),
+            previews: Cell::new((0, 0)),
         }
     }
 }

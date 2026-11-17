@@ -2,7 +2,7 @@
 //! two, the edges chosen, and the size typed.
 
 use cao_part::history::{BlendShape, Operation};
-use cao_part::{Formula, Outcome, PartDocument, Variables};
+use cao_part::{Formula, Outcome, PartDocument, Reduced, Unusable, Variables};
 use cao_prefs::Command;
 use cao_solid::{Declined, EdgeName};
 
@@ -20,6 +20,9 @@ pub struct BlendState {
     /// The number of the step the panel was reopened on, which « Appliquer »
     /// changes in place rather than laying a new one.
     pub reopened: Option<u32>,
+    /// The size asked and the one taken of the step reopened as the panel
+    /// holds it, when the kernel took less.
+    pub reduced: Option<Reduced>,
 }
 
 impl BlendState {
@@ -37,6 +40,7 @@ impl BlendState {
             size_input: document.variables().written(size),
             declined: None,
             reopened: Some(raised_by),
+            reduced: None,
         })
     }
 
@@ -102,9 +106,28 @@ impl BlendState {
             .filter(|(_, value)| *value > 1e-6)
     }
 
-    /// Whether there is enough to apply: an edge chosen, and a usable size.
+    /// What is wrong with the size typed, when it does not read; nothing for
+    /// a field left empty.
+    pub fn wrong(&self, variables: &Variables) -> Option<Unusable> {
+        match self.size_input.trim().is_empty() {
+            true => None,
+            false => variables.size_of(&self.size_input).err(),
+        }
+    }
+
+    /// Takes what the kernel made of the step reopened as the panel holds it:
+    /// true when that changes what the panel says.
+    pub fn tried(&mut self, declined: Option<Declined>, reduced: Option<Reduced>) -> bool {
+        let said = (self.declined, self.reduced);
+        (self.declined, self.reduced) = (declined, reduced);
+        said != (declined, reduced)
+    }
+
+    /// Whether there is enough to apply: an edge chosen, and a usable size;
+    /// for a step reopened, one the kernel does not decline as it stands.
     pub fn is_ready(&self, variables: &Variables) -> bool {
-        self.laid(variables).is_some()
+        let declined = self.reopened.is_some() && self.declined.is_some();
+        !declined && self.laid(variables).is_some()
     }
 
     /// The step the panel holds, as « Appliquer » would lay it: its kind, an

@@ -56,6 +56,9 @@ pub(crate) struct Replay {
     /// The number of the change in effect of each step changed, by the number
     /// of the step.
     pub(crate) changes_named_by: BTreeMap<u32, u32>,
+    /// How many operations the replay laid, a change of a step of matter
+    /// laid with the step.
+    pub(crate) operations_laid: usize,
 }
 
 /// How many of each element — points, traits, circles, arcs, ellipses — a
@@ -156,6 +159,9 @@ impl PartState {
                 .and_then(|sketch| Some((sketch, state.held_by(sketch)?)));
             state.apply(operation);
             state.note(number, operation, before);
+            if !matches!(operation, Operation::EditMatter { .. }) {
+                state.replay.operations_laid += 1;
+            }
         }
         // What is applied from here on is applied live, not replayed.
         state.replaying = 0;

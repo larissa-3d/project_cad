@@ -60,6 +60,8 @@ pub struct Tried {
     pub shown: Shown,
     pub declined: Option<Declined>,
     pub reduced: Option<Reduced>,
+    /// How many operations of the history were laid to show it.
+    pub operations_laid: usize,
 }
 
 /// What a replay of the part shown carries besides the part: each volume's
@@ -129,6 +131,7 @@ impl PartDocument {
         Tried {
             declined: replayed.declined.get(&step).copied(),
             reduced: replayed.reduced.get(&step).copied(),
+            operations_laid: replayed.replay.operations_laid,
             shown: Shown {
                 body: replayed.body,
                 ghosts: replayed.showing.ghosts,
