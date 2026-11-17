@@ -83,7 +83,7 @@ impl ExtrusionHandle {
             true => -depth,
             false => depth,
         };
-        extrusion.distance_input = crate::wording::dimension::short(typed);
+        extrusion.drag_depth_to(crate::wording::dimension::short(typed));
     }
 
     pub(crate) fn let_go(&mut self) {
