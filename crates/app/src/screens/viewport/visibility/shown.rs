@@ -17,6 +17,7 @@ pub(super) struct Replayed {
     history: History,
     states: BTreeMap<u32, VolumeState>,
     reading_point: Option<usize>,
+    reopened: Option<u32>,
     shown: Rc<Shown>,
 }
 
@@ -30,33 +31,43 @@ pub(super) struct Blocked {
 
 impl ViewportState {
     /// The part as its volumes' states show it, read through the step the
-    /// reader is on; nothing while every volume of the document is opaque and
-    /// the part is read to its end, when the part shown is the part itself.
+    /// reader is on, or as it stood before the step reopened; nothing while
+    /// every volume of the document is opaque, the part is read to its end and
+    /// no step is reopened, when the part shown is the part itself.
     pub(crate) fn part_shown(&self, document: &PartDocument) -> Option<Rc<Shown>> {
         let states = self.volume_states(document);
-        let reading_point = self.reading.point;
-        if states.is_empty() && reading_point.is_none() {
+        let (reading_point, reopened) = (self.reading.point, self.reopened);
+        if states.is_empty() && reading_point.is_none() && reopened.is_none() {
             return None;
         }
         let mut kept = self.visibility.shown.borrow_mut();
         if let Some(replayed) = kept.as_ref()
             && replayed.states == states
             && replayed.reading_point == reading_point
+            && replayed.reopened == reopened
             && replayed.history == document.history
         {
             return Some(Rc::clone(&replayed.shown));
         }
-        let shown = Rc::new(match reading_point {
-            Some(key_step) => document.shown_through(&states, key_step),
-            None => document.shown(&states),
+        let shown = Rc::new(match (reopened, reading_point) {
+            (Some(step), _) => document.shown_before(&states, step),
+            (None, Some(key_step)) => document.shown_through(&states, key_step),
+            (None, None) => document.shown(&states),
         });
         *kept = Some(Replayed {
             history: document.history.clone(),
             states,
             reading_point,
+            reopened,
             shown: Rc::clone(&shown),
         });
         Some(shown)
+    }
+
+    /// The part as it stood before the step reopened, which its edges are
+    /// named on; nothing while no step is.
+    pub(crate) fn part_reopened(&self, document: &PartDocument) -> Option<Rc<Shown>> {
+        self.reopened.and_then(|_| self.part_shown(document))
     }
 
     /// The raw block of the volume marked: the matter its step raises or

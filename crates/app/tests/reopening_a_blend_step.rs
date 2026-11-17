@@ -205,3 +205,172 @@ fn modify_in_a_blend_line_s_menu_opens_the_edge_panel_on_its_kind_its_size_as_wr
         );
     }
 }
+
+/// `a_block_blended_at_twice_r`, the step then reopened from its line's menu.
+fn reopened(test: &str, kind: &Kind) -> (driver::App, [[DVec3; 2]; 4], String) {
+    let (mut app, top, line) = a_block_blended_at_twice_r(test, kind);
+    driver::right_click(&mut app, &line);
+    driver::click_the_button(&mut app, kind.edit);
+    assert!(
+        driver::reads(&app, kind.value),
+        "« {} » on « {line} » opened no panel, showing {:?}",
+        kind.edit,
+        driver::on_screen(&app),
+    );
+    (app, top, line)
+}
+
+fn hover_at_world_point(app: &mut driver::App, point: DVec3) {
+    driver::hold_the_canvas(app);
+    let at = driver::world_point_on_screen(app, point);
+    app.hover_at(at);
+    app.run();
+}
+
+/// Where along X the view bar reads the point of the part under the pointer:
+/// « X 10,00 Y -3,00 Z 30,10 mm ».
+fn x_read_under_the_pointer(app: &driver::App) -> Option<f64> {
+    let reading = driver::the_bar_s_coordinates(app);
+    let x = reading.strip_prefix("X ")?.split(" Y ").next()?;
+    x.replace(',', ".").parse().ok()
+}
+
+/// On the block's top, which faces +X, half a millimetre in from the middle
+/// of its edge `top[0]`: matter of the block whole, which a fillet of 2 on
+/// that edge takes away.
+fn just_inside_the_first_top_edge(top: &[[DVec3; 2]; 4]) -> DVec3 {
+    let across = (middle(top[2]) - middle(top[0])).normalize();
+    middle(top[0]) + across * 0.5
+}
+
+/// How far from the top along X the matter the pointer meets may read and
+/// still be the top: two decimals in the bar, and a pixel of aim.
+const ON_THE_TOP: f64 = 0.1;
+
+#[test]
+fn while_a_blend_step_is_reopened_the_body_drawn_is_the_part_before_it_and_its_edges_are_lit() {
+    let test = "while_reopened_the_part_before_the_step_is_drawn";
+    let (mut app, top, _) = reopened(test, &FILLET);
+    let top_x = top[0][0].x;
+    let mut wrong = Vec::new();
+
+    if !are_the_edges(&app.state().the_edges_lit(), &top) {
+        wrong.push(format!(
+            "{:?} are lit, not the four top edges of the block before the step",
+            app.state().the_edges_lit(),
+        ));
+    }
+
+    hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
+    match x_read_under_the_pointer(&app) {
+        Some(x) if (x - top_x).abs() <= ON_THE_TOP => {}
+        _ => wrong.push(format!(
+            "half a millimetre in from a top edge, the pointer meets « {} », where the block \
+             before the fillet stands with its top at X {top_x}",
+            driver::the_bar_s_coordinates(&app),
+        )),
+    }
+
+    let low_x = the_part(test)
+        .body()
+        .bounds()
+        .expect("the block holds matter")
+        .0
+        .x;
+    let along_the_left_top = [
+        DVec3::new(top_x, top[0][0].y, top[0][0].z),
+        DVec3::new(low_x, top[0][0].y, top[0][0].z),
+    ];
+    driver::click_at_world_point_with(
+        &mut app,
+        middle(along_the_left_top),
+        egui::Modifiers::COMMAND,
+    );
+    let mut five = top.to_vec();
+    five.push(along_the_left_top);
+    if !are_the_edges(&app.state().the_edges_chosen(), &five) {
+        wrong.push(format!(
+            "Cmd + click on the edge running from the top's corner along X chose {:?}, not the \
+             four top edges and that edge whole, as the block before the step has it",
+            app.state().the_edges_chosen(),
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "a fillet of the four top edges, reopened from its line, does not show the block as it \
+         stood before it:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn apply_on_a_reopened_step_lays_no_new_step_and_its_history_line_reads_the_new_values() {
+    for change in ["the size typed 3", "the far top edge taken out"] {
+        let test = format!(
+            "apply_on_a_reopened_step_{}",
+            change.replace(' ', "_").to_lowercase()
+        );
+        let (mut app, top, line) = reopened(&test, &FILLET);
+        let lines = driver::steps(&app);
+        let detail = driver::detail_of(&app, &line);
+        let rank = line.split_once(". ").expect("a numbered line").0;
+        let (expected_line, expected_detail) = match change {
+            "the size typed 3" => {
+                driver::type_beside(&mut app, FILLET.value, "3");
+                (line.clone(), Some("3 mm".to_string()))
+            }
+            _ => {
+                driver::click_at_world_point_with(
+                    &mut app,
+                    middle(top[2]),
+                    egui::Modifiers::COMMAND,
+                );
+                assert!(
+                    are_the_edges(&app.state().the_edges_chosen(), &[top[0], top[1], top[3]],),
+                    "the fixture takes the far top edge out, leaving {:?} chosen",
+                    app.state().the_edges_chosen(),
+                );
+                (format!("{rank}. 3 arêtes arrondies"), detail.clone())
+            }
+        };
+
+        driver::click(&mut app, "Appliquer");
+
+        let mut wrong = Vec::new();
+        let now = driver::steps(&app);
+        if now.len() != lines.len() {
+            wrong.push(format!("the history reads {now:?} where it read {lines:?}"));
+        }
+        if !now.contains(&expected_line) {
+            wrong.push(format!("no line reads « {expected_line} »: {now:?}"));
+        } else if driver::detail_of(&app, &expected_line) != expected_detail {
+            wrong.push(format!(
+                "« {expected_line} » reads {:?} under it, where {expected_detail:?} is wanted",
+                driver::detail_of(&app, &expected_line),
+            ));
+        }
+        if now.iter().any(|line| line.contains("modifiée")) {
+            wrong.push(format!(
+                "a line says the step was changed in other words: {now:?}"
+            ));
+        }
+        if driver::reads(&app, FILLET.value) {
+            wrong.push("the panel is still open".to_string());
+        }
+        hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
+        if x_read_under_the_pointer(&app).is_some_and(|x| (x - top[0][0].x).abs() <= ON_THE_TOP) {
+            wrong.push(format!(
+                "half a millimetre in from a top edge still rounded, the pointer meets « {} », \
+                 the block's sharp top: the part before the step is still drawn",
+                driver::the_bar_s_coordinates(&app),
+            ));
+        }
+
+        assert!(
+            wrong.is_empty(),
+            "« Appliquer » on the fillet of the four top edges reopened, {change}:\n  {}",
+            wrong.join("\n  "),
+        );
+    }
+}

@@ -200,9 +200,10 @@ impl CaoApp {
         let mut asked: Vec<Command> = Vec::new();
 
         // The extrusion's panel or a sketch opened since wins over the edge
-        // panel; and a chamfer lands at the end of the part, which the view
-        // does not show while the part is read to an earlier step.
-        if !viewport.is_read_whole() || extrusion.is_active() || editor.active_sketch().is_some() {
+        // panel; and a new chamfer lands at the end of the part, which the
+        // view does not show while the part is read to an earlier step.
+        let lands_unseen = !viewport.is_read_whole() && blend.reopened.is_none();
+        if lands_unseen || extrusion.is_active() || editor.active_sketch().is_some() {
             blend.close();
         }
         let mut drawn = screens::ribbon::Drawn {

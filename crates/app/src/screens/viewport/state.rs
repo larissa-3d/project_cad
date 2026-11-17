@@ -82,6 +82,9 @@ pub struct ViewportState {
     pub edge_under_the_hand: Option<EdgeName>,
     /// The edges the edge panel holds as chosen, drawn wherever the hand is.
     pub edges_chosen: Vec<EdgeName>,
+    /// The step the edge panel was reopened on: the part is drawn, and its
+    /// edges named, as it stood before it.
+    pub reopened: Option<u32>,
     pub(super) edges: DrawnEdges,
 }
 
@@ -109,6 +112,7 @@ impl Default for ViewportState {
             blinking: None,
             edge_under_the_hand: None,
             edges_chosen: Vec::new(),
+            reopened: None,
             edges: DrawnEdges::default(),
         }
     }
