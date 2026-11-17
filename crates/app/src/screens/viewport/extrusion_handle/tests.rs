@@ -67,6 +67,21 @@
 //!   `a_click_on_the_arrow_s_tip_picks_and_unpicks_nothing`,
 //!   `a_drag_of_the_arrow_let_go_over_the_cube_lets_the_arrow_go` and
 //!   `typing_the_depth_after_a_drag_lets_annuler_close_the_panel`
+//! - found in the real window: a revolution of areas across its axis — a
+//!   rectangle drawn about the origin, turned about V, the axis offered first —
+//!   has its arc too. Areas whose box straddles the axis stand the arc's foot
+//!   out, square to the axis in the plane, on the edge of their box furthest
+//!   from it, level with their middle along it; either side when both reach
+//!   as far. Areas on one side of the axis keep it at their middle —
+//!   `for_a_revolution_of_areas_across_the_axis_the_arrow_stands_on_their_far_edge`;
+//!   and a pull round the axis turns it —
+//!   `for_a_revolution_of_areas_across_the_axis_pulling_the_arrow_round_changes_the_angle`
+//! - found in the real window: a pull writes the depth to a tenth of a
+//!   millimetre and the angle to a tenth of a degree, the same in the field,
+//!   the preview and the pill; a whole number stays whole, a grab alone
+//!   writes nothing, and a pull that rounds to nothing leaves the value where
+//!   it was — `a_pulled_depth_is_written_to_a_tenth_of_a_millimetre`,
+//!   `a_pulled_angle_is_written_to_a_tenth_of_a_degree`
 //!
 //! Snapping the drag to faces of the part is out of the issue's scope.
 //!
@@ -1363,4 +1378,211 @@ fn seen_from_the_front_or_the_back_the_arrow_s_head_still_opens_across_its_shaft
              across its shaft: its head folds onto it",
         );
     }
+}
+
+/// A rectangle drawn on XY from `corner` to `opposite`, and the tool armed to
+/// turn it 90° about `axis`, picked at its middle.
+fn turning_a_rectangle(
+    corner: DVec2,
+    opposite: DVec2,
+    axis: cao_sketch::SketchAxis,
+) -> (PartDocument, ExtrusionState) {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(opposite),
+        construction: false,
+    });
+    let mut extrusion = ExtrusionState::default();
+    extrusion.offer(0);
+    extrusion.picks = vec![(corner + opposite) / 2.0];
+    extrusion.arm(ExtrusionMode::Add);
+    extrusion.shape = Shape::Revolution;
+    extrusion.axis = cao_part::RevolutionAxis::Sketch(axis);
+    extrusion.angle_input = "90".to_owned();
+    (document, extrusion)
+}
+
+/// `place` turned `degrees` about the line through the origin along `axis`,
+/// by the right hand, the way the kernel turns.
+fn turned_about(axis: DVec3, place: DVec3, degrees: f64) -> DVec3 {
+    glam::DQuat::from_axis_angle(axis, degrees.to_radians()) * place
+}
+
+#[test]
+fn for_a_revolution_of_areas_across_the_axis_the_arrow_stands_on_their_far_edge() {
+    use cao_sketch::SketchAxis;
+
+    for (said, (corner, opposite), axis, along, far_edges) in [
+        (
+            "a rectangle 20 by 10 centred on V",
+            (DVec2::new(-10.0, -5.0), DVec2::new(10.0, 5.0)),
+            SketchAxis::V,
+            DVec3::Y,
+            vec![DVec3::new(10.0, 0.0, 0.0), DVec3::new(-10.0, 0.0, 0.0)],
+        ),
+        (
+            "a rectangle 10 by 20 centred on U",
+            (DVec2::new(-5.0, -10.0), DVec2::new(5.0, 10.0)),
+            SketchAxis::U,
+            DVec3::X,
+            vec![DVec3::new(0.0, 10.0, 0.0), DVec3::new(0.0, -10.0, 0.0)],
+        ),
+        (
+            "a rectangle 20 by 10 a unit off V",
+            (DVec2::new(-9.0, -5.0), DVec2::new(11.0, 5.0)),
+            SketchAxis::V,
+            DVec3::Y,
+            vec![DVec3::new(11.0, 0.0, 0.0)],
+        ),
+    ] {
+        let (document, extrusion) = turning_a_rectangle(corner, opposite, axis);
+
+        let arrow = ExtrusionHandle::drawn(&extrusion, &document).unwrap_or_else(|| {
+            panic!("{said}, turned 90° about it, has no arrow drawn on its revolution")
+        });
+
+        assert!(
+            far_edges
+                .iter()
+                .any(|edge| arrow.foot.distance(*edge) <= TOLERANCE),
+            "{said}: the arrow's foot stands at {}, not out on the edge furthest from the \
+             axis, at {far_edges:?}",
+            arrow.foot,
+        );
+        stands_at(
+            arrow.tip,
+            turned_about(along, arrow.foot, 90.0),
+            &format!("{said}: the arrow's tip, its foot turned 90° about the axis,"),
+        );
+        assert_eq!(
+            arrow.pill, "90°",
+            "{said}: the pill does not read the angle typed"
+        );
+    }
+}
+
+#[test]
+fn for_a_revolution_of_areas_across_the_axis_pulling_the_arrow_round_changes_the_angle() {
+    let (document, mut extrusion) = turning_a_rectangle(
+        DVec2::new(-10.0, -5.0),
+        DVec2::new(10.0, 5.0),
+        cao_sketch::SketchAxis::V,
+    );
+    let foot = ExtrusionHandle::drawn(&extrusion, &document)
+        .expect("a rectangle centred on V, turned 90° about it, has no arrow drawn")
+        .foot;
+    let turned = |degrees: f64| above(turned_about(DVec3::Y, foot, degrees));
+    let mut handle = ExtrusionHandle::default();
+
+    let taken = handle.grab(&extrusion, &document, turned(90.0), DOWN_THE_AXIS, REACH);
+    handle.pull(&mut extrusion, turned(45.0), DOWN_THE_AXIS);
+    let pulled_back = angle_shown(&extrusion, &document);
+    handle.pull(&mut extrusion, turned(150.0), DOWN_THE_AXIS);
+    let pulled_on = angle_shown(&extrusion, &document);
+
+    assert!(
+        taken,
+        "a ray down the axis through the arc's tip, a quarter turn round, takes no hold of it",
+    );
+    assert!(
+        turns(pulled_back, false, 45.0),
+        "pulled back round to 45°, the panel reads {pulled_back:?}: not 45 the way it turned",
+    );
+    assert!(
+        turns(pulled_on, false, 150.0),
+        "pulled on round to 150°, the panel reads {pulled_on:?}: not 150 the way it turned",
+    );
+}
+
+#[test]
+fn a_pulled_depth_is_written_to_a_tenth_of_a_millimetre() {
+    let document = a_part_with_a_square();
+    let mut extrusion = extruding_the_square();
+    extrusion.distance_input = "10.04".to_owned();
+    let mut handle = ExtrusionHandle::default();
+    let pill = |extrusion: &ExtrusionState| {
+        ExtrusionHandle::drawn(extrusion, &document).map(|arrow| arrow.pill)
+    };
+
+    let taken = handle.grab(&extrusion, &document, beside(10.04), SIDEWAYS, REACH);
+    let held = extrusion.distance_input.clone();
+    handle.pull(&mut extrusion, beside(22.5035), SIDEWAYS);
+    let rounded = (
+        extrusion.distance_input.clone(),
+        field_and_preview(&extrusion, &document),
+        pill(&extrusion),
+    );
+    handle.pull(&mut extrusion, beside(25.0), SIDEWAYS);
+    let whole = extrusion.distance_input.clone();
+    handle.pull(&mut extrusion, beside(0.04), SIDEWAYS);
+    let next_to_nothing = (extrusion.distance_input.clone(), extrusion.reversed);
+
+    assert!(
+        taken,
+        "a ray through the tip of the arrow, at the 10.04 typed, takes no hold of it",
+    );
+    assert_eq!(
+        held, "10.04",
+        "taking hold of the arrow, before any pull, rewrote the depth typed"
+    );
+    let (written, (field, previewed), drawn) = rounded;
+    assert!(
+        written == "22.5"
+            && reads(field, 22.5)
+            && reads(previewed, 22.5)
+            && drawn.as_deref() == Some("22.5 mm"),
+        "pulled to 22.5035, the field holds « {written} », reads {field:?}, the preview goes \
+         {previewed:?} and the pill reads {drawn:?}: not 22.5, to a tenth of a millimetre",
+    );
+    assert_eq!(whole, "25", "pulled to 25, the field is not written whole");
+    assert_eq!(
+        next_to_nothing,
+        ("25".to_owned(), false),
+        "pulled to 0.04, which a tenth of a millimetre rounds to nothing, the depth did not \
+         stay at 25 the way it went",
+    );
+}
+
+#[test]
+fn a_pulled_angle_is_written_to_a_tenth_of_a_degree() {
+    let document = a_part_with_a_rectangle_beside_the_v_axis();
+    let mut extrusion = turning_the_rectangle("90");
+    let mut handle = ExtrusionHandle::default();
+
+    let taken = handle.grab(
+        &extrusion,
+        &document,
+        above(turned_to(90.0)),
+        DOWN_THE_AXIS,
+        REACH,
+    );
+    handle.pull(&mut extrusion, above(turned_to(149.3962)), DOWN_THE_AXIS);
+    let rounded = (
+        extrusion.angle_input.clone(),
+        angle_shown(&extrusion, &document),
+        ExtrusionHandle::drawn(&extrusion, &document).map(|arrow| arrow.pill),
+    );
+    handle.pull(&mut extrusion, above(turned_to(150.0)), DOWN_THE_AXIS);
+    let whole = extrusion.angle_input.clone();
+
+    assert!(
+        taken,
+        "a ray down the axis through the arc's tip, a quarter turn round, takes no hold of it",
+    );
+    let (written, shown, drawn) = rounded;
+    assert!(
+        written == "149.4" && turns(shown, false, 149.4) && drawn.as_deref() == Some("149.4°"),
+        "pulled round to 149.3962°, the field holds « {written} », the panel reads {shown:?} \
+         and the pill {drawn:?}: not 149.4, to a tenth of a degree",
+    );
+    assert_eq!(
+        whole, "150",
+        "pulled round to 150°, the field is not written whole"
+    );
 }

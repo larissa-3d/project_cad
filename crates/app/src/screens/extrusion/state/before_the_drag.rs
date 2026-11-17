@@ -22,15 +22,17 @@ struct Typed {
 impl ExtrusionState {
     /// Writes in the panel what a drag of the arrow came to — a depth in
     /// millimetres along the plane's normal, or for a revolution an angle in
-    /// degrees round its axis: its size in the field, the direction reversed
-    /// for a value below zero. What the panel read before the first drag is
-    /// kept aside, or before this one when something was typed since the last.
-    /// A value the field would read as nothing leaves the panel as it was.
+    /// degrees round its axis: its size in the field, to a tenth, the
+    /// direction reversed for a value below zero. What the panel read before
+    /// the first drag is kept aside, or before this one when something was
+    /// typed since the last. A value that rounds to nothing leaves the panel as
+    /// it was.
     pub fn drag_to(&mut self, value: f64) {
-        let typed = crate::wording::dimension::short(value.abs());
-        if !typed.parse::<f64>().is_ok_and(|size| size > NOTHING) {
+        let size = (value.abs() * 10.0).round() / 10.0;
+        if size <= NOTHING {
             return;
         }
+        let typed = crate::wording::dimension::short(size);
         let before = match self.before_the_drag.take() {
             Some(memory) if memory.left == self.typed() => memory.before,
             _ => self.typed(),

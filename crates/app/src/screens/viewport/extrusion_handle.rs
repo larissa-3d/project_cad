@@ -11,6 +11,10 @@ use crate::screens::extrusion::ExtrusionState;
 /// How many straight pieces a revolution's arc is drawn in.
 const ARC_PIECES: usize = 32;
 
+/// How far from a revolution's axis a corner of the areas' box still stands
+/// on it, in the drawing's units.
+const ON_THE_AXIS: f64 = 1e-9;
+
 #[derive(Default)]
 pub(crate) struct ExtrusionHandle {
     held: Option<Held>,
@@ -51,9 +55,9 @@ enum Pulls {
     Angle { turn: Turn, degrees: f64 },
 }
 
-/// The circle a revolution turns the middle of its areas along: the point of
-/// the axis square to that middle, the axis, of length one, and the way from
-/// that point out to the middle.
+/// The circle a revolution turns the arrow's foot along: the point of the axis
+/// square to the foot, the axis, of length one, and the way from that point
+/// out to the foot.
 #[derive(Clone, Copy)]
 struct Turn {
     centre: DVec3,
@@ -110,17 +114,18 @@ impl ExtrusionHandle {
         if low.x > high.x {
             return None;
         }
-        let foot = drawing.plane.to_world((low + high) / 2.0);
         let variables = document.variables();
         let millimetres_per_unit = document.scale();
-        let (tip, pill, pulls) = match extrusion.is_revolving() {
+        let (foot, tip, pill, pulls) = match extrusion.is_revolving() {
             true => {
                 let degrees = extrusion.angle(variables)?.1;
-                let turn = Turn::of(drawing, extrusion.axis, foot)?;
+                let turn = Turn::of(drawing, extrusion.axis, (low, high))?;
                 let pill = crate::wording::dimension::degrees(degrees.abs());
-                (turn.turned(degrees), pill, Pulls::Angle { turn, degrees })
+                let pulls = Pulls::Angle { turn, degrees };
+                (turn.centre + turn.out, turn.turned(degrees), pill, pulls)
             }
             false => {
+                let foot = drawing.plane.to_world((low + high) / 2.0);
                 let millimetres = extrusion.distance(variables)?.1;
                 let normal = drawing.plane.normal();
                 let tip = foot + normal * (millimetres / millimetres_per_unit);
@@ -130,7 +135,7 @@ impl ExtrusionHandle {
                     millimetres,
                     millimetres_per_unit,
                 };
-                (tip, pill, pulls)
+                (foot, tip, pill, pulls)
             }
         };
         Some(DrawnArrow {
@@ -243,11 +248,35 @@ impl ExtrusionHandle {
 }
 
 impl Turn {
-    /// The circle `foot` turns along about a revolution's axis; none when it
-    /// stands on the axis, or the axis is not there.
-    fn of(drawing: &Sketch, axis: RevolutionAxis, foot: DVec3) -> Option<Self> {
+    /// The circle the arrow's foot turns along about a revolution's axis: the
+    /// middle of the areas' box, or for a box across the axis the edge of it
+    /// furthest from the axis, out square to it from the middle; none when the
+    /// foot stands on the axis, or the axis is not there.
+    fn of(drawing: &Sketch, axis: RevolutionAxis, (low, high): (DVec2, DVec2)) -> Option<Self> {
         let (origin, along) = axis_in_drawing(drawing, axis)?;
+        let across = along.perp();
+        let side = |point: DVec2| across.dot(point - origin);
+        let corners = [
+            low,
+            high,
+            DVec2::new(low.x, high.y),
+            DVec2::new(high.x, low.y),
+        ];
+        let (nearest, furthest) = corners.map(side).into_iter().fold(
+            (f64::INFINITY, f64::NEG_INFINITY),
+            |(nearest, furthest), at| (nearest.min(at), furthest.max(at)),
+        );
+        let middle = (low + high) / 2.0;
+        let far_edge = match furthest >= -nearest {
+            true => furthest,
+            false => nearest,
+        };
+        let foot = match nearest < -ON_THE_AXIS && furthest > ON_THE_AXIS {
+            true => middle + across * (far_edge - side(middle)),
+            false => middle,
+        };
         let plane = drawing.plane;
+        let foot = plane.to_world(foot);
         let axis = (plane.u * along.x + plane.v * along.y).normalize_or_zero();
         let origin = plane.to_world(origin);
         let centre = origin + axis * axis.dot(foot - origin);
@@ -255,14 +284,14 @@ impl Turn {
         (out.length() > 1e-9 && axis != DVec3::ZERO).then_some(Self { centre, axis, out })
     }
 
-    /// Where the middle stands turned that many degrees, by the right hand
+    /// Where the foot stands turned that many degrees, by the right hand
     /// about the axis, the way the kernel turns.
     fn turned(&self, degrees: f64) -> DVec3 {
         let (sin, cos) = degrees.to_radians().sin_cos();
         self.centre + self.out * cos + self.axis.cross(self.out) * sin
     }
 
-    /// How far round the axis from the middle, in degrees, the ray meets the
+    /// How far round the axis from the foot, in degrees, the ray meets the
     /// plane square to the axis through it; none for a ray running within a
     /// few degrees of that plane.
     fn round(&self, origin: DVec3, direction: DVec3) -> Option<f64> {
