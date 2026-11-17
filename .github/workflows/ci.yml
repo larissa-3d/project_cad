@@ -39,7 +39,6 @@ jobs:
       - run: ./scripts/ci-deps-ubuntu.sh
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace
-      - run: cargo test -p cao_render --test lit_edges -- --nocapture
 
   build-windows:
     name: Windows executable
