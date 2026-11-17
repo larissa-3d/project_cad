@@ -39,6 +39,7 @@ impl History {
             (self.at(raised_by), to),
             (Some(Operation::Extrude { .. }), Operation::Extrude { .. })
                 | (Some(Operation::Revolve { .. }), Operation::Revolve { .. })
+                | (Some(Operation::Blend { .. }), Operation::Blend { .. })
         )
     }
 

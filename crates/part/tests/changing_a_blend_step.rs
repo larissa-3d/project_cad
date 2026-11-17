@@ -1,0 +1,288 @@
+//! A chamfer or a fillet step changed after it was laid: its size, its kind or
+//! its edges given new values, the part laid again from that step, in the step
+//! it already had.
+//!
+//! Closes #988 — the gestures, the panel and the view are in
+//! `crates/app/tests/reopening_a_blend_step.rs`; these bullets are the part's
+//! half, where the change is recorded and replayed.
+//! - « Appliquer » on a reopened step with a new size, kind or set of edges
+//!   records one `EditMatter` change; the body afterwards is the one the part
+//!   gives with the step laid that way — the part's half, the step reading its
+//!   new values as `raised_as` hands them to the history row, by
+//!   `a_blend_step_changed_in_size_kind_or_edges_records_one_change_and_gives_the_body_laid_that_way`;
+//!   the history row read on screen is in the app's file
+//! - One Cmd+Z after that « Appliquer » gives back the body and the history
+//!   row as they were before it — the part's half, the body and the step as
+//!   `raised_as` reads it, by `one_undo_takes_back_a_change_of_blend_step`
+//! - A reopened step whose new choice the kernel declines records nothing —
+//!   the part's half, the decline handed back and the history untouched, by
+//!   `a_change_of_blend_step_the_kernel_declines_records_nothing_and_says_why`;
+//!   the panel kept open with the reason and the edges is in the app's file
+//! - Taking an edge out of a reopened step of several edges leaves the face
+//!   numbers of every later step as they were: a sketch laid on a face after
+//!   the step stays on that face —
+//!   `taking_an_edge_out_of_a_blend_step_leaves_a_sketch_laid_after_it_on_its_face`
+//! - Compaction after a change writes the step down as changed, and the part
+//!   replays to the same body —
+//!   `compacting_the_history_keeps_the_change_of_a_blend_step`
+//!
+//! Each part changed is held against the same part laid with the step that way
+//! from the start.
+
+use cao_part::history::{BlendShape, Operation, PointRef, StepKind};
+use cao_part::{ExtrusionMode, PartDocument};
+use cao_sketch::WorkPlane;
+use cao_solid::{Body, EdgeName};
+use glam::{DVec2, DVec3};
+
+/// Planes and cylinders the exact kernel computes: what is left between two
+/// replays of the same step is rounding.
+const EXACT: f64 = 1e-9;
+
+const LENGTH: f64 = 30.0;
+const BREADTH: f64 = 10.0;
+const HEIGHT: f64 = 20.0;
+const SIZE: f64 = 2.0;
+
+fn at_nine() -> chrono::DateTime<chrono::Utc> {
+    "2026-11-17T09:00:00Z".parse().expect("a date")
+}
+
+fn rectangle(part: &mut PartDocument, sketch: usize, corner: DVec2, opposite: DVec2) {
+    part.apply(Operation::AddRectangle {
+        sketch,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(opposite),
+        construction: false,
+    });
+}
+
+/// A block 30 along X, 10 along Y, raised 20 from XY.
+fn a_block() -> PartDocument {
+    let mut part = PartDocument::new("Block", at_nine());
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    rectangle(&mut part, 0, DVec2::ZERO, DVec2::new(LENGTH, BREADTH));
+    let areas = part.areas_at(0, &[DVec2::new(LENGTH / 2.0, BREADTH / 2.0)]);
+    part.apply(Operation::Extrude {
+        sketch: 0,
+        areas,
+        distance: HEIGHT.into(),
+        mode: ExtrusionMode::Add,
+    });
+    part
+}
+
+/// A boss 10 by 10 raised 5 from XY beside the block, from x = 40: a step of
+/// matter after the blend.
+fn raise_a_boss_beside(part: &mut PartDocument) {
+    part.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    let boss = part.sketches().len() - 1;
+    rectangle(part, boss, DVec2::new(40.0, 0.0), DVec2::new(50.0, 10.0));
+    part.apply(Operation::Extrude {
+        sketch: boss,
+        areas: part.areas_at(boss, &[DVec2::new(45.0, 5.0)]),
+        distance: 5.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+}
+
+/// The one face facing `normal` whose plane stands `level` along it.
+fn face(body: &Body, normal: DVec3, level: f64) -> u32 {
+    let faces: Vec<usize> = (0..body.faces_end())
+        .filter(|face| {
+            body.plane_of(*face).is_some_and(|plane| {
+                plane.normal.distance(normal) < EXACT
+                    && (plane.corners[0].dot(normal) - level).abs() < EXACT
+            })
+        })
+        .collect();
+    assert_eq!(
+        faces.len(),
+        1,
+        "one face facing {normal} at {level}: {faces:?}"
+    );
+    faces[0] as u32
+}
+
+fn the_edge_between(body: &Body, first: u32, second: u32) -> EdgeName {
+    let sides = [vec![first.min(second)], vec![first.max(second)]];
+    let named: Vec<EdgeName> = body
+        .edge_names()
+        .into_iter()
+        .filter(|name| name.between == sides)
+        .collect();
+    assert_eq!(named.len(), 1, "one edge between {first} and {second}");
+    named[0].clone()
+}
+
+/// The four edges of the block's top, towards -Y, +X, +Y and -X.
+fn the_four_top_edges(body: &Body) -> Vec<EdgeName> {
+    let top = face(body, DVec3::Z, HEIGHT);
+    [
+        (-DVec3::Y, 0.0),
+        (DVec3::X, LENGTH),
+        (DVec3::Y, BREADTH),
+        (-DVec3::X, 0.0),
+    ]
+    .into_iter()
+    .map(|(normal, level)| the_edge_between(body, top, face(body, normal, level)))
+    .collect()
+}
+
+/// A blend of the first `count` of the block's four top edges.
+fn a_blend(count: usize, shape: BlendShape, size: f64) -> Operation {
+    let mut edges = the_four_top_edges(a_block().body());
+    edges.truncate(count);
+    Operation::Blend {
+        edges,
+        shape,
+        size: size.into(),
+    }
+}
+
+/// The block, `blend` laid on it as one step, then a boss raised beside it:
+/// the part, and the number of the blend's operation.
+fn a_block_blended(blend: Operation) -> (PartDocument, u32) {
+    let mut part = a_block();
+    let outcome = part.apply(blend.clone());
+    assert_eq!(outcome, None, "{blend:?} on the block: built");
+    let step = part.history.steps().last().expect("the blend");
+    assert_eq!(step.kind(), StepKind::Blend, "{blend:?}: its kind");
+    let number = step.operations()[0];
+    raise_a_boss_beside(&mut part);
+    (part, number)
+}
+
+fn faces_of(body: &Body) -> usize {
+    (0..body.faces_end())
+        .filter(|face| body.has_face(*face))
+        .count()
+}
+
+/// What differs between `made` and `expected`, as sentences: nothing when
+/// they hold the same matter.
+fn how_the_bodies_differ(made: &Body, expected: &Body) -> Vec<String> {
+    let mut wrong = Vec::new();
+    if (made.volume() - expected.volume()).abs() > EXACT * expected.volume() {
+        wrong.push(format!(
+            "the part holds {} where the part laid that way holds {}",
+            made.volume(),
+            expected.volume(),
+        ));
+    }
+    if faces_of(made) != faces_of(expected) {
+        wrong.push(format!(
+            "{} faces where the part laid that way has {}",
+            faces_of(made),
+            faces_of(expected),
+        ));
+    }
+    if made.drawn_edges().len() != expected.drawn_edges().len() {
+        wrong.push(format!(
+            "{} edges drawn where the part laid that way draws {}",
+            made.drawn_edges().len(),
+            expected.drawn_edges().len(),
+        ));
+    }
+    let (made_low, made_high) = made.bounds().expect("some matter");
+    let (low, high) = expected.bounds().expect("some matter");
+    if !(made_low.abs_diff_eq(low, EXACT) && made_high.abs_diff_eq(high, EXACT)) {
+        wrong.push(format!(
+            "it stands from {made_low:?} to {made_high:?}, where the part laid that way stands \
+             from {low:?} to {high:?}",
+        ));
+    }
+    wrong
+}
+
+fn changes_recorded(part: &PartDocument) -> usize {
+    part.history
+        .applied_operations()
+        .iter()
+        .filter(|operation| matches!(operation, Operation::EditMatter { .. }))
+        .count()
+}
+
+#[test]
+fn a_blend_step_changed_in_size_kind_or_edges_records_one_change_and_gives_the_body_laid_that_way()
+{
+    let cases = [
+        (
+            "a chamfer of the four top edges given a new size",
+            a_blend(4, BlendShape::Chamfer, SIZE),
+            a_blend(4, BlendShape::Chamfer, 3.0),
+        ),
+        (
+            "a chamfer of the four top edges turned into a fillet",
+            a_blend(4, BlendShape::Chamfer, SIZE),
+            a_blend(4, BlendShape::Fillet, SIZE),
+        ),
+        (
+            "a fillet of the four top edges with one taken out",
+            a_blend(4, BlendShape::Fillet, SIZE),
+            a_blend(3, BlendShape::Fillet, SIZE),
+        ),
+        (
+            "a fillet of three top edges with the fourth added",
+            a_blend(3, BlendShape::Fillet, SIZE),
+            a_blend(4, BlendShape::Fillet, SIZE),
+        ),
+    ];
+    let mut failures = Vec::new();
+    for (what, laid, changed) in cases {
+        let (mut part, blend) = a_block_blended(laid);
+        let steps = part.history.steps().len();
+        let (laid_that_way, _) = a_block_blended(changed.clone());
+
+        let outcome = part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(changed.clone()),
+        });
+
+        let mut wrong = Vec::new();
+        if outcome.is_some() {
+            wrong.push(format!("the change comes back {outcome:?}"));
+        }
+        if changes_recorded(&part) != 1 {
+            wrong.push(format!(
+                "{} changes are recorded where one is",
+                changes_recorded(&part),
+            ));
+        }
+        if part.history.steps().len() != steps {
+            wrong.push(format!(
+                "the design has {} steps where it had {steps}",
+                part.history.steps().len(),
+            ));
+        }
+        if part.raised_as(blend) != Some(&changed) {
+            wrong.push(format!(
+                "the step reads {:?}, not its new values",
+                part.raised_as(blend),
+            ));
+        }
+        if part.declined_because(blend).is_some() {
+            wrong.push(format!(
+                "the step is declined: {:?}",
+                part.declined_because(blend),
+            ));
+        }
+        wrong.extend(how_the_bodies_differ(part.body(), laid_that_way.body()));
+        if !wrong.is_empty() {
+            failures.push(format!("{what}:\n    {}", wrong.join("\n    ")));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "a blend step changed after a boss was raised beside it is not laid again from its new \
+         values in its own step:\n  {}",
+        failures.join("\n  "),
+    );
+}
