@@ -41,7 +41,11 @@ impl Exact {
     /// two corners, by one quarter of a ball answering to its number and both
     /// corners'; the two edges of a pointed end, rounded at that radius too,
     /// with the upright at its tip closed there by a piece of sphere about the
-    /// crown's axis, which the full round touches at the crown alone. The edge
+    /// crown's axis, which the full round touches at the crown alone, or with
+    /// the upright at either shoulder, or both, each closed there with the
+    /// full round and the point's edge by a piece of the same sphere, the full
+    /// round ending square on the plane through its centre and the pieces at
+    /// both shoulders sharing the crown alone (#911). The edge
     /// at a round bottom's end whose faces meet inwards too, bounding the face
     /// that is gone and meeting both its edges at a corner — the floor's edge
     /// on a pocket's end wall — is filled in at that same radius, its round

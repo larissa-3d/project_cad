@@ -6,9 +6,9 @@
 //! at its end, bounding the face that is gone, one across it or the two of a
 //! pointed or a V-notched end (#843), the upright at a point's tip with
 //! them, and any upright meeting one of the pair, at either end, alone or
-//! with the edge at their end (#837) — the front's upright at a slope's nose
-//! among them (#814); and the edge at a round bottom's end, which its fill
-//! meets in a valley (#838).
+//! with the edge at their end (#837) or a point's edge at its shoulder
+//! (#911) — the front's upright at a slope's nose among them (#814); and the
+//! edge at a round bottom's end, which its fill meets in a valley (#838).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -176,10 +176,13 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// the corners three or more of them meet at — the upright at a point's tip, which
 /// meets neither of the pair, the three closed there (#837) — and each edge
 /// whose faces meet outwards, not bounding that face, that meets one of the
-/// pair at a corner where no third edge of the list ends but the edge at
-/// their end, the three closed there, convex, `beside` holding the corners
-/// that are not — an upright at either end, one of a standing full round
-/// among them (#837) — and, of a pair not laid outwards, a round bottom, a
+/// pair at a corner where no third edge of the list ends but one at their
+/// end — the edge across it, or, of a pair laid outwards, an edge of a
+/// pointed end — the three closed there, convex, `beside` holding the
+/// corners that are not — an upright at either end, one of a standing full
+/// round among them (#837), and the upright at a point's shoulder, closed
+/// there with the full round and the point's edge (#911) — and, of a pair
+/// not laid outwards, a round bottom, a
 /// slope or a crease, each edge bounding the face they meet across that
 /// meets both of the pair at a corner, whatever its own sense, and each such
 /// upright — the front's upright at a slope's nose, meeting the slope's cut
@@ -204,8 +207,8 @@ pub(in crate::body::exact) fn together(rank: usize, pairs: &[Pair]) -> Vec<usize
 /// meeting there do not commute. Declined `Unsupported` where
 /// an edge of a pair meets another of `edges` at a corner any other way: a
 /// full round meeting an edge bounding its face at one of its edges alone,
-/// or an upright where a third edge of the list ends but the edge at their
-/// end (#837), a notched end with the upright at its bottom, a corner of
+/// or an upright where a third edge of the list ends but one at their end
+/// (#837), a notched end with the upright at its bottom, a corner of
 /// mixed sense gone round that upright first (#914), a round bottom, a slope
 /// or a crease meeting any other edge — the uprights at a round bottom's end
 /// (#919), the edges of a pointed or a notched one (#921).
@@ -246,6 +249,13 @@ pub(super) fn at_their_ends(
         let reaching =
             |rank: usize, far: usize| meets(far, rank) || tips(rank, far).next().is_some();
         let at_the_end = |rank: usize| bounding(rank) && meets(one, rank) && meets(other, rank);
+        let ending = |rank: usize| {
+            if outwards {
+                bounding(rank) && reaching(rank, one) && reaching(rank, other)
+            } else {
+                at_the_end(rank)
+            }
+        };
         let upright = |rank: usize| {
             let member = if meets(one, rank) { one } else { other };
             meets(one, rank) != meets(other, rank)
@@ -254,19 +264,12 @@ pub(super) fn at_their_ends(
                 && (closed.iter())
                     .filter(|(_, at, _)| at.contains(&rank) && at.contains(&member))
                     .all(|(_, at, _)| {
-                        (at.iter())
-                            .all(|&third| [rank, member].contains(&third) || at_the_end(third))
+                        (at.iter()).all(|&third| [rank, member].contains(&third) || ending(third))
                     })
                 && !(beside.iter()).any(|(_, at)| at.contains(&rank) && at.contains(&member))
         };
         for rank in (0..edges.len()).filter(|&rank| meets(one, rank) || meets(other, rank)) {
-            let at_their_end = bounding(rank) && reaching(rank, one) && reaching(rank, other);
-            let laid = if outwards {
-                at_their_end || upright(rank)
-            } else {
-                at_the_end(rank) || upright(rank)
-            };
-            if !laid {
+            if !ending(rank) && !upright(rank) {
                 return Err(Declined::Unsupported);
             }
             ends.insert(rank, value);

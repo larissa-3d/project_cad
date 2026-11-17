@@ -17,7 +17,9 @@
 //! two radii, whose round closes to nothing between them (#837) — close on
 //! one sphere: the later corner's cut takes that round whole, and its piece
 //! takes in the earlier corner's, one face answering to the round's number
-//! and both corners'. Four or more rounds meeting outwards (#804), a
+//! and both corners'. Two whose pieces touch at a point alone — the shoulders
+//! of a full round's pointed end, under its crown (#911) — keep a piece
+//! each. Four or more rounds meeting outwards (#804), a
 //! pyramid's apex, are closed the same way where the faces round the corner
 //! are all one radius from one centre: the corner cut back to the planes
 //! through it square to the edges before any round is laid, so that each
@@ -276,9 +278,11 @@ fn bounding(
 }
 
 /// The faces a corner closed before laid on the sphere of `radius` about
-/// `centre`, none of `walls`: the other end of an edge whose round, between
-/// two corners whose centres are one, closes to nothing, so that the two
-/// pieces are one.
+/// `centre`, none of `walls`, meeting one of them along an edge: the other
+/// end of an edge whose round, between two corners whose centres are one,
+/// closes to nothing, so that the two pieces are one. A piece touching them
+/// at a point alone — the other shoulder of a full round's pointed end,
+/// whose piece shares only the crown with this one (#911) — stays its own.
 fn laid_before(
     body: &brep::Body,
     walls: &[FaceId],
@@ -292,8 +296,12 @@ fn laid_before(
         }
         _ => false,
     };
+    let beside = |face: FaceId| {
+        (body.face(face).loops.iter().flatten())
+            .any(|coedge| (body.uses(coedge.edge).iter()).any(|(wall, _)| walls.contains(wall)))
+    };
     body.face_ids()
-        .filter(|&face| !walls.contains(&face) && sphere(face))
+        .filter(|&face| !walls.contains(&face) && sphere(face) && beside(face))
         .collect()
 }
 
