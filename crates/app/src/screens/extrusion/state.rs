@@ -246,11 +246,14 @@ impl Reopened {
     }
 }
 
+/// A value typed no further from zero than this raises nothing.
+const NOTHING: f64 = 1e-6;
+
 fn signed(input: &str, reversed: bool, variables: &Variables) -> Option<(Formula, f64)> {
     let (written, value) = variables
         .size_of(input)
         .ok()
-        .filter(|(_, value)| value.abs() > 1e-6)?;
+        .filter(|(_, value)| value.abs() > NOTHING)?;
     Some(match reversed {
         true => (written.negated(), -value),
         false => (written, value),

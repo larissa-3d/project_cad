@@ -5,11 +5,15 @@
 //!   beside it in a pill — the arrow rising from the middle of the areas
 //!   picked to the depth, and the other way along the plane once reversed —
 //!   `the_arrow_rises_from_the_middle_of_the_areas_to_the_depth_typed`,
-//!   `reversed_the_arrow_points_the_other_way_along_the_plane`; painted amber,
-//!   its pill reading what the depth comes to —
-//!   `the_arrow_is_painted_amber_and_its_pill_reads_what_the_depth_comes_to`
+//!   `reversed_the_arrow_points_the_other_way_along_the_plane`; its pill
+//!   reading what the depth comes to, in millimetres as the panel's « = 30
+//!   mm » writes them —
+//!   `the_pill_beside_the_arrow_reads_what_the_depth_comes_to`; painted amber —
+//!   `the_arrow_and_its_pill_are_painted_amber`
 //! - Dragging it changes the depth, and the panel's field follows —
-//!   `pulling_the_arrow_changes_the_depth_and_the_panel_s_field_follows`
+//!   `pulling_the_arrow_changes_the_depth_and_the_panel_s_field_follows`; in
+//!   millimetres on a part drawn at a scale, as the field reads them —
+//!   `on_a_part_drawn_at_a_scale_the_arrow_moves_the_depth_by_the_millimetres_it_spans`
 //! - A depth written as a formula becomes a number once dragged; « Annuler » of
 //!   the panel, or undo, gives the formula back —
 //!   `a_depth_written_as_a_formula_is_a_number_once_dragged`,
@@ -17,7 +21,12 @@
 //!   `undo_after_a_drag_gives_the_formula_back`
 //! - Dragging past the sketch's plane reverses the direction, as « Inverser le
 //!   sens » does —
-//!   `pulling_the_arrow_past_the_plane_reverses_the_direction_as_the_reverse_switch_does`
+//!   `pulling_the_arrow_past_the_plane_reverses_the_direction_as_the_reverse_switch_does`;
+//!   a pull landing on the plane, where nothing would be raised, leaves the
+//!   depth and the direction where the last pull put them —
+//!   `a_pull_landing_on_the_plane_leaves_the_depth_where_the_last_pull_put_it`;
+//!   and « Annuler » gives the direction back with the depth —
+//!   `cancelling_the_panel_after_a_drag_past_the_plane_gives_the_direction_back`
 //! - For a revolution, the handle drags the angle along an arc —
 //!   `for_a_revolution_the_arrow_stands_on_an_arc_about_the_axis_at_the_angle_typed`,
 //!   `for_a_revolution_pulling_the_arrow_round_its_arc_changes_the_angle`
@@ -43,7 +52,7 @@
 
 use cao_part::{ExtrusionMode, Formula, Operation, PartDocument, PointRef, VariableChange};
 use cao_prefs::Command;
-use cao_sketch::WorkPlane;
+use cao_sketch::{DimensionTarget, SegmentId, WorkPlane};
 use chrono::Utc;
 use glam::{DVec2, DVec3};
 
@@ -318,5 +327,273 @@ fn undo_after_a_drag_gives_the_formula_back() {
         undone.as_deref(),
         Some(TWICE_THE_THICKNESS),
         "undone, the step reopens on {undone:?}, not on the formula it was raised with",
+    );
+}
+
+fn reads(value: Option<f64>, expected: f64) -> bool {
+    value.is_some_and(|value| (value - expected).abs() <= TOLERANCE)
+}
+
+/// The step the panel previews, as applying would record it.
+fn previewed(extrusion: &ExtrusionState, document: &PartDocument) -> Option<Operation> {
+    extrusion.preview(document).map(|preview| preview.operation)
+}
+
+#[test]
+fn pulling_the_arrow_past_the_plane_reverses_the_direction_as_the_reverse_switch_does() {
+    let document = a_part_with_a_square();
+    let mut extrusion = extruding_the_square();
+    let mut switched = extruding_the_square();
+    switched.reversed = true;
+    switched.distance_input = "7".to_owned();
+    let mut handle = ExtrusionHandle::default();
+
+    let taken = handle.grab(&extrusion, &document, beside(10.0), SIDEWAYS, REACH);
+    handle.pull(&mut extrusion, beside(-7.0), SIDEWAYS);
+    let below = (
+        extrusion.reversed,
+        field_and_preview(&extrusion, &document),
+        previewed(&extrusion, &document),
+    );
+    handle.pull(&mut extrusion, beside(5.0), SIDEWAYS);
+    let back_above = (extrusion.reversed, field_and_preview(&extrusion, &document));
+    handle.let_go();
+
+    assert!(
+        taken,
+        "a ray through the tip of the arrow, ten above the square's middle, takes no hold of it",
+    );
+    let (reversed, (field, depth), step) = below;
+    assert!(
+        reversed && reads(field, 7.0) && reads(depth, -7.0),
+        "pulled from 10 to 7 below the plane, the direction reads reversed {reversed}, the \
+         field {field:?} and the preview goes {depth:?}: not reversed, 7 written and 7 below",
+    );
+    assert_eq!(
+        step,
+        previewed(&switched, &document),
+        "pulled 7 below the plane, the step previewed is not the one « Inverser le sens » and \
+         7 typed give",
+    );
+    let (reversed, shown) = back_above;
+    assert!(
+        !reversed && both_read(shown, 5.0),
+        "pulled back to 5 above the plane, the direction reads reversed {reversed}, the field \
+         {:?} and the preview {:?}: not 5 the way it first went",
+        shown.0,
+        shown.1,
+    );
+}
+
+#[test]
+fn a_pull_landing_on_the_plane_leaves_the_depth_where_the_last_pull_put_it() {
+    let document = a_part_with_a_square();
+    let mut extrusion = extruding_the_square();
+    let mut handle = ExtrusionHandle::default();
+
+    let taken = handle.grab(&extrusion, &document, beside(10.0), SIDEWAYS, REACH);
+    handle.pull(&mut extrusion, beside(4.0), SIDEWAYS);
+    handle.pull(&mut extrusion, beside(0.0), SIDEWAYS);
+    let on_the_plane = (extrusion.reversed, field_and_preview(&extrusion, &document));
+    handle.pull(&mut extrusion, beside(1e-7), SIDEWAYS);
+    let a_hair_above = (extrusion.reversed, field_and_preview(&extrusion, &document));
+
+    assert!(
+        taken,
+        "a ray through the tip of the arrow, ten above the square's middle, takes no hold of it",
+    );
+    for (landed, (reversed, shown)) in [
+        ("the plane", on_the_plane),
+        ("a ten-millionth above the plane", a_hair_above),
+    ] {
+        assert!(
+            !reversed && both_read(shown, 4.0),
+            "pulled from 4 to {landed}, the direction reads reversed {reversed}, the field {:?} \
+             and the preview {:?}: not 4 the way it went",
+            shown.0,
+            shown.1,
+        );
+    }
+}
+
+#[test]
+fn cancelling_the_panel_after_a_drag_past_the_plane_gives_the_direction_back() {
+    let mut document = a_part_with_a_square();
+    let mut extrusion = extruding_the_square();
+
+    let taken = dragged(&mut extrusion, &document, 10.0, -7.0);
+    let reversed_by_the_drag = extrusion.reversed;
+    run_on(Command::ExtrusionCancel, &mut document, &mut extrusion);
+    let shown = field_and_preview(&extrusion, &document);
+
+    assert!(
+        taken && reversed_by_the_drag,
+        "the arrow taken at 10 and pulled to 7 below the plane did not reverse the direction",
+    );
+    assert!(
+        !extrusion.reversed && both_read(shown, 10.0),
+        "« Annuler » after a drag past the plane leaves the direction reversed {}, the field \
+         {:?} and the preview {:?}: not 10 the way it went before the drag",
+        extrusion.reversed,
+        shown.0,
+        shown.1,
+    );
+}
+
+/// The square with its first side, 20 units long, dimensioned 40 mm: a unit
+/// of the view is 2 mm.
+fn a_square_drawn_at_two_millimetres_a_unit() -> PartDocument {
+    let mut document = a_part_with_a_square();
+    document.apply(Operation::SetDimension {
+        sketch: 0,
+        target: DimensionTarget::Length(SegmentId(0)),
+        value: 40.0.into(),
+        placement: None,
+    });
+    document
+}
+
+#[test]
+fn on_a_part_drawn_at_a_scale_the_arrow_moves_the_depth_by_the_millimetres_it_spans() {
+    let document = a_square_drawn_at_two_millimetres_a_unit();
+    let mut extrusion = extruding_the_square();
+
+    let taken = dragged(&mut extrusion, &document, 5.0, 12.0);
+    let shown = field_and_preview(&extrusion, &document);
+
+    assert!(
+        (document.scale() - 2.0).abs() <= TOLERANCE,
+        "the square is drawn at {} mm a unit, not 2",
+        document.scale(),
+    );
+    assert!(
+        taken,
+        "a ray five units above the square, where 10 mm at 2 mm a unit puts the tip, takes no \
+         hold of the arrow",
+    );
+    assert!(
+        both_read(shown, 24.0),
+        "pulled from 5 units up to 12, seven units of 2 mm on the 10 it read, the field reads \
+         {:?} and the preview {:?}, not 24",
+        shown.0,
+        shown.1,
+    );
+}
+
+/// A plane standing upright, three along Y: its `u` is X, its `v` Z, and its
+/// normal points down Y.
+const UPRIGHT: WorkPlane = WorkPlane {
+    origin: DVec3::new(0.0, 3.0, 0.0),
+    u: DVec3::X,
+    v: DVec3::Z,
+};
+
+/// Inside the rectangle of `a_part_with_an_upright_rectangle`, at its middle.
+const IN_THE_RECTANGLE: DVec2 = DVec2::new(7.0, 7.0);
+
+/// A rectangle 10 by 6 drawn on `UPRIGHT` from (2, 4): its middle stands at
+/// (7, 3, 7) in the world.
+fn a_part_with_an_upright_rectangle() -> PartDocument {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: UPRIGHT,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::new(2.0, 4.0)),
+        opposite: PointRef::New(DVec2::new(12.0, 10.0)),
+        construction: false,
+    });
+    document
+}
+
+/// The rectangle picked and the tool armed to add, 10 deep as offered.
+fn extruding_the_rectangle() -> ExtrusionState {
+    let mut extrusion = ExtrusionState::default();
+    extrusion.offer(0);
+    extrusion.picks = vec![IN_THE_RECTANGLE];
+    extrusion.arm(ExtrusionMode::Add);
+    extrusion
+}
+
+fn stands_at(place: DVec3, expected: DVec3, what: &str) {
+    assert!(
+        place.distance(expected) <= TOLERANCE,
+        "{what} stands at {place}, not {expected}",
+    );
+}
+
+#[test]
+fn the_arrow_rises_from_the_middle_of_the_areas_to_the_depth_typed() {
+    let document = a_part_with_an_upright_rectangle();
+    let extrusion = extruding_the_rectangle();
+
+    let arrow = ExtrusionHandle::drawn(&extrusion, &document)
+        .expect("no arrow is drawn on the rectangle previewed 10 deep");
+    let before_any_area = ExtrusionHandle::drawn(&ExtrusionState::default(), &document);
+
+    stands_at(
+        arrow.foot,
+        DVec3::new(7.0, 3.0, 7.0),
+        "the arrow's foot, on the plane at the rectangle's middle,",
+    );
+    stands_at(
+        arrow.tip,
+        DVec3::new(7.0, -7.0, 7.0),
+        "the arrow's tip, 10 down Y along the plane's normal,",
+    );
+    assert!(
+        before_any_area.is_none(),
+        "an arrow is drawn while nothing is previewed",
+    );
+}
+
+#[test]
+fn reversed_the_arrow_points_the_other_way_along_the_plane() {
+    let document = a_part_with_an_upright_rectangle();
+    let mut extrusion = extruding_the_rectangle();
+    extrusion.reversed = true;
+
+    let arrow = ExtrusionHandle::drawn(&extrusion, &document)
+        .expect("no arrow is drawn on the rectangle previewed 10 deep the other way");
+
+    stands_at(
+        arrow.foot,
+        DVec3::new(7.0, 3.0, 7.0),
+        "reversed, the arrow's foot, on the plane at the rectangle's middle,",
+    );
+    stands_at(
+        arrow.tip,
+        DVec3::new(7.0, 13.0, 7.0),
+        "reversed, the arrow's tip, 10 up Y against the plane's normal,",
+    );
+}
+
+#[test]
+fn the_pill_beside_the_arrow_reads_what_the_depth_comes_to() {
+    let document = a_part_with_a_thickness_and_a_square();
+    let pill = |typed: &str, reversed: bool| {
+        let mut extrusion = extruding_the_square();
+        extrusion.distance_input = typed.to_owned();
+        extrusion.reversed = reversed;
+        ExtrusionHandle::drawn(&extrusion, &document).map(|arrow| arrow.pill)
+    };
+
+    let read = [
+        pill(TWICE_THE_THICKNESS, false),
+        pill("12.5", false),
+        pill("10", true),
+    ];
+
+    assert_eq!(
+        read,
+        [
+            Some("30 mm".to_owned()),
+            Some("12.5 mm".to_owned()),
+            Some("10 mm".to_owned()),
+        ],
+        "the pill does not read what « {TWICE_THE_THICKNESS} », « 12.5 » and « 10 » the other \
+         way come to, in millimetres as the panel writes them",
     );
 }

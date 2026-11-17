@@ -23,15 +23,33 @@ struct Held {
 }
 
 /// The arrow of the preview: its foot on the sketch's plane at the middle of
-/// the areas picked, the plane's normal, and the depth its tip reaches along
-/// that normal, in millimetres, signed by the direction of the matter.
+/// the areas picked, the plane's normal, the depth its tip reaches along that
+/// normal, in millimetres, signed by the direction of the matter, and the tip.
 struct Arrow {
     foot: DVec3,
     normal: DVec3,
     depth: f64,
+    tip: DVec3,
+}
+
+/// The arrow as the view draws it, and what its pill reads.
+pub(crate) struct DrawnArrow {
+    pub foot: DVec3,
+    pub tip: DVec3,
+    pub pill: String,
 }
 
 impl ExtrusionHandle {
+    /// The arrow on the extrusion previewed, none while nothing is.
+    pub(crate) fn drawn(extrusion: &ExtrusionState, document: &PartDocument) -> Option<DrawnArrow> {
+        let arrow = arrow(extrusion, document)?;
+        Some(DrawnArrow {
+            foot: arrow.foot,
+            tip: arrow.tip,
+            pill: crate::wording::dimension::millimetres(arrow.depth.abs()),
+        })
+    }
+
     /// Takes hold of the arrow when the ray passes within `reach` of its tip,
     /// and does not graze the normal.
     pub(crate) fn grab(
@@ -50,10 +68,8 @@ impl ExtrusionHandle {
         if grazes(arrow.normal, direction) {
             return false;
         }
-        let millimetres_per_unit = document.scale();
-        let tip = arrow.foot + arrow.normal * (arrow.depth / millimetres_per_unit);
-        let along = (tip - origin).dot(direction);
-        if (origin + direction * along - tip).length() > reach {
+        let along = (arrow.tip - origin).dot(direction);
+        if (origin + direction * along - arrow.tip).length() > reach {
             return false;
         }
         let line = (arrow.foot, arrow.normal);
@@ -61,13 +77,14 @@ impl ExtrusionHandle {
             line,
             taken_at,
             depth: arrow.depth,
-            millimetres_per_unit,
+            millimetres_per_unit: document.scale(),
         });
         self.held.is_some()
     }
 
     /// Moves the depth by as much as the pointer moved along the normal since
-    /// the arrow was taken, and writes it in the panel's field as a number.
+    /// the arrow was taken, and writes it in the panel, the direction turned
+    /// round once the pointer passes the plane.
     pub(crate) fn pull(&mut self, extrusion: &mut ExtrusionState, origin: DVec3, direction: DVec3) {
         let Some(held) = &self.held else {
             return;
@@ -75,15 +92,9 @@ impl ExtrusionHandle {
         if grazes(held.line.1, direction.normalize_or_zero()) {
             return;
         }
-        let Some(at) = closest_along(held.line, (origin, direction)) else {
-            return;
-        };
-        let depth = held.depth + (at - held.taken_at) * held.millimetres_per_unit;
-        let typed = match extrusion.reversed {
-            true => -depth,
-            false => depth,
-        };
-        extrusion.drag_depth_to(crate::wording::dimension::short(typed));
+        if let Some(at) = closest_along(held.line, (origin, direction)) {
+            extrusion.drag_depth_to(held.depth + (at - held.taken_at) * held.millimetres_per_unit);
+        }
     }
 
     pub(crate) fn let_go(&mut self) {
@@ -114,10 +125,15 @@ fn arrow(extrusion: &ExtrusionState, document: &PartDocument) -> Option<Arrow> {
             (DVec2::INFINITY, DVec2::NEG_INFINITY),
             |(low, high), point| (low.min(point), high.max(point)),
         );
-    (low.x <= high.x).then(|| Arrow {
-        foot: drawing.plane.to_world((low + high) / 2.0),
-        normal: drawing.plane.normal(),
-        depth,
+    (low.x <= high.x).then(|| {
+        let foot = drawing.plane.to_world((low + high) / 2.0);
+        let normal = drawing.plane.normal();
+        Arrow {
+            foot,
+            normal,
+            depth,
+            tip: foot + normal * (depth / document.scale()),
+        }
     })
 }
 
