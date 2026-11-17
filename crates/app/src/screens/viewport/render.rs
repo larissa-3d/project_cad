@@ -125,6 +125,7 @@ pub(crate) fn frame_of(
     let theme = &state.theme;
     let mut lines = Vec::new();
     let mut world_lines = Vec::new();
+    let mut lit_lines = Vec::new();
     let mut surfaces = Vec::new();
 
     let mut background = Vec::new();
@@ -214,7 +215,7 @@ pub(crate) fn frame_of(
     let named_on = before
         .as_ref()
         .map_or(context.document.body(), |before| &before.body);
-    edges::push_lit_edges(&mut world_lines, state, named_on);
+    edges::push_lit_edges(&mut lit_lines, state, named_on, scale.height_px);
     section_panel::push_section_plane(&mut surfaces, &mut lines, state, scale, context);
 
     let mut cube_triangles = Vec::new();
@@ -235,6 +236,7 @@ pub(crate) fn frame_of(
         scene_veiled_matter: veiled_matter,
         scene_solids: solids,
         scene_lines: lines,
+        scene_lit_lines: lit_lines,
         cube_view_projection: cube::view_projection(camera.rotation()),
         cube_triangles,
         cube_edges,

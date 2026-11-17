@@ -196,9 +196,8 @@ const FILES_STILL_NAMING_THE_INSIDES_OF_THE_MATTER: [&str; 0] = [];
 /// arbitrary; what is not is that every file above it can be named.
 const LINE_BUDGET: usize = 400;
 
-const FILES_OVER_THE_LINE_BUDGET: [(&str, usize); 4] = [
+const FILES_OVER_THE_LINE_BUDGET: [(&str, usize); 3] = [
     ("crates/app/src/screens/viewport/input/mod.rs", 440),
-    ("crates/render/src/renderer.rs", 408),
     ("crates/sketch/src/sketch.rs", 570),
     ("crates/sketch/src/solver.rs", 842),
 ];
