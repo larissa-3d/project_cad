@@ -12,8 +12,11 @@
 //!   same; « Montrer » still offers nothing for it —
 //!   `modify_on_the_alert_of_a_blend_step_not_rebuilt_opens_the_panel_on_it_and_show_offers_nothing`
 //! - While a blend step is reopened, the body drawn is the part as it stood
-//!   just before that step, and the step's edges are the ones lit —
-//!   `while_a_blend_step_is_reopened_the_body_drawn_is_the_part_before_it_and_its_edges_are_lit`
+//!   just before that step, and the step's edges are the ones lit — the edges
+//!   lit and taken on the part before the step, by
+//!   `while_a_blend_step_is_reopened_its_edges_are_lit_and_taken_on_the_part_before_it`;
+//!   the body drawn is the step rebuilt on that part since #989, in
+//!   `a_reopened_blend_step_is_drawn_rebuilt.rs`
 //! - « Appliquer » on a reopened step with a new size, kind or set of edges
 //!   records one `EditMatter` change; the body afterwards is the one the part
 //!   gives with the step laid that way, and the step's history line reads the
@@ -274,7 +277,7 @@ fn just_inside_the_first_top_edge(top: &[[DVec3; 2]; 4]) -> DVec3 {
 const ON_THE_TOP: f64 = 0.1;
 
 #[test]
-fn while_a_blend_step_is_reopened_the_body_drawn_is_the_part_before_it_and_its_edges_are_lit() {
+fn while_a_blend_step_is_reopened_its_edges_are_lit_and_taken_on_the_part_before_it() {
     let test = "while_reopened_the_part_before_the_step_is_drawn";
     let (mut app, top, _) = reopened(test, &FILLET);
     let top_x = top[0][0].x;
@@ -285,16 +288,6 @@ fn while_a_blend_step_is_reopened_the_body_drawn_is_the_part_before_it_and_its_e
             "{:?} are lit, not the four top edges of the block before the step",
             app.state().the_edges_lit(),
         ));
-    }
-
-    hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
-    match x_read_under_the_pointer(&app) {
-        Some(x) if (x - top_x).abs() <= ON_THE_TOP => {}
-        _ => wrong.push(format!(
-            "half a millimetre in from a top edge, the pointer meets « {} », where the block \
-             before the fillet stands with its top at X {top_x}",
-            driver::the_bar_s_coordinates(&app),
-        )),
     }
 
     let low_x = the_part(test)
@@ -324,8 +317,8 @@ fn while_a_blend_step_is_reopened_the_body_drawn_is_the_part_before_it_and_its_e
 
     assert!(
         wrong.is_empty(),
-        "a fillet of the four top edges, reopened from its line, does not show the block as it \
-         stood before it:\n  {}",
+        "a fillet of the four top edges, reopened from its line, does not take its edges on the \
+         block as it stood before it:\n  {}",
         wrong.join("\n  "),
     );
 }

@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use cao_part::{History, PartDocument, Shown, VolumeState};
+use cao_part::{History, Operation, PartDocument, Shown, VolumeState};
 use cao_solid::Body;
 
 use super::super::ViewportState;
@@ -18,6 +18,7 @@ pub(super) struct Replayed {
     states: BTreeMap<u32, VolumeState>,
     reading_point: Option<usize>,
     reopened: Option<u32>,
+    reopened_as: Option<Operation>,
     shown: Rc<Shown>,
 }
 
@@ -39,16 +40,18 @@ pub(super) struct Blocked {
 
 impl ViewportState {
     /// The part as its volumes' states show it, read through the step the
-    /// reader is on, or as it stood before the step reopened; nothing while
-    /// every volume of the document is opaque, the part is read to its end and
-    /// no step is reopened, when the part shown is the part itself.
+    /// reader is on, or through the step reopened as its panel holds it, as it
+    /// stood before that step while the panel holds nothing to lay; nothing
+    /// while every volume of the document is opaque, the part is read to its
+    /// end and no step is reopened, when the part shown is the part itself.
     pub(crate) fn part_shown(&self, document: &PartDocument) -> Option<Rc<Shown>> {
         let states = self.volume_states(document);
         let (reading_point, reopened) = (self.reading.point, self.reopened);
+        let reopened_as = reopened.and(self.reopened_as.as_ref());
         if states.is_empty() && reading_point.is_none() && reopened.is_none() {
             return None;
         }
-        if states.is_empty() && reopened.is_some() {
+        if states.is_empty() && reopened.is_some() && reopened_as.is_none() {
             return self.part_reopened(document);
         }
         let mut kept = self.visibility.shown.borrow_mut();
@@ -56,20 +59,23 @@ impl ViewportState {
             && replayed.states == states
             && replayed.reading_point == reading_point
             && replayed.reopened == reopened
+            && replayed.reopened_as.as_ref() == reopened_as
             && replayed.history == document.history
         {
             return Some(Rc::clone(&replayed.shown));
         }
-        let shown = Rc::new(match (reopened, reading_point) {
-            (Some(step), _) => document.shown_before(&states, step),
-            (None, Some(key_step)) => document.shown_through(&states, key_step),
-            (None, None) => document.shown(&states),
+        let shown = Rc::new(match (reopened, reopened_as, reading_point) {
+            (Some(step), Some(to), _) => document.shown_changed(&states, step, to.clone()).shown,
+            (Some(step), None, _) => document.shown_before(&states, step),
+            (None, _, Some(key_step)) => document.shown_through(&states, key_step),
+            (None, _, None) => document.shown(&states),
         });
         *kept = Some(Replayed {
             history: document.history.clone(),
             states,
             reading_point,
             reopened,
+            reopened_as: reopened_as.cloned(),
             shown: Rc::clone(&shown),
         });
         Some(shown)

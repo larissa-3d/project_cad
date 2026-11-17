@@ -67,6 +67,9 @@ pub fn show(
     state.edge_under_the_hand = None;
     state.edges_chosen.clone_from(&blend.edges);
     state.reopened = blend.reopened;
+    state.reopened_as = blend
+        .reopened
+        .and_then(|_| blend.laid(sketch.document.variables()));
     let mut changed = match gesture_goes_to(handled_cube, sketch) {
         _ if sectioning => false,
         GestureGoesTo::TheCube => false,

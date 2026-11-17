@@ -104,7 +104,15 @@ impl BlendState {
 
     /// Whether there is enough to apply: an edge chosen, and a usable size.
     pub fn is_ready(&self, variables: &Variables) -> bool {
-        !self.edges.is_empty() && self.size(variables).is_some()
+        self.laid(variables).is_some()
+    }
+
+    /// The step the panel holds, as « Appliquer » would lay it: its kind, an
+    /// edge chosen, and a usable size.
+    pub fn laid(&self, variables: &Variables) -> Option<Operation> {
+        let (shape, (size, _)) = (self.shape?, self.size(variables)?);
+        let edges = self.edges.clone();
+        (!edges.is_empty()).then_some(Operation::Blend { edges, shape, size })
     }
 }
 
@@ -113,14 +121,9 @@ impl BlendState {
 /// nothing. Edges the kernel declines record nothing and leave the panel open,
 /// saying why. True when the part changed.
 pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool {
-    let (Some(shape), Some((size, _))) = (blend.shape, blend.size(document.variables())) else {
+    let Some(laid) = blend.laid(document.variables()) else {
         return false;
     };
-    if blend.edges.is_empty() {
-        return false;
-    }
-    let edges = blend.edges.clone();
-    let laid = Operation::Blend { edges, shape, size };
     let operation = match blend.reopened {
         Some(raised_by) if leaves_as_it_was(document, raised_by, &laid) => {
             blend.close();

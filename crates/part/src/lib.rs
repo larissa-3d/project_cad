@@ -54,6 +54,6 @@ pub use outcome::Outcome;
 pub use picture::Picture;
 pub use ports::{Entry, FileError, Files, Folders};
 pub use sections::{SavedSection, pivot_kept_on, pivot_of};
-pub use showing::{Ghost, Shown, VolumeState};
+pub use showing::{Ghost, Shown, Tried, VolumeState};
 pub use state::PartState;
 pub use variables::{NameProblem, Unusable, Variable, VariableChange, VariableId, Variables};
