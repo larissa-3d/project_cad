@@ -9,13 +9,13 @@
 //! place, which would silently point a later step at a different piece of the
 //! drawing.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use cao_sketch::{ArcId, CircleId, Constraint, PointId, Segment, SegmentId, Sketch};
 
 use crate::history::{History, Operation, PointRef, RevolutionAxis};
 use crate::state::PartState;
-use matter::{blend_written, renamed, revolve_axis_segments};
+use matter::{blend_renumbered, blend_written, put_in_before, renamed, revolve_axis_segments};
 use remap::{SketchIdMap, remap_constraint, remap_target, without_order};
 use variables::{Renumbered, compact_variables};
 
@@ -39,6 +39,8 @@ pub fn compact(history: &History) -> History {
     let mut sketch_maps: Vec<SketchIdMap> = Vec::new();
     let renumbered = compact_variables(&old_state.variables, &mut new_history, &mut new_state);
 
+    let changes = history.changes_named_by();
+    let mut written_later: BTreeMap<u32, u32> = BTreeMap::new();
     for (at, operation) in operations.iter().enumerate() {
         match operation {
             Operation::CreateSketch { .. } | Operation::CreateSketchOnSection { .. } => {
@@ -110,8 +112,27 @@ pub fn compact(history: &History) -> History {
             Operation::Blend { .. } => {
                 let first = &history.operations()[at];
                 let raised_by = new_history.next_number();
-                for written in blend_written(first, operation, &renumbered, raised_by) {
+                let blend = history.number_at(at).unwrap_or_default();
+                let written = match changes.get(&blend) {
+                    Some(change) if put_in_before(history, blend, *change) => {
+                        written_later.insert(*change, raised_by);
+                        vec![blend_renumbered(first, &renumbered)]
+                    }
+                    _ => blend_written(first, operation, &renumbered, raised_by),
+                };
+                for written in written {
                     record(written, &mut new_history, &mut new_state);
+                }
+            }
+            Operation::EditMatter { to, .. } => {
+                let later = history.number_at(at).and_then(|n| written_later.get(&n));
+                if let Some(raised_by) = later {
+                    let to = Box::new(blend_renumbered(to, &renumbered));
+                    let change = Operation::EditMatter {
+                        raised_by: *raised_by,
+                        to,
+                    };
+                    record(change, &mut new_history, &mut new_state);
                 }
             }
             Operation::SaveSection(_)

@@ -53,6 +53,9 @@ pub(crate) struct Replay {
     sketches_made: Vec<u32>,
     /// How many edges each blend step was first laid with, by number.
     pub(crate) blends_first_laid: BTreeMap<u32, usize>,
+    /// The number of the change in effect of each step changed, by the number
+    /// of the step.
+    pub(crate) changes_named_by: BTreeMap<u32, u32>,
 }
 
 /// How many of each element — points, traits, circles, arcs, ellipses — a
@@ -133,6 +136,7 @@ impl PartState {
         state.replay.superseded = superseded;
         state.replay.sketches_made = history.sketches_made();
         state.replay.blends_first_laid = history.blends_first_laid();
+        state.replay.changes_named_by = history.changes_named_by();
         state.showing = showing;
         state.read_variables(history);
         if history.first_size_is_off_the_drawing() {

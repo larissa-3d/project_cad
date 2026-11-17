@@ -7,7 +7,7 @@ use cao_sketch::{Area, SegmentId};
 
 use super::remap::{SketchIdMap, remap_area};
 use super::variables::Renumbered;
-use crate::history::{Operation, RevolutionAxis};
+use crate::history::{History, Operation, RevolutionAxis};
 use crate::state::PartState;
 
 /// Every segment a `Revolve` of this sketch turns around.
@@ -76,14 +76,7 @@ pub(super) fn blend_written(
     renumbered: &Renumbered,
     raised_by: u32,
 ) -> Vec<Operation> {
-    let written = |blend: &Operation| match blend {
-        Operation::Blend { edges, shape, size } => Operation::Blend {
-            edges: edges.clone(),
-            shape: *shape,
-            size: renumbered.formula(size),
-        },
-        other => other.clone(),
-    };
+    let written = |blend: &Operation| blend_renumbered(blend, renumbered);
     match (first, now) {
         (Operation::Blend { edges: laid, .. }, Operation::Blend { edges, .. })
             if edges.len() < laid.len() =>
@@ -98,4 +91,32 @@ pub(super) fn blend_written(
         }
         _ => vec![written(now)],
     }
+}
+
+/// A blend, its size written in the variables compaction keeps.
+pub(super) fn blend_renumbered(blend: &Operation, renumbered: &Renumbered) -> Operation {
+    match blend {
+        Operation::Blend { edges, shape, size } => Operation::Blend {
+            edges: edges.clone(),
+            shape: *shape,
+            size: renumbered.formula(size),
+        },
+        other => other.clone(),
+    }
+}
+
+/// Whether a step standing before the blend step of number `blend` was put
+/// in after it was laid and before its change `change` was made: the change
+/// may name that step's faces, and is then written where it was made rather
+/// than with the step, whose number comes before that step's.
+pub(super) fn put_in_before(history: &History, blend: u32, change: u32) -> bool {
+    history
+        .steps()
+        .iter()
+        .map_while(|step| {
+            step.operations()
+                .first()
+                .filter(|opening| **opening != blend)
+        })
+        .any(|opening| (blend..change).contains(opening))
 }

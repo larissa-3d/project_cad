@@ -26,6 +26,17 @@
 //!   replays to the same body —
 //!   `compacting_the_history_keeps_the_change_of_a_blend_step`
 //!
+//! - found in review, beyond the issue's eleven: a step changed twice, an
+//!   edge added then two taken out, replays as the part laid with the step
+//!   that way, compacted or not —
+//!   `a_blend_step_changed_twice_gives_the_body_laid_with_its_last_values_compacted_or_not`
+//! - found in review, beyond the issue's eleven: a change naming an edge of a
+//!   step put in before the blend since it was laid finds that edge again on
+//!   replay, the change named on the part as it stood when it was made —
+//!   `a_change_taking_an_edge_of_a_step_put_in_before_the_blend_rounds_that_edge`;
+//!   compacted, the part replays the same, an edge of the block taken out or
+//!   not — `compacting_keeps_a_change_taking_an_edge_of_a_step_put_in_before_the_blend`
+//!
 //! Each part changed is held against the same part laid with the step that way
 //! from the start.
 
@@ -702,5 +713,260 @@ fn compacting_the_history_keeps_the_change_of_a_blend_step() {
         failures.is_empty(),
         "compacting the history does not keep a blend step as it was changed:\n  {}",
         failures.join("\n  "),
+    );
+}
+
+/// The edge from (`LENGTH`, 0, 0) up to the block's top, between its front
+/// and its side towards +X: the fifth edge of a step that rounds a corner.
+fn the_front_right_upright(body: &Body) -> EdgeName {
+    the_edge_between(
+        body,
+        face(body, -DVec3::Y, 0.0),
+        face(body, DVec3::X, LENGTH),
+    )
+}
+
+#[test]
+fn a_blend_step_changed_twice_gives_the_body_laid_with_its_last_values_compacted_or_not() {
+    let mut failures = Vec::new();
+    for shape in [BlendShape::Chamfer, BlendShape::Fillet] {
+        let mut five = the_four_top_edges(a_block().body());
+        five.push(the_front_right_upright(a_block().body()));
+        let five = Operation::Blend {
+            edges: five,
+            shape,
+            size: SIZE.into(),
+        };
+        let three = a_blend(3, shape, SIZE);
+        let (mut part, blend) = a_block_blended(a_blend(4, shape, SIZE));
+        let (laid_that_way, _) = a_block_blended(three.clone());
+
+        let first = part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(five),
+        });
+        let second = part.apply(Operation::EditMatter {
+            raised_by: blend,
+            to: Box::new(three.clone()),
+        });
+
+        let mut wrong = Vec::new();
+        if first.is_some() || second.is_some() {
+            wrong.push(format!("the changes come back {first:?} then {second:?}"));
+        }
+        if part.raised_as(blend) != Some(&three) {
+            wrong.push(format!(
+                "the step reads {:?}, not its last values",
+                part.raised_as(blend),
+            ));
+        }
+        wrong.extend(how_the_bodies_differ(
+            part.body(),
+            laid_that_way.body(),
+            "the part laid with three edges",
+        ));
+        part.compact_history();
+        wrong.extend(
+            how_the_bodies_differ(
+                part.body(),
+                laid_that_way.body(),
+                "the part laid with three edges",
+            )
+            .into_iter()
+            .map(|said| format!("compacted, {said}")),
+        );
+        if !wrong.is_empty() {
+            failures.push(format!(
+                "{shape:?} of four top edges, changed to five then to three:\n    {}",
+                wrong.join("\n    ")
+            ));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "a blend step changed twice does not stand as its last change:\n  {}",
+        failures.join("\n  "),
+    );
+}
+
+/// The edge `body` draws along X at the foot of the face towards -Y, `high`
+/// up, from x = `from` on.
+fn the_front_top_from(body: &Body, high: f64, from: f64) -> EdgeName {
+    let named: Vec<EdgeName> = body
+        .drawn_edges()
+        .into_iter()
+        .filter(|edge| {
+            edge.points.iter().all(|point| {
+                point.y.abs() < EXACT && (point.z - high).abs() < EXACT && point.x >= from - EXACT
+            })
+        })
+        .map(|edge| edge.name)
+        .collect();
+    assert_eq!(
+        named.len(),
+        1,
+        "one front top edge {high} high from x = {from}"
+    );
+    named[0].clone()
+}
+
+/// A boss `long` along X and 10 along Y, `high` up from XY at x = `from`,
+/// raised from a sketch of its own: `put_in` puts the sketch and the
+/// extrusion in after that many key steps rather than at the end.
+fn a_boss(part: &mut PartDocument, (from, long, high): (f64, f64, f64), put_in: Option<usize>) {
+    let sketch = Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    };
+    match put_in {
+        Some(key_step) => part.insert_after(key_step, sketch),
+        None => part.apply(sketch),
+    };
+    let boss = part.sketches().len() - 1;
+    rectangle(
+        part,
+        boss,
+        DVec2::new(from, 0.0),
+        DVec2::new(from + long, 10.0),
+    );
+    let raised = Operation::Extrude {
+        sketch: boss,
+        areas: part.areas_at(boss, &[DVec2::new(from + long / 2.0, 5.0)]),
+        distance: high.into(),
+        mode: ExtrusionMode::Add,
+    };
+    match put_in {
+        Some(key_step) => part.insert_after(key_step + 1, raised),
+        None => part.apply(raised),
+    };
+}
+
+/// Where the boss raised after the block stands, how long and how high.
+const THE_FIRST_BOSS: (f64, f64, f64) = (40.0, 10.0, 5.0);
+
+/// The boss put in before the chamfer: longer than the first, so that its
+/// front chamfered and the first boss's front chamfered hold different matter.
+const THE_BOSS_PUT_IN: (f64, f64, f64) = (60.0, 15.0, 8.0);
+
+/// The block and a first boss, the block's four top edges chamfered as one
+/// step, then a longer boss put in before the chamfer, and the chamfer changed
+/// to take the first `top_edges` of the block's top edges and the front of the
+/// boss put in: the part, the number of the chamfer, and what the change came
+/// back with.
+fn a_chamfer_changed_to_take_the_front_of_a_boss_put_in_before_it(
+    top_edges: usize,
+) -> (PartDocument, u32, Option<Outcome>) {
+    let mut part = a_block();
+    a_boss(&mut part, THE_FIRST_BOSS, None);
+    assert_eq!(
+        part.apply(a_blend(4, BlendShape::Chamfer, SIZE)),
+        None,
+        "the chamfer of the block's top: built"
+    );
+    let blend = part
+        .history
+        .steps()
+        .last()
+        .expect("the chamfer")
+        .operations()[0];
+    let laid = part.history.steps().len();
+    a_boss(&mut part, THE_BOSS_PUT_IN, Some(1));
+    assert_eq!(
+        part.history.steps().len(),
+        laid + 2,
+        "the fixture puts a sketch and a boss in before the chamfer",
+    );
+    let before_the_blend = part.shown_before(&Default::default(), blend).body;
+    let mut edges = the_four_top_edges(a_block().body());
+    edges.truncate(top_edges);
+    edges.push(the_front_top_from(&before_the_blend, 8.0, 60.0));
+    let outcome = part.apply(Operation::EditMatter {
+        raised_by: blend,
+        to: Box::new(Operation::Blend {
+            edges,
+            shape: BlendShape::Chamfer,
+            size: SIZE.into(),
+        }),
+    });
+    (part, blend, outcome)
+}
+
+#[test]
+fn compacting_keeps_a_change_taking_an_edge_of_a_step_put_in_before_the_blend() {
+    let mut failures = Vec::new();
+    for top_edges in [4, 3] {
+        let (mut part, _, outcome) =
+            a_chamfer_changed_to_take_the_front_of_a_boss_put_in_before_it(top_edges);
+        assert_eq!(outcome, None, "the fixture's change of the chamfer: built");
+        let before = part.body().clone();
+
+        part.compact_history();
+
+        let what = format!("{top_edges} of the block's top edges and the front of the boss put in");
+        let mut wrong = how_the_bodies_differ(part.body(), &before, "the part before compaction");
+        let declined: Vec<u32> = part
+            .history
+            .steps()
+            .iter()
+            .filter(|step| step.kind() == StepKind::Blend)
+            .flat_map(|step| step.operations().first().copied())
+            .filter(|number| part.declined_because(*number).is_some())
+            .collect();
+        if !declined.is_empty() {
+            wrong.push(format!("the blend steps {declined:?} are declined"));
+        }
+        if !wrong.is_empty() {
+            failures.push(format!("{what}:\n    {}", wrong.join("\n    ")));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "compacting a chamfer changed to take the front of a boss put in before it since does \
+         not replay to the same part:\n  {}",
+        failures.join("\n  "),
+    );
+}
+
+#[test]
+fn a_change_taking_an_edge_of_a_step_put_in_before_the_blend_rounds_that_edge() {
+    let (part, blend, outcome) = a_chamfer_changed_to_take_the_front_of_a_boss_put_in_before_it(4);
+
+    let mut laid_that_way = a_block();
+    a_boss(&mut laid_that_way, THE_BOSS_PUT_IN, None);
+    a_boss(&mut laid_that_way, THE_FIRST_BOSS, None);
+    let mut edges = the_four_top_edges(a_block().body());
+    edges.push(the_front_top_from(laid_that_way.body(), 8.0, 60.0));
+    assert_eq!(
+        laid_that_way.apply(Operation::Blend {
+            edges,
+            shape: BlendShape::Chamfer,
+            size: SIZE.into(),
+        }),
+        None,
+        "the chamfer of the block's top and the put-in boss's front, laid so: built",
+    );
+    let mut wrong = Vec::new();
+    if outcome.is_some() {
+        wrong.push(format!("the change comes back {outcome:?}"));
+    }
+    if part.declined_because(blend).is_some() {
+        wrong.push(format!(
+            "the step is declined: {:?}",
+            part.declined_because(blend),
+        ));
+    }
+    wrong.extend(how_the_bodies_differ(
+        part.body(),
+        laid_that_way.body(),
+        "the part laid with the boss's front chamfered too",
+    ));
+
+    assert!(
+        wrong.is_empty(),
+        "the chamfer of the block's top, changed to take the front of a boss put in before it \
+         since, does not chamfer that front:\n  {}",
+        wrong.join("\n  "),
     );
 }

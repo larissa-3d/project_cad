@@ -213,7 +213,7 @@ pub(crate) fn frame_of(
     let before = state.part_reopened(context.document);
     let named_on = before
         .as_ref()
-        .map_or(context.document.body(), |part| &part.body);
+        .map_or(context.document.body(), |body| &**body);
     edges::push_lit_edges(&mut lines, state, named_on);
     section_panel::push_section_plane(&mut surfaces, &mut lines, state, scale, context);
 

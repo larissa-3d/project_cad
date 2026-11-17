@@ -4,8 +4,9 @@
 use cao_solid::{Declined, EdgeName};
 use serde::{Deserialize, Serialize};
 
+use crate::document::PartDocument;
 use crate::formula::Formula;
-use crate::history::BlendShape;
+use crate::history::{BlendShape, Operation};
 use crate::outcome::Outcome;
 use crate::state::PartState;
 
@@ -67,9 +68,10 @@ impl PartState {
             self.body.count_past_cut(block);
             return None;
         };
+        let naming = self.named_against(self.replaying);
         let edges: Vec<EdgeName> = edges
             .iter()
-            .map(|edge| self.edge_named_by(edge, self.replaying))
+            .map(|edge| self.edge_named_by(edge, naming))
             .collect();
         let scale = self.scale();
         let blended = match shape {
@@ -108,6 +110,14 @@ impl PartState {
         }
     }
 
+    /// The number of the operation the edges of the step of that number were
+    /// named by: its change in effect, taken on the part as it stood then, or
+    /// the step itself.
+    fn named_against(&self, step: u32) -> u32 {
+        let changed = self.replay.changes_named_by.get(&step);
+        changed.copied().unwrap_or(step)
+    }
+
     /// The edge the operation of number `recorded_by` named, its faces found
     /// again as the part now numbers them, as a drawing's face is.
     fn edge_named_by(&self, edge: &EdgeName, recorded_by: u32) -> EdgeName {
@@ -125,5 +135,25 @@ impl PartState {
                 .map(|faces| faces.iter().map(side).collect()),
             ..edge.clone()
         }
+    }
+}
+
+impl PartDocument {
+    /// The edges the blend step of that number takes that the part as it
+    /// stood before it still has, named as the part numbers its faces now:
+    /// what the step offers once reopened, all in the naming a change of it
+    /// is recorded in.
+    pub fn edges_before(&self, step: u32) -> Vec<EdgeName> {
+        let Some(Operation::Blend { edges, .. }) = self.raised_as(step) else {
+            return Vec::new();
+        };
+        let before = self.state_before(step);
+        let naming = before.named_against(step);
+        let found = before.body.edge_names();
+        edges
+            .iter()
+            .map(|edge| before.edge_named_by(edge, naming))
+            .filter(|edge| found.contains(edge))
+            .collect()
     }
 }

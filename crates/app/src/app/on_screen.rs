@@ -113,6 +113,6 @@ impl CaoApp {
 /// are named on: the part as it stood before the step reopened, while one is.
 fn points_of(part: &OpenPart, name: &EdgeName) -> Option<Vec<DVec3>> {
     let before = part.viewport.part_reopened(&part.doc);
-    let body = before.as_ref().map_or(part.doc.body(), |shown| &shown.body);
+    let body = before.as_ref().map_or(part.doc.body(), |body| &**body);
     part.viewport.edge_points(body, name)
 }

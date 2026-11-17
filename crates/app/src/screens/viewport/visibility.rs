@@ -15,7 +15,7 @@ use cao_part::history::StepKind;
 use cao_part::{Operation, PartDocument, VolumeState};
 use cao_sketch::Sketch;
 
-use shown::{Blocked, Replayed};
+use shown::{Before, Blocked, Replayed};
 
 use super::ViewportState;
 use crate::screens::SketchContext;
@@ -41,6 +41,9 @@ pub(super) struct Visibility {
     shown: RefCell<Option<Replayed>>,
     /// The raw block of the volume marked, and what it was replayed from.
     block: RefCell<Option<Blocked>>,
+    /// The part as it stood before the step reopened, and what it was
+    /// replayed from.
+    before: RefCell<Option<Before>>,
 }
 
 /// One sketch, or the volume made at a step of the history.
@@ -60,6 +63,7 @@ impl Default for Visibility {
             volumes: BTreeMap::new(),
             shown: RefCell::new(None),
             block: RefCell::new(None),
+            before: RefCell::new(None),
         }
     }
 }

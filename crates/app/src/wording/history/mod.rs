@@ -99,7 +99,14 @@ pub fn label(lang: &Catalogue, variables: &Variables, operation: &Operation) -> 
         Operation::CutChange(change) => cut_change::label(lang, change),
         Operation::EditMatter { to, .. } => match **to {
             Operation::Revolve { .. } => lang.t("history.revolution_changed"),
-            Operation::Blend { .. } => label(lang, variables, to),
+            Operation::Blend {
+                shape: BlendShape::Fillet,
+                ..
+            } => lang.t("history.edges_rounded_changed"),
+            Operation::Blend {
+                shape: BlendShape::Chamfer,
+                ..
+            } => lang.t("history.edges_chamfered_changed"),
             _ => lang.t("history.extrusion_changed"),
         },
         Operation::Mirror { .. } => lang.t("history.mirrored"),

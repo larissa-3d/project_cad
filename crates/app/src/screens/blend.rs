@@ -28,12 +28,12 @@ impl BlendState {
     /// Nothing for any other step.
     pub fn reopened(document: &PartDocument, step: usize) -> Option<Self> {
         let raised_by = document.history.number_at(step)?;
-        let Operation::Blend { edges, shape, size } = document.raised_as(raised_by)? else {
+        let Operation::Blend { shape, size, .. } = document.raised_as(raised_by)? else {
             return None;
         };
         Some(Self {
             shape: Some(*shape),
-            edges: edges.clone(),
+            edges: document.edges_before(raised_by),
             size_input: document.variables().written(size),
             declined: None,
             reopened: Some(raised_by),
@@ -122,7 +122,7 @@ pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool 
     let edges = blend.edges.clone();
     let laid = Operation::Blend { edges, shape, size };
     let operation = match blend.reopened {
-        Some(raised_by) if document.raised_as(raised_by) == Some(&laid) => {
+        Some(raised_by) if leaves_as_it_was(document, raised_by, &laid) => {
             blend.close();
             return false;
         }
@@ -138,4 +138,26 @@ pub fn apply_blend(document: &mut PartDocument, blend: &mut BlendState) -> bool 
     }
     blend.close();
     true
+}
+
+/// Whether `laid` is the step of that number as it stands: its kind, its size
+/// as written, and its edges whatever their order, none of them lost.
+fn leaves_as_it_was(document: &PartDocument, raised_by: u32, laid: &Operation) -> bool {
+    let (
+        Some(Operation::Blend {
+            edges: was,
+            shape,
+            size,
+        }),
+        Operation::Blend { edges, .. },
+    ) = (document.raised_as(raised_by), laid)
+    else {
+        return false;
+    };
+    let found = document.edges_before(raised_by);
+    let same_edges = found.len() == was.len()
+        && edges.len() == found.len()
+        && edges.iter().all(|edge| found.contains(edge));
+    same_edges
+        && matches!(laid, Operation::Blend { shape: now, size: typed, .. } if now == shape && typed == size)
 }

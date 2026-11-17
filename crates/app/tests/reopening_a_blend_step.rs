@@ -16,8 +16,9 @@
 //!   `while_a_blend_step_is_reopened_the_body_drawn_is_the_part_before_it_and_its_edges_are_lit`
 //! - « Appliquer » on a reopened step with a new size, kind or set of edges
 //!   records one `EditMatter` change; the body afterwards is the one the part
-//!   gives with the step laid that way, and the history row reads the new
-//!   values — the gesture and the row, by
+//!   gives with the step laid that way, and the step's history line reads the
+//!   new values, under it a line « Congé modifié » (resp. « Chanfrein
+//!   modifié ») — the gesture and the lines, by
 //!   `apply_on_a_reopened_step_lays_no_new_step_and_its_history_line_reads_the_new_values`;
 //!   the change recorded and the body, in the part's file
 //! - « Annuler » on a reopened step records nothing and the body drawn is the
@@ -32,6 +33,20 @@
 //!   `a_reopened_step_with_every_edge_taken_out_greys_apply`
 //! - Undoing or rewinding the history while a step is reopened closes the
 //!   panel — `undoing_or_rewinding_while_a_step_is_reopened_closes_the_panel`
+//! - decided in review: the change has a line of its own, so a click on the
+//!   step's own line shows the change undone and the step as first laid,
+//!   rather than putting it back silently —
+//!   `a_click_on_a_changed_step_s_own_line_shows_its_change_undone_and_the_step_as_first_laid`
+//! - criterion 5 through the app, found in review: one Cmd+Z after a change
+//!   puts the step's line and its fillet back as they were —
+//!   `one_cmd_z_after_a_change_puts_the_step_s_line_and_its_fillet_back`
+//! - found in review: an edge taken out and put back in leaves the step as it
+//!   was, and « Appliquer » then records nothing —
+//!   `an_edge_taken_out_and_put_back_then_apply_records_nothing`
+//! - found in review: with a volume before the step made see-through, the
+//!   step reopened still lights its edges and takes another of that volume,
+//!   named on the part itself rather than on the part as shown —
+//!   `with_the_block_see_through_a_reopened_step_lights_its_edges_and_takes_another_of_the_block`
 //! - decided while the work went on, beyond the issue's eleven: « Appliquer »
 //!   on a reopened step with nothing changed records nothing, so that Cmd+Z
 //!   then takes the step itself back rather than a change that changed nothing
@@ -334,45 +349,41 @@ fn apply_on_a_reopened_step_lays_no_new_step_and_its_history_line_reads_the_new_
                     egui::Modifiers::COMMAND,
                 );
                 assert!(
-                    are_the_edges(&app.state().the_edges_chosen(), &[top[0], top[1], top[3]],),
+                    are_the_edges(&app.state().the_edges_chosen(), &[top[0], top[1], top[3]]),
                     "the fixture takes the far top edge out, leaving {:?} chosen",
                     app.state().the_edges_chosen(),
                 );
                 (format!("{rank}. 3 arêtes arrondies"), detail.clone())
             }
         };
+        let changed_line = format!("{}. Congé modifié", lines.len() + 1);
 
         driver::click(&mut app, "Appliquer");
 
         let mut wrong = Vec::new();
-        let now = driver::steps(&app);
-        if now.len() != lines.len() {
-            wrong.push(format!("the history reads {now:?} where it read {lines:?}"));
+        let mut expected = lines.clone();
+        if let Some(at) = expected.iter().position(|read| *read == line) {
+            expected[at] = expected_line.clone();
         }
-        if !now.contains(&expected_line) {
-            wrong.push(format!("no line reads « {expected_line} »: {now:?}"));
+        expected.push(changed_line.clone());
+        let now = driver::steps(&app);
+        if now != expected {
+            wrong.push(format!(
+                "the history reads {now:?} where {expected:?} is wanted"
+            ));
         } else if driver::detail_of(&app, &expected_line) != expected_detail {
             wrong.push(format!(
                 "« {expected_line} » reads {:?} under it, where {expected_detail:?} is wanted",
                 driver::detail_of(&app, &expected_line),
             ));
         }
-        if now.iter().any(|line| line.contains("modifiée")) {
-            wrong.push(format!(
-                "a line says the step was changed in other words: {now:?}"
-            ));
+        if now.iter().any(|line| line.contains("Extrusion modifiée")) {
+            wrong.push(format!("a line speaks of an extrusion changed: {now:?}"));
         }
         if driver::reads(&app, FILLET.value) {
             wrong.push("the panel is still open".to_string());
         }
-        hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
-        if x_read_under_the_pointer(&app).is_some_and(|x| (x - top[0][0].x).abs() <= ON_THE_TOP) {
-            wrong.push(format!(
-                "half a millimetre in from a top edge still rounded, the pointer meets « {} », \
-                 the block's sharp top: the part before the step is still drawn",
-                driver::the_bar_s_coordinates(&app),
-            ));
-        }
+        wrong.extend(the_fillet_drawn(&mut app, &top).err());
 
         assert!(
             wrong.is_empty(),
@@ -823,6 +834,12 @@ fn modify_on_the_alert_of_a_blend_step_not_rebuilt_opens_the_panel_on_it_and_sho
                 driver::field_beside(&app, CHAMFER.value),
             ));
         }
+        if driver::reads(&app, "1 arête") {
+            wrong.push("the panel counts « 1 arête », the edge lost".to_string());
+        }
+        if driver::is_enabled(&app, "Appliquer") {
+            wrong.push("« Appliquer » offered with the step's only edge lost".to_string());
+        }
     } else {
         wrong.push(format!(
             "the alert offers {} « Modifier », not one",
@@ -835,5 +852,192 @@ fn modify_on_the_alert_of_a_blend_step_not_rebuilt_opens_the_panel_on_it_and_sho
         "the alert of a chamfer whose edge is lost:\n  {}\n showing {:?}",
         wrong.join("\n  "),
         driver::on_screen(&app),
+    );
+}
+
+/// The line of the history standing selected: the step the part is read to.
+fn the_current_line(app: &driver::App) -> Option<String> {
+    driver::steps(app).into_iter().find(|line| {
+        driver::the_row(app, line).is_some_and(|row| {
+            row.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)
+        })
+    })
+}
+
+#[test]
+fn a_click_on_a_changed_step_s_own_line_shows_its_change_undone_and_the_step_as_first_laid() {
+    let test = "a_click_on_a_changed_step_s_own_line";
+    let (mut app, _, line) = reopened(test, &FILLET);
+    let first_detail = driver::detail_of(&app, &line);
+    driver::type_beside(&mut app, FILLET.value, "3");
+    driver::click(&mut app, "Appliquer");
+    let changed_line = driver::steps(&app)
+        .into_iter()
+        .find(|read| read.ends_with("Congé modifié"))
+        .unwrap_or_else(|| panic!("the change has no line: {:?}", driver::steps(&app)));
+
+    driver::click_the_button(&mut app, &line);
+
+    let mut wrong = Vec::new();
+    if the_current_line(&app).as_ref() != Some(&line) {
+        wrong.push(format!(
+            "the part is read to {:?}, not to « {line} »",
+            the_current_line(&app),
+        ));
+    }
+    let now = driver::steps(&app);
+    let (at_step, at_change) = (
+        now.iter().position(|read| *read == line),
+        now.iter().position(|read| *read == changed_line),
+    );
+    if !matches!((at_step, at_change), (Some(step), Some(change)) if change > step) {
+        wrong.push(format!(
+            "« {changed_line} » is not listed after « {line} », to be gone back to: {now:?}"
+        ));
+    }
+    if driver::detail_of(&app, &line) != first_detail {
+        wrong.push(format!(
+            "« {line} » reads {:?} under it, not its first {first_detail:?}",
+            driver::detail_of(&app, &line),
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "a click on the line of the fillet changed to 3:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn one_cmd_z_after_a_change_puts_the_step_s_line_and_its_fillet_back() {
+    let test = "one_cmd_z_after_a_change";
+    let (mut app, top, line) = a_block_blended_at_twice_r(test, &FILLET);
+    hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
+    let as_laid = driver::the_bar_s_coordinates(&app);
+    let detail = driver::detail_of(&app, &line);
+    driver::right_click(&mut app, &line);
+    driver::click_the_button(&mut app, FILLET.edit);
+    driver::type_beside(&mut app, FILLET.value, "3");
+    driver::click(&mut app, "Appliquer");
+    hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
+    assert_ne!(
+        driver::the_bar_s_coordinates(&app),
+        as_laid,
+        "the fixture changes the fillet to 3, which the pointer meets elsewhere than at 2",
+    );
+
+    driver::press_with_command(&mut app, egui::Key::Z);
+
+    let mut wrong = Vec::new();
+    if !driver::steps(&app).contains(&line) {
+        wrong.push(format!(
+            "no line reads « {line} »: {:?}",
+            driver::steps(&app)
+        ));
+    } else if driver::detail_of(&app, &line) != detail {
+        wrong.push(format!(
+            "« {line} » reads {:?} under it, where it read {detail:?}",
+            driver::detail_of(&app, &line),
+        ));
+    }
+    hover_at_world_point(&mut app, just_inside_the_first_top_edge(&top));
+    if driver::the_bar_s_coordinates(&app) != as_laid {
+        wrong.push(format!(
+            "half a millimetre in from a top edge, the pointer meets « {} », where the fillet \
+             of 2 met it at « {as_laid} »",
+            driver::the_bar_s_coordinates(&app),
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "one Cmd+Z after the fillet was changed from 2 to 3:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn an_edge_taken_out_and_put_back_then_apply_records_nothing() {
+    let test = "an_edge_taken_out_and_put_back";
+    let (mut app, top, _) = reopened(test, &FILLET);
+    let lines = the_lines_and_their_details(&app);
+    for _ in 0..2 {
+        driver::click_at_world_point_with(&mut app, middle(top[2]), egui::Modifiers::SHIFT);
+    }
+    assert!(
+        are_the_edges(&app.state().the_edges_chosen(), &top),
+        "the fixture takes the far top edge out and puts it back, leaving {:?} chosen",
+        app.state().the_edges_chosen(),
+    );
+
+    driver::click(&mut app, "Appliquer");
+
+    let mut wrong = Vec::new();
+    if changes_in(&the_part(test)) != 0 {
+        wrong.push(format!(
+            "{} changes are recorded for the same four edges",
+            changes_in(&the_part(test)),
+        ));
+    }
+    if the_lines_and_their_details(&app) != lines {
+        wrong.push(format!(
+            "the history reads {:?} where it read {lines:?}",
+            the_lines_and_their_details(&app),
+        ));
+    }
+    assert!(
+        wrong.is_empty(),
+        "« Appliquer » on the fillet reopened, its far top edge taken out and put back:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn with_the_block_see_through_a_reopened_step_lights_its_edges_and_takes_another_of_the_block() {
+    let test = "with_the_block_see_through_a_reopened_step";
+    let (mut app, top, line) = a_block_blended_at_twice_r(test, &FILLET);
+    driver::click_the_button(&mut app, "Rendre transparente");
+    assert!(
+        !driver::a_button_reads(&app, "Rendre transparente"),
+        "the fixture makes the block see-through, showing {:?}",
+        driver::on_screen(&app),
+    );
+    driver::right_click(&mut app, &line);
+    driver::click_the_button(&mut app, FILLET.edit);
+
+    let mut wrong = Vec::new();
+    if !are_the_edges(&app.state().the_edges_lit(), &top) {
+        wrong.push(format!(
+            "{:?} are lit, not the four top edges",
+            app.state().the_edges_lit(),
+        ));
+    }
+    let low_x = the_part(test)
+        .body()
+        .bounds()
+        .expect("the block holds matter")
+        .0
+        .x;
+    let along_the_left_top = [top[0][0], DVec3::new(low_x, top[0][0].y, top[0][0].z)];
+    driver::click_at_world_point_with(
+        &mut app,
+        middle(along_the_left_top),
+        egui::Modifiers::COMMAND,
+    );
+    let mut five = top.to_vec();
+    five.push(along_the_left_top);
+    if !are_the_edges(&app.state().the_edges_chosen(), &five) {
+        wrong.push(format!(
+            "Cmd + click on the edge running from the top's corner along X chose {:?}, not the \
+             four top edges and that edge whole",
+            app.state().the_edges_chosen(),
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "the fillet of the block's four top edges reopened, the block see-through:\n  {}",
+        wrong.join("\n  "),
     );
 }

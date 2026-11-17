@@ -54,13 +54,14 @@ impl History {
         let (mut sketches, mut volumes) = (0, 0);
         let mut lines = Vec::new();
         for (step, operation) in document.history.operations().iter().enumerate() {
-            if operation.stays_off_the_list() {
+            if operation.is_about_a_section() {
                 continue;
             }
             let started = matches!(
                 operation,
                 Operation::CreateSketch { .. } | Operation::CreateSketchOnSection { .. }
             );
+            let mut blend = None;
             let (name, detail) = match operation {
                 Operation::CreateSketch { plane, on } => {
                     sketches += 1;
@@ -80,7 +81,10 @@ impl History {
                 Operation::Blend { size, .. } => {
                     let number = document.history.number_at(step);
                     let (laid, size) = match number.and_then(|at| document.raised_as(at)) {
-                        Some(changed @ Operation::Blend { size, .. }) => (changed, size),
+                        Some(changed @ Operation::Blend { size, shape, .. }) => {
+                            blend = Some((step, *shape));
+                            (changed, size)
+                        }
                         _ => (operation, size),
                     };
                     let name = wording::history::label(lang, variables, laid);
@@ -97,7 +101,7 @@ impl History {
                 current: step < applied && applied <= ends,
                 back_to: applied.clamp(step + 1, ends),
                 sketch: (started && step < applied).then(|| sketches - 1),
-                blend: blend_shape(document, step),
+                blend,
                 capped: document
                     .history
                     .number_at(step)
@@ -116,19 +120,9 @@ impl History {
             .history
             .operations()
             .iter()
-            .filter(|operation| !operation.stays_off_the_list())
+            .filter(|operation| !operation.is_about_a_section())
             .count();
         (count > 0).then(|| counted(lang, count))
-    }
-}
-
-/// Where the blend step the action at `step` opened stands, and its kind as
-/// the part now replays it.
-fn blend_shape(document: &PartDocument, step: usize) -> Option<(usize, BlendShape)> {
-    let number = document.history.number_at(step)?;
-    match document.raised_as(number)? {
-        Operation::Blend { shape, .. } => Some((step, *shape)),
-        _ => None,
     }
 }
 

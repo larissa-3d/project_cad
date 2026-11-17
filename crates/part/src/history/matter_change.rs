@@ -43,6 +43,22 @@ impl History {
         )
     }
 
+    /// The number of the change in effect of each step of matter changed
+    /// since it was raised, by the number of the operation that raised it:
+    /// what the faces the change names were numbered against.
+    pub(crate) fn changes_named_by(&self) -> BTreeMap<u32, u32> {
+        self.numbers[..self.applied]
+            .iter()
+            .zip(self.applied_operations())
+            .filter_map(|(number, operation)| match operation {
+                Operation::EditMatter { raised_by, to } if self.stands_for(*raised_by, to) => {
+                    Some((*raised_by, *number))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
     /// How many edges each blend step was first laid with, by the number of
     /// its operation: a change keeps the block of face numbers that gave it.
     pub(crate) fn blends_first_laid(&self) -> BTreeMap<u32, usize> {
@@ -74,18 +90,5 @@ impl History {
         let at = self.position_of(number).filter(|at| *at < self.applied)?;
         let changed = self.changes_in_effect().remove(&number);
         Some(changed.unwrap_or(&self.operations[at]))
-    }
-}
-
-impl Operation {
-    /// Whether the list of what was done leaves the operation out: a section,
-    /// which is a way of looking, or a change of a chamfer or fillet step,
-    /// which the line of that step reads.
-    pub fn stays_off_the_list(&self) -> bool {
-        let changes_a_blend = matches!(
-            self,
-            Operation::EditMatter { to, .. } if matches!(**to, Operation::Blend { .. })
-        );
-        self.is_about_a_section() || changes_a_blend
     }
 }
