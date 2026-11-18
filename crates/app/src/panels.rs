@@ -42,10 +42,12 @@ pub(crate) fn beside_the_part(
         context.lang,
     );
     let mut changed = carry_out(alerted, doc, editor, extrusion, blend, viewport, ribbon);
+    let mut least = 0.0;
     if ribbon.part_tree_open {
         let unfolded = ribbon.history_unfolded;
-        let (action, hovered) =
+        let (action, hovered, needed) =
             screens::part_tree::panel(ui, doc, editor, viewport, unfolded, lang);
+        least = needed;
         screens::part_tree::state::hover(doc, editor, viewport, hovered);
         changed |= carry_out(action, doc, editor, extrusion, blend, viewport, ribbon);
     } else {
@@ -96,8 +98,10 @@ pub(crate) fn beside_the_part(
         }
     }
     if !ribbon.part_tree_open {
-        screens::part_tree::view::closed(ui, beside_ends);
+        least = screens::part_tree::view::closed(ui, beside_ends);
     }
+    let least = least + ribbon.short_of_the_tallest_tab;
+    screens::part_tree::view::hold_the_window(ui.ctx(), least);
     if viewport
         .kept_sections
         .keep_up_with(doc, editor.active_sketch())

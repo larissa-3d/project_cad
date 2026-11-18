@@ -21,6 +21,7 @@ use super::state::{Context, Ribbon, active, enabled, icon, label};
 
 mod groups;
 mod split;
+mod unseen_tabs;
 
 /// What the bar needs to know about the part being drawn.
 ///
@@ -76,6 +77,7 @@ impl Ribbon {
             .iter()
             .position(|item| matches!(item, Item::Group { name, .. } if name == "sketch"));
         let mut asked = Vec::new();
+        self.short_of_the_tallest_tab = 0.0;
 
         match layout.edge {
             Edge::Floating => {
@@ -185,8 +187,13 @@ impl Ribbon {
             ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
 
             let mut held = 0.0;
+            let tallest = matches!(layout.edge, Edge::Top | Edge::Bottom)
+                .then(|| unseen_tabs::tallest(ui, &layout.items, &state, self, bar_width));
             if let Some(Item::Group { items, .. }) = layout.items.get(self.tab) {
                 held = groups::open_tab(ui, items, &state, &mut asked, self, side, bar_width);
+            }
+            if let Some(tallest) = tallest {
+                self.short_of_the_tallest_tab = tallest - ui.min_rect().height();
             }
             self.floating_width = held.max(header_width);
             for item in &layout.items {

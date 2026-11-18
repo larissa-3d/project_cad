@@ -52,6 +52,9 @@ pub struct Ribbon {
     last_used: HashMap<String, Command>,
     /// How wide what a floating bar holds came out last frame.
     pub(super) floating_width: f32,
+    /// How much shorter the bar stood this frame than on its tallest tab,
+    /// along the top or the bottom; nothing elsewhere.
+    pub short_of_the_tallest_tab: f32,
 }
 
 impl Ribbon {
@@ -70,6 +73,7 @@ impl Ribbon {
             read_to_an_earlier_step: false,
             last_used: HashMap::new(),
             floating_width: 0.0,
+            short_of_the_tallest_tab: 0.0,
         }
     }
 
