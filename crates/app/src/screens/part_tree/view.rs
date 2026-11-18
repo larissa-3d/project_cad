@@ -7,6 +7,7 @@ use crate::screens::part_tree::state::{
     self, Body, Drawn, Kept, PartTree, Points, Row, TreeAction, Variable, clickable, clicked,
     marked,
 };
+use crate::screens::ribbon::short_of_the_tallest_tab;
 use crate::screens::sketch::SketchEditor;
 use crate::screens::theme_colours;
 use crate::screens::viewport::ViewportState;
@@ -90,6 +91,7 @@ pub fn closed(ui: &egui::Ui, ends: Option<f32>) {
 /// that or the zoom changes, as the platform resizes the window on each ask
 /// and holds it in pixels of the zoom it was asked at.
 fn hold_the_window(ctx: &egui::Context, least: f32) {
+    let least = least + short_of_the_tallest_tab(ctx);
     let zoom = ctx.pixels_per_point();
     let id = egui::Id::new("part_tree_least_window_height");
     let asked = ctx.data(|data| data.get_temp::<(f32, f32)>(id));

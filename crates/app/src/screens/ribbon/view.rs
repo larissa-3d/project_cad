@@ -21,6 +21,8 @@ use super::state::{Context, Ribbon, active, enabled, icon, label};
 
 mod groups;
 mod split;
+mod unseen_tabs;
+pub use unseen_tabs::short_of_the_tallest_tab;
 
 /// What the bar needs to know about the part being drawn.
 ///
@@ -185,6 +187,13 @@ impl Ribbon {
             ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
 
             let mut held = 0.0;
+            let along = matches!(layout.edge, Edge::Top | Edge::Bottom);
+            let short = if along {
+                unseen_tabs::measure(ui, &layout.items, self.tab, &state, self, bar_width)
+            } else {
+                0.0
+            };
+            unseen_tabs::hold(ui, short);
             if let Some(Item::Group { items, .. }) = layout.items.get(self.tab) {
                 held = groups::open_tab(ui, items, &state, &mut asked, self, side, bar_width);
             }

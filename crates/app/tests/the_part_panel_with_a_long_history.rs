@@ -44,8 +44,8 @@
 //!   it. That no number is typed twice is read at review
 //! - found in review: the minimum follows the ribbon's tab during the session,
 //!   taller under the sketch's tab whose groups wrap on two rows than under the
-//!   extrusion's on one, by as much as the ribbon is —
-//!   `the_minimum_asked_follows_the_ribbon_s_tab_by_as_much_as_the_ribbon_grows`
+//!   extrusion's on one, by as much as the ribbon is — no test: #1011 replaced
+//!   it with the tallest tab's minimum on every tab, and rewrote its test below
 //! - found in review: a change of zoom asks the minimum again, as the window
 //!   holds it in pixels of the zoom it was asked at —
 //!   `a_change_of_zoom_asks_the_window_for_its_minimum_again`
@@ -87,6 +87,26 @@
 //!   `adapters/window_place`, and writing down the last one handed,
 //!   `the_last_least_height_asked_while_the_application_ran_is_written_with_the_place`
 //!   in `cao_prefs`
+//!
+//! Closes #1011.
+//! - At a given width, the minimum height the window asks for is the same on
+//!   every ribbon tab: the one of the tab whose ribbon is tallest at that
+//!   width —
+//!   `on_every_tab_the_minimum_asked_is_the_one_of_the_tab_whose_ribbon_is_tallest`:
+//!   read on the screen's window, where the sketch's groups wrap on two rows
+//!   and the extrusion's hold on one, the toolbar's « Extrusion » moved first
+//!   so the part opens on it and its minimum is asked before the sketch's
+//!   ribbon was ever drawn; then on « Esquisse » and « Export ». The same with
+//!   the Part panel closed —
+//!   `with_the_part_panel_closed_the_minimum_asked_is_the_tallest_tab_s_on_every_tab`
+//! - Switching tab on a window at that minimum asks for no new minimum, so the
+//!   window does not move —
+//!   `switching_tab_on_a_window_at_its_minimum_asks_for_no_new_minimum`
+//! - `the_minimum_asked_follows_the_ribbon_s_tab_by_as_much_as_the_ribbon_grows`
+//!   is rewritten to assert criterion 1, not deleted — rewritten and renamed
+//!   `on_every_tab_the_minimum_asked_is_the_one_of_the_tab_whose_ribbon_is_tallest`,
+//!   its old name saying what it no longer asserts; it keeps its guard that the
+//!   two ribbons differ by a row
 //!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
@@ -930,34 +950,113 @@ fn the_minimum_and_the_view_s_top(app: &driver::App) -> (f32, f32) {
     (minimum, driver::canvas(app).top())
 }
 
-#[test]
-fn the_minimum_asked_follows_the_ribbon_s_tab_by_as_much_as_the_ribbon_grows() {
-    let mut app = driver::open_on("the_minimum_asked_follows_the_ribbon_s_tab", driver::SCREEN);
+/// The default toolbar with its « Esquisse » group moved after « Extrusion »,
+/// as the settings' « Descendre » does: the part opens on « Extrusion », whose
+/// ribbon is the shorter, and the sketch's is not drawn until asked for.
+fn the_sketch_group_moved_second() -> cao_prefs::Settings {
+    let mut settings = cao_prefs::Settings::default();
+    settings.toolbar.items.swap(0, 1);
+    settings
+}
+
+/// A part opened on the screen's window, the toolbar's « Extrusion » tab
+/// first, so the first minimum is asked before the sketch's tab was ever shown.
+fn a_part_opened_on_the_extrusion_s_tab(test: &str) -> driver::App {
+    let mut app = driver::open_with(test, driver::SCREEN, the_sketch_group_moved_second());
     driver::create_a_part(&mut app, "Bloc");
-    let (on_the_sketch_tab, under_two_rows) = the_minimum_and_the_view_s_top(&app);
+    app
+}
 
-    driver::click_the_button(&mut app, "Extrusion");
-    let (on_the_extrusion_tab, under_one_row) = the_minimum_and_the_view_s_top(&app);
-    driver::click_the_button(&mut app, "Esquisse");
-    let (back_on_the_sketch_tab, _) = the_minimum_and_the_view_s_top(&app);
+/// The minimum asked and where the view begins, on each tab in turn: the one
+/// the part opened on first, then « Esquisse », then « Export ».
+fn on_every_tab(app: &mut driver::App) -> [(&'static str, f32, f32); 3] {
+    let (first, first_top) = the_minimum_and_the_view_s_top(app);
+    driver::click_the_button(app, "Esquisse");
+    let (sketch, sketch_top) = the_minimum_and_the_view_s_top(app);
+    driver::click_the_button(app, "Export");
+    let (export, export_top) = the_minimum_and_the_view_s_top(app);
+    [
+        ("Extrusion", first, first_top),
+        ("Esquisse", sketch, sketch_top),
+        ("Export", export, export_top),
+    ]
+}
 
+/// That the sketch's ribbon is the tallest on this window, a row taller than
+/// the extrusion's: the fixture's own premise.
+fn the_sketch_s_ribbon_is_the_tallest(tabs: &[(&str, f32, f32)]) {
+    let top = |name: &str| {
+        tabs.iter()
+            .find(|(tab, _, _)| *tab == name)
+            .map(|(_, _, top)| *top)
+            .unwrap_or_else(|| panic!("no tab « {name} » measured"))
+    };
     assert!(
-        under_two_rows - under_one_row > ROW / 2.0,
-        "the fixture wants the sketch's tab a row taller than the extrusion's on a \
-         {:?} window; the view begins at {under_two_rows} and {under_one_row}",
+        top("Esquisse") - top("Extrusion") > ROW / 2.0
+            && tabs
+                .iter()
+                .all(|(_, _, other)| *other <= top("Esquisse") + TOLERANCE),
+        "the fixture wants the sketch's ribbon the tallest on a {:?} window, a row taller \
+         than the extrusion's; the view begins at {tabs:?}",
         driver::SCREEN,
     );
+}
+
+/// Every tab whose minimum asked is not the sketch's, the tallest ribbon's.
+fn not_the_tallest_tab_s(tabs: &[(&'static str, f32, f32)]) -> Vec<String> {
+    let tallest = tabs
+        .iter()
+        .find(|(tab, _, _)| *tab == "Esquisse")
+        .map(|(_, minimum, _)| *minimum)
+        .unwrap_or_else(|| panic!("no minimum measured on « Esquisse »"));
+    tabs.iter()
+        .filter(|(_, minimum, _)| (minimum - tallest).abs() > TOLERANCE)
+        .map(|(tab, minimum, top)| {
+            format!("« {tab} »: {minimum}, the view beginning at {top}, against {tallest}")
+        })
+        .collect()
+}
+
+#[test]
+fn on_every_tab_the_minimum_asked_is_the_one_of_the_tab_whose_ribbon_is_tallest() {
+    let mut app =
+        a_part_opened_on_the_extrusion_s_tab("on_every_tab_the_minimum_asked_is_the_tallest");
+
+    let tabs = on_every_tab(&mut app);
+
+    the_sketch_s_ribbon_is_the_tallest(&tabs);
+    let apart = not_the_tallest_tab_s(&tabs);
     assert!(
-        (on_the_sketch_tab - on_the_extrusion_tab - (under_two_rows - under_one_row)).abs()
-            <= TOLERANCE,
-        "the ribbon is {} points taller on the sketch's tab, and the minimum asked went from \
-         {on_the_sketch_tab} there to {on_the_extrusion_tab} on the extrusion's",
-        under_two_rows - under_one_row,
+        apart.is_empty(),
+        "on a {:?} window, the part opened on « Extrusion », the minimum asked is not the one of \
+         « Esquisse », whose ribbon is the tallest:\n  {}",
+        driver::SCREEN,
+        apart.join("\n  "),
     );
+}
+
+#[test]
+fn with_the_part_panel_closed_the_minimum_asked_is_the_tallest_tab_s_on_every_tab() {
+    let mut app = a_part_opened_on_the_extrusion_s_tab(
+        "with_the_part_panel_closed_the_minimum_is_the_tallest",
+    );
+    driver::click_the_button(&mut app, "Pièce");
     assert!(
-        (back_on_the_sketch_tab - on_the_sketch_tab).abs() <= TOLERANCE,
-        "back on the sketch's tab the minimum asked is {back_on_the_sketch_tab}, not the \
-         {on_the_sketch_tab} it was",
+        the_part_panel_s_title(&app).is_none(),
+        "the fixture wants the Part panel closed: {:?}",
+        driver::on_screen(&app),
+    );
+
+    let tabs = on_every_tab(&mut app);
+
+    the_sketch_s_ribbon_is_the_tallest(&tabs);
+    let apart = not_the_tallest_tab_s(&tabs);
+    assert!(
+        apart.is_empty(),
+        "on a {:?} window, the part opened on « Extrusion » and its panel closed, the minimum \
+         asked is not the one of « Esquisse », whose ribbon is the tallest:\n  {}",
+        driver::SCREEN,
+        apart.join("\n  "),
     );
 }
 
