@@ -19,7 +19,7 @@ use crate::wording::part_tree::{self as said, Problem, Rubric};
 
 mod history;
 mod reader;
-pub use history::{FEWEST_LINES, compact_confirm};
+pub use history::compact_confirm;
 
 /// What the tree reads to mark its rows, and the one thing asked of it.
 struct Asked<'a> {

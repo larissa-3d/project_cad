@@ -4,7 +4,6 @@
 use cao_part::{PartDocument, VariableId};
 
 use crate::lang::Catalogue;
-use crate::screens::part_tree::view::FEWEST_LINES;
 use crate::screens::variables::state::{Problem, Row, VariablesPanel};
 use crate::screens::variables::{NAMING, offered};
 use crate::ui::dropping::grip;
@@ -32,8 +31,11 @@ const NAME_WIDTH: f32 = 40.0;
 const FORMULA_WIDTH: f32 = 50.0;
 const VALUE_WIDTH: f32 = 40.0;
 
+/// How few rows the list shows before it scrolls.
+const FEWEST_ROWS: f32 = 2.0;
+
 /// The panel, chrome and all, beside the history, and how far down the window
-/// it reaches at the least, its rows scrolled to [`FEWEST_LINES`].
+/// it reaches at the least, its rows scrolled to [`FEWEST_ROWS`].
 pub fn panel(
     ui: &mut egui::Ui,
     panel: &mut VariablesPanel,
@@ -95,7 +97,7 @@ fn show(
         left: 0,
         ..ui.spacing().scroll.content_margin
     };
-    let fewest = FEWEST_LINES * (foot + between) + margin.sum().y;
+    let fewest = FEWEST_ROWS * (foot + between) + margin.sum().y;
     let room = (ui.available_height() - foot - between).max(fewest);
     let above = ui.cursor().top();
     egui::ScrollArea::vertical()

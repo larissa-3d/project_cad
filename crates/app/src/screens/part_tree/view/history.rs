@@ -19,7 +19,7 @@ use crate::ui::tree_row::{self, TreeRow, tree_row};
 /// How many lines the unfolded list shows before it scrolls, and how few
 /// while they fit in the panel: for those, the tree gives way.
 const MOST_LINES: f32 = 6.0;
-pub const FEWEST_LINES: f32 = 2.0;
+const FEWEST_LINES: f32 = 2.0;
 
 /// What of the Part panel's height the tree above keeps, its title and three
 /// rows: the history's list scrolls more rather than take it.
