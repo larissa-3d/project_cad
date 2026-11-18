@@ -49,6 +49,7 @@ pub(crate) fn beside_the_part(
         screens::part_tree::state::hover(doc, editor, viewport, hovered);
         changed |= carry_out(action, doc, editor, extrusion, blend, viewport, ribbon);
     } else {
+        screens::part_tree::view::closed(ui);
         screens::part_tree::state::hover(doc, editor, viewport, None);
         viewport.light_out();
     }

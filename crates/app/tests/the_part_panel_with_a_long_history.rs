@@ -50,6 +50,24 @@
 //!   holds it in pixels of the zoom it was asked at —
 //!   `a_change_of_zoom_asks_the_window_for_its_minimum_again`
 //!
+//! Closes #1010.
+//! - With the Part panel closed, the minimum height the window asks for is
+//!   that of what stays on screen — title bar and ribbon — with nothing for
+//!   the Part panel —
+//!   `with_the_part_panel_closed_the_window_asks_for_the_title_bar_and_the_ribbon_and_no_more`:
+//!   read as a minimum shorter than the one asked with the panel open, at
+//!   which every labelled widget standing above the view still stands whole
+//!   in the window, while a row less pushes some of them off its bottom
+//! - With the Part panel reopened, the window asks again for the panel's
+//!   minimum, as with the panel never closed —
+//!   `reopened_the_part_panel_asks_the_window_for_its_minimum_again_as_if_never_closed`
+//! - The least height recorded for `window.json` is the last one asked: quit
+//!   with the panel closed, the small one —
+//!   `with_the_part_panel_closed_the_last_minimum_asked_stays_the_small_one_until_quit`;
+//!   the keeper writing down the last height asked is
+//!   `the_last_least_height_asked_while_the_application_ran_is_written_with_the_place`,
+//!   in `cao_prefs`, as the driver never writes `window.json`
+//!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
 //! then it must stand wholly inside the window and the panel, inside what the
@@ -958,5 +976,99 @@ fn a_change_of_zoom_asks_the_window_for_its_minimum_again() {
         after > before,
         "zoomed from 100 % to 125 %, the application asked no minimum again: the window \
          still holds the {at_100:?} points asked at 100 %, in pixels of that zoom",
+    );
+}
+
+/// Every labelled widget standing wholly above the view: the title bar's and
+/// the ribbon's.
+fn above_the_view(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    let top = driver::canvas(app).top();
+    labelled(app)
+        .into_iter()
+        .filter(|(_, rect)| rect.height() > 0.0 && rect.bottom() <= top + TOLERANCE)
+        .collect()
+}
+
+fn labelled(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    app.get_all_by(|_| true)
+        .filter_map(|node| {
+            let read = node.accesskit_node();
+            read.label()
+                .or_else(|| read.value())
+                .map(|label| (label, node.rect()))
+        })
+        .collect()
+}
+
+/// What of `wanted` the window does not hold whole, on a window this high.
+fn what_the_window_misses(
+    app: &mut driver::App,
+    height: f32,
+    wanted: &[(String, egui::Rect)],
+) -> Vec<String> {
+    app.set_size(egui::vec2(driver::SCREEN.x, height));
+    app.run();
+    let window = app.ctx.content_rect();
+    let held = labelled(app);
+    let mut missed = Vec::new();
+    for (label, _) in wanted {
+        let wanted_so_many = wanted.iter().filter(|(one, _)| one == label).count();
+        let whole = held
+            .iter()
+            .filter(|(one, rect)| one == label && window.contains_rect(*rect))
+            .count();
+        if whole < wanted_so_many && !missed.iter().any(|seen: &String| seen.contains(label)) {
+            missed.push(format!(
+                "« {label} »: {whole} of {wanted_so_many} whole in {window:?}"
+            ));
+        }
+    }
+    missed
+}
+
+#[test]
+fn with_the_part_panel_closed_the_window_asks_for_the_title_bar_and_the_ribbon_and_no_more() {
+    let mut app = driver::open_on(
+        "with_the_part_panel_closed_the_window_asks_for_the_ribbon",
+        driver::SCREEN,
+    );
+    driver::create_a_part(&mut app, "Bloc");
+    let open = driver::the_minimum_size_asked(&app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen, its panel open"))
+        .y;
+
+    driver::click_the_button(&mut app, "Pièce");
+    assert!(
+        the_part_panel_s_title(&app).is_none(),
+        "the fixture wants the Part panel closed: {:?}",
+        driver::on_screen(&app),
+    );
+    let closed = driver::the_minimum_size_asked(&app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen"))
+        .y;
+    let what_stays = above_the_view(&app);
+    assert!(
+        what_stays.iter().any(|(label, _)| label == "Pièce"),
+        "the fixture wants the ribbon's « Pièce » above the view: {what_stays:?}",
+    );
+    let at_the_minimum = what_the_window_misses(&mut app, closed, &what_stays);
+    let a_row_less = what_the_window_misses(&mut app, closed - ROW, &what_stays);
+
+    assert!(
+        closed < open,
+        "the Part panel closed, the window is still asked for {closed} points, as with the \
+         panel open ({open}): it is held tall for a panel no longer on screen",
+    );
+    assert!(
+        at_the_minimum.is_empty(),
+        "on a window as short as the minimum asked with the Part panel closed, {closed}, the \
+         title bar and the ribbon lose:\n  {}",
+        at_the_minimum.join("\n  "),
+    );
+    assert!(
+        !a_row_less.is_empty(),
+        "on a window a row shorter than the minimum asked with the Part panel closed, {closed}, \
+         the title bar and the ribbon still stand whole: the window is held taller than what \
+         stays on screen",
     );
 }

@@ -68,16 +68,26 @@ pub fn panel(
             show(ui, &mut asked, lang);
             room
         });
-    hold_the_window(ui.ctx(), shown.inner);
+    let ctx = ui.ctx();
+    hold_the_window(
+        ctx,
+        ctx.content_rect().height() - shown.inner + history::least_height(ctx),
+    );
     (asked.action, asked.hovering)
 }
 
-/// Asks the window to stand no shorter than what is around the panel and what
-/// it holds at the least, `room` being what the panel was given; asked again
-/// only when that or the zoom changes, as the platform resizes the window on
-/// each ask and holds it in pixels of the zoom it was asked at.
-fn hold_the_window(ctx: &egui::Context, room: f32) {
-    let least = ctx.content_rect().height() - room + history::least_height(ctx);
+/// Asks the window to stand no shorter than what is around the panel's place,
+/// the panel closed: `ui` is where it would stand.
+pub fn closed(ui: &egui::Ui) {
+    let ctx = ui.ctx();
+    let room = ui.available_rect_before_wrap().height();
+    hold_the_window(ctx, ctx.content_rect().height() - room);
+}
+
+/// Asks the window to stand no shorter than `least`; asked again only when
+/// that or the zoom changes, as the platform resizes the window on each ask
+/// and holds it in pixels of the zoom it was asked at.
+fn hold_the_window(ctx: &egui::Context, least: f32) {
     let zoom = ctx.pixels_per_point();
     let id = egui::Id::new("part_tree_least_window_height");
     let asked = ctx.data(|data| data.get_temp::<(f32, f32)>(id));
