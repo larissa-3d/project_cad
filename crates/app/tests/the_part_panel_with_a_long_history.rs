@@ -135,6 +135,9 @@
 //!   read as the add row as far under the one variable as under the last of
 //!   three, within half a row. It held before the fix too: the issue's
 //!   one-row gap was arithmetic, and the scrolled area shrinks to its one row
+//! - found in review: one variable reserves one row in the least height asked,
+//!   two reserve two and more reserve no more —
+//!   `the_least_height_asked_grows_by_a_row_from_one_variable_to_two_then_stops`
 //!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
@@ -1973,5 +1976,30 @@ fn with_one_variable_the_add_row_stands_right_under_its_row() {
          where with three it begins {under_three} under the last, « v3 »: a gap of {} stands \
          between the variable's row and the add row, a variable's row being {row}",
         under_one - under_three,
+    );
+}
+
+#[test]
+fn the_least_height_asked_grows_by_a_row_from_one_variable_to_two_then_stops() {
+    let mut app = a_part_with_the_variables_open("the_least_height_grows_from_one_to_two");
+    add_variables(&mut app, 1..=1);
+    let for_one = the_minimum_height_asked(&app);
+    add_variables(&mut app, 2..=2);
+    let for_two = the_minimum_height_asked(&app);
+    add_variables(&mut app, 3..=3);
+    let for_three = the_minimum_height_asked(&app);
+    let row = the_top_of_the_variable(&app, "v2") - the_top_of_the_variable(&app, "v1");
+
+    assert!(
+        (for_two - for_one - row).abs() < row / 2.0,
+        "the Part panel closed and the Variables panel open, the window is asked for {for_one} \
+         points under one variable and {for_two} under two, {} apart, where a variable's row is \
+         {row}: one variable does not hold the window one row shorter than two",
+        for_two - for_one,
+    );
+    assert!(
+        (for_three - for_two).abs() <= TOLERANCE,
+        "the window is asked for {for_two} points under two variables and {for_three} under \
+         three: past two, the rows are to scroll rather than hold the window taller",
     );
 }
