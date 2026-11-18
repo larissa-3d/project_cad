@@ -76,15 +76,13 @@ pub(super) fn least_height(ctx: &egui::Context) -> f32 {
     let style = ctx.global_style();
     let spacing = &style.spacing;
     let separator = style.separator_style(&Default::default(), Default::default());
-    THE_TREE_KEEPS
-        + frame().total_margin().sum().y
-        + reader_card::tallest(ctx)
-        + separator.spacing
-        + 2.0 * spacing.item_spacing.y
-        + tree_row::HEIGHT
+    let history = tree_row::HEIGHT
         + FEWEST_LINES * history_line::HEIGHT
         + spacing.scroll.content_margin.topf()
-        + link(spacing)
+        + link(spacing);
+    let stacked = [reader_card::tallest(ctx), separator.spacing, history];
+    let between = (stacked.len() - 1) as f32 * spacing.item_spacing.y;
+    THE_TREE_KEEPS + frame().total_margin().sum().y + stacked.iter().sum::<f32>() + between
 }
 
 fn frame() -> egui::Frame {

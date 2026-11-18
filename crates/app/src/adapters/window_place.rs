@@ -132,7 +132,7 @@ impl egui::Plugin for LeastHeightAsked {
         "least_height_asked"
     }
 
-    fn output_hook(&mut self, _ctx: &egui::Context, output: &mut egui::FullOutput) {
+    fn output_hook(&mut self, ctx: &egui::Context, output: &mut egui::FullOutput) {
         let asked = output
             .viewport_output
             .get(&egui::ViewportId::ROOT)
@@ -140,7 +140,7 @@ impl egui::Plugin for LeastHeightAsked {
             .flat_map(|root| &root.commands)
             .rev()
             .find_map(|command| match command {
-                egui::ViewportCommand::MinInnerSize(size) => Some(size.y),
+                egui::ViewportCommand::MinInnerSize(size) => Some(size.y * ctx.zoom_factor()),
                 _ => None,
             });
         if let Some(asked) = asked

@@ -13,6 +13,16 @@
 //!   `a_retina_screen_left_of_the_main_one_ends_where_the_main_one_begins`
 //!   and `on_a_pixels_desktop_a_screen_stands_as_reported_with_its_own_scale`
 //!
+//! Closes #998.
+//! - found in review: the least height the application asks, in points, is
+//!   written in the desktop's units, never short of what was asked — as many
+//!   points on macOS, `on_a_points_desktop_a_least_height_is_as_many_points_rounded_up`,
+//!   pixels at the window's scale elsewhere,
+//!   `on_a_pixels_desktop_a_least_height_is_counted_in_pixels_at_the_window_s_scale`;
+//!   and a zoomed-in application hands the keeper its least height times the
+//!   zoom, as egui-winit sets it on the window —
+//!   `a_zoomed_in_application_hands_the_keeper_its_least_height_times_the_zoom`
+//!
 //! What the windowing library reports is in physical pixels, each value
 //! counted at the scale of the screen or the window it was read from. On
 //! macOS those do not make one space: a Retina main screen and a scale-1
@@ -204,5 +214,51 @@ fn a_window_on_a_pixels_desktop_is_read_as_reported() {
             width: 2560,
             height: 1600,
         },
+    );
+}
+
+/// How far a height taken off a frame may be from the one expected: a float
+/// in points, multiplied once.
+const WITHIN_A_HAIR: f32 = 1e-3;
+
+#[test]
+fn on_a_points_desktop_a_least_height_is_as_many_points_rounded_up() {
+    assert_eq!(Desktop::Points.length(543.0, 2.0), 543);
+    assert_eq!(
+        Desktop::Points.length(542.25, 2.0),
+        543,
+        "a window held a quarter point short of what was asked cuts the Part panel short",
+    );
+}
+
+#[test]
+fn on_a_pixels_desktop_a_least_height_is_counted_in_pixels_at_the_window_s_scale() {
+    assert_eq!(Desktop::Pixels.length(543.0, 1.0), 543);
+    assert_eq!(Desktop::Pixels.length(543.0, 2.0), 1086);
+    assert_eq!(
+        Desktop::Pixels.length(543.0, 1.25),
+        679,
+        "678.75 pixels round up, never short of what was asked",
+    );
+}
+
+#[test]
+fn a_zoomed_in_application_hands_the_keeper_its_least_height_times_the_zoom() {
+    let ctx = egui::Context::default();
+    ctx.set_zoom_factor(1.5);
+    let asked = LeastHeightAsked::default();
+    ctx.add_plugin(asked.clone());
+
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+        ui.ctx()
+            .send_viewport_cmd(egui::ViewportCommand::MinInnerSize(egui::vec2(0.0, 543.0)));
+    });
+    output.textures_delta.clear();
+    let handed = asked.take();
+
+    assert!(
+        handed.is_some_and(|height| (height - 543.0 * 1.5).abs() < WITHIN_A_HAIR),
+        "the application zoomed to 150 % asked 543 points, which egui-winit sets on the window \
+         as 814.5 points of the screen; the keeper was handed {handed:?}",
     );
 }

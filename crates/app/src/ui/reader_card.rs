@@ -28,6 +28,8 @@ const END: f32 = 18.0;
 const LINE_ROWS: usize = 2;
 /// The thickness of the row's scroll bar.
 const BAR: f32 = 3.0;
+/// What stands between the row, the line and the legend.
+const BETWEEN: f32 = SPACING_S;
 
 /// What the card shows.
 pub struct ReaderCard<'a> {
@@ -56,7 +58,7 @@ pub enum Asked {
 pub fn reader_card(ui: &mut Ui, card: &ReaderCard<'_>) -> Asked {
     frame()
         .show(ui, |ui| {
-            ui.spacing_mut().item_spacing.y = SPACING_S;
+            ui.spacing_mut().item_spacing.y = BETWEEN;
             let asked = row(ui, card);
             line(ui, card.line);
             legend(ui, card.legend);
@@ -84,7 +86,9 @@ pub fn tallest(ctx: &Context) -> f32 {
         .y
         .max(DOT)
         .max(row_height(TYPOGRAPHY_SIZES_DETAIL, TextStyle::Body));
-    frame().total_margin().sum().y + row + line + legend + 2.0 * SPACING_S
+    let stacked = [row, line, legend];
+    let between = (stacked.len() - 1) as f32 * BETWEEN;
+    frame().total_margin().sum().y + stacked.iter().sum::<f32>() + between
 }
 
 fn frame() -> Frame {

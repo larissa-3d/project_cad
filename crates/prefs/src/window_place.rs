@@ -47,25 +47,43 @@ pub struct Monitor {
 /// default size centred on the main monitor, the first of the slice. With no
 /// monitor reported at all, the remembered place stands, or the default size
 /// at the origin, and the system places the window. Whichever it is, it keeps
-/// the remembered least height, and is no shorter than it.
+/// the remembered least height, held to the height of its screen, and is no
+/// shorter than that; a window raised to it moves up rather than run off the
+/// screen's bottom.
 pub fn where_the_window_opens(
     remembered: Option<WindowPlace>,
     reopen_at_last_size: bool,
     monitors: &[Monitor],
 ) -> WindowPlace {
-    let fits = |place: WindowPlace| {
-        monitors.is_empty()
-            || monitors
-                .iter()
-                .any(|monitor| monitor.holds_the_centre_of(place))
+    let holding = |place: WindowPlace| {
+        monitors
+            .iter()
+            .find(|monitor| monitor.holds_the_centre_of(place))
     };
-    let least_height = remembered.and_then(|place| place.least_height);
-    let place = match remembered {
-        Some(place) if reopen_at_last_size && fits(place) => place,
-        _ => maximised_over_the_default_size(monitors.first()),
+    let (place, screen) = match remembered {
+        Some(place) if reopen_at_last_size && (monitors.is_empty() || holding(place).is_some()) => {
+            (place, holding(place))
+        }
+        _ => (
+            maximised_over_the_default_size(monitors.first()),
+            monitors.first(),
+        ),
+    };
+    let on_the_screen = |height: u32| screen.map_or(height, |screen| height.min(screen.height));
+    let least_height = remembered
+        .and_then(|place| place.least_height)
+        .map(on_the_screen);
+    let height = place.height.max(least_height.unwrap_or(0));
+    let y = match screen {
+        Some(screen) if height != place.height => {
+            let bottom = i64::from(screen.y) + i64::from(screen.height) - i64::from(height);
+            i64::from(place.y).min(bottom) as i32
+        }
+        _ => place.y,
     };
     WindowPlace {
-        height: place.height.max(least_height.unwrap_or(0)),
+        y,
+        height,
         least_height,
         ..place
     }

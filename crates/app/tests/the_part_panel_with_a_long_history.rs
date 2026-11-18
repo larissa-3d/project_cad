@@ -42,6 +42,13 @@
 //!   three rows' worth of the tree, the card, the header, two whole lines and
 //!   the link, nothing drawn over anything, while a row less loses some of
 //!   it. That no number is typed twice is read at review
+//! - found in review: the minimum follows the ribbon's tab during the session,
+//!   taller under the sketch's tab whose groups wrap on two rows than under the
+//!   extrusion's on one, by as much as the ribbon is —
+//!   `the_minimum_asked_follows_the_ribbon_s_tab_by_as_much_as_the_ribbon_grows`
+//! - found in review: a change of zoom asks the minimum again, as the window
+//!   holds it in pixels of the zoom it was asked at —
+//!   `a_change_of_zoom_asks_the_window_for_its_minimum_again`
 //!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
@@ -159,13 +166,28 @@ fn on_the_frames_window(app: &mut driver::App) {
     app.run();
 }
 
+/// Whether a rect stands beside the view on its left, where the Part panel is.
+fn left_of_the_view(app: &driver::App, rect: egui::Rect) -> bool {
+    driver::stands_beside_the_view(app, rect) && rect.center().x < app.ctx.content_rect().center().x
+}
+
+/// The Part panel's own « Pièce », left of the view: the bar along the top of
+/// the window reads « Pièce » too.
+fn the_part_panel_s_title(app: &driver::App) -> Option<egui::Rect> {
+    app.get_all_by(|_| true)
+        .filter(|node| {
+            let read = node.accesskit_node();
+            read.label().or_else(|| read.value()).as_deref() == Some("Pièce")
+        })
+        .map(|node| node.rect())
+        .find(|rect| left_of_the_view(app, *rect))
+}
+
 /// Whether a node stands in the Part panel: beside the view on its left, at or
 /// under the panel's title.
 fn in_the_part_panel(app: &driver::App, rect: egui::Rect) -> bool {
-    let title = driver::where_it_reads(app, "Pièce").expect("the Part panel reads « Pièce »");
-    driver::stands_beside_the_view(app, rect)
-        && rect.center().x < app.ctx.content_rect().center().x
-        && rect.top() >= title.top() - TOLERANCE
+    let title = the_part_panel_s_title(app).expect("the Part panel reads « Pièce »");
+    left_of_the_view(app, rect) && rect.top() >= title.top() - TOLERANCE
 }
 
 fn is_the_history_s(label: &str) -> bool {
@@ -258,7 +280,7 @@ fn the_tree_s_widgets(
         .filter_map(|node| Some((node.accesskit_node().value()?, node.rect())))
         .filter(|(text, _)| THE_TREE_S_HEADINGS.contains(&text.as_str()))
         .filter_map(|(text, rect)| match text.as_str() {
-            "Pièce" => Some((text, rect)),
+            "Pièce" => left_of_the_view(app, rect).then_some((text, rect)),
             _ => Some((text, shown(rect, window)?)),
         });
     let buttons = app
@@ -791,7 +813,7 @@ fn on_a_tall_window_six_lines_of_history_show_whole() {
 fn what_the_part_panel_misses(app: &driver::App) -> Vec<String> {
     let window = app.ctx.content_rect();
     let mut missed = Vec::new();
-    match driver::where_it_reads(app, "Pièce") {
+    match the_part_panel_s_title(app) {
         Some(title) if window.contains_rect(title) => {}
         title => missed.push(format!("the title « Pièce » at {title:?}")),
     }
@@ -857,5 +879,84 @@ fn the_window_asks_for_the_height_the_part_panel_needs_and_no_more() {
         "on a window a row shorter than the minimum asked, {minimum:?}, the Part panel still \
          holds its title, three rows of the tree, the card, the header, two lines and the \
          link: the window is held taller than it needs",
+    );
+}
+
+/// The minimum last asked, and where the view begins under the ribbon: the
+/// ribbon's groups stand beside the Part panel, over the view, so the panel's
+/// own top does not move with them.
+fn the_minimum_and_the_view_s_top(app: &driver::App) -> (f32, f32) {
+    let minimum = driver::the_minimum_size_asked(app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen"))
+        .y;
+    (minimum, driver::canvas(app).top())
+}
+
+#[test]
+fn the_minimum_asked_follows_the_ribbon_s_tab_by_as_much_as_the_ribbon_grows() {
+    let mut app = driver::open_on("the_minimum_asked_follows_the_ribbon_s_tab", driver::SCREEN);
+    driver::create_a_part(&mut app, "Bloc");
+    let (on_the_sketch_tab, under_two_rows) = the_minimum_and_the_view_s_top(&app);
+
+    driver::click_the_button(&mut app, "Extrusion");
+    let (on_the_extrusion_tab, under_one_row) = the_minimum_and_the_view_s_top(&app);
+    driver::click_the_button(&mut app, "Esquisse");
+    let (back_on_the_sketch_tab, _) = the_minimum_and_the_view_s_top(&app);
+
+    assert!(
+        under_two_rows - under_one_row > ROW / 2.0,
+        "the fixture wants the sketch's tab a row taller than the extrusion's on a \
+         {:?} window; the view begins at {under_two_rows} and {under_one_row}",
+        driver::SCREEN,
+    );
+    assert!(
+        (on_the_sketch_tab - on_the_extrusion_tab - (under_two_rows - under_one_row)).abs()
+            <= TOLERANCE,
+        "the ribbon is {} points taller on the sketch's tab, and the minimum asked went from \
+         {on_the_sketch_tab} there to {on_the_extrusion_tab} on the extrusion's",
+        under_two_rows - under_one_row,
+    );
+    assert!(
+        (back_on_the_sketch_tab - on_the_sketch_tab).abs() <= TOLERANCE,
+        "back on the sketch's tab the minimum asked is {back_on_the_sketch_tab}, not the \
+         {on_the_sketch_tab} it was",
+    );
+}
+
+/// A window wide enough for the ribbon to lay every group on one line at 100 %
+/// and at 125 % alike: zoomed in, the window holds fewer points, and a ribbon
+/// that wrapped would change the minimum in points by itself.
+const WIDE_ENOUGH_AT_EITHER_ZOOM: egui::Vec2 = egui::vec2(2000.0, 1000.0);
+
+#[test]
+fn a_change_of_zoom_asks_the_window_for_its_minimum_again() {
+    let mut app = driver::open_on(
+        "a_change_of_zoom_asks_the_minimum_again",
+        WIDE_ENOUGH_AT_EITHER_ZOOM,
+    );
+    driver::create_a_part(&mut app, "Bloc");
+    let before = driver::how_many_minimums_asked(&app);
+    let at_100 = driver::the_minimum_size_asked(&app);
+
+    app.ctx.set_zoom_factor(1.25);
+    app.run();
+    let after = driver::how_many_minimums_asked(&app);
+    let at_125 = driver::the_minimum_size_asked(&app);
+
+    assert!(
+        before > 0,
+        "the fixture wants a minimum asked on the Part screen"
+    );
+    assert!(
+        at_100
+            .zip(at_125)
+            .is_none_or(|(one, other)| (one.y - other.y).abs() <= TOLERANCE),
+        "the fixture wants the same minimum in points at either zoom, the ribbon on one line; \
+         it went from {at_100:?} to {at_125:?}",
+    );
+    assert!(
+        after > before,
+        "zoomed from 100 % to 125 %, the application asked no minimum again: the window \
+         still holds the {at_100:?} points asked at 100 %, in pixels of that zoom",
     );
 }

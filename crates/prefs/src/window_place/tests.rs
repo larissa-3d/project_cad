@@ -50,6 +50,12 @@
 //!   reads back, `a_place_written_on_close_reads_back_as_it_was`, and a place
 //!   written before it was kept still does,
 //!   `a_place_written_before_the_least_height_was_kept_reads_back_with_none`
+//! - found in review: a least height taller than the screen opens the window
+//!   as tall as the screen and on it, the least height itself capped there,
+//!   since the window is held to it —
+//!   `a_least_height_taller_than_the_screen_opens_the_window_as_tall_as_the_screen_and_on_it`;
+//!   one the screen holds raises the window up rather than off its bottom —
+//!   `a_window_raised_to_its_least_height_moves_up_rather_than_run_off_its_screen_s_bottom`
 //!
 //! Positions and sizes are in desktop units, the ones the system lays its
 //! screens out in — points on macOS, pixels elsewhere: the place is the
@@ -774,5 +780,79 @@ fn a_place_written_before_the_least_height_was_kept_reads_back_with_none() {
             least_height: None,
         }),
         "a place written before #998 opens as it did",
+    );
+}
+
+/// A least height asked on a taller screen than the one the window reopens on.
+const A_LEAST_HEIGHT_TALLER_THAN_FULL_HD: u32 = 1200;
+
+#[test]
+fn a_least_height_taller_than_the_screen_opens_the_window_as_tall_as_the_screen_and_on_it() {
+    let closed = WindowPlace {
+        x: 200,
+        y: 120,
+        width: 1000,
+        height: 700,
+        maximised: false,
+        least_height: Some(A_LEAST_HEIGHT_TALLER_THAN_FULL_HD),
+    };
+    let screen = FULL_HD_AT_SCALE_ONE.height;
+
+    let reopened = where_the_window_opens(
+        Some(closed),
+        REOPENING_AT_THE_LAST_SIZE,
+        &[FULL_HD_AT_SCALE_ONE],
+    );
+    let maximised = where_the_window_opens(Some(closed), ALWAYS_MAXIMISED, &[FULL_HD_AT_SCALE_ONE]);
+
+    assert_eq!(
+        reopened,
+        WindowPlace {
+            y: 0,
+            height: screen,
+            least_height: Some(screen),
+            ..closed
+        },
+        "a least height of {A_LEAST_HEIGHT_TALLER_THAN_FULL_HD} on a screen {screen} high: \
+         the window is held no taller than the screen, and stands on it",
+    );
+    assert_eq!(
+        maximised,
+        WindowPlace {
+            y: 0,
+            height: screen,
+            least_height: Some(screen),
+            ..THE_DEFAULT_CENTRED_ON_FULL_HD_AND_MAXIMISED
+        },
+        "the rect a maximised window goes back to is held to the screen the same way",
+    );
+}
+
+#[test]
+fn a_window_raised_to_its_least_height_moves_up_rather_than_run_off_its_screen_s_bottom() {
+    let closed = WindowPlace {
+        x: 200,
+        y: 400,
+        width: 1000,
+        height: 500,
+        maximised: false,
+        least_height: Some(900),
+    };
+
+    let opened = where_the_window_opens(
+        Some(closed),
+        REOPENING_AT_THE_LAST_SIZE,
+        &[FULL_HD_AT_SCALE_ONE],
+    );
+
+    assert_eq!(
+        opened,
+        WindowPlace {
+            y: 180,
+            height: 900,
+            ..closed
+        },
+        "raised from 500 to 900 at 400 from the top, the window would end at 1300 on a screen \
+         1080 high; it moves up to end on the screen's bottom",
     );
 }
