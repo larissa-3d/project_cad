@@ -98,10 +98,12 @@ already chosen, otherwise trying all three would be tedious.
 ### The colours
 
 Everything the viewport draws: the three axes and their width, the two levels
-of grid, the three states of a sketch (free, constrained, another sketch), the
-dimensions and the ones that only report, what a rule holds in place, the marks
-of those rules, the tint of the areas, the matter, the hover, and the two
-extrusion colours. No colour of the viewport is hard-coded any more: a colour
+of grid, the three states of a sketch (free, constrained, another sketch), its
+construction geometry, the tool in progress, the dimensions and the ones that
+only report, what a rule holds in place, the marks of those rules and the fill
+and border of their boxes, the tint of the areas, the matter, the hover, and
+the two extrusion colours. The « Par défaut » profile takes the redesign's: free
+blue, settled off-white, construction grey, the tool in progress amber. No colour of the viewport is hard-coded any more: a colour
 that lives in a constant somewhere is a colour nobody can change.
 
 Colours are stored in sRGB — the space of colour pickers — and converted once,

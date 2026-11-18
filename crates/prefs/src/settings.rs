@@ -22,7 +22,10 @@ use crate::toolbar::ToolbarLayout;
 /// not have.
 ///
 /// 4 regrouped the default ribbon: a file written by 3 would keep the old one.
-pub const SETTINGS_VERSION: u32 = 4;
+///
+/// 5 drew the sketch in the redesign's colours: a file written by 4 would keep
+/// the yellow and the green.
+pub const SETTINGS_VERSION: u32 = 5;
 
 /// Everything the user can set. One value, so a profile is one thing to save,
 /// to reset, and to hand to somebody else.

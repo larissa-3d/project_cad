@@ -33,6 +33,39 @@
 //! Neither is set by default: the colour a level is seen in by default is the
 //! chrome's, a token of `cao_app`, which this crate does not know. What the
 //! theme holds is the colour a user chose over it.
+//!
+//! Closes #742 — the whole transcription is in
+//! `crates/app/src/screens/viewport/render/drawing/tests.rs`; these bullets are
+//! the colours the « Par défaut » profile carries.
+//! - The « Par défaut » profile takes these colours: settled off-white
+//!   (`trait_regle`, `sketch.settled_stroke` since #749), free blue
+//!   (`trait_libre`, `sketch.free_stroke`), areas tinted a light blue, strokes
+//!   2 px — `the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours`;
+//!   construction grey and the tool in progress amber, two colours the theme
+//!   did not have — `the_default_profile_carries_a_construction_grey_and_a_tool_amber`
+//! - decided in the issue: against the sketch background, settled 15.1:1, free
+//!   8.6:1, construction 6.2:1, tool 9.1:1; settled against free 1.75:1 —
+//!   `each_stroke_stands_off_the_sketch_background_by_the_contrast_decided`
+//! - Grid: in the redesign's colours; axes X red, Y green, Z blue — true since
+//!   #724, and held by `the_default_grid_and_axes_are_the_redesign_s`
+//! - decided by Tom for the whole redesign: a profile saved before this change
+//!   is overwritten or ignored, never migrated — read here as: a theme saved
+//!   before the two new colours existed still reads, each at its default, as
+//!   every colour added to the theme before them does —
+//!   `a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads`
+//! - The « Par défaut » profile takes these colours, the dimensions' too: the
+//!   redesign's `sketch.dimension`, which the value is written in as well as
+//!   the lines — `the_default_profile_draws_dimensions_in_the_redesign_s_colour`;
+//!   the boxes of the constraint marks filled and bordered in its
+//!   `constraint_mark_background` and `constraint_mark_border`, two colours the
+//!   theme did not have — `the_default_profile_boxes_the_rule_marks_in_the_redesign_s_colours`,
+//!   and a theme saved before them still reads, each at its default —
+//!   `a_theme_saved_before_the_rule_marks_box_colours_existed_still_reads`
+//!
+//! The new colours are read by the names a profile writes them under,
+//! `sketch_construction`, `tool_in_progress`, `rule_background` and
+//! `rule_border`: a profile is a file people hand to one another, and those
+//! names are what it carries.
 
 use super::*;
 
@@ -241,33 +274,22 @@ fn the_default_grid_and_axes_are_the_redesign_s() {
 }
 
 /// What the redesign leaves alone is pinned as it stood before it: the sketch
-/// strokes are #742's to change and the extrusion's colours #740's, and an
-/// edit to any of them should show here rather than slip through with this
-/// issue.
+/// strokes and areas and the dimensions' colour moved with #742 and are held
+/// below; the extrusion's colours are #740's. A read-only dimension's colour
+/// stays: the redesign names none, and the one it had stands apart from the
+/// redesign's dimension colour, which
+/// `a_read_only_dimension_still_reads_apart_from_a_driving_one` holds on a
+/// frame. An edit to any of them should show here rather than slip through
+/// with another issue.
 #[test]
 fn every_colour_the_redesign_does_not_name_keeps_its_default() {
     let theme = Theme::default();
 
     let moved: Vec<String> = [
         (
-            "sketch_free",
-            theme.sketch_free,
-            Rgba::new(0.98, 0.85, 0.35, 1.0),
-        ),
-        (
-            "sketch_settled",
-            theme.sketch_settled,
-            Rgba::new(0.45, 0.85, 0.55, 1.0),
-        ),
-        (
             "sketch_inactive",
             theme.sketch_inactive,
             Rgba::new(0.70, 0.72, 0.76, 0.8),
-        ),
-        (
-            "dimension",
-            theme.dimension,
-            Rgba::new(0.98, 0.85, 0.35, 0.9),
         ),
         (
             "dimension_driven",
@@ -277,11 +299,6 @@ fn every_colour_the_redesign_does_not_name_keeps_its_default() {
         ("fixed", theme.fixed, Rgba::new(0.95, 0.45, 0.25, 1.0)),
         ("rule", theme.rule, Rgba::new(0.55, 0.75, 0.95, 1.0)),
         ("picked", theme.picked, Rgba::new(0.85, 0.40, 0.95, 1.0)),
-        (
-            "region_fill",
-            theme.region_fill,
-            Rgba::new(0.45, 0.65, 0.95, 0.10),
-        ),
         ("solid", theme.solid, Rgba::new(0.78, 0.80, 0.84, 1.0)),
         (
             "highlight",
@@ -318,9 +335,267 @@ fn every_colour_the_redesign_does_not_name_keeps_its_default() {
             theme.grid_minor_width,
             theme.grid_major_width,
             theme.grid_major_every,
-            theme.sketch_width,
         ),
-        (2.0, 1.0, 1.5, 10, 2.5),
+        (2.0, 1.0, 1.5, 10),
         "the widths and the spacing of the major grid lines have moved too",
+    );
+}
+
+/// The names a profile writes the construction's colour and the tool's under.
+const CONSTRUCTION: &str = "sketch_construction";
+const TOOL_IN_PROGRESS: &str = "tool_in_progress";
+
+/// The theme of the profile that always exists, « Par défaut » on screen.
+fn the_default_profile_s_theme() -> Theme {
+    crate::profiles::Profiles::default().active().theme.clone()
+}
+
+/// The colour a theme writes out under `name`, as a profile carries it, or
+/// nothing when it writes no such colour.
+fn written_out(theme: &Theme, name: &str) -> Option<Rgba> {
+    let written = serde_json::to_value(theme).expect("a theme writes out");
+    written.get(name).map(|colour| {
+        serde_json::from_value(colour.clone())
+            .unwrap_or_else(|_| panic!("the theme writes `{name}` as no colour: {colour}"))
+    })
+}
+
+/// A colour of `color.` written `rgba(r,g,b,a)`, as the bytes of that colour
+/// at that opacity.
+fn written_with_its_opacity(path: &str) -> [u8; 4] {
+    let tokens: serde_json::Value = serde_json::from_str(DESIGN).expect("the design file is JSON");
+    let channels: Vec<f64> = path
+        .split('.')
+        .try_fold(&tokens["color"], |value, key| value.get(key))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|text| text.strip_prefix("rgba("))
+        .and_then(|text| text.strip_suffix(')'))
+        .map(|inside| {
+            inside
+                .split(',')
+                .filter_map(|channel| channel.trim().parse().ok())
+                .collect()
+        })
+        .unwrap_or_default();
+    let [r, g, b, a] = channels[..] else {
+        panic!("color.{path} is no rgba(r,g,b,a) in the design file");
+    };
+    [r as u8, g as u8, b as u8, (a * 255.0).round() as u8]
+}
+
+#[test]
+fn the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours() {
+    let theme = the_default_profile_s_theme();
+
+    let wrong: Vec<String> = [
+        (
+            "sketch_settled",
+            theme.sketch_settled,
+            written("sketch.settled_stroke"),
+        ),
+        (
+            "sketch_free",
+            theme.sketch_free,
+            written("sketch.free_stroke"),
+        ),
+        (
+            "region_fill",
+            theme.region_fill,
+            written_with_its_opacity("sketch.area_fill"),
+        ),
+    ]
+    .into_iter()
+    .filter(|(_, worn, design)| bytes(*worn) != *design)
+    .map(|(name, worn, design)| {
+        format!(
+            "{name} is {:?}, the redesign writes {design:?}",
+            bytes(worn)
+        )
+    })
+    .collect();
+
+    assert!(
+        wrong.is_empty(),
+        "the default profile draws a sketch in other colours:\n  {}",
+        wrong.join("\n  "),
+    );
+    assert_eq!(
+        theme.sketch_width, 2.0,
+        "the redesign draws a sketch's strokes 2 px wide",
+    );
+}
+
+#[test]
+fn the_default_profile_carries_a_construction_grey_and_a_tool_amber() {
+    let theme = the_default_profile_s_theme();
+
+    assert_eq!(
+        [CONSTRUCTION, TOOL_IN_PROGRESS].map(|name| written_out(&theme, name).map(bytes)),
+        [
+            Some(written("sketch.construction")),
+            Some(written("sketch.tool_in_progress")),
+        ],
+        "the default profile writes the construction's colour under `{CONSTRUCTION}` and \
+         the tool in progress's under `{TOOL_IN_PROGRESS}`, the redesign's grey and amber",
+    );
+}
+
+/// The contrast ratio of WCAG 2 between two opaque colours.
+fn contrast(one: Rgba, other: Rgba) -> f32 {
+    let linear = |channel: f32| match channel <= 0.04045 {
+        true => channel / 12.92,
+        false => ((channel + 0.055) / 1.055).powf(2.4),
+    };
+    let luminance = |colour: Rgba| {
+        0.2126 * linear(colour.r) + 0.7152 * linear(colour.g) + 0.0722 * linear(colour.b)
+    };
+    let (one, other) = (luminance(one), luminance(other));
+    (one.max(other) + 0.05) / (one.min(other) + 0.05)
+}
+
+/// A figure the issue wrote to a tenth holds any ratio that rounds to it.
+const TO_A_TENTH: f32 = 0.05;
+/// The same, for the one written to a hundredth.
+const TO_A_HUNDREDTH: f32 = 0.005;
+
+#[test]
+fn each_stroke_stands_off_the_sketch_background_by_the_contrast_decided() {
+    let theme = the_default_profile_s_theme();
+    let Background::Solid(background) = theme.sketch_background else {
+        panic!(
+            "a sketch's default background is {:?}, no plain colour to measure against",
+            theme.sketch_background
+        );
+    };
+
+    let wrong: Vec<String> = [
+        (
+            "settled against the background",
+            Some(theme.sketch_settled),
+            background,
+            15.1,
+            TO_A_TENTH,
+        ),
+        (
+            "free against the background",
+            Some(theme.sketch_free),
+            background,
+            8.6,
+            TO_A_TENTH,
+        ),
+        (
+            "construction against the background",
+            written_out(&theme, CONSTRUCTION),
+            background,
+            6.2,
+            TO_A_TENTH,
+        ),
+        (
+            "the tool in progress against the background",
+            written_out(&theme, TOOL_IN_PROGRESS),
+            background,
+            9.1,
+            TO_A_TENTH,
+        ),
+        (
+            "settled against free",
+            Some(theme.sketch_settled),
+            theme.sketch_free,
+            1.75,
+            TO_A_HUNDREDTH,
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(what, stroke, against, decided, near)| match stroke {
+        None => Some(format!("{what}: the default profile has no such colour")),
+        Some(stroke) => {
+            let ratio = contrast(stroke, against);
+            ((ratio - decided).abs() > near)
+                .then(|| format!("{what} is {ratio:.3}:1, the issue decided {decided}:1"))
+        }
+    })
+    .collect();
+
+    assert!(
+        wrong.is_empty(),
+        "the default profile's strokes stand off the sketch background by other contrasts:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads() {
+    let defaults =
+        [CONSTRUCTION, TOOL_IN_PROGRESS].map(|name| written_out(&Theme::default(), name));
+    assert!(
+        defaults.iter().all(Option::is_some),
+        "the default theme writes no `{CONSTRUCTION}` or no `{TOOL_IN_PROGRESS}` colour: \
+         {defaults:?}",
+    );
+    let mut saved = serde_json::to_value(Theme::default()).expect("a theme writes out");
+    let fields = saved.as_object_mut().expect("a theme is an object");
+    fields.remove(CONSTRUCTION);
+    fields.remove(TOOL_IN_PROGRESS);
+
+    let read: Theme = serde_json::from_value(saved)
+        .expect("a theme from before the construction's and the tool's colours reads");
+
+    assert_eq!(
+        [CONSTRUCTION, TOOL_IN_PROGRESS].map(|name| written_out(&read, name)),
+        defaults,
+        "a theme from before the two colours reads with others than the defaults",
+    );
+}
+
+#[test]
+fn the_default_profile_draws_dimensions_in_the_redesign_s_colour() {
+    let theme = the_default_profile_s_theme();
+
+    assert_eq!(
+        bytes(theme.dimension),
+        written("sketch.dimension"),
+        "the default profile draws its dimensions in another colour than the redesign's",
+    );
+}
+
+/// The names a profile writes the colours of a rule mark's box under.
+const RULE_BACKGROUND: &str = "rule_background";
+const RULE_BORDER: &str = "rule_border";
+
+#[test]
+fn the_default_profile_boxes_the_rule_marks_in_the_redesign_s_colours() {
+    let theme = the_default_profile_s_theme();
+
+    assert_eq!(
+        [RULE_BACKGROUND, RULE_BORDER].map(|name| written_out(&theme, name).map(bytes)),
+        [
+            Some(written("sketch.constraint_mark_background")),
+            Some(written("sketch.constraint_mark_border")),
+        ],
+        "the default profile writes the fill of a rule mark's box under `{RULE_BACKGROUND}` \
+         and its border under `{RULE_BORDER}`, the redesign's",
+    );
+}
+
+#[test]
+fn a_theme_saved_before_the_rule_marks_box_colours_existed_still_reads() {
+    let defaults = [RULE_BACKGROUND, RULE_BORDER].map(|name| written_out(&Theme::default(), name));
+    assert!(
+        defaults.iter().all(Option::is_some),
+        "the default theme writes no `{RULE_BACKGROUND}` or no `{RULE_BORDER}` colour: \
+         {defaults:?}",
+    );
+    let mut saved = serde_json::to_value(Theme::default()).expect("a theme writes out");
+    let fields = saved.as_object_mut().expect("a theme is an object");
+    fields.remove(RULE_BACKGROUND);
+    fields.remove(RULE_BORDER);
+
+    let read: Theme =
+        serde_json::from_value(saved).expect("a theme from before the box colours reads");
+
+    assert_eq!(
+        [RULE_BACKGROUND, RULE_BORDER].map(|name| written_out(&read, name)),
+        defaults,
+        "a theme from before the box colours reads with others than the defaults",
     );
 }

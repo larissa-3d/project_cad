@@ -10,6 +10,7 @@ use super::curves::push_circle_at;
 use super::cuts::{CutCanvas, Stroke};
 use super::marks::push_point_markers;
 use super::preview::push_preview;
+use super::tool_in_progress::push_tool_in_progress;
 use super::trim::{LOUDER, push_going};
 use super::{emphasis, live_offset, tint, tint_at};
 use crate::screens::SketchContext;
@@ -63,6 +64,20 @@ pub(crate) fn sketch_colors(theme: &Theme, active: bool, constrained: bool) -> (
         (true, false) => (tint(theme.sketch_free), theme.sketch_width),
         (true, true) => (tint(theme.sketch_settled), theme.sketch_width),
         (false, _) => (tint(theme.sketch_inactive), theme.sketch_width * 0.6),
+    }
+}
+
+/// The same for a stroke: construction geometry, settled or not, in a grey of
+/// its own while its sketch is edited.
+pub(crate) fn stroke_colors(
+    theme: &Theme,
+    active: bool,
+    constrained: bool,
+    construction: bool,
+) -> ([f32; 4], f32) {
+    match active && construction {
+        true => (tint(theme.sketch_construction), theme.sketch_width),
+        false => sketch_colors(theme, active, constrained),
     }
 }
 
@@ -168,7 +183,7 @@ impl Seen {
             let held = holds(segment.start) && holds(segment.end);
             let (color, width) = match sketch.is_held(Element::Segment(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, held),
+                false => stroke_colors(theme, active, held, segment.construction),
             };
             let Some((color, width)) = marked(Element::Segment(id), color, width) else {
                 continue;
@@ -191,7 +206,7 @@ impl Seen {
         for (id, circle) in sketch.live_circles() {
             let (color, width) = match sketch.is_held(Element::Circle(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, holds(circle.center)),
+                false => stroke_colors(theme, active, holds(circle.center), circle.construction),
             };
             let Some((color, width)) = marked(Element::Circle(id), color, width) else {
                 continue;
@@ -211,7 +226,7 @@ impl Seen {
         for (id, arc) in sketch.live_arcs() {
             let (color, width) = match sketch.is_held(Element::Arc(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, holds(arc.center)),
+                false => stroke_colors(theme, active, holds(arc.center), arc.construction),
             };
             let Some((color, width)) = marked(Element::Arc(id), color, width) else {
                 continue;
@@ -228,7 +243,7 @@ impl Seen {
             let stands = sketch.ellipse_points(id).into_iter().all(holds);
             let (color, width) = match sketch.is_held(Element::Ellipse(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, stands),
+                false => stroke_colors(theme, active, stands, oval.construction),
             };
             let Some((color, width)) = marked(Element::Ellipse(id), color, width) else {
                 continue;
@@ -279,6 +294,7 @@ impl Seen {
         }
 
         push_preview(out, sketch, theme, scale, context);
+        push_tool_in_progress(out, sketch, theme, scale, context);
 
         if let Some(going) = going {
             push_going(out, sketch, going, theme, scale);

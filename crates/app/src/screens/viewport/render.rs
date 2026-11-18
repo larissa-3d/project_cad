@@ -26,6 +26,7 @@ mod emphasis;
 mod extrusion;
 mod grid;
 mod live_fields;
+mod mark_places;
 mod marks;
 mod overlays;
 mod pattern;
@@ -35,6 +36,7 @@ mod reading;
 mod section_panel;
 mod step_panel;
 mod symmetric_line;
+mod tool_in_progress;
 mod triad;
 mod trim;
 
@@ -58,6 +60,7 @@ pub(crate) use reading::{Measuring, paint_measure, what_is_measured};
 pub(crate) use section_panel::{
     paint_section_handle, paint_section_panel, right_of_the_section_panel,
 };
+pub(crate) use tool_in_progress::paint_tool_in_progress;
 pub(crate) use trim::what_would_go;
 
 use super::matter::Drawn;

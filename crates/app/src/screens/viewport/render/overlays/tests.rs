@@ -74,6 +74,36 @@
 //!   `a_cube_too_small_to_hold_a_letter_paints_without_a_panic`
 //! - A name stays inside its face (#225) —
 //!   `a_name_lying_on_its_face_never_leaves_it`
+//!
+//! Closes #742 — the whole transcription is in
+//! `crates/app/src/screens/viewport/render/drawing/tests.rs`; these bullets
+//! are the boxes the marks of the rules are painted in.
+//! - **Constraint marks** in small 18 px boxes (⊥, ∥…) — each mark's glyph
+//!   stands centred in a box 18 points across, painted behind it, filled and
+//!   bordered in the redesign's `constraint_mark_background` and
+//!   `constraint_mark_border` with the « Par défaut » profile —
+//!   `a_rule_s_mark_sits_in_a_box_18_px_across`; in the colours a profile sets
+//!   for them — `the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted`
+//! - found when the work opened: a mark is taken where its box is drawn, and
+//!   no further, and the boxes of marks set side by side neither overlap nor
+//!   touch, `spacing.xs` between them —
+//!   `a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap`
+//! - found in review: a mark's box stood over the trait it marks, its corner
+//!   on the trait's middle, and a click along the trait took the rule — read
+//!   with the view square onto the drawing, no point of any trait answers as a
+//!   mark, the rule's box standing clear of its trait and of its corner, as in
+//!   the redesign's mockup —
+//!   `a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s`
+//! - found in the real window: that fixture, built by hand, passed while a
+//!   rectangle drawn with the rectangle tool had a box over its side and on
+//!   its corner — read on rectangles laid as the tool lays them, with its three
+//!   right angles, drawn from each of their four corners, at the size the
+//!   capture shows and at a larger one: no point of a side lies in a box or
+//!   answers as a mark, and no box covers a vertex's square —
+//!   `the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_corners`
+//!
+//! The two box colours are read by the names a profile writes them under,
+//! `rule_background` and `rule_border`, as #742 did for its stroke colours.
 
 use cao_part::history::PointRef;
 use cao_part::{Operation, PartDocument};
@@ -1774,5 +1804,431 @@ fn the_triad_does_not_jump_as_the_camera_turns() {
         worst.0 <= 1.0,
         "{}; {jumps} moves are too large over the sweeps",
         worst.1,
+    );
+}
+
+/// How wide a mark's box is, in points, and the room left between two boxes
+/// set side by side: `spacing.xs` of the redesign.
+const MARK_BOX: f32 = 18.0;
+const BETWEEN_BOXES: f32 = 2.0;
+
+/// The design file of the redesign, taken in when the tests are built.
+const DESIGN: &str = include_str!("../../../../../../../docs/redesign/tokens.json");
+
+/// A colour of the design file's `color.`, written `#RRGGBB`, as its bytes.
+///
+/// The path comes as its keys one by one: a dotted literal in a source of
+/// `cao_app` reads as a key of the language file to `language_keys.rs`.
+fn redesign(keys: &[&str]) -> [u8; 3] {
+    let tokens: serde_json::Value = serde_json::from_str(DESIGN).expect("the design file is JSON");
+    let hex = keys
+        .iter()
+        .try_fold(&tokens["color"], |value, key| value.get(key))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|text| text.strip_prefix('#'))
+        .unwrap_or_else(|| panic!("{keys:?} is no #RRGGBB under color in the design file"));
+    let channel = |at: usize| u8::from_str_radix(&hex[at..at + 2], 16).expect("a hex byte");
+    [channel(0), channel(2), channel(4)]
+}
+
+fn bytes_of(colour: egui::Color32) -> [u8; 3] {
+    let [r, g, b, _] = colour.to_srgba_unmultiplied();
+    [r, g, b]
+}
+
+/// The default theme with colours of it set as a profile sets them, each under
+/// the name the profile's file writes it under.
+fn a_theme_setting(colours: &[(&str, Rgba)]) -> Theme {
+    let mut written = serde_json::to_value(Theme::default()).expect("a theme writes out");
+    for (name, colour) in colours {
+        written[*name] = serde_json::to_value(colour).expect("a colour writes out");
+    }
+    serde_json::from_value(written).expect("a theme reads back")
+}
+
+/// Each mark one frame paints of the drawing with two rules under `theme`, by
+/// its glyph, with the boxes painted before it that stand centred on it and
+/// are a mark's box across, give or take half a point.
+fn the_marks_and_their_boxes(theme: &Theme) -> Vec<(String, Vec<egui::epaint::RectShape>)> {
+    let mut state = ViewportState::default();
+    state.theme = theme.clone();
+    let mut document = a_drawing_with_two_rules();
+    let mut editor = SketchEditor {
+        phase: SketchPhase::Editing(0),
+        tool: Tool::Select,
+        ..Default::default()
+    };
+    let (mut extrusion, lang) = (ExtrusionState::default(), Catalogue::french());
+    let context = SketchContext {
+        document: &mut document,
+        editor: &mut editor,
+        extrusion: &mut extrusion,
+        lang: &lang,
+    };
+    let painted = shapes(|ui| paint_rule_marks(ui, &state, SCREEN, &context, None));
+    painted
+        .iter()
+        .enumerate()
+        .filter_map(|(rank, shape)| match shape {
+            egui::Shape::Text(glyph) => Some((rank, glyph)),
+            _ => None,
+        })
+        .map(|(rank, glyph)| {
+            let centre = egui::Rect::from_min_size(glyph.pos, glyph.galley.size()).center();
+            let boxes = painted[..rank]
+                .iter()
+                .filter_map(|shape| match shape {
+                    egui::Shape::Rect(shaped)
+                        if shaped.rect.center().distance(centre) <= 1.0
+                            && (shaped.rect.width() - MARK_BOX).abs() <= 0.5
+                            && (shaped.rect.height() - MARK_BOX).abs() <= 0.5 =>
+                    {
+                        Some(shaped.clone())
+                    }
+                    _ => None,
+                })
+                .collect();
+            (glyph.galley.text().to_string(), boxes)
+        })
+        .collect()
+}
+
+/// Which of each mark's boxes are filled and bordered in `fill` and `border`:
+/// the marks whose boxes are not, with what their boxes are painted in.
+fn boxes_not_in(
+    marks: &[(String, Vec<egui::epaint::RectShape>)],
+    fill: [u8; 3],
+    border: [u8; 3],
+) -> Vec<String> {
+    marks
+        .iter()
+        .filter(|(_, boxes)| {
+            !(boxes
+                .iter()
+                .any(|shaped| shaped.fill.a() == 255 && bytes_of(shaped.fill) == fill)
+                && boxes.iter().any(|shaped| {
+                    shaped.stroke.width > 0.0 && bytes_of(shaped.stroke.color) == border
+                }))
+        })
+        .map(|(glyph, boxes)| {
+            let painted: Vec<([u8; 3], u8, [u8; 3], f32)> = boxes
+                .iter()
+                .map(|shaped| {
+                    (
+                        bytes_of(shaped.fill),
+                        shaped.fill.a(),
+                        bytes_of(shaped.stroke.color),
+                        shaped.stroke.width,
+                    )
+                })
+                .collect();
+            format!("« {glyph} » sits in {painted:?}")
+        })
+        .collect()
+}
+
+#[test]
+fn a_rule_s_mark_sits_in_a_box_18_px_across() {
+    let marks = the_marks_and_their_boxes(&Theme::default());
+    assert!(
+        marks.len() >= 2,
+        "the drawing with two rules is marked {} time(s)",
+        marks.len()
+    );
+
+    let bare: Vec<&String> = marks
+        .iter()
+        .filter(|(_, boxes)| boxes.is_empty())
+        .map(|(glyph, _)| glyph)
+        .collect();
+    assert!(
+        bare.is_empty(),
+        "no box {MARK_BOX} points across is painted behind {bare:?}, centred on it",
+    );
+    let (fill, border) = (
+        redesign(&["sketch", "constraint_mark_background"]),
+        redesign(&["sketch", "constraint_mark_border"]),
+    );
+    let wrong = boxes_not_in(&marks, fill, border);
+    assert!(
+        wrong.is_empty(),
+        "a mark's box is filled {fill:?} and bordered {border:?}, the redesign's:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted() {
+    let (fill, border) = (
+        Rgba::opaque(0.10, 0.40, 0.20),
+        Rgba::opaque(0.90, 0.20, 0.50),
+    );
+    let theme = a_theme_setting(&[("rule_background", fill), ("rule_border", border)]);
+
+    let marks = the_marks_and_their_boxes(&theme);
+
+    assert!(
+        !marks.is_empty() && marks.iter().all(|(_, boxes)| !boxes.is_empty()),
+        "the marks are painted with no box behind them: {marks:?}",
+    );
+    let wrong = boxes_not_in(
+        &marks,
+        bytes_of(tint_to_color(fill)),
+        bytes_of(tint_to_color(border)),
+    );
+    assert!(
+        wrong.is_empty(),
+        "a profile's box colours for the marks, {fill:?} and {border:?}, are not the ones \
+         painted:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap() {
+    let mut sketch = cao_sketch::Sketch::new(cao_sketch::WorkPlane::XY);
+    let corners = [(0.0, 0.0), (40.0, 0.0), (0.0, 20.0), (40.0, 20.0)]
+        .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let low = sketch.add_segment(corners[0], corners[1]);
+    let high = sketch.add_segment(corners[2], corners[3]);
+    sketch.add_constraint(Constraint::Parallel {
+        first: low,
+        second: high,
+    });
+    sketch.add_constraint(Constraint::Equal {
+        first: low,
+        second: high,
+    });
+    let (state, _) = a_view();
+
+    let placed = placed_marks(
+        &sketch,
+        state.camera.view_projection(SCREEN.aspect_ratio()),
+        SCREEN,
+    );
+
+    assert!(
+        placed.len() >= 4,
+        "both rules are marked on both traits: {placed:?}"
+    );
+    let half = MARK_BOX / 2.0;
+    for (rule, at) in &placed {
+        for corner in [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)] {
+            let on_the_box = *at + egui::vec2(corner.0, corner.1) * (half - 0.5);
+            assert_eq!(
+                mark_under(&placed, on_the_box),
+                Some(*rule),
+                "a click on the box of the mark at {at:?}, at {on_the_box:?}, does not take it",
+            );
+        }
+        for off in [egui::vec2(half + 1.5, 0.0), egui::vec2(0.0, half + 1.5)] {
+            assert_ne!(
+                mark_under(&placed, *at + off),
+                Some(*rule),
+                "a click past the box of the mark at {at:?}, at {:?}, still takes it",
+                *at + off,
+            );
+        }
+    }
+    for (rank, (_, one)) in placed.iter().enumerate() {
+        for (_, other) in &placed[rank + 1..] {
+            let (apart_x, apart_y) = ((one.x - other.x).abs(), (one.y - other.y).abs());
+            assert!(
+                apart_x >= MARK_BOX + BETWEEN_BOXES || apart_y >= MARK_BOX + BETWEEN_BOXES,
+                "the boxes of the marks at {one:?} and {other:?} overlap or touch: \
+                 {apart_x} and {apart_y} apart, where a box is {MARK_BOX} across",
+            );
+        }
+    }
+}
+
+#[test]
+fn a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s() {
+    let mut camera = OrbitCamera::default();
+    let (yaw, pitch) = cao_render::camera::view_angles_towards(Vec3::Z);
+    camera.set_view_angles(yaw, pitch);
+    let view_projection = camera.view_projection(SCREEN.aspect_ratio());
+    let pixel = f64::from(camera.world_units_per_pixel(SCREEN.height()));
+    let mut sketch = cao_sketch::Sketch::new(cao_sketch::WorkPlane::XY);
+    let (wide, high) = (300.0 * pixel, 200.0 * pixel);
+    let corners = [(0.0, 0.0), (wide, 0.0), (wide, high), (0.0, high)]
+        .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let sides: Vec<SegmentId> = (0..4)
+        .map(|rank| sketch.add_segment(corners[rank], corners[(rank + 1) % 4]))
+        .collect();
+    let (foot, right, top, left) = (sides[0], sides[1], sides[2], sides[3]);
+    for rule in [
+        Constraint::AxisParallel {
+            segment: foot,
+            axis: cao_sketch::SketchAxis::U,
+        },
+        Constraint::AxisParallel {
+            segment: top,
+            axis: cao_sketch::SketchAxis::U,
+        },
+        Constraint::AxisParallel {
+            segment: left,
+            axis: cao_sketch::SketchAxis::V,
+        },
+        Constraint::Perpendicular {
+            first: right,
+            second: top,
+        },
+    ] {
+        sketch.add_constraint(rule);
+    }
+
+    let placed = placed_marks(&sketch, view_projection, SCREEN);
+
+    assert_eq!(
+        placed.len(),
+        4,
+        "three traits held to an axis and a right angle at a corner are marked four times: \
+         {placed:?}",
+    );
+    let screen = |at: DVec2| {
+        to_screen(sketch.plane.to_world(at), view_projection, SCREEN)
+            .expect("the rectangle stands in front of the camera")
+    };
+    let mut taken = Vec::new();
+    for side in sides {
+        let (from, to) = sketch.endpoints(side);
+        let (from, to) = (screen(from), screen(to));
+        let steps = (from.distance(to) * 2.0).ceil() as usize;
+        for step in 0..=steps {
+            let on_the_trait = from + (to - from) * (step as f32 / steps as f32);
+            if let Some(rule) = mark_under(&placed, on_the_trait) {
+                taken.push(format!("{on_the_trait:?}, on {side:?}, takes {rule:?}"));
+            }
+        }
+    }
+    assert!(
+        taken.is_empty(),
+        "a mark's box stands over the trait, and a click meant for the trait takes the rule \
+         instead, at {} places — the marks at {placed:?}; the first:\n  {}",
+        taken.len(),
+        taken[..taken.len().min(6)].join("\n  "),
+    );
+}
+
+/// A rectangle as the rectangle tool lays it: four sides from `corner` round
+/// to `opposite`, held square by the three right angles the tool puts on them.
+fn a_rectangle_as_its_tool_lays_it(corner: DVec2, opposite: DVec2) -> cao_sketch::Sketch {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(opposite),
+        construction: false,
+    });
+    let sides = [0, 1, 2, 3].map(SegmentId);
+    let (corners, _) = cao_sketch::rectangle_dimensions(
+        &document.sketches()[0],
+        sides,
+        cao_sketch::LockedInput::default(),
+        1.0,
+    );
+    for constraint in corners {
+        document.apply(Operation::Constrain {
+            sketch: 0,
+            constraint,
+        });
+    }
+    document.sketches()[0].clone()
+}
+
+/// How wide a point of the drawing is marked, in points: the square
+/// `push_point_markers` draws round it.
+const VERTEX_SQUARE: f32 = 8.0;
+
+#[test]
+fn the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_corners() {
+    let mut camera = OrbitCamera::default();
+    let (yaw, pitch) = cao_render::camera::view_angles_towards(Vec3::Z);
+    camera.set_view_angles(yaw, pitch);
+    let view_projection = camera.view_projection(SCREEN.aspect_ratio());
+    let pixel = f64::from(camera.world_units_per_pixel(SCREEN.height()));
+    let screen = |sketch: &cao_sketch::Sketch, at: DVec2| {
+        to_screen(sketch.plane.to_world(at), view_projection, SCREEN)
+            .expect("the rectangle stands in front of the camera")
+    };
+
+    let mut wrong = Vec::new();
+    for (wide, high) in [(126.0, 91.0), (300.0, 200.0)] {
+        let base = DVec2::new(40.0, 40.0) * pixel;
+        let far = base + DVec2::new(wide, high) * pixel;
+        let (left_low, right_high) = (base, far);
+        let (right_low, left_high) = (DVec2::new(far.x, base.y), DVec2::new(base.x, far.y));
+        for (corner, opposite) in [
+            (left_low, right_high),
+            (right_high, left_low),
+            (right_low, left_high),
+            (left_high, right_low),
+        ] {
+            let sketch = a_rectangle_as_its_tool_lays_it(corner, opposite);
+            let drawn = format!("{wide}×{high} pt from {corner:?}");
+            let placed = placed_marks(&sketch, view_projection, SCREEN);
+            if placed.len() != 3 {
+                wrong.push(format!(
+                    "{drawn}: marked {} times, not thrice",
+                    placed.len()
+                ));
+                continue;
+            }
+            let boxes: Vec<egui::Rect> = placed
+                .iter()
+                .map(|(_, at)| egui::Rect::from_center_size(*at, egui::vec2(MARK_BOX, MARK_BOX)))
+                .collect();
+            for (id, _) in sketch.live_segments() {
+                let (from, to) = sketch.endpoints(id);
+                let (from, to) = (screen(&sketch, from), screen(&sketch, to));
+                let steps = (from.distance(to) * 2.0).ceil() as usize;
+                let covered = (0..=steps)
+                    .map(|step| from + (to - from) * (step as f32 / steps as f32))
+                    .find(|on| {
+                        boxes.iter().any(|shown| shown.contains(*on))
+                            || mark_under(&placed, *on).is_some()
+                    });
+                if let Some(on) = covered {
+                    wrong.push(format!("{drawn}: {id:?} at {on:?} lies under a mark"));
+                }
+            }
+            for (rank, point) in sketch.points().iter().enumerate() {
+                if sketch.is_erased_point(cao_sketch::PointId(rank)) {
+                    continue;
+                }
+                let square = egui::Rect::from_center_size(
+                    screen(&sketch, *point),
+                    egui::vec2(VERTEX_SQUARE, VERTEX_SQUARE),
+                );
+                let hidden = boxes.iter().any(|shown| shown.intersects(square))
+                    || [
+                        square.center(),
+                        square.min,
+                        square.max,
+                        square.left_bottom(),
+                        square.right_top(),
+                    ]
+                    .into_iter()
+                    .any(|on| mark_under(&placed, on).is_some());
+                if hidden {
+                    wrong.push(format!(
+                        "{drawn}: the vertex at {:?} lies under a mark",
+                        square.center()
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "a rectangle drawn with its tool has a mark over a side or a corner, where a click \
+         is meant for the side or the corner:\n  {}",
+        wrong.join("\n  "),
     );
 }

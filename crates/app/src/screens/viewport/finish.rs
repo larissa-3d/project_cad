@@ -1,6 +1,7 @@
 //! What Enter does to the shape in hand, once the live fields have had their
 //! say.
 
+use cao_prefs::theme::Theme;
 use cao_sketch::ToolState;
 
 use super::input::{
@@ -19,7 +20,7 @@ use crate::screens::sketch::Tool;
 pub(crate) fn advance_on_enter(
     ui: &mut egui::Ui,
     sketch: &mut SketchContext<'_>,
-    scale: ViewScale,
+    (scale, theme): (ViewScale, &Theme),
 ) -> bool {
     let drawing = matches!(
         sketch.editor.tool_state,
@@ -31,7 +32,7 @@ pub(crate) fn advance_on_enter(
             | ToolState::Ellipse { .. }
             | ToolState::Corner { .. }
     );
-    if !drawing || !paint_live_input(ui, sketch) || refused_for_what_is_typed(sketch) {
+    if !drawing || !paint_live_input(ui, sketch, theme) || refused_for_what_is_typed(sketch) {
         return false;
     }
     let Some(index) = sketch.editor.active_sketch() else {

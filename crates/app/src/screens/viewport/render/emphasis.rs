@@ -17,9 +17,9 @@ const A_PROMISE: f32 = 0.55;
 /// How much wider what a tool holds is drawn.
 const LIT_WIDER: f32 = 1.8;
 
-/// The colour of what a tool is only offering to lay.
+/// The colour of what a tool is only offering to lay: the tool's own.
 pub(super) fn ghost(theme: &Theme) -> [f32; 4] {
-    tint_at(theme.sketch_free, A_PROMISE)
+    tint_at(theme.tool_in_progress, A_PROMISE)
 }
 
 /// The colour and width a piece of the drawing ends up with.
