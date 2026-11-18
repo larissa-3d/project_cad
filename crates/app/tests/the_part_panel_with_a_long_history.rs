@@ -30,6 +30,19 @@
 //!   the history shows in part, at 713 and at 600 points high —
 //!   `at_rest_no_row_of_the_tree_nor_line_of_the_history_shows_in_part`
 //!
+//! Closes #998.
+//! - The native window's minimum inner height is the height the Part panel
+//!   needs for its title, three tree rows, the reader's card, the history
+//!   header, two history lines and the « Compacter » link, plus the ribbon
+//!   above it — computed from the same constants the panel uses, not a number
+//!   typed twice —
+//!   `the_window_asks_for_the_height_the_part_panel_needs_and_no_more`: read
+//!   as the minimum the application asks of its native window, at which, the
+//!   ribbon on top, ten lines of history unfolded, the panel shows its title,
+//!   three rows' worth of the tree, the card, the header, two whole lines and
+//!   the link, nothing drawn over anything, while a row less loses some of
+//!   it. That no number is typed twice is read at review
+//!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
 //! then it must stand wholly inside the window and the panel, inside what the
@@ -769,5 +782,80 @@ fn on_a_tall_window_six_lines_of_history_show_whole() {
         scrolled.is_none(),
         "on a {A_TALL_WINDOW:?} window, six lines of history unfolded, the list scrolls \
          beside them, showing {scrolled:?} of lines at {lines:?}",
+    );
+}
+
+/// What the Part panel fails to hold of its title, three rows of the tree, the
+/// reader's card, the history's header, two whole lines and the link, and what
+/// of it is drawn over something else.
+fn what_the_part_panel_misses(app: &driver::App) -> Vec<String> {
+    let window = app.ctx.content_rect();
+    let mut missed = Vec::new();
+    match driver::where_it_reads(app, "Pièce") {
+        Some(title) if window.contains_rect(title) => {}
+        title => missed.push(format!("the title « Pièce » at {title:?}")),
+    }
+    let tree = the_tree_s_height(app);
+    if tree < THE_TREE_KEEPS_IN_VIEW {
+        missed.push(format!(
+            "the tree's list shows {tree} points, short of {THE_TREE_KEEPS_IN_VIEW}"
+        ));
+    }
+    let bottom = the_bottom(app);
+    for wanted in ["the reader's card", "Historique", "Compacter l'historique…"] {
+        match bottom.iter().find(|(what, _)| what == wanted) {
+            Some((_, rect)) if window.contains_rect(*rect) => {}
+            found => missed.push(format!("« {wanted} » at {found:?}")),
+        }
+    }
+    let lines = the_history_s_lines(app);
+    let lines: Vec<(String, egui::Rect)> = match the_history_s_bar(app, &lines) {
+        Some(list) => lines
+            .into_iter()
+            .filter(|(_, rect)| inside(*rect, list) && window.contains_rect(*rect))
+            .collect(),
+        None => Vec::new(),
+    };
+    if lines.len() < 2 {
+        missed.push(format!(
+            "{} lines of history shown whole: {lines:?}",
+            lines.len()
+        ));
+    }
+    missed.extend(drawn_over(app));
+    missed
+}
+
+#[test]
+fn the_window_asks_for_the_height_the_part_panel_needs_and_no_more() {
+    let mut app = ten_lines_unfolded_on(
+        "the_window_asks_for_the_height_the_part_panel_needs",
+        A_TALL_WINDOW,
+    );
+    let minimum = driver::the_minimum_size_asked(&app).unwrap_or_else(|| {
+        panic!(
+            "the application, on its Part screen, ten lines of history unfolded, never asked \
+             its native window for a minimum inner size"
+        )
+    });
+
+    app.set_size(egui::vec2(A_TALL_WINDOW.x, minimum.y));
+    app.run();
+    let at_the_minimum = what_the_part_panel_misses(&app);
+    app.set_size(egui::vec2(A_TALL_WINDOW.x, minimum.y - ROW));
+    app.run();
+    let a_row_less = what_the_part_panel_misses(&app);
+
+    assert!(
+        at_the_minimum.is_empty(),
+        "on a window as short as the minimum asked, {minimum:?}, ten lines of history \
+         unfolded, the Part panel misses:\n  {}",
+        at_the_minimum.join("\n  "),
+    );
+    assert!(
+        !a_row_less.is_empty(),
+        "on a window a row shorter than the minimum asked, {minimum:?}, the Part panel still \
+         holds its title, three rows of the tree, the card, the header, two lines and the \
+         link: the window is held taller than it needs",
     );
 }

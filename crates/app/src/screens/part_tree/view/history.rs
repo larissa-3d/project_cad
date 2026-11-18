@@ -12,6 +12,7 @@ use crate::screens::viewport::ViewportState;
 use crate::ui::history_line::{self, HistoryLine, history_line};
 use crate::ui::question::{Question, ask};
 use crate::ui::quiet_link::quiet_link;
+use crate::ui::reader_card;
 use crate::ui::theme::tokens::SPACING_S;
 use crate::ui::tree_row::{self, TreeRow, tree_row};
 
@@ -38,7 +39,7 @@ pub(super) fn at_the_bottom(
     unfolded: bool,
     lang: &Catalogue,
 ) -> TreeAction {
-    let frame = egui::Frame::NONE.inner_margin(egui::Margin::symmetric(0, SPACING_S as i8));
+    let frame = frame();
     let margins = frame.total_margin().sum().y;
     let id = egui::Id::new("part_history_height");
     let height = ui.data(|data| data.get_temp::<f32>(id)).unwrap_or(margins);
@@ -66,6 +67,33 @@ pub(super) fn at_the_bottom(
         ui.ctx().request_repaint();
     }
     shown.inner.inner
+}
+
+/// How tall the Part panel stands at the least: the tree's share, then the
+/// card at its tallest, the header, [`FEWEST_LINES`] and the link, as
+/// [`at_the_bottom`] lays them.
+pub(super) fn least_height(ctx: &egui::Context) -> f32 {
+    let style = ctx.global_style();
+    let spacing = &style.spacing;
+    let separator = style.separator_style(&Default::default(), Default::default());
+    THE_TREE_KEEPS
+        + frame().total_margin().sum().y
+        + reader_card::tallest(ctx)
+        + separator.spacing
+        + 2.0 * spacing.item_spacing.y
+        + tree_row::HEIGHT
+        + FEWEST_LINES * history_line::HEIGHT
+        + spacing.scroll.content_margin.topf()
+        + link(spacing)
+}
+
+fn frame() -> egui::Frame {
+    egui::Frame::NONE.inner_margin(egui::Margin::symmetric(0, SPACING_S as i8))
+}
+
+/// The room « Compacter l'historique… » takes under the lines.
+fn link(spacing: &egui::Spacing) -> f32 {
+    SPACING_S + spacing.interact_size.y
 }
 
 /// The header, and the lines under it while `unfolded`, their list ending on a
@@ -98,7 +126,7 @@ fn history(
         return action;
     }
     let history = History::of(document, lang);
-    let link = SPACING_S + ui.spacing().interact_size.y;
+    let link = link(ui.spacing());
     let fitting = |limit: f32| ((limit - ui.cursor().top() - link) / history_line::HEIGHT).floor();
     let lines = fitting(floor)
         .max(fitting(bottom).min(FEWEST_LINES))

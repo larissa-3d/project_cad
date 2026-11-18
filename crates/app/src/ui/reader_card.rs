@@ -7,8 +7,9 @@
 use egui::style::ScrollStyle;
 use egui::text::TextWrapping;
 use egui::{
-    Align, Align2, Color32, Frame, Id, Label, Layout, Margin, Response, RichText, ScrollArea,
-    Sense, Stroke, TextStyle, TextWrapMode, Ui, Vec2, WidgetInfo, WidgetText, WidgetType, vec2,
+    Align, Align2, Color32, Context, FontId, Frame, Id, Label, Layout, Margin, Response, RichText,
+    ScrollArea, Sense, Stroke, TextStyle, TextWrapMode, Ui, Vec2, WidgetInfo, WidgetText,
+    WidgetType, vec2,
 };
 
 use crate::ui::icon::{self, Icon, IconSize};
@@ -53,11 +54,7 @@ pub enum Asked {
 }
 
 pub fn reader_card(ui: &mut Ui, card: &ReaderCard<'_>) -> Asked {
-    Frame::new()
-        .fill(BACKGROUND_CARD)
-        .stroke(Stroke::new(1.0, BORDER_GROUP))
-        .corner_radius(RADIUS_CARD)
-        .inner_margin(Margin::same(SPACING_L as i8))
+    frame()
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = SPACING_S;
             let asked = row(ui, card);
@@ -66,6 +63,36 @@ pub fn reader_card(ui: &mut Ui, card: &ReaderCard<'_>) -> Asked {
             asked
         })
         .inner
+}
+
+/// How tall the card stands at its tallest, whatever it shows: its row with
+/// the scroll bar under it, its line on all its rows, and its legend.
+pub fn tallest(ctx: &Context) -> f32 {
+    let style = ctx.global_style();
+    let spacing = &style.spacing;
+    let row_height = |size: f32, style_of: TextStyle| {
+        let font = FontId::new(size, style_of.resolve(&style).family);
+        ctx.fonts_mut(|fonts| fonts.row_height(&font))
+    };
+    let bar = quiet(&spacing.scroll);
+    let row = BOX.y + DOT + bar.content_margin.sum().y + bar.allocated_width();
+    let counter = TextStyle::Monospace.resolve(&style);
+    let line = (LINE_ROWS as f32 * row_height(TYPOGRAPHY_SIZES_BUTTON, TextStyle::Body))
+        .max(ctx.fonts_mut(|fonts| fonts.row_height(&counter)));
+    let legend = spacing
+        .interact_size
+        .y
+        .max(DOT)
+        .max(row_height(TYPOGRAPHY_SIZES_DETAIL, TextStyle::Body));
+    frame().total_margin().sum().y + row + line + legend + 2.0 * SPACING_S
+}
+
+fn frame() -> Frame {
+    Frame::new()
+        .fill(BACKGROUND_CARD)
+        .stroke(Stroke::new(1.0, BORDER_GROUP))
+        .corner_radius(RADIUS_CARD)
+        .inner_margin(Margin::same(SPACING_L as i8))
 }
 
 /// ◀, the boxes in the middle of what room is left, then ▶. The row is
@@ -121,17 +148,21 @@ fn row(ui: &mut Ui, card: &ReaderCard<'_>) -> Asked {
 /// the card's quiet colours rather than the text's.
 fn quiet_scroll_bar(ui: &mut Ui) {
     let scroll = &mut ui.spacing_mut().scroll;
-    *scroll = ScrollStyle {
-        bar_width: BAR,
-        bar_inner_margin: GAP,
-        content_margin: scroll.content_margin,
-        ..ScrollStyle::solid()
-    };
+    *scroll = quiet(scroll);
     let visuals = ui.visuals_mut();
     visuals.extreme_bg_color = BACKGROUND_CARD;
     visuals.widgets.inactive.bg_fill = BORDER_STRONG;
     visuals.widgets.hovered.bg_fill = TEXT_QUIET;
     visuals.widgets.active.bg_fill = TEXT_QUIET;
+}
+
+fn quiet(scroll: &ScrollStyle) -> ScrollStyle {
+    ScrollStyle {
+        bar_width: BAR,
+        bar_inner_margin: GAP,
+        content_margin: scroll.content_margin,
+        ..ScrollStyle::solid()
+    }
 }
 
 /// ◀ or ▶: its icon alone, called `name`.

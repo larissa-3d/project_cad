@@ -22,6 +22,15 @@
 //! - The driver tests depend neither on the size of the screen nor on a
 //!   remembered size — `the_driver_neither_reads_nor_writes_a_remembered_window_place`
 //!
+//! Closes #998.
+//! - A window size saved smaller than that opens at the minimum —
+//!   `a_window_opened_shorter_than_the_part_panel_needs_asks_for_its_minimum_from_the_first_frame`:
+//!   read as the application asking its native window for the minimum the
+//!   Part panel needs from its first frame, before any part is open, on a
+//!   window opened shorter. The window growing to it is winit's: on macOS and
+//!   Windows, setting a minimum resizes a window below it, which no test here
+//!   reaches
+//!
 //! What the driver cannot see is a move made on the real window: the place is
 //! applied there once, in `CaoApp::new`, and the setting read there and nowhere
 //! else. The window the box's test watches is the harness's, which follows a
