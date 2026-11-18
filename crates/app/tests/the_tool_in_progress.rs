@@ -32,6 +32,17 @@
 //!   `no_snap_is_named_once_the_pointer_has_left_the_canvas`; the ring, in
 //!   `no_ring_is_drawn_once_the_cursor_has_left_the_canvas` in
 //!   `crates/app/src/screens/viewport/render/drawing/tests.rs`
+//! - found in the real window: the angle on the arc was written to four
+//!   places, « 10.008° » — it is written to a tenth of a degree, whole when
+//!   whole, and the angle field keeps what is typed in it to the last figure —
+//!   `the_angle_on_the_arc_is_written_to_a_tenth_of_a_degree`
+//! - found in the real window: the angle stood under the fields the cursor
+//!   carries, the cursor just by the start of the line — its pill and their
+//!   popup do not overlap with the cursor above, below, left or right of the
+//!   start — `the_angle_s_pill_stands_clear_of_the_fields_the_cursor_carries`
+//! - found in the real window: the fillet tool, picking a corner, named its
+//!   snap « Coïncidence » — the fillet and the dimension tools, which pick
+//!   what is drawn, name no snap — `a_tool_that_picks_what_is_drawn_names_no_snap`
 //!
 //! The amber is the profile's tool colour, `tool_in_progress`, whose default
 //! is the design file's amber. The tests open on a profile that sets it to a
@@ -471,5 +482,213 @@ fn no_snap_is_named_once_the_pointer_has_left_the_canvas() {
         "with the pointer off the canvas, at {off_the_canvas:?}, the last snap is still \
          named:\n  {}",
         outlived.join("\n  "),
+    );
+}
+
+/// Every text the last frame wrote in a pill bordered in the tool's colour,
+/// with the pill it sits in.
+fn the_tool_s_pills(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    let shapes = painted(app);
+    shapes
+        .iter()
+        .enumerate()
+        .filter_map(|(rank, shape)| match shape {
+            egui::Shape::Text(written) => {
+                let at = egui::Rect::from_min_size(written.pos, written.galley.size());
+                shapes[..rank]
+                    .iter()
+                    .find_map(|shape| match shape {
+                        egui::Shape::Rect(pill)
+                            if pill.rect.expand(0.5).contains_rect(at)
+                                && at.expand(16.0).contains_rect(pill.rect)
+                                && pill.stroke.width > 0.0
+                                && is_the_tool_s(pill.stroke.color) =>
+                        {
+                            Some(pill.rect)
+                        }
+                        _ => None,
+                    })
+                    .map(|pill| (written.galley.text().to_string(), pill))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// The angles written in the tool's pills within 120 points of `start`.
+fn angles_written_by(app: &driver::App, start: egui::Pos2) -> Vec<(String, egui::Rect)> {
+    the_tool_s_pills(app)
+        .into_iter()
+        .filter(|(text, pill)| text.ends_with('°') && pill.distance_to_pos(start) <= 120.0)
+        .collect()
+}
+
+/// The two fields the cursor carries while a line is drawn, left to right, as
+/// the cursor stands at `hand` on screen.
+fn the_fields_carried(app: &driver::App, hand: egui::Pos2) -> Vec<egui::Rect> {
+    let carried = egui::Rect::from_min_size(hand, egui::vec2(480.0, 120.0));
+    let mut fields: Vec<egui::Rect> = app
+        .query_all_by_role(egui::accesskit::Role::TextInput)
+        .map(|field| field.rect())
+        .filter(|field| carried.contains_rect(*field))
+        .collect();
+    fields.sort_by(|one, other| one.min.x.total_cmp(&other.min.x));
+    fields
+}
+
+/// The popup holding `fields`: the smallest box painted round both.
+fn the_popup_round(app: &driver::App, fields: &[egui::Rect]) -> egui::Rect {
+    painted(app)
+        .iter()
+        .filter_map(|shape| match shape {
+            egui::Shape::Rect(frame)
+                if fields
+                    .iter()
+                    .all(|field| frame.rect.expand(0.5).contains_rect(*field)) =>
+            {
+                Some(frame.rect)
+            }
+            _ => None,
+        })
+        .min_by(|one, other| one.area().total_cmp(&other.area()))
+        .unwrap_or_else(|| fields[0].union(fields[1]))
+}
+
+/// A line begun at `A_POINT_ABOVE_THE_ORIGIN` on YZ, in a part opened on the
+/// tests' profile.
+fn a_line_begun(test: &str) -> driver::App {
+    let mut app = driver::open_held_with(test, a_profile_with_its_own_tool_colour());
+    driver::create_a_part(&mut app, "Equerre");
+    driver::start_a_sketch(&mut app);
+    driver::click(&mut app, "Ligne (L)");
+    driver::click_at_sketch_point(&mut app, driver::A_POINT_ABOVE_THE_ORIGIN);
+    app
+}
+
+#[test]
+fn the_angle_on_the_arc_is_written_to_a_tenth_of_a_degree() {
+    let mut app = a_line_begun("the_angle_on_the_arc_is_written_to_a_tenth_of_a_degree");
+    let start = driver::sketch_point_on_screen(&app, driver::A_POINT_ABOVE_THE_ORIGIN);
+
+    driver::hover_at_sketch_point(&mut app, driver::A_POINT_FURTHER_ALONG);
+    app.run();
+    let read: Vec<String> = angles_written_by(&app, start)
+        .into_iter()
+        .map(|(text, _)| text)
+        .collect();
+    assert_eq!(
+        read,
+        ["26.6°"],
+        "a line from {:?} to {:?} leans 26.565…° off the horizontal: its arc reads it to a \
+         tenth of a degree",
+        driver::A_POINT_ABOVE_THE_ORIGIN,
+        driver::A_POINT_FURTHER_ALONG,
+    );
+
+    let hand = driver::sketch_point_on_screen(&app, driver::A_POINT_FURTHER_ALONG);
+    let fields = the_fields_carried(&app, hand);
+    assert_eq!(
+        fields.len(),
+        2,
+        "the line carries its length and its angle: {fields:?}"
+    );
+    if let Some(angle) = app
+        .query_all_by_role(egui::accesskit::Role::TextInput)
+        .find(|field| field.rect() == fields[1])
+    {
+        angle.focus();
+    }
+    app.run();
+    app.event(egui::Event::Text("26.56".to_owned()));
+    app.run();
+    app.run();
+
+    assert!(
+        driver::fields(&app).iter().any(|held| held == "26.56"),
+        "the angle field keeps what is typed in it, to the last figure: {:?}",
+        driver::fields(&app),
+    );
+    let read: Vec<String> = angles_written_by(&app, start)
+        .into_iter()
+        .map(|(text, _)| text)
+        .collect();
+    assert_eq!(
+        read,
+        ["26.6°"],
+        "26.56 typed in the angle field, the arc reads it to a tenth of a degree",
+    );
+}
+
+#[test]
+fn the_angle_s_pill_stands_clear_of_the_fields_the_cursor_carries() {
+    let mut app = a_line_begun("the_angle_s_pill_stands_clear_of_the_fields_the_cursor_carries");
+    let start = driver::sketch_point_on_screen(&app, driver::A_POINT_ABOVE_THE_ORIGIN);
+    let from = driver::A_POINT_ABOVE_THE_ORIGIN;
+
+    let mut under = Vec::new();
+    for (side, cursor) in [
+        ("above", from + DVec2::new(0.0, 12.5)),
+        ("below", from + DVec2::new(0.0, -12.5)),
+        ("left", from + DVec2::new(-12.5, 0.0)),
+        ("right", from + DVec2::new(12.5, 0.0)),
+    ] {
+        driver::hover_at_sketch_point(&mut app, cursor);
+        app.run();
+        let hand = driver::sketch_point_on_screen(&app, cursor);
+        let fields = the_fields_carried(&app, hand);
+        if fields.len() != 2 {
+            under.push(format!(
+                "the cursor {side} the start carries no two fields: {fields:?}"
+            ));
+            continue;
+        }
+        let popup = the_popup_round(&app, &fields);
+        let pills = angles_written_by(&app, start);
+        if pills.is_empty() {
+            under.push(format!(
+                "the cursor {side} the start, no angle is written by it"
+            ));
+        }
+        for (text, pill) in pills {
+            if pill.intersects(popup) {
+                under.push(format!(
+                    "the cursor {side} the start: « {text} », in {pill:?}, stands under the \
+                     fields, in {popup:?}"
+                ));
+            }
+        }
+    }
+
+    assert!(
+        under.is_empty(),
+        "the angle by the start of a line stands clear of the fields its cursor carries:\n  {}",
+        under.join("\n  "),
+    );
+}
+
+#[test]
+fn a_tool_that_picks_what_is_drawn_names_no_snap() {
+    let test = "a_tool_that_picks_what_is_drawn_names_no_snap";
+    let mut app = the_line_tool_over_the_plate(test);
+
+    let mut named = Vec::new();
+    for tool in ["Congé", "Cote (D)"] {
+        driver::click_in_the_ribbon(&mut app, tool);
+        for (at, snap, name) in PLACES {
+            driver::hover_at_sketch_point(&mut app, at);
+            app.run();
+            if !the_pills_around(&app, name).is_empty() {
+                named.push(format!(
+                    "« {tool} » over {snap} at {at:?} names it « {name} »"
+                ));
+            }
+        }
+    }
+
+    assert!(
+        named.is_empty(),
+        "a tool that takes what is drawn, rather than laying a point, names no snap — the \
+         ring and its name say where a point is about to be laid:\n  {}",
+        named.join("\n  "),
     );
 }

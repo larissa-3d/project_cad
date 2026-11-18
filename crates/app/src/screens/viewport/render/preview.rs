@@ -8,7 +8,7 @@ use glam::DVec2;
 
 use super::curves::{push_circle_at, push_line};
 use super::marks::{push_midpoint_mark, push_point_marker, push_square_mark};
-use super::{arc, ellipse, emphasis, symmetric_line, tint_at};
+use super::{arc, ellipse, emphasis, symmetric_line, tint, tint_at};
 use crate::screens::SketchContext;
 use crate::screens::sketch::{DimensionMode, Tool};
 use crate::screens::viewport::input::{
@@ -89,6 +89,9 @@ pub(crate) fn push_preview(
         return;
     };
     let preview = emphasis::ghost(theme);
+    // What the next click lays is drawn as the stroke it will be, in the
+    // tool's colour.
+    let laying = (tint(theme.tool_in_progress), theme.sketch_width);
 
     if let Some(anchor) = context.editor.chain() {
         let from = match anchor {
@@ -101,12 +104,11 @@ pub(crate) fn push_preview(
             .aimed
             .map(|aimed| aimed.position)
             .unwrap_or(cursor);
-        push_preview_line(
+        push_laying_line(
             out,
             sketch,
-            from,
-            to,
-            preview,
+            (from, to),
+            laying,
             context.editor.construction,
             scale,
         );
@@ -186,8 +188,8 @@ pub(crate) fn push_preview(
             sketch,
             found.centre,
             found.radius,
-            preview,
-            1.5,
+            laying.0,
+            laying.1,
             context.editor.construction,
             scale,
         );
@@ -220,17 +222,39 @@ pub(crate) fn push_preview(
             DVec2::new(start.x, far.y),
         ];
         for index in 0..4 {
-            push_preview_line(
+            let side = (corners[index], corners[(index + 1) % 4]);
+            push_laying_line(
                 out,
                 sketch,
-                corners[index],
-                corners[(index + 1) % 4],
-                preview,
+                side,
+                laying,
                 context.editor.construction,
                 scale,
             );
         }
     }
+}
+
+/// A trait the next click lays, drawn at the colour and the width it is
+/// offered in.
+fn push_laying_line(
+    out: &mut Vec<cao_render::Vertex>,
+    sketch: &Sketch,
+    (from, to): (DVec2, DVec2),
+    (color, width): ([f32; 4], f32),
+    construction: bool,
+    scale: ViewScale,
+) {
+    let world = |place: DVec2| sketch.plane.to_world(place);
+    push_line(
+        out,
+        world(from),
+        world(to),
+        color,
+        width,
+        construction,
+        scale,
+    );
 }
 
 #[allow(clippy::too_many_arguments)]

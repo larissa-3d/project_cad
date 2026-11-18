@@ -141,6 +141,25 @@
 //!   the dimension colour and in its cartouche — no test: in this file; held in
 //!   `crates/app/src/screens/viewport/render/dimensions/tests.rs` by
 //!   `a_cut_s_value_is_written_like_a_dimension_s_in_its_colour_and_its_cartouche`
+//! - found in the real window: on a rectangle drawn with its tool, the size
+//!   the capture shows, a mark's box covered a side and hid a corner — no
+//!   test: in this file; held by
+//!   `the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_corners`
+//!   in `crates/app/src/screens/viewport/render/overlays/tests.rs`
+//! - found in the real window: the angle on the arc was written to four
+//!   places, and stood under the fields the cursor carries — no test: in this
+//!   file; held by `the_angle_on_the_arc_is_written_to_a_tenth_of_a_degree`
+//!   and `the_angle_s_pill_stands_clear_of_the_fields_the_cursor_carries` in
+//!   `crates/app/tests/the_tool_in_progress.rs`
+//! - found in the real window: the fillet tool, picking a corner, named its
+//!   snap — only a tool that lays a point rings its snap, one that picks what
+//!   is drawn rings nothing — `only_a_tool_that_places_a_point_rings_its_snap`;
+//!   and names nothing, held by `a_tool_that_picks_what_is_drawn_names_no_snap`
+//!   in `crates/app/tests/the_tool_in_progress.rs`
+//! - found in the real window: the trait in progress was thin and faint beside
+//!   the laid ones and the mockup's solid amber — a line, a rectangle and a
+//!   circle in progress are drawn at the sketch's width and near opaque, in
+//!   the tool's colour — `the_provisional_trait_is_drawn_solid_at_the_sketch_width`
 //!
 //! The grid's spacing is out of scope: it stays in millimetres. The two colours
 //! the theme gains are read by the names a profile writes them under,
@@ -1062,34 +1081,36 @@ fn round(steps: &[(DVec2, DVec2)], centre: DVec2, near: f64, far: f64) -> Vec<(D
         .collect()
 }
 
-/// Whether `steps` go all the way round `centre`, no gap between them wider
-/// than a sixth of a turn, at one radius.
+/// Whether some of `steps`, at one radius, go all the way round `centre`, no
+/// gap between them wider than a sixth of a turn. Other shapes drawn round the
+/// same place at another radius — the square the point tool draws at the
+/// cursor — are no part of the ring and are left aside.
 fn goes_all_the_way_round(steps: &[(DVec2, DVec2)], centre: DVec2) -> bool {
-    let mut angles: Vec<f64> = steps
-        .iter()
-        .flat_map(|(one, other)| [*one, *other])
-        .map(|end| (end - centre).to_angle())
-        .collect();
-    angles.sort_by(f64::total_cmp);
-    let radii: Vec<f64> = steps.iter().map(|(one, _)| one.distance(centre)).collect();
-    let (smallest, largest) = radii
-        .iter()
-        .fold((f64::MAX, 0.0_f64), |(low, high), radius| {
-            (low.min(*radius), high.max(*radius))
-        });
-    let widest_gap = angles
-        .windows(2)
-        .map(|pair| pair[1] - pair[0])
-        .chain(
-            angles
-                .first()
-                .zip(angles.last())
-                .map(|(first, last)| first + std::f64::consts::TAU - last),
-        )
-        .fold(0.0, f64::max);
-    steps.len() >= 6
-        && largest - smallest <= 0.02 * largest
-        && widest_gap <= std::f64::consts::TAU / 6.0
+    steps.iter().any(|(one, _)| {
+        let radius = one.distance(centre);
+        let ring: Vec<(DVec2, DVec2)> = steps
+            .iter()
+            .copied()
+            .filter(|(end, _)| (end.distance(centre) - radius).abs() <= 0.02 * radius)
+            .collect();
+        let mut angles: Vec<f64> = ring
+            .iter()
+            .flat_map(|(one, other)| [*one, *other])
+            .map(|end| (end - centre).to_angle())
+            .collect();
+        angles.sort_by(f64::total_cmp);
+        let widest_gap = angles
+            .windows(2)
+            .map(|pair| pair[1] - pair[0])
+            .chain(
+                angles
+                    .first()
+                    .zip(angles.last())
+                    .map(|(first, last)| first + std::f64::consts::TAU - last),
+            )
+            .fold(0.0, f64::max);
+        ring.len() >= 6 && widest_gap <= std::f64::consts::TAU / 6.0
+    })
 }
 
 /// A theme whose tool colour is a teal of its own, amber being only its
@@ -1285,5 +1306,155 @@ fn no_ring_is_drawn_once_the_cursor_has_left_the_canvas() {
         still_ringed.is_empty(),
         "with the cursor off the canvas, the last snap it was pulled onto is still ringed:\n  {}",
         still_ringed.join("\n  "),
+    );
+}
+
+#[test]
+fn only_a_tool_that_places_a_point_rings_its_snap() {
+    let theme = a_theme_with_its_own_tool_colour();
+    let tool_colour = hex_of(tint(theme.tool_in_progress));
+    let at = DVec2::new(40.0, 10.0);
+    let rings = |tool: Tool| {
+        let mut editor = SketchEditor::default();
+        editor.begin_editing(0, WorkPlane::XY);
+        editor.tool = tool;
+        editor.cursor = Some(at);
+        editor.snap = Some(Snap::Midpoint(at));
+        let document = a_part_with_a_trait(DVec2::new(20.0, 10.0), DVec2::new(60.0, 10.0), false);
+        let (sketch, lines, _) = a_frame_of(document, editor, &theme);
+        goes_all_the_way_round(
+            &round(&painted_in(&lines, &sketch, tool_colour), at, 4.0, 16.0),
+            at,
+        )
+    };
+
+    let placing = [
+        Tool::Line,
+        Tool::LineSymmetric,
+        Tool::Rectangle,
+        Tool::Circle,
+        Tool::Arc,
+        Tool::Ellipse,
+        Tool::Point,
+    ];
+    let picking = [
+        Tool::Dimension,
+        Tool::Measure,
+        Tool::Trim,
+        Tool::Split,
+        Tool::Chamfer,
+        Tool::Fillet,
+        Tool::Constrain(cao_sketch::Rule::Coincident),
+    ];
+    let unringed: Vec<Tool> = placing.into_iter().filter(|tool| !rings(*tool)).collect();
+    let ringed: Vec<Tool> = picking.into_iter().filter(|tool| rings(*tool)).collect();
+
+    assert!(
+        unringed.is_empty() && ringed.is_empty(),
+        "the ring says where a point is about to be laid: a tool that lays one rings its \
+         snap, and one that only picks what is drawn rings nothing — rings missing for \
+         {unringed:?}, rings drawn for {ringed:?}",
+    );
+}
+
+#[test]
+fn the_provisional_trait_is_drawn_solid_at_the_sketch_width() {
+    let theme = a_theme_with_its_own_tool_colour();
+    let tool_colour = hex_of(tint(theme.tool_in_progress));
+    let pixel = a_view().units_per_pixel;
+    let (start, cursor) = (DVec2::new(-30.0, -10.0), DVec2::new(-2.0, 12.0));
+    let empty = || {
+        let mut document = PartDocument::new("part", Utc::now());
+        document.apply(Operation::CreateSketch {
+            plane: WorkPlane::XY,
+            on: None,
+        });
+        document
+    };
+    let in_the_tool_colour = |steps: Vec<Step>| -> Vec<Step> {
+        steps
+            .into_iter()
+            .filter(|step| hex_of(step.color) == tool_colour)
+            .collect()
+    };
+
+    let mut drawn: Vec<(&str, Vec<Step>)> = Vec::new();
+
+    let (sketch, lines, _) = a_frame_of(empty(), drawing_a_line(start, cursor), &theme);
+    drawn.push((
+        "a line",
+        in_the_tool_colour(painted_along(&lines, &sketch, start, cursor)),
+    ));
+
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(0, WorkPlane::XY);
+    editor.tool = Tool::Rectangle;
+    editor.tool_state = ToolState::Rectangle { start };
+    editor.cursor = Some(cursor);
+    let (sketch, lines, _) = a_frame_of(empty(), editor, &theme);
+    let far = [
+        DVec2::new(cursor.x, start.y),
+        cursor,
+        DVec2::new(start.x, cursor.y),
+        start,
+    ];
+    let sides = [start, far[0], far[1], far[2]]
+        .into_iter()
+        .zip(far)
+        .flat_map(|(from, to)| painted_along(&lines, &sketch, from, to))
+        .collect();
+    drawn.push(("a rectangle", in_the_tool_colour(sides)));
+
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(0, WorkPlane::XY);
+    editor.tool = Tool::Circle;
+    editor.tool_state = ToolState::Circle {
+        points: vec![start],
+        segments: Vec::new(),
+    };
+    editor.cursor = Some(cursor);
+    let (sketch, lines, _) = a_frame_of(empty(), editor, &theme);
+    let radius = start.distance(cursor) / pixel;
+    let rim: Vec<Step> = lines
+        .chunks(2)
+        .map(|ends| Step {
+            from: place(&ends[0], &sketch),
+            to: place(&ends[1], &sketch),
+            color: ends[0].color,
+            width: ends[0].width,
+        })
+        .filter(|step| {
+            [step.from, step.to]
+                .iter()
+                .all(|end| (end.distance(start) / pixel - radius).abs() <= 0.02 * radius)
+        })
+        .collect();
+    drawn.push(("a circle", in_the_tool_colour(rim)));
+
+    let mut wrong = Vec::new();
+    for (what, steps) in drawn {
+        if steps.is_empty() {
+            wrong.push(format!(
+                "{what} in progress is not drawn in the tool's colour at all"
+            ));
+            continue;
+        }
+        let faint: Vec<(f32, f32)> = steps
+            .iter()
+            .filter(|step| step.width != theme.sketch_width || step.color[3] < 0.9)
+            .map(|step| (step.width, step.color[3]))
+            .collect();
+        if !faint.is_empty() {
+            wrong.push(format!(
+                "{what} in progress is drawn {} px wide at an opacity of {}, where a laid \
+                 stroke is {} px and the trait in progress is solid",
+                faint[0].0, faint[0].1, theme.sketch_width,
+            ));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "the trait in progress is drawn as solid and as wide as a laid one:\n  {}",
+        wrong.join("\n  "),
     );
 }
