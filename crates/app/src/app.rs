@@ -146,6 +146,12 @@ impl CaoApp {
             self.open_part(part);
             return;
         }
+        let settings = self.remembered.lang().t("app.settings");
+        egui::Panel::bottom("start_menu_settings").show(ui, |ui| {
+            if ui.button(settings).clicked() {
+                self.settings_open = true;
+            }
+        });
         let action = egui::CentralPanel::default_margins()
             .show(ui, |ui| {
                 screens::start_menu::show(
@@ -374,12 +380,6 @@ impl eframe::App for CaoApp {
 
         if matches!(self.screen, Screen::StartMenu) {
             self.show_start_menu(ui);
-            if ui
-                .button(self.remembered.lang().t("app.settings"))
-                .clicked()
-            {
-                self.settings_open = true;
-            }
         } else {
             self.show_part(ui);
         }
