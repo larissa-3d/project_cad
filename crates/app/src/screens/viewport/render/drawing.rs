@@ -10,6 +10,7 @@ use super::curves::push_circle_at;
 use super::cuts::{CutCanvas, Stroke};
 use super::marks::push_point_markers;
 use super::preview::push_preview;
+use super::tool_in_progress::push_tool_in_progress;
 use super::trim::{LOUDER, push_going};
 use super::{emphasis, live_offset, tint, tint_at};
 use crate::screens::SketchContext;
@@ -293,6 +294,7 @@ impl Seen {
         }
 
         push_preview(out, sketch, theme, scale, context);
+        push_tool_in_progress(out, sketch, theme, scale, context);
 
         if let Some(going) = going {
             push_going(out, sketch, going, theme, scale);

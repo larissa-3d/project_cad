@@ -1,6 +1,7 @@
 //! The values a shape is drawn to, shown beside the cursor and editable on the
 //! spot: a length and an angle for a line, the two sides of a rectangle.
 
+use cao_prefs::theme::Theme;
 use cao_sketch::{ChamferMode, ToolState};
 
 use crate::screens::sketch::{LiveInput, Tool};
@@ -8,6 +9,7 @@ use crate::ui::formula_field::{formula_field, shift_the_caret};
 
 use super::super::input::rectangle_corner;
 use super::super::values::shape_scale;
+use super::overlays::tint_to_color;
 use super::{arc, circle, ellipse, symmetric_line};
 use crate::screens::SketchContext;
 use crate::wording::dimension::short;
@@ -20,12 +22,20 @@ use crate::wording::dimension::short;
 ///
 /// Returns true when the user pressed Enter to finish the line from the
 /// keyboard.
-pub(crate) fn paint_live_input(ui: &mut egui::Ui, context: &mut SketchContext<'_>) -> bool {
-    paint_live_fields(ui, context).unwrap_or(false)
+pub(crate) fn paint_live_input(
+    ui: &mut egui::Ui,
+    context: &mut SketchContext<'_>,
+    theme: &Theme,
+) -> bool {
+    paint_live_fields(ui, context, theme).unwrap_or(false)
 }
 
 /// The same, written where a missing piece simply means there is nothing to show yet.
-fn paint_live_fields(ui: &mut egui::Ui, context: &mut SketchContext<'_>) -> Option<bool> {
+fn paint_live_fields(
+    ui: &mut egui::Ui,
+    context: &mut SketchContext<'_>,
+    theme: &Theme,
+) -> Option<bool> {
     let index = context.editor.active_sketch()?;
     let sketch = context.document.sketches().get(index)?;
     let raw_cursor = context.editor.cursor?;
@@ -97,25 +107,30 @@ fn paint_live_fields(ui: &mut egui::Ui, context: &mut SketchContext<'_>) -> Opti
         .fixed_pos(at + egui::vec2(20.0, 20.0))
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
-            egui::Frame::popup(ui.style()).show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    for (rank, label) in labels.into_iter().enumerate() {
-                        if label.is_empty() {
-                            continue;
+            // Bordered in the tool's colour: what it holds is the tool's, as
+            // much as the trait it draws.
+            let border = egui::Stroke::new(1.0, tint_to_color(theme.tool_in_progress));
+            egui::Frame::popup(ui.style())
+                .stroke(border)
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        for (rank, label) in labels.into_iter().enumerate() {
+                            if label.is_empty() {
+                                continue;
+                            }
+                            let first = rank == 0;
+                            validated |= live_field(
+                                ui,
+                                (label, measured[rank]),
+                                live,
+                                rank,
+                                focus && first,
+                                variables,
+                                over(rank),
+                            );
                         }
-                        let first = rank == 0;
-                        validated |= live_field(
-                            ui,
-                            (label, measured[rank]),
-                            live,
-                            rank,
-                            focus && first,
-                            variables,
-                            over(rank),
-                        );
-                    }
+                    });
                 });
-            });
         });
     Some(validated)
 }

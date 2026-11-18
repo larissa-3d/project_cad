@@ -835,6 +835,12 @@
   "sketch_pill.free_many": "{count} libertés restantes",
   "sketch_pill.settled": "entièrement réglée",
 
+  "snap.point": "Coïncidence",
+  "snap.midpoint": "Milieu",
+  "snap.crossing": "Intersection",
+  "snap.centre": "Centre",
+  "snap.on_curve": "Sur la courbe",
+
   "view_bar.on_the_plane": "X {x} Y {y} {unit}",
   "view_bar.on_the_part": "X {x} Y {y} Z {z} {unit}",
   "view_bar.nothing_pointed": "—",
