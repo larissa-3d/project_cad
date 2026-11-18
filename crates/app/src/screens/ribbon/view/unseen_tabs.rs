@@ -24,14 +24,13 @@ pub(super) fn hold(ui: &Ui, short: f32) {
 }
 
 /// Lays out every tab of `items` where the open tab stands, out of sight, and
-/// answers how much shorter than the tallest the one at `open` is.
+/// answers how tall the tallest stands.
 ///
 /// Laid out in a context of their own: in the window's, the accessibility
 /// tree would read the buttons of the tabs not open as on screen.
-pub(super) fn measure(
+pub(super) fn tallest(
     ui: &Ui,
     items: &[Item],
-    open: usize,
     state: &Context<'_>,
     ribbon: &mut Ribbon,
     bar_width: f32,
@@ -51,7 +50,7 @@ pub(super) fn measure(
         .native_pixels_per_point = Some(ui.ctx().pixels_per_point());
     let style = ui.style().clone();
     let heights_id = Id::new("tab_heights");
-    let mut heights: Vec<(usize, f32)> = unseen
+    let mut heights: Vec<f32> = unseen
         .data(|data| data.get_temp(heights_id))
         .unwrap_or_default();
     for _ in 0..SETTLED_WITHIN {
@@ -69,15 +68,7 @@ pub(super) fn measure(
         }
     }
     unseen.data_mut(|data| data.insert_temp(heights_id, heights.clone()));
-    let tallest = heights
-        .iter()
-        .map(|(_, height)| *height)
-        .fold(0.0, f32::max);
-    let open = heights
-        .iter()
-        .find(|(rank, _)| *rank == open)
-        .map_or(0.0, |(_, height)| *height);
-    tallest - open
+    heights.into_iter().fold(0.0, f32::max)
 }
 
 fn tab_heights(
@@ -86,7 +77,7 @@ fn tab_heights(
     state: &Context<'_>,
     ribbon: &mut Ribbon,
     bar_width: f32,
-) -> Vec<(usize, f32)> {
+) -> Vec<f32> {
     let room = ui.max_rect();
     items
         .iter()
@@ -105,7 +96,7 @@ fn tab_heights(
                 false,
                 bar_width,
             );
-            Some((rank, tab.min_rect().height()))
+            Some(tab.min_rect().height())
         })
         .collect()
 }

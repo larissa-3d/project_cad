@@ -187,16 +187,15 @@ impl Ribbon {
             ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
 
             let mut held = 0.0;
-            let along = matches!(layout.edge, Edge::Top | Edge::Bottom);
-            let short = if along {
-                unseen_tabs::measure(ui, &layout.items, self.tab, &state, self, bar_width)
-            } else {
-                0.0
-            };
-            unseen_tabs::hold(ui, short);
+            let tallest = matches!(layout.edge, Edge::Top | Edge::Bottom)
+                .then(|| unseen_tabs::tallest(ui, &layout.items, &state, self, bar_width));
             if let Some(Item::Group { items, .. }) = layout.items.get(self.tab) {
                 held = groups::open_tab(ui, items, &state, &mut asked, self, side, bar_width);
             }
+            unseen_tabs::hold(
+                ui,
+                tallest.map_or(0.0, |tallest| tallest - ui.min_rect().height()),
+            );
             self.floating_width = held.max(header_width);
             for item in &layout.items {
                 match item {

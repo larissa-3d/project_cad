@@ -101,7 +101,12 @@
 //!   `with_the_part_panel_closed_the_minimum_asked_is_the_tallest_tab_s_on_every_tab`
 //! - Switching tab on a window at that minimum asks for no new minimum, so the
 //!   window does not move —
-//!   `switching_tab_on_a_window_at_its_minimum_asks_for_no_new_minimum`
+//!   `switching_tab_on_a_window_at_its_minimum_asks_for_no_new_minimum`:
+//!   read as no minimum asked on any frame while the tabs are clicked through,
+//!   each shown after a taller and a shorter one, on a window set as short as
+//!   the minimum, the Part panel open, and on another part closed before any
+//!   tab but « Extrusion » was shown. The window moving is the native
+//!   window's doing, which the driver has none of
 //! - `the_minimum_asked_follows_the_ribbon_s_tab_by_as_much_as_the_ribbon_grows`
 //!   is rewritten to assert criterion 1, not deleted — rewritten and renamed
 //!   `on_every_tab_the_minimum_asked_is_the_one_of_the_tab_whose_ribbon_is_tallest`,
@@ -1057,6 +1062,62 @@ fn with_the_part_panel_closed_the_minimum_asked_is_the_tallest_tab_s_on_every_ta
          asked is not the one of « Esquisse », whose ribbon is the tallest:\n  {}",
         driver::SCREEN,
         apart.join("\n  "),
+    );
+}
+
+/// The tabs clicked in turn, from « Extrusion »: each one shown at least once
+/// after another, and each tab left for one taller and for one shorter.
+const THE_TABS_IN_TURN: [&str; 5] = ["Esquisse", "Export", "Extrusion", "Esquisse", "Extrusion"];
+
+/// Sets the window as short as the minimum last asked, then clicks through
+/// the tabs, and answers every minimum asked on the way, frame by frame, with
+/// the tab clicked when it was.
+fn asked_while_switching_tabs_at_the_minimum(app: &mut driver::App) -> (f32, Vec<String>) {
+    let minimum = the_minimum_height_asked(app);
+    app.set_size(egui::vec2(driver::SCREEN.x, minimum));
+    app.run();
+    let mut asked = Vec::new();
+    for tab in THE_TABS_IN_TURN {
+        let before = driver::how_many_minimums_asked(app);
+        driver::click_the_button(app, tab);
+        asked.extend(
+            driver::the_minimums_asked(app)
+                .into_iter()
+                .skip(before)
+                .map(|size| format!("{} on clicking « {tab} »", size.y)),
+        );
+    }
+    (minimum, asked)
+}
+
+#[test]
+fn switching_tab_on_a_window_at_its_minimum_asks_for_no_new_minimum() {
+    let mut open_part =
+        a_part_opened_on_the_extrusion_s_tab("switching_tab_on_a_window_at_its_minimum");
+
+    let (open, asked_open) = asked_while_switching_tabs_at_the_minimum(&mut open_part);
+    let mut closed_part = a_part_opened_on_the_extrusion_s_tab(
+        "switching_tab_on_a_window_at_its_minimum_the_panel_closed",
+    );
+    driver::click_the_button(&mut closed_part, "Pièce");
+    assert!(
+        the_part_panel_s_title(&closed_part).is_none(),
+        "the fixture wants the Part panel closed: {:?}",
+        driver::on_screen(&closed_part),
+    );
+    let (closed, asked_closed) = asked_while_switching_tabs_at_the_minimum(&mut closed_part);
+
+    assert!(
+        asked_open.is_empty(),
+        "on a window as short as the minimum asked, {open}, the Part panel open, switching \
+         tabs asked the window for a new minimum:\n  {}",
+        asked_open.join("\n  "),
+    );
+    assert!(
+        asked_closed.is_empty(),
+        "on a window as short as the minimum asked, {closed}, the Part panel closed, switching \
+         tabs asked the window for a new minimum:\n  {}",
+        asked_closed.join("\n  "),
     );
 }
 
