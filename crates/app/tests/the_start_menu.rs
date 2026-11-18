@@ -11,6 +11,9 @@
 //!   part left when it was put away
 //! - Clicking it on the start menu opens the preferences —
 //!   `clicking_the_preferences_button_of_the_start_menu_opens_the_preferences`
+//! - found in review, from the issue's "What must not break": the error bar
+//!   at the bottom of the start menu stays on screen beside the button —
+//!   `an_error_on_the_start_menu_and_the_preferences_both_lie_inside_the_window`
 
 mod driver;
 
@@ -96,5 +99,36 @@ fn clicking_the_preferences_button_of_the_start_menu_opens_the_preferences() {
         "a click on the start menu's « {THE_PREFERENCES} » opened no preferences, \
          showing {:?}",
         driver::on_screen(&app),
+    );
+}
+
+#[test]
+fn an_error_on_the_start_menu_and_the_preferences_both_lie_inside_the_window() {
+    let test = "an_error_and_the_preferences_lie_inside";
+    let mut app = driver::open_on(test, driver::SCREEN);
+    driver::create_a_part(&mut app, "Disparue");
+    driver::click(&mut app, "Accueil");
+    let gone = driver::the_part_s_file(test, "Disparue");
+    std::fs::remove_file(&gone).expect("the part was put away where the test looks for it");
+
+    app.get_all_by_label("Disparue")
+        .max_by(|one, other| one.rect().center().x.total_cmp(&other.rect().center().x))
+        .expect("the part just put away is among the recent parts, right of the files")
+        .click();
+    app.run();
+
+    let error = format!("Aucun fichier à {}.", gone.display());
+    let window = app.ctx.content_rect();
+    let said = driver::where_it_reads(&app, &error);
+    assert!(
+        said.is_some_and(|rect| window.contains_rect(rect)),
+        "opening a recent part whose file is gone says « {error} » at {said:?}, which is not \
+         inside the {window:?} window; on screen: {:?}",
+        driver::on_screen(&app),
+    );
+    assert_eq!(
+        where_the_preferences_miss(&app),
+        None,
+        "with an error on the start menu, « {THE_PREFERENCES} » cannot be clicked",
     );
 }
