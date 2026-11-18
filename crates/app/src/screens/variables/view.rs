@@ -97,28 +97,33 @@ fn show(
         left: 0,
         ..ui.spacing().scroll.content_margin
     };
-    let fewest = FEWEST_ROWS * (foot + between) + margin.sum().y;
+    let fewest = match rows.len() {
+        0 => 0.0,
+        shown => (shown as f32).min(FEWEST_ROWS) * (foot + between) + margin.sum().y,
+    };
     let room = (ui.available_height() - foot - between).max(fewest);
     let above = ui.cursor().top();
-    egui::ScrollArea::vertical()
-        .id_salt("variables_rows")
-        .content_margin(margin)
-        .max_height(room)
-        .min_scrolled_height(fewest)
-        .show(ui, |ui| {
-            egui::Grid::new("variables_grid")
-                .num_columns(5)
-                .striped(true)
-                .show(ui, |ui| {
-                    for row in &rows {
-                        let lit = lit.contains(&row.variable);
-                        if let Some(asked) = one_row(ui, panel, row, (lit, &offers), lang) {
-                            action = asked;
+    if !rows.is_empty() {
+        egui::ScrollArea::vertical()
+            .id_salt("variables_rows")
+            .content_margin(margin)
+            .max_height(room)
+            .min_scrolled_height(fewest)
+            .show(ui, |ui| {
+                egui::Grid::new("variables_grid")
+                    .num_columns(5)
+                    .striped(true)
+                    .show(ui, |ui| {
+                        for row in &rows {
+                            let lit = lit.contains(&row.variable);
+                            if let Some(asked) = one_row(ui, panel, row, (lit, &offers), lang) {
+                                action = asked;
+                            }
+                            ui.end_row();
                         }
-                        ui.end_row();
-                    }
-                });
-        });
+                    });
+            });
+    }
     let scrolled = ui.cursor().top() - above;
     let adding = egui::Grid::new("variables_adding")
         .num_columns(5)

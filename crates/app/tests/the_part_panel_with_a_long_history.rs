@@ -123,6 +123,19 @@
 //!   `the_ribbon_back_off_the_top_and_collapsed_leaves_no_tab_s_height_in_the_minimum_asked`;
 //!   down a side the ribbon is drawn every frame, so nothing is left over there
 //!
+//! Closes #1014.
+//! - With the Part panel closed, the Variables panel open and no variable, the
+//!   add row stands right under the column headers, and the minimum height the
+//!   window asks is lower than with three variables —
+//!   `with_no_variable_the_add_row_stands_under_the_headers_and_the_window_asks_less_than_for_three`:
+//!   "right under" read as the add row beginning where a first variable's row
+//!   begins once three are in, within half a variable's row
+//! - With one variable, the add row stands right under that variable's row,
+//!   with no gap — `with_one_variable_the_add_row_stands_right_under_its_row`:
+//!   read as the add row as far under the one variable as under the last of
+//!   three, within half a row. It held before the fix too: the issue's
+//!   one-row gap was arithmetic, and the scrolled area shrinks to its one row
+//!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
 //! then it must stand wholly inside the window and the panel, inside what the
@@ -1872,5 +1885,93 @@ fn the_variables_panel_keeps_the_width_and_columns_it_had_in_one_grid() {
         "three short variables, the Variables panel no longer looks as its one grid laid it \
          out:\n  {}",
         moved.join("\n  "),
+    );
+}
+
+/// Where the Variables panel's column headers end, and where its add row
+/// begins.
+fn the_headers_foot_and_the_add_row_s_top(app: &driver::App) -> (f32, f32) {
+    let widgets = the_variables_panel_s_widgets(app);
+    let foot = widgets
+        .iter()
+        .filter(|(role, text, _)| {
+            *role != Role::TextInput && ["Nom", "Formule", "Valeur"].contains(&text.as_str())
+        })
+        .map(|(_, _, rect)| rect.bottom())
+        .fold(f32::NEG_INFINITY, f32::max);
+    let top = widgets
+        .iter()
+        .filter(|(role, text, _)| *role == Role::TextInput && text == "nom")
+        .map(|(_, _, rect)| rect.top())
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        foot.is_finite() && top.is_finite(),
+        "the fixture wants the Variables panel's headers and add row left of the view: \
+         {widgets:?}",
+    );
+    (foot, top)
+}
+
+/// Where the field of the variable named `name` begins, down the window.
+fn the_top_of_the_variable(app: &driver::App, name: &str) -> f32 {
+    let top = the_variables_panel_s_widgets(app)
+        .into_iter()
+        .filter(|(role, text, _)| *role == Role::TextInput && text == name)
+        .map(|(_, _, rect)| rect.top())
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        top.is_finite(),
+        "the fixture wants « {name} » in the Variables panel: {:?}",
+        driver::on_screen(app),
+    );
+    top
+}
+
+#[test]
+fn with_no_variable_the_add_row_stands_under_the_headers_and_the_window_asks_less_than_for_three() {
+    let mut app = a_part_with_the_variables_open("with_no_variable_the_add_row_stands_under");
+    let (headers, add_row) = the_headers_foot_and_the_add_row_s_top(&app);
+    let for_none = the_minimum_height_asked(&app);
+
+    add_variables(&mut app, 1..=3);
+    let first_row = the_top_of_the_variable(&app, "v1");
+    let row = the_top_of_the_variable(&app, "v2") - first_row;
+    let for_three = the_minimum_height_asked(&app);
+
+    assert!(
+        add_row - first_row < row / 2.0,
+        "no variable in the Variables panel, the add row begins at {add_row}, {} points under \
+         the headers ending at {headers}, where a first variable's row begins at {first_row}, \
+         {} points under them: a gap of {} stands between the headers and the add row, a \
+         variable's row being {row}",
+        add_row - headers,
+        first_row - headers,
+        add_row - first_row,
+    );
+    assert!(
+        for_none < for_three - TOLERANCE,
+        "the Part panel closed and the Variables panel open, the window is asked for {for_none} \
+         points with no variable and {for_three} with three: no variable holds it as tall",
+    );
+}
+
+#[test]
+fn with_one_variable_the_add_row_stands_right_under_its_row() {
+    let mut app = a_part_with_the_variables_open("with_one_variable_the_add_row_stands_under_it");
+    add_variables(&mut app, 1..=1);
+    let (_, add_row_under_one) = the_headers_foot_and_the_add_row_s_top(&app);
+    let under_one = add_row_under_one - the_top_of_the_variable(&app, "v1");
+
+    add_variables(&mut app, 2..=3);
+    let (_, add_row_under_three) = the_headers_foot_and_the_add_row_s_top(&app);
+    let under_three = add_row_under_three - the_top_of_the_variable(&app, "v3");
+    let row = the_top_of_the_variable(&app, "v2") - the_top_of_the_variable(&app, "v1");
+
+    assert!(
+        under_one - under_three < row / 2.0,
+        "one variable in the Variables panel, the add row begins {under_one} points under « v1 », \
+         where with three it begins {under_three} under the last, « v3 »: a gap of {} stands \
+         between the variable's row and the add row, a variable's row being {row}",
+        under_one - under_three,
     );
 }
