@@ -94,6 +94,13 @@
 //!   mark, the rule's box standing clear of its trait and of its corner, as in
 //!   the redesign's mockup —
 //!   `a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s`
+//! - found in the real window: that fixture, built by hand, passed while a
+//!   rectangle drawn with the rectangle tool had a box over its side and on
+//!   its corner — read on rectangles laid as the tool lays them, with its three
+//!   right angles, drawn from each of their four corners, at the size the
+//!   capture shows and at a larger one: no point of a side lies in a box or
+//!   answers as a mark, and no box covers a vertex's square —
+//!   `the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_corners`
 //!
 //! The two box colours are read by the names a profile writes them under,
 //! `rule_background` and `rule_border`, as #742 did for its stroke colours.
@@ -2101,5 +2108,127 @@ fn a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s
          instead, at {} places — the marks at {placed:?}; the first:\n  {}",
         taken.len(),
         taken[..taken.len().min(6)].join("\n  "),
+    );
+}
+
+/// A rectangle as the rectangle tool lays it: four sides from `corner` round
+/// to `opposite`, held square by the three right angles the tool puts on them.
+fn a_rectangle_as_its_tool_lays_it(corner: DVec2, opposite: DVec2) -> cao_sketch::Sketch {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(opposite),
+        construction: false,
+    });
+    let sides = [0, 1, 2, 3].map(SegmentId);
+    let (corners, _) = cao_sketch::rectangle_dimensions(
+        &document.sketches()[0],
+        sides,
+        cao_sketch::LockedInput::default(),
+        1.0,
+    );
+    for constraint in corners {
+        document.apply(Operation::Constrain {
+            sketch: 0,
+            constraint,
+        });
+    }
+    document.sketches()[0].clone()
+}
+
+/// How wide a point of the drawing is marked, in points: the square
+/// `push_point_markers` draws round it.
+const VERTEX_SQUARE: f32 = 8.0;
+
+#[test]
+fn the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_corners() {
+    let mut camera = OrbitCamera::default();
+    let (yaw, pitch) = cao_render::camera::view_angles_towards(Vec3::Z);
+    camera.set_view_angles(yaw, pitch);
+    let view_projection = camera.view_projection(SCREEN.aspect_ratio());
+    let pixel = f64::from(camera.world_units_per_pixel(SCREEN.height()));
+    let screen = |sketch: &cao_sketch::Sketch, at: DVec2| {
+        to_screen(sketch.plane.to_world(at), view_projection, SCREEN)
+            .expect("the rectangle stands in front of the camera")
+    };
+
+    let mut wrong = Vec::new();
+    for (wide, high) in [(126.0, 91.0), (300.0, 200.0)] {
+        let base = DVec2::new(40.0, 40.0) * pixel;
+        let far = base + DVec2::new(wide, high) * pixel;
+        let (left_low, right_high) = (base, far);
+        let (right_low, left_high) = (DVec2::new(far.x, base.y), DVec2::new(base.x, far.y));
+        for (corner, opposite) in [
+            (left_low, right_high),
+            (right_high, left_low),
+            (right_low, left_high),
+            (left_high, right_low),
+        ] {
+            let sketch = a_rectangle_as_its_tool_lays_it(corner, opposite);
+            let drawn = format!("{wide}×{high} pt from {corner:?}");
+            let placed = placed_marks(&sketch, view_projection, SCREEN);
+            if placed.len() != 3 {
+                wrong.push(format!(
+                    "{drawn}: marked {} times, not thrice",
+                    placed.len()
+                ));
+                continue;
+            }
+            let boxes: Vec<egui::Rect> = placed
+                .iter()
+                .map(|(_, at)| egui::Rect::from_center_size(*at, egui::vec2(MARK_BOX, MARK_BOX)))
+                .collect();
+            for (id, _) in sketch.live_segments() {
+                let (from, to) = sketch.endpoints(id);
+                let (from, to) = (screen(&sketch, from), screen(&sketch, to));
+                let steps = (from.distance(to) * 2.0).ceil() as usize;
+                let covered = (0..=steps)
+                    .map(|step| from + (to - from) * (step as f32 / steps as f32))
+                    .find(|on| {
+                        boxes.iter().any(|shown| shown.contains(*on))
+                            || mark_under(&placed, *on).is_some()
+                    });
+                if let Some(on) = covered {
+                    wrong.push(format!("{drawn}: {id:?} at {on:?} lies under a mark"));
+                }
+            }
+            for (rank, point) in sketch.points().iter().enumerate() {
+                if sketch.is_erased_point(cao_sketch::PointId(rank)) {
+                    continue;
+                }
+                let square = egui::Rect::from_center_size(
+                    screen(&sketch, *point),
+                    egui::vec2(VERTEX_SQUARE, VERTEX_SQUARE),
+                );
+                let hidden = boxes.iter().any(|shown| shown.intersects(square))
+                    || [
+                        square.center(),
+                        square.min,
+                        square.max,
+                        square.left_bottom(),
+                        square.right_top(),
+                    ]
+                    .into_iter()
+                    .any(|on| mark_under(&placed, on).is_some());
+                if hidden {
+                    wrong.push(format!(
+                        "{drawn}: the vertex at {:?} lies under a mark",
+                        square.center()
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "a rectangle drawn with its tool has a mark over a side or a corner, where a click \
+         is meant for the side or the corner:\n  {}",
+        wrong.join("\n  "),
     );
 }

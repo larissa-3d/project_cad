@@ -26,6 +26,7 @@ mod emphasis;
 mod extrusion;
 mod grid;
 mod live_fields;
+mod mark_places;
 mod marks;
 mod overlays;
 mod pattern;

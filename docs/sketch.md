@@ -667,7 +667,11 @@ inscribed circle would otherwise all land in the same place.
 
 Each mark sits in a **small box, 18 points across**, standing **clear of the
 traits** through the place it marks — beside a trait, inside the corner of a
-right angle — so that a click on a trait is the trait's and not the rule's.
+right angle, clear of the corner's own vertex too — so that a click on a trait
+or on a vertex is the trait's or the vertex's, not the rule's. A right angle's
+box stands a quarter of the shorter side into its corner, and further in on a
+shape too small for that to clear the sides; a corner too sharp to hold it
+takes it outside.
 
 Several rules can hold the same spot — a midpoint and a perpendicularity, for
 instance. Marks that would land on one another are therefore **spread side by
@@ -700,12 +704,15 @@ The cursor is pulled, in this order:
 | **The body of a curve** | Drawing on a trait, a circle, an arc or one of the plane's two axes already there is far more common than drawing beside it |
 | **The grid** | The safety net, with the shortest reach |
 
-Whatever pulled the cursor is **ringed in the colour of the tool in progress**
-— amber by default — and **named beside its ring**, up and to the left, clear
-of the fields the cursor carries: « Coïncidence » for a point, « Intersection »
-for a crossing, « Milieu » for a middle, « Centre » for the centre of a fillet,
-« Sur la courbe » for a place on a curve. The grid is not named. Ring and name
-go with the cursor when it leaves the canvas.
+While a tool that lays a point is in hand, whatever pulled the cursor is
+**ringed in the colour of the tool in progress** — amber by default — and
+**named beside its ring**, up and to the left, clear of the fields the cursor
+carries: « Coïncidence » for a point, « Intersection » for a crossing,
+« Milieu » for a middle, « Centre » for the centre of a fillet, « Sur la
+courbe » for a place on a curve. The grid is not named. A tool that only picks
+what is drawn — a dimension, a measure, a cut, a rule — rings nothing: the ring
+says where a point is about to be laid. Ring and name go with the cursor when
+it leaves the canvas.
 
 A curve already drawn therefore pulls **harder than the grid**: its reach is
 configurable separately ([configuration.md](configuration.md)).
@@ -1384,7 +1391,7 @@ instead of tearing it off. A radius turns around its circle.
 | **Blue** | Freedom is left: this element can still move. |
 | **Off-white** | Entirely constrained, settled: this point can no longer move at all. |
 | **Grey, dashed** | Construction geometry, settled or not. |
-| **Amber** | The tool in progress, and only it: the trait the next click lays, the ring and the name of a snap, the arc of a line's angle and the border of the fields the cursor carries. |
+| **Amber** | The tool in progress, and only it: the trait the next click lays — drawn as solid and as wide as a laid one — the ring and the name of a snap, the arc of a line's angle and the border of the fields the cursor carries. |
 | **Faint grey** | A sketch other than the one being edited. |
 
 The colour is **per element, not per sketch**: one outline can be entirely
@@ -1396,7 +1403,9 @@ colour of the profile, set in « Préférences » › « Apparence ».
 A line being drawn shows **its angle on an arc** at its start, in amber: from
 the trait it is drawn on from — the one the chain laid just before, or else the
 only trait ending where it starts — or else from the horizontal, round to the
-line the short way, the angle written beside it as the angle field reads it.
+line the short way, the angle written beside it to a tenth of a degree, on
+whichever side of the start keeps it off the fields the cursor carries. The
+angle field itself keeps what is typed in it.
 
 ### The origin point
 

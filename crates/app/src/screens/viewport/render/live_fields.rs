@@ -14,6 +14,9 @@ use super::{arc, circle, ellipse, symmetric_line};
 use crate::screens::SketchContext;
 use crate::wording::dimension::short;
 
+/// The area the fields the cursor carries stand in.
+pub(super) const LIVE_FIELDS: &str = "live_input";
+
 /// The length and the angle of the line being drawn, editable on the spot.
 ///
 /// Left alone they only report. Typed into, they become constraints and are
@@ -103,7 +106,7 @@ fn paint_live_fields(
     let live = &mut context.editor.live;
     let mut validated = false;
     let focus = std::mem::take(&mut live.focus);
-    egui::Area::new(egui::Id::new("live_input"))
+    egui::Area::new(egui::Id::new(LIVE_FIELDS))
         .fixed_pos(at + egui::vec2(20.0, 20.0))
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {

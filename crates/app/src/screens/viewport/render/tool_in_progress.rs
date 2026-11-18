@@ -8,9 +8,11 @@ use cao_sketch::{Sketch, Snap, ToolState};
 use glam::DVec2;
 
 use super::curves::{push_circle_at, push_curve};
+use super::live_fields::LIVE_FIELDS;
 use super::overlays::{tint_to_color, to_screen};
 use super::tint;
 use crate::screens::SketchContext;
+use crate::screens::sketch::Tool;
 use crate::screens::viewport::{ViewScale, ViewportState};
 use crate::ui::theme::tokens::{
     BACKGROUND_FLOATING, RADIUS_PILL, TYPOGRAPHY_SIZES_DETAIL, TYPOGRAPHY_SIZES_MONO_VALUE,
@@ -29,7 +31,8 @@ const ARC_PIECES: usize = 32;
 
 /// Where a snap's name ends from its ring, up and to the left: down and to the
 /// right is where the cursor carries its fields. And how far an angle stands
-/// out past its arc, in points.
+/// out past its arc, in points — on whichever side of the start keeps it off
+/// those fields.
 const NAME_FROM_THE_RING: egui::Vec2 = egui::vec2(-10.0, -10.0);
 const ANGLE_CLEARS_ITS_ARC: f32 = 6.0;
 
@@ -107,12 +110,22 @@ pub(crate) fn paint_tool_in_progress(
         let halfway = DVec2::from_angle(turning.sweep / 2.0).rotate(turning.from);
         let on_the_arc = turning.start + halfway * ARC_PIXELS * pixel;
         if let (Some(start), Some(on_the_arc)) = (screen(turning.start), screen(on_the_arc)) {
-            let said = wording::dimension::degrees(turning.typed.abs());
+            let tenths = (turning.typed.abs() * 10.0).round() / 10.0;
+            let said = wording::dimension::degrees(tenths);
             let font = egui::FontId::monospace(TYPOGRAPHY_SIZES_MONO_VALUE);
             let outward = (on_the_arc - start).normalized();
+            let fields = ui
+                .ctx()
+                .memory(|memory| memory.area_rect(egui::Id::new(LIVE_FIELDS)));
             in_a_pill(&painter, (said, font), colour, |size| {
-                let stands = on_the_arc + outward * (size.length() / 2.0 + ANGLE_CLEARS_ITS_ARC);
-                egui::Rect::from_center_size(stands, size)
+                let reach =
+                    (on_the_arc - start).length() + size.length() / 2.0 + ANGLE_CLEARS_ITS_ARC;
+                let beside = [outward, -outward, -egui::Vec2::Y, -egui::Vec2::X]
+                    .map(|way| egui::Rect::from_center_size(start + way * reach, size));
+                beside
+                    .into_iter()
+                    .find(|pill| fields.is_none_or(|fields| !pill.intersects(fields)))
+                    .unwrap_or(beside[0])
             });
         }
     }
@@ -120,8 +133,22 @@ pub(crate) fn paint_tool_in_progress(
 
 /// The place a snap pulled the cursor onto, while the cursor is on the
 /// canvas: the cursor itself for a point of the drawing, which carries no
-/// place of its own.
+/// place of its own. A tool that only picks what is drawn rings nothing: the
+/// ring says where a point is about to be laid.
 fn snapped(context: &SketchContext<'_>) -> Option<(Snap, DVec2)> {
+    let picks = matches!(
+        context.editor.tool,
+        Tool::Dimension
+            | Tool::Measure
+            | Tool::Trim
+            | Tool::Split
+            | Tool::Chamfer
+            | Tool::Fillet
+            | Tool::Constrain(_)
+    );
+    if picks {
+        return None;
+    }
     let (snap, cursor) = (context.editor.snap?, context.editor.cursor?);
     let at = match snap {
         Snap::Point => cursor,
