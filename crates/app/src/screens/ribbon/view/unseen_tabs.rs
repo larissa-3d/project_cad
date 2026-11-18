@@ -8,21 +8,6 @@ use super::groups;
 /// the next line on the size it came out at the time before.
 const SETTLED_WITHIN: usize = 4;
 
-fn short_id() -> Id {
-    Id::new("ribbon_short_of_the_tallest_tab")
-}
-
-/// How much shorter the ribbon stands on its open tab than on its tallest, at
-/// the width it was last drawn at.
-pub fn short_of_the_tallest_tab(ctx: &egui::Context) -> f32 {
-    ctx.data(|data| data.get_temp(short_id())).unwrap_or(0.0)
-}
-
-pub(super) fn hold(ui: &Ui, short: f32) {
-    ui.ctx()
-        .data_mut(|data| data.insert_temp(short_id(), short));
-}
-
 /// Lays out every tab of `items` where the open tab stands, out of sight, and
 /// answers how tall the tallest stands.
 ///

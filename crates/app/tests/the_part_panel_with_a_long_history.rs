@@ -112,6 +112,16 @@
 //!   `on_every_tab_the_minimum_asked_is_the_one_of_the_tab_whose_ribbon_is_tallest`,
 //!   its old name saying what it no longer asserts; it keeps its guard that the
 //!   two ribbons differ by a row
+//! - found in review: "at a given width" holds at another width than the
+//!   screen's — `at_another_width_the_minimum_asked_is_that_width_s_tallest_tab_s_on_every_tab`:
+//!   read as a part opened 1440 wide on « Extrusion », where nothing wraps,
+//!   narrowed to 1200, where the sketch's groups wrap taller than at 1280,
+//!   then widened back, every tab asking the minimum of that width's tallest
+//! - found in review: the ribbon moved off the top, floating and collapsed,
+//!   the minimum carries no difference of height between tabs left over from
+//!   when it stood there —
+//!   `the_ribbon_back_off_the_top_and_collapsed_leaves_no_tab_s_height_in_the_minimum_asked`;
+//!   down a side the ribbon is drawn every frame, so nothing is left over there
 //!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
@@ -1118,6 +1128,118 @@ fn switching_tab_on_a_window_at_its_minimum_asks_for_no_new_minimum() {
         "on a window as short as the minimum asked, {closed}, the Part panel closed, switching \
          tabs asked the window for a new minimum:\n  {}",
         asked_closed.join("\n  "),
+    );
+}
+
+/// A window wide enough for every tab's groups to hold on one line.
+const NOTHING_WRAPS: f32 = 1440.0;
+
+/// A window narrow enough for the sketch's groups to wrap taller than on the
+/// screen's 1280, while the extrusion's still hold on one line.
+const THE_SKETCH_WRAPS_TALLER: f32 = 1200.0;
+
+/// Every tab's minimum that is not `wanted`.
+fn apart_from(tabs: &[(&'static str, f32, f32)], wanted: f32) -> Vec<String> {
+    tabs.iter()
+        .filter(|(_, minimum, _)| (minimum - wanted).abs() > TOLERANCE)
+        .map(|(tab, minimum, top)| format!("« {tab} »: {minimum}, the view beginning at {top}"))
+        .collect()
+}
+
+#[test]
+fn at_another_width_the_minimum_asked_is_that_width_s_tallest_tab_s_on_every_tab() {
+    let mut app = driver::open_with(
+        "at_another_width_the_minimum_asked_is_that_width_s_tallest",
+        egui::vec2(NOTHING_WRAPS, driver::SCREEN.y),
+        the_sketch_group_moved_second(),
+    );
+    driver::create_a_part(&mut app, "Bloc");
+    let (wide, one_line) = the_minimum_and_the_view_s_top(&app);
+    let below_the_ribbon = wide - one_line;
+
+    app.set_size(egui::vec2(THE_SKETCH_WRAPS_TALLER, driver::SCREEN.y));
+    app.run();
+    let narrowed = on_every_tab(&mut app);
+    let tallest_narrowed = narrowed.iter().map(|(_, _, top)| *top).fold(0.0, f32::max);
+
+    driver::click_the_button(&mut app, "Extrusion");
+    app.set_size(egui::vec2(NOTHING_WRAPS, driver::SCREEN.y));
+    app.run();
+    let widened = on_every_tab(&mut app);
+
+    assert!(
+        tallest_narrowed - one_line > ROW / 2.0
+            && widened
+                .iter()
+                .all(|(_, _, top)| (top - one_line).abs() <= TOLERANCE),
+        "the fixture wants every tab on one line at {NOTHING_WRAPS} wide, the view beginning \
+         at {one_line}, and the sketch's a row taller at {THE_SKETCH_WRAPS_TALLER}: \
+         {narrowed:?} then {widened:?}",
+    );
+    let narrowed_apart = apart_from(&narrowed, tallest_narrowed + below_the_ribbon);
+    let widened_apart = apart_from(&widened, one_line + below_the_ribbon);
+    assert!(
+        narrowed_apart.is_empty() && widened_apart.is_empty(),
+        "the part opened {NOTHING_WRAPS} wide on « Extrusion », whose minimum asked, {wide}, \
+         stands {below_the_ribbon} below the view's top; narrowed to {THE_SKETCH_WRAPS_TALLER}, \
+         every tab wants {}, under the sketch's taller ribbon, and widened back {}:\n  \
+         narrowed: {}\n  widened: {}",
+        tallest_narrowed + below_the_ribbon,
+        one_line + below_the_ribbon,
+        narrowed_apart.join(", "),
+        widened_apart.join(", "),
+    );
+}
+
+/// The default toolbar floating, its « Extrusion » first, as
+/// `the_sketch_group_moved_second` lays it.
+fn the_ribbon_floating() -> cao_prefs::Settings {
+    let mut settings = the_sketch_group_moved_second();
+    settings.toolbar.edge = cao_prefs::Edge::Floating;
+    settings
+}
+
+/// Whether a window stands collapsed: the preferences' never is, so it is the
+/// ribbon's.
+fn the_ribbon_s_window_is_collapsed(app: &driver::App) -> bool {
+    app.query_all_by_label("Show")
+        .any(|node| node.accesskit_node().role() == Role::Button)
+}
+
+#[test]
+fn the_ribbon_back_off_the_top_and_collapsed_leaves_no_tab_s_height_in_the_minimum_asked() {
+    let mut app = driver::open_with(
+        "the_ribbon_back_off_the_top_and_collapsed",
+        driver::SCREEN,
+        the_ribbon_floating(),
+    );
+    driver::create_a_part(&mut app, "Bloc");
+    driver::click_the_button(&mut app, "Hide");
+    assert!(
+        the_ribbon_s_window_is_collapsed(&app),
+        "the fixture wants the floating ribbon collapsed: {:?}",
+        driver::on_screen(&app),
+    );
+    let floating = the_minimum_height_asked(&app);
+    driver::press_with_command(&mut app, egui::Key::Comma);
+    driver::click(&mut app, "Barre d'outils");
+
+    driver::click_the_button(&mut app, "En haut");
+    let (along_the_top, under_extrusion) = the_minimum_and_the_view_s_top(&app);
+    driver::click_the_button(&mut app, "Flottante");
+    let back_floating = the_minimum_height_asked(&app);
+
+    assert!(
+        along_the_top > floating + ROW && the_ribbon_s_window_is_collapsed(&app),
+        "the fixture wants the ribbon along the top taller than none, {along_the_top} against \
+         {floating} with the view beginning at {under_extrusion}, and the floating ribbon \
+         collapsed again: {:?}",
+        driver::on_screen(&app),
+    );
+    assert!(
+        (back_floating - floating).abs() <= TOLERANCE,
+        "the ribbon floating and collapsed, the minimum asked was {floating}; along the top on \
+         « Extrusion », then floating and collapsed again, it is {back_floating}",
     );
 }
 

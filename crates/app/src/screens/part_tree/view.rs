@@ -7,7 +7,6 @@ use crate::screens::part_tree::state::{
     self, Body, Drawn, Kept, PartTree, Points, Row, TreeAction, Variable, clickable, clicked,
     marked,
 };
-use crate::screens::ribbon::short_of_the_tallest_tab;
 use crate::screens::sketch::SketchEditor;
 use crate::screens::theme_colours;
 use crate::screens::viewport::ViewportState;
@@ -41,8 +40,8 @@ impl Asked<'_> {
 }
 
 /// The panel the tree is shown in, chrome and all, with the history folded at
-/// its bottom unless `history_unfolded`: what was asked of it, and the row the
-/// hand is on.
+/// its bottom unless `history_unfolded`: what was asked of it, the row the
+/// hand is on, and the least height the window may stand at.
 pub fn panel(
     ui: &mut egui::Ui,
     document: &PartDocument,
@@ -50,7 +49,7 @@ pub fn panel(
     viewport: &ViewportState,
     history_unfolded: bool,
     lang: &Catalogue,
-) -> (TreeAction, Option<Points>) {
+) -> (TreeAction, Option<Points>, f32) {
     let mut asked = Asked {
         document,
         editor,
@@ -70,28 +69,24 @@ pub fn panel(
             room
         });
     let ctx = ui.ctx();
-    hold_the_window(
-        ctx,
-        ctx.content_rect().height() - shown.inner + history::least_height(ctx),
-    );
-    (asked.action, asked.hovering)
+    let least = ctx.content_rect().height() - shown.inner + history::least_height(ctx);
+    (asked.action, asked.hovering, least)
 }
 
-/// Asks the window to stand no shorter than what is around the panel's place,
-/// the panel closed, nor than where what the panels beside it hold `ends`:
+/// The least height the window may stand at: what is around the panel's
+/// place, the panel closed, and where what the panels beside it hold `ends`.
 /// `ui` is where it would stand.
-pub fn closed(ui: &egui::Ui, ends: Option<f32>) {
+pub fn closed(ui: &egui::Ui, ends: Option<f32>) -> f32 {
     let ctx = ui.ctx();
     let room = ui.available_rect_before_wrap();
     let held = ends.map_or(0.0, |ends| (ends - room.top()).max(0.0));
-    hold_the_window(ctx, ctx.content_rect().height() - room.height() + held);
+    ctx.content_rect().height() - room.height() + held
 }
 
 /// Asks the window to stand no shorter than `least`; asked again only when
 /// that or the zoom changes, as the platform resizes the window on each ask
 /// and holds it in pixels of the zoom it was asked at.
-fn hold_the_window(ctx: &egui::Context, least: f32) {
-    let least = least + short_of_the_tallest_tab(ctx);
+pub fn hold_the_window(ctx: &egui::Context, least: f32) {
     let zoom = ctx.pixels_per_point();
     let id = egui::Id::new("part_tree_least_window_height");
     let asked = ctx.data(|data| data.get_temp::<(f32, f32)>(id));
