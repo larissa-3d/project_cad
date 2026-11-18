@@ -262,3 +262,25 @@ fn a_zoomed_in_application_hands_the_keeper_its_least_height_times_the_zoom() {
          as 814.5 points of the screen; the keeper was handed {handed:?}",
     );
 }
+
+#[test]
+fn the_keeper_is_handed_the_last_least_height_asked_not_the_tallest() {
+    let ctx = egui::Context::default();
+    let asked = LeastHeightAsked::default();
+    ctx.add_plugin(asked.clone());
+
+    for least in [621.0, 240.0] {
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            ui.ctx()
+                .send_viewport_cmd(egui::ViewportCommand::MinInnerSize(egui::vec2(0.0, least)));
+        });
+        output.textures_delta.clear();
+    }
+    let handed = asked.take();
+
+    assert!(
+        handed.is_some_and(|height| (height - 240.0).abs() < WITHIN_A_HAIR),
+        "asked 621 points on one frame, the Part panel open, then 240 on the next, closed, \
+         the keeper was handed {handed:?} to write down for the next launch",
+    );
+}

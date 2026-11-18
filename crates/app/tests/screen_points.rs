@@ -98,6 +98,13 @@ const WINDOW_POSITIONS: &[WindowPosition] = &[
               other: nothing is aimed from it",
     },
     WindowPosition {
+        file: "crates/app/tests/the_part_panel_with_a_long_history.rs",
+        written: "driver::canvas(&app)",
+        why: "the view read only for where it starts right of the Variables panel, to \
+              check that the panel takes no more of the window than its one grid did: \
+              nothing is aimed from it",
+    },
+    WindowPosition {
         file: "crates/app/tests/swapping_a_chamfer_s_sides.rs",
         written: "driver::canvas(&app)",
         why: "the view read only to check that the chamfer's panel stands over it, in \

@@ -43,6 +43,8 @@ pub struct Asked {
     pub changed: bool,
     /// What a refusal named, to be shown where it stands.
     pub named: Named,
+    /// How far down the window the panel reaches at the least.
+    pub ends: f32,
 }
 
 /// Puts the panel on screen and carries out what was asked of it.
@@ -52,7 +54,8 @@ pub fn run(
     document: &mut PartDocument,
     lang: &Catalogue,
 ) -> Asked {
-    let changed = match view::panel(ui, panel, document, lang) {
+    let (action, ends) = view::panel(ui, panel, document, lang);
+    let changed = match action {
         VariablesAction::Commit => panel.commit(document),
         VariablesAction::Add => panel.add(document),
         VariablesAction::Erase(variable) => panel.erase(document, variable),
@@ -60,10 +63,16 @@ pub fn run(
             panel.cancel();
             false
         }
-        VariablesAction::None => return Asked::default(),
+        VariablesAction::None => {
+            return Asked {
+                ends,
+                ..Asked::default()
+            };
+        }
     };
     Asked {
         changed,
         named: panel.named(),
+        ends,
     }
 }

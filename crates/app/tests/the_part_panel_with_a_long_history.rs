@@ -50,6 +50,44 @@
 //!   holds it in pixels of the zoom it was asked at —
 //!   `a_change_of_zoom_asks_the_window_for_its_minimum_again`
 //!
+//! Closes #1010.
+//! - With the Part panel closed, the minimum height the window asks for is
+//!   that of what stays on screen — title bar and ribbon — with nothing for
+//!   the Part panel —
+//!   `with_the_part_panel_closed_the_window_asks_for_the_title_bar_and_the_ribbon_and_no_more`:
+//!   read as a minimum shorter than the one asked with the panel open, at
+//!   which every labelled widget standing above the view still stands whole
+//!   in the window, while a row less pushes some of them off its bottom.
+//!   The Variables panel, open, is what stays on screen too, read the way the
+//!   history is: at the minimum asked, its title, its column headers, its two
+//!   first rows and the row that adds one stand whole in the window —
+//!   `with_the_part_panel_closed_and_the_variables_open_the_window_keeps_their_header_two_rows_and_the_add_row`;
+//!   the minimum does not grow with how many variables there are —
+//!   `with_the_part_panel_closed_the_minimum_asked_for_the_variables_does_not_grow_with_their_count`;
+//!   and on a window held for two, thirty keep their header and the row that
+//!   adds one, the last scrolling into view —
+//!   `on_a_window_held_for_two_variables_thirty_keep_their_header_and_add_row_and_the_last_scrolls_into_view`
+//! - found in review: the Variables panel's rows scrolling apart from its
+//!   headers and the row that adds one, every header still begins where its
+//!   fields do, and « Ajouter » where « Retirer » does, as in the one grid
+//!   they were laid in before —
+//!   `the_variables_panel_s_headers_fields_and_buttons_stand_in_columns`
+//! - found in review: the panel keeps the look it had in one grid, no wider
+//!   and its columns where they began —
+//!   `the_variables_panel_keeps_the_width_and_columns_it_had_in_one_grid`
+//! - With the Part panel reopened, the window asks again for the panel's
+//!   minimum, as with the panel never closed —
+//!   `reopened_the_part_panel_asks_the_window_for_its_minimum_again_as_if_never_closed`
+//! - The least height recorded for `window.json` is the last one asked: quit
+//!   with the panel closed, the small one —
+//!   `with_the_part_panel_closed_the_last_minimum_asked_stays_the_small_one_until_quit`;
+//!   the driver never writes `window.json`, so the rest of the way is held
+//!   beside the keeper: handed the last height asked rather than the tallest,
+//!   `the_keeper_is_handed_the_last_least_height_asked_not_the_tallest` in
+//!   `adapters/window_place`, and writing down the last one handed,
+//!   `the_last_least_height_asked_while_the_application_ran_is_written_with_the_place`
+//!   in `cao_prefs`
+//!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
 //! then it must stand wholly inside the window and the panel, inside what the
@@ -958,5 +996,599 @@ fn a_change_of_zoom_asks_the_window_for_its_minimum_again() {
         after > before,
         "zoomed from 100 % to 125 %, the application asked no minimum again: the window \
          still holds the {at_100:?} points asked at 100 %, in pixels of that zoom",
+    );
+}
+
+/// Every labelled widget standing wholly above the view: the title bar's and
+/// the ribbon's.
+fn above_the_view(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    let top = driver::canvas(app).top();
+    labelled(app)
+        .into_iter()
+        .filter(|(_, rect)| rect.height() > 0.0 && rect.bottom() <= top + TOLERANCE)
+        .collect()
+}
+
+fn labelled(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    app.get_all_by(|_| true)
+        .filter_map(|node| {
+            let read = node.accesskit_node();
+            read.label()
+                .or_else(|| read.value().filter(|value| !value.is_empty()))
+                .or_else(|| read.placeholder().map(str::to_owned))
+                .map(|label| (label, node.rect()))
+        })
+        .collect()
+}
+
+/// What of `wanted` the window does not hold whole, on a window this high:
+/// each label counted among the widgets no higher than the topmost wanted,
+/// so that the ribbon's « Variables » does not stand for the panel's title.
+fn what_the_window_misses(
+    app: &mut driver::App,
+    height: f32,
+    wanted: &[(String, egui::Rect)],
+) -> Vec<String> {
+    app.set_size(egui::vec2(driver::SCREEN.x, height));
+    app.run();
+    let window = app.ctx.content_rect();
+    let from = wanted
+        .iter()
+        .map(|(_, rect)| rect.top())
+        .fold(f32::INFINITY, f32::min);
+    let held: Vec<(String, egui::Rect)> = labelled(app)
+        .into_iter()
+        .filter(|(_, rect)| rect.top() >= from - TOLERANCE)
+        .collect();
+    let mut labels: Vec<&String> = wanted.iter().map(|(label, _)| label).collect();
+    labels.dedup();
+    let mut missed = Vec::new();
+    for label in labels {
+        let wanted_so_many = wanted.iter().filter(|(one, _)| one == label).count();
+        let whole = held
+            .iter()
+            .filter(|(one, rect)| one == label && window.contains_rect(*rect))
+            .count();
+        if whole < wanted_so_many && !missed.iter().any(|(seen, _)| seen == label) {
+            missed.push((
+                label.clone(),
+                format!("« {label} »: {whole} of {wanted_so_many} whole in {window:?}"),
+            ));
+        }
+    }
+    missed.into_iter().map(|(_, said)| said).collect()
+}
+
+#[test]
+fn with_the_part_panel_closed_the_window_asks_for_the_title_bar_and_the_ribbon_and_no_more() {
+    let mut app = driver::open_on(
+        "with_the_part_panel_closed_the_window_asks_for_the_ribbon",
+        driver::SCREEN,
+    );
+    driver::create_a_part(&mut app, "Bloc");
+    let open = driver::the_minimum_size_asked(&app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen, its panel open"))
+        .y;
+
+    driver::click_the_button(&mut app, "Pièce");
+    assert!(
+        the_part_panel_s_title(&app).is_none(),
+        "the fixture wants the Part panel closed: {:?}",
+        driver::on_screen(&app),
+    );
+    let closed = driver::the_minimum_size_asked(&app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen"))
+        .y;
+    let what_stays = above_the_view(&app);
+    assert!(
+        what_stays.iter().any(|(label, _)| label == "Pièce"),
+        "the fixture wants the ribbon's « Pièce » above the view: {what_stays:?}",
+    );
+    let at_the_minimum = what_the_window_misses(&mut app, closed, &what_stays);
+    let a_row_less = what_the_window_misses(&mut app, closed - ROW, &what_stays);
+
+    assert!(
+        closed < open,
+        "the Part panel closed, the window is still asked for {closed} points, as with the \
+         panel open ({open}): it is held tall for a panel no longer on screen",
+    );
+    assert!(
+        at_the_minimum.is_empty(),
+        "on a window as short as the minimum asked with the Part panel closed, {closed}, the \
+         title bar and the ribbon lose:\n  {}",
+        at_the_minimum.join("\n  "),
+    );
+    assert!(
+        !a_row_less.is_empty(),
+        "on a window a row shorter than the minimum asked with the Part panel closed, {closed}, \
+         the title bar and the ribbon still stand whole: the window is held taller than what \
+         stays on screen",
+    );
+}
+
+fn the_minimum_height_asked(app: &driver::App) -> f32 {
+    driver::the_minimum_size_asked(app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen"))
+        .y
+}
+
+/// A part open on the screen's window, the minimum it asked with its Part
+/// panel open, and the one asked once the panel is closed.
+fn a_part_with_its_panel_closed(test: &str) -> (driver::App, f32, f32) {
+    let mut app = driver::open_on(test, driver::SCREEN);
+    driver::create_a_part(&mut app, "Bloc");
+    let open = the_minimum_height_asked(&app);
+    driver::click_the_button(&mut app, "Pièce");
+    assert!(
+        the_part_panel_s_title(&app).is_none(),
+        "the fixture wants the Part panel closed: {:?}",
+        driver::on_screen(&app),
+    );
+    let closed = the_minimum_height_asked(&app);
+    assert!(
+        closed < open - ROW,
+        "the fixture wants a smaller minimum asked with the Part panel closed, {closed}, than \
+         open, {open}",
+    );
+    (app, open, closed)
+}
+
+#[test]
+fn reopened_the_part_panel_asks_the_window_for_its_minimum_again_as_if_never_closed() {
+    let (mut app, never_closed, closed) =
+        a_part_with_its_panel_closed("reopened_the_part_panel_asks_its_minimum_again");
+    let between = (closed + never_closed) / 2.0;
+    app.set_size(egui::vec2(driver::SCREEN.x, between));
+    app.run();
+    let before = driver::how_many_minimums_asked(&app);
+
+    driver::click_the_button(&mut app, "Pièce");
+    let after = driver::how_many_minimums_asked(&app);
+    let reopened = the_minimum_height_asked(&app);
+
+    assert!(
+        the_part_panel_s_title(&app).is_some(),
+        "the fixture wants the Part panel open again: {:?}",
+        driver::on_screen(&app),
+    );
+    assert!(
+        after > before,
+        "the Part panel reopened on a window {between} points high, the application asked its \
+         window for no minimum: it is still held to the {closed} asked with the panel closed",
+    );
+    assert!(
+        (reopened - never_closed).abs() <= TOLERANCE,
+        "the Part panel reopened, the window is asked for {reopened} points, where the panel \
+         never closed asked for {never_closed}",
+    );
+}
+
+#[test]
+fn with_the_part_panel_closed_the_last_minimum_asked_stays_the_small_one_until_quit() {
+    let (mut app, open, closed) =
+        a_part_with_its_panel_closed("the_last_minimum_asked_stays_the_small_one");
+    let mut asked = Vec::new();
+    let mut gesture = |app: &mut driver::App, when: String, act: &dyn Fn(&mut driver::App)| {
+        let from = driver::how_many_minimums_asked(app);
+        act(app);
+        asked.extend(
+            driver::the_minimums_asked(app)[from..]
+                .iter()
+                .map(|minimum| (when.clone(), minimum.y)),
+        );
+    };
+
+    for tab in ["Extrusion", "Esquisse"] {
+        gesture(&mut app, format!("on the « {tab} » tab"), &|app| {
+            driver::click_the_button(app, tab);
+        });
+    }
+    for zoom in [1.25, 1.0] {
+        gesture(&mut app, format!("at a zoom of {zoom}"), &|app| {
+            app.ctx.set_zoom_factor(zoom);
+            app.run();
+        });
+    }
+    for height in [closed, driver::SCREEN.y] {
+        gesture(&mut app, format!("on a window {height} high"), &|app| {
+            app.set_size(egui::vec2(driver::SCREEN.x, height));
+            app.run();
+        });
+    }
+    let at_quit = the_minimum_height_asked(&app);
+
+    let tall: Vec<String> = asked
+        .iter()
+        .filter(|(_, minimum)| *minimum >= open - TOLERANCE)
+        .map(|(when, minimum)| format!("{when}: {minimum}"))
+        .collect();
+    assert!(
+        tall.is_empty(),
+        "the Part panel closed all along, the window was asked again for the panel's \
+         {open}, each ask resizing the native window:\n  {}",
+        tall.join("\n  "),
+    );
+    assert!(
+        (at_quit - closed).abs() <= TOLERANCE,
+        "the Part panel closed, back on the tab, the zoom and the window it was closed on, \
+         the last minimum asked before quitting is {at_quit}, not the {closed} asked once it \
+         closed: the next launch would be held to it",
+    );
+}
+
+/// Every widget beside the view on its left, under the ribbon, the Part panel
+/// closed: the Variables panel's.
+fn the_variables_panel(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    let view = driver::canvas(app);
+    labelled(app)
+        .into_iter()
+        .filter(|(_, rect)| {
+            rect.height() > 0.0
+                && rect.right() <= view.left() + TOLERANCE
+                && rect.top() >= view.top() - TOLERANCE
+        })
+        .collect()
+}
+
+/// A window tall enough for thirty variables laid one under the other, so
+/// that the row that adds one stays within reach while they are added.
+const TALL_ENOUGH_FOR_THIRTY_VARIABLES: egui::Vec2 = egui::vec2(1280.0, 1600.0);
+
+/// The Variables panel's title, its column headers, its two first rows and
+/// the row that adds one.
+const WHAT_THE_VARIABLES_KEEP: [&str; 9] = [
+    "Variables",
+    "Nom",
+    "Formule",
+    "Valeur",
+    "v1",
+    "v2",
+    "nom",
+    "formule",
+    "Ajouter",
+];
+
+/// A part with its Part panel closed and its Variables panel open.
+fn a_part_with_the_variables_open(test: &str) -> driver::App {
+    let (mut app, _, _) = a_part_with_its_panel_closed(test);
+    app.set_size(TALL_ENOUGH_FOR_THIRTY_VARIABLES);
+    app.run();
+    driver::click_the_button(&mut app, "Variables");
+    app
+}
+
+/// Adds `v{rank}` at `10 × rank` for each rank of `ranks`, in the panel.
+fn add_variables(app: &mut driver::App, ranks: std::ops::RangeInclusive<usize>) {
+    for rank in ranks {
+        driver::type_into(app, "nom", &format!("v{rank}"));
+        driver::type_into(app, "formule", &format!("{}", 10 * rank));
+        driver::click_exactly(app, "Ajouter");
+    }
+}
+
+/// What of the Variables panel's title, headers, two first rows and add row
+/// stands left of the view, as the fixture wants them all there.
+fn what_the_variables_keep(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    let kept: Vec<(String, egui::Rect)> = the_variables_panel(app)
+        .into_iter()
+        .filter(|(label, _)| WHAT_THE_VARIABLES_KEEP.contains(&label.as_str()))
+        .collect();
+    let read: Vec<&str> = kept.iter().map(|(label, _)| label.as_str()).collect();
+    assert!(
+        WHAT_THE_VARIABLES_KEEP
+            .iter()
+            .all(|wanted| read.contains(wanted)),
+        "the fixture wants the Variables panel's title, headers, two first rows and add row \
+         left of the view: {read:?}",
+    );
+    kept
+}
+
+#[test]
+fn with_the_part_panel_closed_and_the_variables_open_the_window_keeps_their_header_two_rows_and_the_add_row()
+ {
+    let mut app = a_part_with_the_variables_open("with_the_variables_open_the_window_keeps_them");
+    add_variables(&mut app, 1..=6);
+    let kept = what_the_variables_keep(&app);
+    let minimum = the_minimum_height_asked(&app);
+
+    let missed = what_the_window_misses(&mut app, minimum, &kept);
+
+    assert!(
+        missed.is_empty(),
+        "the Part panel closed and the Variables panel open on six variables, a window as short \
+         as the minimum asked, {minimum}, cuts off:\n  {}",
+        missed.join("\n  "),
+    );
+}
+
+#[test]
+fn with_the_part_panel_closed_the_minimum_asked_for_the_variables_does_not_grow_with_their_count() {
+    let mut app = a_part_with_the_variables_open("the_minimum_for_the_variables_does_not_grow");
+    add_variables(&mut app, 1..=2);
+    let for_two = the_minimum_height_asked(&app);
+
+    add_variables(&mut app, 3..=30);
+    let for_thirty = the_minimum_height_asked(&app);
+
+    assert!(
+        (for_thirty - for_two).abs() <= TOLERANCE,
+        "the Part panel closed and the Variables panel open, the window is asked for {for_two} \
+         points under two variables and {for_thirty} under thirty: past two, the rows are to \
+         scroll rather than hold the window taller",
+    );
+}
+
+#[test]
+fn on_a_window_held_for_two_variables_thirty_keep_their_header_and_add_row_and_the_last_scrolls_into_view()
+ {
+    let mut app = a_part_with_the_variables_open("thirty_variables_on_a_window_held_for_two");
+    add_variables(&mut app, 1..=2);
+    let for_two = the_minimum_height_asked(&app);
+    let kept = what_the_variables_keep(&app);
+    add_variables(&mut app, 3..=30);
+
+    let missed = what_the_window_misses(&mut app, for_two, &kept);
+    let window = app.ctx.content_rect();
+    let header = labelled(&app)
+        .into_iter()
+        .filter(|(label, rect)| label == "Nom" && rect.right() < window.center().x)
+        .map(|(_, rect)| rect.bottom())
+        .fold(f32::NEG_INFINITY, f32::max);
+    let foot = labelled(&app)
+        .into_iter()
+        .filter(|(label, _)| label == "nom")
+        .map(|(_, rect)| rect.top())
+        .fold(f32::INFINITY, f32::min);
+    let the_last = app.query_all_by_value("v30").next().unwrap_or_else(|| {
+        panic!(
+            "no « v30 » in the Variables panel: {:?}",
+            driver::on_screen(&app)
+        )
+    });
+    the_last.scroll_to_me();
+    app.run();
+    let scrolled_to: Vec<egui::Rect> = labelled(&app)
+        .into_iter()
+        .filter(|(label, _)| label == "v30")
+        .map(|(_, rect)| rect)
+        .collect();
+
+    assert!(
+        missed.is_empty(),
+        "thirty variables, on a window as short as the minimum asked for two, {for_two}, the \
+         Variables panel loses:\n  {}",
+        missed.join("\n  "),
+    );
+    assert!(
+        !scrolled_to.is_empty()
+            && scrolled_to.iter().all(|rect| {
+                window.contains_rect(*rect)
+                    && rect.top() >= header - TOLERANCE
+                    && rect.bottom() <= foot + TOLERANCE
+            }),
+        "thirty variables, on a window {for_two} high, « v30 » scrolled to stands at \
+         {scrolled_to:?}, not whole between the headers ending at {header} and the row that \
+         adds one starting at {foot}, in {window:?}",
+    );
+}
+
+/// Every widget of the Variables panel, its role and what it reads.
+fn the_variables_panel_s_widgets(app: &driver::App) -> Vec<(Role, String, egui::Rect)> {
+    let view = driver::canvas(app);
+    app.get_all_by(|_| true)
+        .filter_map(|node| {
+            let read = node.accesskit_node();
+            let text = read
+                .label()
+                .or_else(|| read.value().filter(|value| !value.is_empty()))
+                .or_else(|| read.placeholder().map(str::to_owned))?;
+            Some((read.role(), text, node.rect()))
+        })
+        .filter(|(_, _, rect)| {
+            rect.height() > 0.0
+                && rect.right() <= view.left() + TOLERANCE
+                && rect.top() >= view.top() - TOLERANCE
+        })
+        .collect()
+}
+
+#[test]
+fn the_variables_panel_s_headers_fields_and_buttons_stand_in_columns() {
+    let mut app = a_part_with_the_variables_open("the_variables_stand_in_columns");
+    add_variables(&mut app, 1..=3);
+    let widgets = the_variables_panel_s_widgets(&app);
+    let lefts = |wanted: &dyn Fn(&Role, &str) -> bool| -> Vec<(String, f32)> {
+        widgets
+            .iter()
+            .filter(|(role, text, _)| wanted(role, text))
+            .map(|(_, text, rect)| (text.clone(), rect.left()))
+            .collect()
+    };
+    let names: Vec<String> = (1..=3).map(|rank| format!("v{rank}")).collect();
+    let formulas: Vec<String> = (1..=3).map(|rank| format!("{}", 10 * rank)).collect();
+    let formula_right = widgets
+        .iter()
+        .filter(|(role, text, _)| *role == Role::TextInput && formulas.contains(text))
+        .map(|(_, _, rect)| rect.right())
+        .fold(f32::NEG_INFINITY, f32::max);
+    let columns = [
+        (
+            "the names",
+            lefts(&|role, text| {
+                (*role != Role::TextInput && text == "Nom")
+                    || (*role == Role::TextInput
+                        && (names.iter().any(|name| name == text) || text == "nom"))
+            }),
+        ),
+        (
+            "the formulas",
+            lefts(&|role, text| {
+                (*role != Role::TextInput && text == "Formule")
+                    || (*role == Role::TextInput
+                        && (formulas.iter().any(|formula| formula == text) || text == "formule"))
+            }),
+        ),
+        (
+            "the buttons",
+            lefts(&|role, text| *role == Role::Button && (text == "Retirer" || text == "Ajouter")),
+        ),
+    ];
+    let values: Vec<(String, f32)> = widgets
+        .iter()
+        .filter(|(role, text, rect)| {
+            (*role != Role::TextInput && text == "Valeur")
+                || (*role != Role::TextInput
+                    && formulas.contains(text)
+                    && rect.left() >= formula_right - TOLERANCE)
+        })
+        .map(|(_, text, rect)| (text.clone(), rect.left()))
+        .collect();
+    let wanted = [
+        (
+            "the names",
+            &columns[0].1,
+            vec!["Nom", "v1", "v2", "v3", "nom"],
+        ),
+        (
+            "the formulas",
+            &columns[1].1,
+            vec!["Formule", "10", "20", "30", "formule"],
+        ),
+        (
+            "the buttons",
+            &columns[2].1,
+            vec!["Retirer", "Retirer", "Retirer", "Ajouter"],
+        ),
+        ("the values", &values, vec!["Valeur", "10", "20", "30"]),
+    ];
+    for (which, column, texts) in wanted {
+        let missing: Vec<&str> = texts
+            .iter()
+            .enumerate()
+            .filter(|(rank, text)| {
+                let before = texts[..*rank].iter().filter(|one| one == text).count();
+                column.iter().filter(|(one, _)| one == *text).count() <= before
+            })
+            .map(|(_, text)| *text)
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "the fixture wants {texts:?} in {which}, and {missing:?} are not there: {column:?}",
+        );
+    }
+
+    let off: Vec<String> = columns
+        .iter()
+        .chain([("the values", values)].iter())
+        .filter_map(|(which, column)| {
+            let first = column
+                .iter()
+                .map(|(_, left)| *left)
+                .fold(f32::INFINITY, f32::min);
+            let last = column
+                .iter()
+                .map(|(_, left)| *left)
+                .fold(f32::NEG_INFINITY, f32::max);
+            (last - first > TOLERANCE)
+                .then(|| format!("{which} begin from {first} to {last}: {column:?}"))
+        })
+        .collect();
+    assert!(
+        off.is_empty(),
+        "three variables in their panel, a header, its fields and the row that adds one do not \
+         begin at one edge:\n  {}",
+        off.join("\n  "),
+    );
+}
+
+/// Where the Variables panel's columns began, from the window's left edge, the
+/// Part panel closed and three short variables in it, as the one grid laid
+/// them out at 2072f76c: the grip, the names, the formulas, the values and the
+/// buttons.
+const THE_VARIABLES_COLUMNS_IN_ONE_GRID: [(&str, f32); 5] = [
+    ("the grips", 8.0),
+    ("the names", 56.0),
+    ("the formulas", 104.0),
+    ("the values", 161.8),
+    ("the buttons", 209.8),
+];
+
+/// Where « Ajouter », the widest of the buttons, ended in the one grid.
+const THE_VARIABLES_RIGHT_EDGE_IN_ONE_GRID: f32 = 270.0;
+
+/// Where the view began right of the Variables panel in the one grid.
+const THE_VIEW_RIGHT_OF_THE_VARIABLES_IN_ONE_GRID: f32 = 279.0;
+
+/// How far the panel may stand from where the one grid laid it: a rounding
+/// of egui's layout, not a column.
+const AS_IN_ONE_GRID: f32 = 2.0;
+
+#[test]
+fn the_variables_panel_keeps_the_width_and_columns_it_had_in_one_grid() {
+    let mut app = a_part_with_the_variables_open("the_variables_keep_their_width");
+    add_variables(&mut app, 1..=3);
+    let widgets = the_variables_panel_s_widgets(&app);
+    let left_of = |wanted: &dyn Fn(&Role, &str) -> bool| {
+        widgets
+            .iter()
+            .filter(|(role, text, _)| wanted(role, text))
+            .map(|(_, _, rect)| rect.left())
+            .fold(f32::INFINITY, f32::min)
+    };
+    let formula_right = widgets
+        .iter()
+        .filter(|(role, text, _)| *role == Role::TextInput && text == "10")
+        .map(|(_, _, rect)| rect.right())
+        .fold(f32::NEG_INFINITY, f32::max);
+    let begins = [
+        left_of(&|_, text| text == "☰"),
+        left_of(&|role, text| *role == Role::TextInput && text == "v1"),
+        left_of(&|role, text| *role == Role::TextInput && text == "10"),
+        widgets
+            .iter()
+            .filter(|(role, text, rect)| {
+                *role == Role::Label && text == "10" && rect.left() >= formula_right - TOLERANCE
+            })
+            .map(|(_, _, rect)| rect.left())
+            .fold(f32::INFINITY, f32::min),
+        left_of(&|role, text| *role == Role::Button && text == "Retirer"),
+    ];
+    let right_edge = widgets
+        .iter()
+        .filter(|(role, text, _)| *role == Role::Button && (text == "Retirer" || text == "Ajouter"))
+        .map(|(_, _, rect)| rect.right())
+        .fold(f32::NEG_INFINITY, f32::max);
+    let window = app.ctx.content_rect().left();
+    let view = driver::canvas(&app).left();
+
+    let mut moved: Vec<String> = THE_VARIABLES_COLUMNS_IN_ONE_GRID
+        .iter()
+        .zip(begins)
+        .filter(|((_, was), now)| ((now - window) - was).abs() > AS_IN_ONE_GRID)
+        .map(|((which, was), now)| {
+            format!(
+                "{which} begin at {}, where they began at {was}",
+                now - window
+            )
+        })
+        .collect();
+    if right_edge - window > THE_VARIABLES_RIGHT_EDGE_IN_ONE_GRID + AS_IN_ONE_GRID {
+        moved.push(format!(
+            "the buttons end at {}, where « Ajouter » ended at {THE_VARIABLES_RIGHT_EDGE_IN_ONE_GRID}",
+            right_edge - window,
+        ));
+    }
+    if view - window > THE_VIEW_RIGHT_OF_THE_VARIABLES_IN_ONE_GRID + AS_IN_ONE_GRID {
+        moved.push(format!(
+            "the view begins at {}, where it began at {THE_VIEW_RIGHT_OF_THE_VARIABLES_IN_ONE_GRID}",
+            view - window,
+        ));
+    }
+    assert!(
+        moved.is_empty(),
+        "three short variables, the Variables panel no longer looks as its one grid laid it \
+         out:\n  {}",
+        moved.join("\n  "),
     );
 }

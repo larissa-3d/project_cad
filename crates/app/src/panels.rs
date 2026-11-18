@@ -73,8 +73,10 @@ pub(crate) fn beside_the_part(
         }
     }
 
+    let mut beside_ends = None;
     if ribbon.variables_open {
         let asked = screens::variables::run(variables, ui, doc, lang);
+        beside_ends = Some(asked.ends);
         if asked.changed {
             // The part was built again from the new sizes, so what a tool was
             // half-way through may stand on geometry that has moved.
@@ -92,6 +94,9 @@ pub(crate) fn beside_the_part(
             viewport.blink(named.values, faces, now);
             variables.blink(named.variables, now);
         }
+    }
+    if !ribbon.part_tree_open {
+        screens::part_tree::view::closed(ui, beside_ends);
     }
     if viewport
         .kept_sections
