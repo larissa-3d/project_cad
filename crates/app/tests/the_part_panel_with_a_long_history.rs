@@ -64,9 +64,12 @@
 //! - The least height recorded for `window.json` is the last one asked: quit
 //!   with the panel closed, the small one —
 //!   `with_the_part_panel_closed_the_last_minimum_asked_stays_the_small_one_until_quit`;
-//!   the keeper writing down the last height asked is
-//!   `the_last_least_height_asked_while_the_application_ran_is_written_with_the_place`,
-//!   in `cao_prefs`, as the driver never writes `window.json`
+//!   the driver never writes `window.json`, so the rest of the way is held
+//!   beside the keeper: handed the last height asked rather than the tallest,
+//!   `the_keeper_is_handed_the_last_least_height_asked_not_the_tallest` in
+//!   `adapters/window_place`, and writing down the last one handed,
+//!   `the_last_least_height_asked_while_the_application_ran_is_written_with_the_place`
+//!   in `cao_prefs`
 //!
 //! "On screen" is read as the issue's "what does not fit scrolls": a widget the
 //! tree's list has to scroll to is brought into view first, as a user would,
@@ -1070,5 +1073,112 @@ fn with_the_part_panel_closed_the_window_asks_for_the_title_bar_and_the_ribbon_a
         "on a window a row shorter than the minimum asked with the Part panel closed, {closed}, \
          the title bar and the ribbon still stand whole: the window is held taller than what \
          stays on screen",
+    );
+}
+
+fn the_minimum_height_asked(app: &driver::App) -> f32 {
+    driver::the_minimum_size_asked(app)
+        .unwrap_or_else(|| panic!("no minimum asked on the Part screen"))
+        .y
+}
+
+/// A part open on the screen's window, the minimum it asked with its Part
+/// panel open, and the one asked once the panel is closed.
+fn a_part_with_its_panel_closed(test: &str) -> (driver::App, f32, f32) {
+    let mut app = driver::open_on(test, driver::SCREEN);
+    driver::create_a_part(&mut app, "Bloc");
+    let open = the_minimum_height_asked(&app);
+    driver::click_the_button(&mut app, "Pièce");
+    assert!(
+        the_part_panel_s_title(&app).is_none(),
+        "the fixture wants the Part panel closed: {:?}",
+        driver::on_screen(&app),
+    );
+    let closed = the_minimum_height_asked(&app);
+    assert!(
+        closed < open - ROW,
+        "the fixture wants a smaller minimum asked with the Part panel closed, {closed}, than \
+         open, {open}",
+    );
+    (app, open, closed)
+}
+
+#[test]
+fn reopened_the_part_panel_asks_the_window_for_its_minimum_again_as_if_never_closed() {
+    let (mut app, never_closed, closed) =
+        a_part_with_its_panel_closed("reopened_the_part_panel_asks_its_minimum_again");
+    let between = (closed + never_closed) / 2.0;
+    app.set_size(egui::vec2(driver::SCREEN.x, between));
+    app.run();
+    let before = driver::how_many_minimums_asked(&app);
+
+    driver::click_the_button(&mut app, "Pièce");
+    let after = driver::how_many_minimums_asked(&app);
+    let reopened = the_minimum_height_asked(&app);
+
+    assert!(
+        the_part_panel_s_title(&app).is_some(),
+        "the fixture wants the Part panel open again: {:?}",
+        driver::on_screen(&app),
+    );
+    assert!(
+        after > before,
+        "the Part panel reopened on a window {between} points high, the application asked its \
+         window for no minimum: it is still held to the {closed} asked with the panel closed",
+    );
+    assert!(
+        (reopened - never_closed).abs() <= TOLERANCE,
+        "the Part panel reopened, the window is asked for {reopened} points, where the panel \
+         never closed asked for {never_closed}",
+    );
+}
+
+#[test]
+fn with_the_part_panel_closed_the_last_minimum_asked_stays_the_small_one_until_quit() {
+    let (mut app, open, closed) =
+        a_part_with_its_panel_closed("the_last_minimum_asked_stays_the_small_one");
+    let mut asked = Vec::new();
+
+    for tab in ["Extrusion", "Esquisse"] {
+        driver::click_the_button(&mut app, tab);
+        asked.push((
+            format!("on the « {tab} » tab"),
+            the_minimum_height_asked(&app),
+        ));
+    }
+    for zoom in [1.25, 1.0] {
+        app.ctx.set_zoom_factor(zoom);
+        app.run();
+        asked.push((
+            format!("at a zoom of {zoom}"),
+            the_minimum_height_asked(&app),
+        ));
+    }
+    for height in [closed, driver::SCREEN.y] {
+        app.set_size(egui::vec2(driver::SCREEN.x, height));
+        app.run();
+        asked.push((
+            format!("on a window {height} high"),
+            the_minimum_height_asked(&app),
+        ));
+    }
+    let at_quit = the_minimum_height_asked(&app);
+
+    let tall: Vec<String> = asked
+        .iter()
+        .filter(|(_, minimum)| *minimum >= open - TOLERANCE)
+        .map(|(when, minimum)| format!("{when}: {minimum}"))
+        .collect();
+    assert!(
+        tall.is_empty(),
+        "the Part panel closed all along, the window was asked again for the panel's \
+         {open}:\n  {}",
+        tall.join("\n  "),
+    );
+    assert!(
+        (at_quit - closed).abs() <= TOLERANCE,
+        "the Part panel closed, back on the tab, the zoom and the window it was closed on, \
+         the last minimum asked before quitting is {at_quit}, not the {closed} asked once it \
+         closed: the next launch would be held to it",
     );
 }
