@@ -43,7 +43,7 @@ pub struct Asked {
     pub changed: bool,
     /// What a refusal named, to be shown where it stands.
     pub named: Named,
-    /// Where what the panel holds ends down the window.
+    /// How far down the window the panel reaches at the least.
     pub ends: f32,
 }
 

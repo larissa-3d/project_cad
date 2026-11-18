@@ -4,6 +4,7 @@
 use cao_part::{PartDocument, VariableId};
 
 use crate::lang::Catalogue;
+use crate::screens::part_tree::view::FEWEST_LINES;
 use crate::screens::variables::state::{Problem, Row, VariablesPanel};
 use crate::screens::variables::{NAMING, offered};
 use crate::ui::dropping::grip;
@@ -24,8 +25,15 @@ pub enum VariablesAction {
     Erase(VariableId),
 }
 
-/// The panel, chrome and all, beside the history, and where what it holds
-/// ends down the window.
+/// How wide each column is, the same for the headers, the rows that scroll
+/// and the row that adds one: the grip, the name, the formula, the value.
+const GRIP_WIDTH: f32 = 40.0;
+const NAME_WIDTH: f32 = 40.0;
+const FORMULA_WIDTH: f32 = 50.0;
+const VALUE_WIDTH: f32 = 40.0;
+
+/// The panel, chrome and all, beside the history, and how far down the window
+/// it reaches at the least, its rows scrolled to [`FEWEST_LINES`].
 pub fn panel(
     ui: &mut egui::Ui,
     panel: &mut VariablesPanel,
@@ -35,9 +43,7 @@ pub fn panel(
     egui::Panel::left("variables_panel")
         .resizable(true)
         .default_size(320.0)
-        .show(ui, |ui| {
-            (show(ui, panel, document, lang), ui.cursor().top())
-        })
+        .show(ui, |ui| show(ui, panel, document, lang))
         .inner
 }
 
@@ -46,7 +52,7 @@ fn show(
     panel: &mut VariablesPanel,
     document: &PartDocument,
     lang: &Catalogue,
-) -> VariablesAction {
+) -> (VariablesAction, f32) {
     let mut action = VariablesAction::None;
     ui.heading(lang.t("variables.title"));
     ui.add_space(4.0);
@@ -68,40 +74,75 @@ fn show(
         }
         None => Vec::new(),
     };
-    egui::Grid::new("variables_grid")
-        .num_columns(5)
-        .striped(true)
+    egui::Grid::new("variables_headers")
+        .num_columns(4)
         .show(ui, |ui| {
-            ui.label("");
-            ui.strong(lang.t("variables.name"));
-            ui.strong(lang.t("variables.formula"));
-            ui.strong(lang.t("variables.value"));
+            cell(ui, GRIP_WIDTH, |_| ());
+            cell(ui, NAME_WIDTH, |ui| ui.strong(lang.t("variables.name")));
+            cell(ui, FORMULA_WIDTH, |ui| {
+                ui.strong(lang.t("variables.formula"))
+            });
+            cell(ui, VALUE_WIDTH, |ui| ui.strong(lang.t("variables.value")));
             ui.end_row();
-            for row in &rows {
-                let lit = lit.contains(&row.variable);
-                if let Some(asked) = one_row(ui, panel, row, (lit, &offers), lang) {
-                    action = asked;
-                }
-                ui.end_row();
-            }
-            ui.label("");
-            let name = text_edit(
-                ui,
-                &mut panel.adding.name,
-                90.0,
-                &lang.t("variables.new_name"),
-            );
-            let formula = formula_field(
-                ui,
-                egui::Id::new("variable_formula_added"),
-                &mut panel.adding.formula,
-                (140.0, &lang.t("variables.new_formula")),
-                &offers,
-                NAMING,
-            )
-            .response
-            .response;
-            ui.label("");
+        });
+    let foot_id = egui::Id::new("variables_foot_height");
+    let foot = ui
+        .data(|data| data.get_temp::<f32>(foot_id))
+        .unwrap_or(ui.spacing().interact_size.y);
+    let between = ui.spacing().item_spacing.y;
+    // The row that adds one is laid out as a variable's, so it gives their height.
+    let margin = egui::Margin {
+        left: 0,
+        ..ui.spacing().scroll.content_margin
+    };
+    let fewest = FEWEST_LINES * (foot + between) + margin.sum().y;
+    let room = (ui.available_height() - foot - between).max(fewest);
+    let above = ui.cursor().top();
+    egui::ScrollArea::vertical()
+        .id_salt("variables_rows")
+        .content_margin(margin)
+        .max_height(room)
+        .min_scrolled_height(fewest)
+        .show(ui, |ui| {
+            egui::Grid::new("variables_grid")
+                .num_columns(5)
+                .striped(true)
+                .show(ui, |ui| {
+                    for row in &rows {
+                        let lit = lit.contains(&row.variable);
+                        if let Some(asked) = one_row(ui, panel, row, (lit, &offers), lang) {
+                            action = asked;
+                        }
+                        ui.end_row();
+                    }
+                });
+        });
+    let scrolled = ui.cursor().top() - above;
+    let adding = egui::Grid::new("variables_adding")
+        .num_columns(5)
+        .show(ui, |ui| {
+            cell(ui, GRIP_WIDTH, |_| ());
+            let name = cell(ui, NAME_WIDTH, |ui| {
+                text_edit(
+                    ui,
+                    &mut panel.adding.name,
+                    NAME_WIDTH,
+                    &lang.t("variables.new_name"),
+                )
+            });
+            let formula = cell(ui, FORMULA_WIDTH, |ui| {
+                formula_field(
+                    ui,
+                    egui::Id::new("variable_formula_added"),
+                    &mut panel.adding.formula,
+                    (FORMULA_WIDTH, &lang.t("variables.new_formula")),
+                    &offers,
+                    NAMING,
+                )
+                .response
+                .response
+            });
+            cell(ui, VALUE_WIDTH, |_| ());
             if ui.small_button(lang.t("variables.add")).clicked()
                 || entered(ui, &name)
                 || entered(ui, &formula)
@@ -110,10 +151,27 @@ fn show(
             }
             ui.end_row();
         });
+    let height = adding.response.rect.height();
+    if (height - foot).abs() > 0.5 {
+        ui.data_mut(|data| data.insert_temp(foot_id, height));
+        ui.ctx().request_repaint();
+    }
     if rows.is_empty() {
         ui.weak(lang.t("variables.empty"));
     }
-    action
+    let least = ui.cursor().top() - scrolled + fewest;
+    (action, least)
+}
+
+/// One cell of a grid, `width` wide whatever it holds, so that three grids
+/// stand in the same columns.
+fn cell<R>(ui: &mut egui::Ui, width: f32, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    let height = ui.spacing().interact_size.y;
+    ui.allocate_ui(egui::vec2(width, height), |ui| {
+        ui.set_min_width(width);
+        add(ui)
+    })
+    .inner
 }
 
 /// One variable: its two fields, what it comes to, and the button that erases
@@ -132,31 +190,37 @@ fn one_row(
     if lit {
         ui.visuals_mut().override_text_color = Some(ui.visuals().error_fg_color);
     }
-    grip(
-        ui,
-        egui::Id::new(("variable_grip", row.variable.0)),
-        &row.name,
-        &lang.t("variables.drag_hint"),
-    );
+    cell(ui, GRIP_WIDTH, |ui| {
+        grip(
+            ui,
+            egui::Id::new(("variable_grip", row.variable.0)),
+            &row.name,
+            &lang.t("variables.drag_hint"),
+        )
+    });
     let mut typed = panel.texts(row);
-    let name = text_edit(ui, &mut typed.name, 90.0, "");
-    let formula = formula_field(
-        ui,
-        egui::Id::new(("variable_formula", row.variable.0)),
-        &mut typed.formula,
-        (140.0, ""),
-        offers,
-        NAMING,
-    )
-    .response
-    .response;
+    let name = cell(ui, NAME_WIDTH, |ui| {
+        text_edit(ui, &mut typed.name, NAME_WIDTH, "")
+    });
+    let formula = cell(ui, FORMULA_WIDTH, |ui| {
+        formula_field(
+            ui,
+            egui::Id::new(("variable_formula", row.variable.0)),
+            &mut typed.formula,
+            (FORMULA_WIDTH, ""),
+            offers,
+            NAMING,
+        )
+        .response
+        .response
+    });
     if name.changed() || formula.changed() {
         panel.typed_into(row, typed.name, typed.formula);
     }
-    match row.value {
+    cell(ui, VALUE_WIDTH, |ui| match row.value {
         Some(value) => ui.label(wording::dimension::short(value)),
         None => ui.weak(lang.t("variables.no_value")),
-    };
+    });
     let erase = ui.small_button(lang.t("variables.erase")).clicked();
     ui.visuals_mut().override_text_color = written_as;
 
