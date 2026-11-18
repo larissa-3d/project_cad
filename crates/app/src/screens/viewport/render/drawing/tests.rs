@@ -16,19 +16,105 @@
 //! - the preview updates as soon as the panel holds enough to lay something,
 //!   wherever the pointer is — over the panel, the canvas has no cursor —
 //!   `a_copy_s_preview_shows_with_the_pointer_off_the_drawing`
+//!
+//! Closes #742. The issue's "What it does" and "What must not break", word for
+//! word, each with the test that holds it; every frame here is drawn with the
+//! « Par défaut » profile unless a bullet says otherwise.
+//! - **Strokes**: settled off-white (`trait_regle`), free blue (`trait_libre`),
+//!   construction grey and dashed, 2 px; vertices as 8 px squares; areas
+//!   tinted a light blue — a settled trait, off-white and 2 px wide —
+//!   `a_settled_stroke_is_drawn_off_white_two_pixels_wide`; a free one, blue
+//!   and 2 px wide — `a_free_stroke_is_drawn_blue_two_pixels_wide`; a
+//!   construction one, grey and in dashes —
+//!   `a_construction_stroke_is_drawn_grey_and_dashed`; a vertex, a square 8 px
+//!   across, as it already was — `a_vertex_is_marked_by_a_square_eight_pixels_across`;
+//!   an area, the light blue at the redesign's opacity —
+//!   `a_closed_area_is_tinted_the_redesign_s_light_blue`
+//! - **The tool in progress is amber**, and only it: the provisional trait —
+//!   `the_provisional_trait_of_the_tool_in_progress_is_drawn_amber`; "and only
+//!   it" is the strokes above, each held to a colour of its own and none amber
+//! - a dashed snap guide — no test: set aside with the human when the work
+//!   opened, to an issue of its own, with the « Tangence » snap
+//! - a snap ring with its name (« Coïncidence », « Milieu », « Tangence »…) —
+//!   read as: each snap the sketch offers is ringed in the tool's amber —
+//!   `each_snap_is_ringed_in_the_tool_s_amber`; and named beside its ring, a
+//!   point « Coïncidence », a middle « Milieu », a crossing « Intersection », a
+//!   centre « Centre », a place on a curve « Sur la courbe » —
+//!   `each_snap_is_named_beside_its_ring`. « Tangence » has no snap to name:
+//!   none exists in `cao_sketch`, and it went with the snap guide
+//! - an angle arc with its value on the line (today only on the arc) — the arc,
+//!   amber, between the line in progress and the first axis —
+//!   `a_line_in_progress_shows_its_angle_as_an_amber_arc`; its value written
+//!   on it, « 90° » when it is square — `a_line_in_progress_writes_its_angle_on_its_arc`
+//! - the length field by the cursor with an amber border —
+//!   `the_length_field_by_the_cursor_has_an_amber_border`
+//! - **Dimensions**: arrows — `a_dimension_is_drawn_with_an_arrow_at_each_end`;
+//!   the value in a cartouche — `a_dimension_s_value_sits_in_a_cartouche`; its
+//!   text in the dimension colour, which a profile sets —
+//!   `a_dimension_s_value_is_written_in_the_dimension_colour`
+//! - **Constraint marks** in small 18 px boxes (⊥, ∥…) —
+//!   `a_rule_s_mark_sits_in_a_box_18_px_across`
+//! - **Grid**: today's step in millimetres that follows the zoom, in the
+//!   redesign's colours; axes X red, Y green, Z blue — no test: in this file;
+//!   true since #724 and left as it is, the colours held by
+//!   `the_default_grid_and_axes_are_the_redesign_s` in
+//!   `crates/prefs/src/theme/tests.rs`, the step by
+//!   `adaptive_step_grows_with_distance` in `crates/render/src/grid/tests.rs`
+//!   and `the_scale_bar_says_how_long_one_grid_step_is` in
+//!   `crates/app/src/screens/viewport/render/overlays/tests.rs`
+//! - The « Par défaut » profile takes these colours — no test: in this file;
+//!   held by `the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours`
+//!   and `the_default_profile_carries_a_construction_grey_and_a_tool_amber`,
+//!   with the contrasts the issue decided by
+//!   `each_stroke_stands_off_the_sketch_background_by_the_contrast_decided`,
+//!   all in `crates/prefs/src/theme/tests.rs`, under its own block
+//! - Preferences › Apparence still sets each one: what a profile sets is what
+//!   is drawn — `the_construction_and_tool_colours_a_profile_sets_are_the_ones_drawn`;
+//!   the page's rows for the two new colours are held by
+//!   `the_appearance_page_offers_a_row_for_the_construction_and_the_tool_in_progress`
+//!   in `crates/app/tests/appearance.rs`, under its own block
+//! - must not break: the length and angle fields by the cursor, and typing in
+//!   them — no test: in this file; held as they were by
+//!   `a_number_typed_while_drawing_goes_into_the_field` and
+//!   `a_name_typed_straight_into_the_field_lays_the_line_to_it` in
+//!   `crates/app/tests/variables.rs`, and
+//!   `a_line_typed_at_thirty_and_clicked_behind_runs_and_reads_thirty` in
+//!   `crates/app/src/screens/viewport/input/angle_arm/tests.rs`
+//! - must not break: every snap today offers, and which one wins — no test: in
+//!   this file; the rule is `Sketch::magnetise`, which this issue does not
+//!   touch, held by `crates/sketch/src/snap/tests.rs` —
+//!   `a_crossing_holds_the_cursor_against_a_midpoint_that_is_nearer`,
+//!   `an_existing_point_wins_over_the_grid`,
+//!   `the_middle_of_a_trait_pulls_harder_than_its_body` among them
+//! - must not break: a read-only dimension still looks read-only —
+//!   `a_read_only_dimension_still_reads_apart_from_a_driving_one`
+//! - decided by Tom for the whole redesign: old profiles and settings are
+//!   overwritten or ignored, with no migration — no test: in this file; read as
+//!   a theme saved before the two new colours still reading, held by
+//!   `a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads`
+//!   in `crates/prefs/src/theme/tests.rs`
+//!
+//! The grid's spacing is out of scope: it stays in millimetres. The two colours
+//! the theme gains are read by the names a profile writes them under,
+//! `sketch_construction` and `tool_in_progress`, in the one test where a
+//! profile sets them.
 
 use cao_part::PartDocument;
 use cao_part::history::{Operation, PointRef};
 use cao_prefs::config::ViewportConfig;
+use cao_prefs::theme::Rgba;
 use cao_render::camera::OrbitCamera;
-use cao_sketch::{DimensionTarget, SegmentId, Stretch, WorkPlane};
+use cao_sketch::{
+    AxisToward, ChainAnchor, DimensionTarget, SegmentId, SketchAxis, Stretch, ToolState, Toward,
+    WorkPlane,
+};
 use chrono::Utc;
 use glam::Vec3;
 
 use super::*;
 use crate::lang::Catalogue;
 use crate::screens::extrusion::ExtrusionState;
-use crate::screens::sketch::SketchEditor;
+use crate::screens::sketch::{SketchEditor, Tool};
 use crate::screens::viewport::input::copying::{copy, enter_in_the_panel};
 
 /// A vertex holds its position in `f32`, so a place read back off one has lost
@@ -387,6 +473,408 @@ fn a_plate_rounded_beside_an_arc_is_tinted_along_its_rounded_outline() {
     assert!(
         (sharp - rounded) > 2.0,
         "less is tinted once the corner is rounded: {sharp} against {rounded}"
+    );
+}
+
+/// The design file of the redesign, taken in when the tests are built: a token
+/// delivered anew fails here as it fails in the theme's tests.
+const DESIGN: &str = include_str!("../../../../../../../docs/redesign/tokens.json");
+
+/// A colour of the design file's `color.`, written `#RRGGBB` or
+/// `rgba(r,g,b,a)`, as the bytes a hex code writes and the opacity.
+///
+/// The path comes as its keys one by one rather than dotted: a dotted literal
+/// in a source of `cao_app` reads as a key of the language file to
+/// `language_keys.rs`, and these are keys of the design file.
+fn redesign(keys: &[&str]) -> ([u8; 3], f32) {
+    let path = keys.join(".");
+    let tokens: serde_json::Value = serde_json::from_str(DESIGN).expect("the design file is JSON");
+    let text = keys
+        .iter()
+        .try_fold(&tokens["color"], |value, key| value.get(key))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_else(|| panic!("color.{path} is no colour in the design file"));
+    if let Some(hex) = text.strip_prefix('#') {
+        let channel = |at: usize| {
+            u8::from_str_radix(&hex[at..at + 2], 16)
+                .unwrap_or_else(|_| panic!("color.{path} is no #RRGGBB in the design file"))
+        };
+        return ([channel(0), channel(2), channel(4)], 1.0);
+    }
+    let channels: Vec<f32> = text
+        .strip_prefix("rgba(")
+        .and_then(|text| text.strip_suffix(')'))
+        .map(|inside| {
+            inside
+                .split(',')
+                .filter_map(|channel| channel.trim().parse().ok())
+                .collect()
+        })
+        .unwrap_or_default();
+    let [r, g, b, a] = channels[..] else {
+        panic!("color.{path} is neither #RRGGBB nor rgba(r,g,b,a) in the design file");
+    };
+    ([r as u8, g as u8, b as u8], a)
+}
+
+/// A colour as the shader takes it, read back to the bytes a hex code writes:
+/// the design writes bytes, so a byte is as near as either side can mean.
+fn hex_of(shaded: [f32; 4]) -> [u8; 3] {
+    let channel = |linear: f32| {
+        let srgb = match linear <= 0.003_130_8 {
+            true => linear * 12.92,
+            false => 1.055 * linear.powf(1.0 / 2.4) - 0.055,
+        };
+        (srgb * 255.0).round() as u8
+    };
+    [channel(shaded[0]), channel(shaded[1]), channel(shaded[2])]
+}
+
+/// A part whose only sketch holds one trait, from `from` to `to`.
+fn a_part_with_a_trait(from: DVec2, to: DVec2, construction: bool) -> PartDocument {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(from),
+        end: PointRef::New(to),
+        construction,
+    });
+    document
+}
+
+/// A part whose only sketch holds one trait out of the origin, 30 long and
+/// 30° up from the first axis: nothing about it is left to move.
+fn a_part_with_a_settled_trait() -> PartDocument {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::Existing(Sketch::ORIGIN),
+        end: PointRef::New(DVec2::new(26.0, 15.0)),
+        construction: false,
+    });
+    for (target, value) in [
+        (DimensionTarget::Length(SegmentId(0)), 30.0),
+        (
+            DimensionTarget::AxisAngle {
+                segment: SegmentId(0),
+                segment_toward: Toward::End,
+                axis: SketchAxis::U,
+                axis_toward: AxisToward::Positive,
+            },
+            30.0,
+        ),
+    ] {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target,
+            value: value.into(),
+            placement: None,
+        });
+    }
+    document
+}
+
+/// What one frame paints of the first sketch of a part being edited, the
+/// editor and the theme as given: the sketch it was read off, its lines and
+/// its surfaces.
+fn a_frame_of(
+    mut document: PartDocument,
+    mut editor: SketchEditor,
+    theme: &Theme,
+) -> (Sketch, Vec<cao_render::Vertex>, Vec<cao_render::Vertex>) {
+    let mut extrusion = ExtrusionState::default();
+    let lang = Catalogue::french();
+    let sketch = document.sketches()[0].clone();
+    let context = SketchContext {
+        document: &mut document,
+        editor: &mut editor,
+        extrusion: &mut extrusion,
+        lang: &lang,
+    };
+    let shown = Shown {
+        sketch: &sketch,
+        laid: &[],
+        cuts: &[],
+        going: None,
+        active: true,
+    };
+    let (mut lines, mut surfaces) = (Vec::new(), Vec::new());
+    push_sketch(&mut lines, &mut surfaces, &shown, theme, a_view(), &context);
+    (sketch, lines, surfaces)
+}
+
+/// One straight step of what was painted, in the coordinates of the drawing,
+/// with what it was painted in.
+#[derive(Clone, Copy, Debug)]
+struct Step {
+    from: DVec2,
+    to: DVec2,
+    color: [f32; 4],
+    width: f32,
+}
+
+/// The steps painted along the stretch from `from` to `to`: both their ends on
+/// it, between its two ends. A dashed stretch comes back as several.
+fn painted_along(
+    lines: &[cao_render::Vertex],
+    sketch: &Sketch,
+    from: DVec2,
+    to: DVec2,
+) -> Vec<Step> {
+    let span = to - from;
+    let on_it = |at: DVec2| {
+        let offset = at - from;
+        let reach = offset.dot(span) / span.length_squared();
+        (offset - span * reach).length() < TOLERANCE
+            && (-TOLERANCE..=1.0 + TOLERANCE).contains(&reach)
+    };
+    lines
+        .chunks(2)
+        .map(|ends| Step {
+            from: place(&ends[0], sketch),
+            to: place(&ends[1], sketch),
+            color: ends[0].color,
+            width: ends[0].width,
+        })
+        .filter(|step| {
+            step.from.distance(step.to) > TOLERANCE && on_it(step.from) && on_it(step.to)
+        })
+        .collect()
+}
+
+/// The steps that are painted in another colour than `hex`, by what they are
+/// painted in.
+fn not_in(steps: &[Step], hex: [u8; 3]) -> Vec<([u8; 3], f32)> {
+    steps
+        .iter()
+        .filter(|step| hex_of(step.color) != hex)
+        .map(|step| (hex_of(step.color), step.width))
+        .collect()
+}
+
+#[test]
+fn a_free_stroke_is_drawn_blue_two_pixels_wide() {
+    let (from, to) = (DVec2::new(4.0, 5.0), DVec2::new(40.0, 25.0));
+    let document = a_part_with_a_trait(from, to, false);
+    let settled = document.sketches()[0].settled_points(document.scale());
+    assert!(
+        !settled.iter().skip(1).any(|held| *held),
+        "the fixture's trait is meant to be free, and something of it is settled: {settled:?}",
+    );
+
+    let (sketch, lines, _) = a_frame_of(document, SketchEditor::default(), &Theme::default());
+
+    let stroke = painted_along(&lines, &sketch, from, to);
+    let (blue, _) = redesign(&["sketch", "free_stroke"]);
+    assert!(
+        !stroke.is_empty(),
+        "nothing is painted along the free trait"
+    );
+    let wrong = not_in(&stroke, blue);
+    assert!(
+        wrong.is_empty(),
+        "a free trait is painted the redesign's blue, {blue:?}, not {wrong:?}",
+    );
+    assert!(
+        stroke.iter().all(|step| step.width == 2.0),
+        "a free trait is painted 2 px wide: {stroke:?}",
+    );
+}
+
+#[test]
+fn a_settled_stroke_is_drawn_off_white_two_pixels_wide() {
+    let document = a_part_with_a_settled_trait();
+    let sketch = &document.sketches()[0];
+    let (from, to) = sketch.endpoints(SegmentId(0));
+    let settled = sketch.settled_points(document.scale());
+    assert!(
+        settled.iter().all(|held| *held),
+        "the fixture's trait is meant to be settled, and something of it can still move: \
+         {settled:?}",
+    );
+
+    let (sketch, lines, _) = a_frame_of(document, SketchEditor::default(), &Theme::default());
+
+    let stroke: Vec<Step> = painted_along(&lines, &sketch, from, to)
+        .into_iter()
+        .filter(|step| {
+            [step.from, step.to]
+                .iter()
+                .any(|end| end.distance(from) < TOLERANCE)
+                && [step.from, step.to]
+                    .iter()
+                    .any(|end| end.distance(to) < TOLERANCE)
+        })
+        .collect();
+    let (off_white, _) = redesign(&["sketch", "settled_stroke"]);
+    assert!(
+        !stroke.is_empty(),
+        "nothing is painted from one end of the settled trait to the other",
+    );
+    let wrong = not_in(&stroke, off_white);
+    assert!(
+        wrong.is_empty(),
+        "a settled trait is painted the redesign's off-white, {off_white:?}, not {wrong:?}",
+    );
+    assert!(
+        stroke.iter().all(|step| step.width == 2.0),
+        "a settled trait is painted 2 px wide: {stroke:?}",
+    );
+}
+
+#[test]
+fn a_construction_stroke_is_drawn_grey_and_dashed() {
+    let (from, to) = (DVec2::new(4.0, 5.0), DVec2::new(40.0, 25.0));
+    let document = a_part_with_a_trait(from, to, true);
+
+    let (sketch, lines, _) = a_frame_of(document, SketchEditor::default(), &Theme::default());
+
+    let stroke = painted_along(&lines, &sketch, from, to);
+    let (grey, _) = redesign(&["sketch", "construction"]);
+    assert!(
+        stroke.len() > 2,
+        "a construction trait is painted in dashes, and comes back as {} step(s)",
+        stroke.len(),
+    );
+    let wrong = not_in(&stroke, grey);
+    assert!(
+        wrong.is_empty(),
+        "a construction trait is painted the redesign's grey, {grey:?}, not {wrong:?}",
+    );
+}
+
+#[test]
+fn a_closed_area_is_tinted_the_redesign_s_light_blue() {
+    let (_, surfaces) = painted(true);
+    let (blue, opacity) = redesign(&["sketch", "area_fill"]);
+
+    assert!(
+        !surfaces.is_empty(),
+        "the rectangle's area is not tinted at all"
+    );
+    let tinted: Vec<([u8; 3], f32)> = surfaces
+        .iter()
+        .map(|vertex| (hex_of(vertex.color), vertex.color[3]))
+        .collect();
+    assert!(
+        tinted
+            .iter()
+            .all(|(hex, alpha)| *hex == blue && (alpha - opacity).abs() < 1e-3),
+        "an area no other one holds is tinted the redesign's {blue:?} at {opacity}, not {:?}",
+        tinted[0],
+    );
+}
+
+#[test]
+fn a_vertex_is_marked_by_a_square_eight_pixels_across() {
+    let (from, to) = (DVec2::new(4.0, 5.0), DVec2::new(40.0, 25.0));
+    let (sketch, lines, _) = a_frame_of(
+        a_part_with_a_trait(from, to, false),
+        SketchEditor::default(),
+        &Theme::default(),
+    );
+    let half = 4.0 * a_view().units_per_pixel;
+
+    let painted: Vec<DVec2> = lines.iter().map(|vertex| place(vertex, &sketch)).collect();
+    for corner in [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)] {
+        let at = to + DVec2::from(corner) * half;
+        assert!(
+            painted.iter().any(|place| place.distance(at) < TOLERANCE),
+            "no corner of a square 8 px across stands at {at:?}, around the vertex at {to:?}",
+        );
+    }
+}
+
+/// An editor drawing a line from `from`, the cursor at `cursor`.
+fn drawing_a_line(from: DVec2, cursor: DVec2) -> SketchEditor {
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(0, WorkPlane::XY);
+    editor.tool = Tool::Line;
+    editor.tool_state = ToolState::Line {
+        anchor: ChainAnchor::Pending(from),
+        previous: None,
+    };
+    editor.cursor = Some(cursor);
+    editor
+}
+
+#[test]
+fn the_provisional_trait_of_the_tool_in_progress_is_drawn_amber() {
+    let (from, cursor) = (DVec2::new(-30.0, -10.0), DVec2::new(-2.0, 12.0));
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+
+    let (sketch, lines, _) = a_frame_of(document, drawing_a_line(from, cursor), &Theme::default());
+
+    let provisional = painted_along(&lines, &sketch, from, cursor);
+    let (amber, _) = redesign(&["sketch", "tool_in_progress"]);
+    assert!(
+        !provisional.is_empty(),
+        "nothing is painted from where the line starts to the cursor",
+    );
+    let wrong = not_in(&provisional, amber);
+    assert!(
+        wrong.is_empty(),
+        "the trait the next click would lay is painted the redesign's amber, {amber:?}, \
+         whatever its opacity, not {wrong:?}",
+    );
+}
+
+/// The default theme with colours of it set as a profile sets them, each under
+/// the name the profile's file writes it under.
+fn a_theme_setting(colours: &[(&str, Rgba)]) -> Theme {
+    let mut written = serde_json::to_value(Theme::default()).expect("a theme writes out");
+    for (name, colour) in colours {
+        written[*name] = serde_json::to_value(colour).expect("a colour writes out");
+    }
+    serde_json::from_value(written).expect("a theme reads back")
+}
+
+#[test]
+fn the_construction_and_tool_colours_a_profile_sets_are_the_ones_drawn() {
+    let (construction, tool) = (
+        Rgba::opaque(0.20, 0.80, 0.30),
+        Rgba::opaque(0.90, 0.10, 0.60),
+    );
+    let theme = a_theme_setting(&[
+        ("sketch_construction", construction),
+        ("tool_in_progress", tool),
+    ]);
+    let (from, to) = (DVec2::new(4.0, 5.0), DVec2::new(40.0, 25.0));
+    let (start, cursor) = (DVec2::new(-30.0, -10.0), DVec2::new(-2.0, 12.0));
+
+    let (sketch, lines, _) = a_frame_of(
+        a_part_with_a_trait(from, to, true),
+        drawing_a_line(start, cursor),
+        &theme,
+    );
+
+    let dashes = painted_along(&lines, &sketch, from, to);
+    let provisional = painted_along(&lines, &sketch, start, cursor);
+    assert!(
+        !dashes.is_empty() && !provisional.is_empty(),
+        "the construction trait or the line in progress is not painted at all",
+    );
+    let wrong = (
+        not_in(&dashes, hex_of(tint(construction))),
+        not_in(&provisional, hex_of(tint(tool))),
+    );
+    assert!(
+        wrong.0.is_empty() && wrong.1.is_empty(),
+        "a profile's construction colour, {construction:?}, and its tool colour, {tool:?}, \
+         are the ones the construction trait and the line in progress are painted in, \
+         not {wrong:?}",
     );
 }
 

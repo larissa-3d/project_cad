@@ -11,7 +11,7 @@ use glam::{DVec2, DVec3};
 
 use super::super::ViewportState;
 use super::curves::{push_arc_at, push_line};
-use super::drawing::sketch_colors;
+use super::drawing::{sketch_colors, stroke_colors};
 use super::marks::push_point_marker;
 use super::overlays::{tint_to_color, to_screen};
 use super::{emphasis, tint, tint_at};
@@ -126,7 +126,7 @@ impl<'a> CutCanvas<'a> {
     ) {
         for cut in &self.drawn {
             let held = settled.get(cut.corner_point.0).copied().unwrap_or(false);
-            let (color, width) = sketch_colors(theme, active, held);
+            let (color, width) = stroke_colors(theme, active, held, cut.construction);
             let base = match cut.fits {
                 true => color,
                 false => tint(theme.refused),

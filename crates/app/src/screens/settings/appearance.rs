@@ -73,6 +73,16 @@ pub(super) fn section(ui: &mut egui::Ui, profiles: &mut Profiles, lang: &Catalog
         &lang.t("settings.appearance.sketch_inactive"),
         &mut theme.sketch_inactive,
     );
+    color_row(
+        ui,
+        &lang.t("settings.appearance.sketch_construction"),
+        &mut theme.sketch_construction,
+    );
+    color_row(
+        ui,
+        &lang.t("settings.appearance.tool_in_progress"),
+        &mut theme.tool_in_progress,
+    );
     slider(
         ui,
         &mut theme.sketch_width,

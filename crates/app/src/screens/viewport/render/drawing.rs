@@ -66,6 +66,20 @@ pub(crate) fn sketch_colors(theme: &Theme, active: bool, constrained: bool) -> (
     }
 }
 
+/// The same for a stroke: construction geometry, settled or not, in a grey of
+/// its own while its sketch is edited.
+pub(crate) fn stroke_colors(
+    theme: &Theme,
+    active: bool,
+    constrained: bool,
+    construction: bool,
+) -> ([f32; 4], f32) {
+    match active && construction {
+        true => (tint(theme.sketch_construction), theme.sketch_width),
+        false => sketch_colors(theme, active, constrained),
+    }
+}
+
 /// Where a point is shown: at the cursor while it is being dragged, at its recorded place otherwise.
 pub(crate) fn shown_position(
     sketch: &Sketch,
@@ -168,7 +182,7 @@ impl Seen {
             let held = holds(segment.start) && holds(segment.end);
             let (color, width) = match sketch.is_held(Element::Segment(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, held),
+                false => stroke_colors(theme, active, held, segment.construction),
             };
             let Some((color, width)) = marked(Element::Segment(id), color, width) else {
                 continue;
@@ -191,7 +205,7 @@ impl Seen {
         for (id, circle) in sketch.live_circles() {
             let (color, width) = match sketch.is_held(Element::Circle(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, holds(circle.center)),
+                false => stroke_colors(theme, active, holds(circle.center), circle.construction),
             };
             let Some((color, width)) = marked(Element::Circle(id), color, width) else {
                 continue;
@@ -211,7 +225,7 @@ impl Seen {
         for (id, arc) in sketch.live_arcs() {
             let (color, width) = match sketch.is_held(Element::Arc(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, holds(arc.center)),
+                false => stroke_colors(theme, active, holds(arc.center), arc.construction),
             };
             let Some((color, width)) = marked(Element::Arc(id), color, width) else {
                 continue;
@@ -228,7 +242,7 @@ impl Seen {
             let stands = sketch.ellipse_points(id).into_iter().all(holds);
             let (color, width) = match sketch.is_held(Element::Ellipse(id)) {
                 true => (tint(theme.fixed), theme.sketch_width),
-                false => sketch_colors(theme, active, stands),
+                false => stroke_colors(theme, active, stands, oval.construction),
             };
             let Some((color, width)) = marked(Element::Ellipse(id), color, width) else {
                 continue;
