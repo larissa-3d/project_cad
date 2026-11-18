@@ -13,12 +13,15 @@ use glam::{DVec2, DVec3};
 
 use crate::screens::viewport::cube_labels;
 
-/// How far apart two marks are set when they would otherwise land on top of each other, in points.
-const MARK_SPACING: f32 = 16.0;
+/// How wide the box a mark sits in is, in points.
+const MARK_BOX: f32 = 18.0;
 
-/// How far from its centre a mark answers a click, in points: the glyph's own
-/// size, short of the next mark set beside it.
-const MARK_REACH: f32 = 7.0;
+/// How far apart two marks are set when their boxes would otherwise overlap,
+/// in points: a box and the room between two.
+const MARK_SPACING: f32 = MARK_BOX + 2.0;
+
+/// How far from its centre a mark answers a click, in points: its box.
+const MARK_REACH: f32 = MARK_BOX / 2.0;
 use crate::lang::Catalogue;
 use crate::screens::SketchContext;
 use crate::screens::viewport::{ViewScale, ViewportState, corner_origin};
@@ -122,9 +125,17 @@ pub(crate) fn paint_rule_marks(
         .view_projection(rect.width() / rect.height().max(1.0));
     let painter = ui.painter_at(rect);
 
+    let theme = &state.theme;
     for (constraint, position) in placed_marks(sketch, view_projection, rect) {
         let rule = Selection::Rule(constraint);
         let held = context.editor.is_selected(rule) || context.editor.hovered == Some(rule);
+        painter.rect(
+            egui::Rect::from_center_size(position, egui::Vec2::splat(MARK_BOX)),
+            tokens::RADIUS_BUTTON,
+            tint_to_color(theme.rule_background),
+            egui::Stroke::new(1.0, tint_to_color(theme.rule_border)),
+            egui::StrokeKind::Inside,
+        );
         painter.text(
             position,
             egui::Align2::CENTER_CENTER,
@@ -152,10 +163,10 @@ pub(crate) fn placed_marks(
                 continue;
             };
             let mut position = position + egui::vec2(9.0, -9.0);
-            while placed
-                .iter()
-                .any(|(_, held)| held.distance(position) < MARK_SPACING)
-            {
+            while placed.iter().any(|(_, held)| {
+                (held.x - position.x).abs() < MARK_SPACING
+                    && (held.y - position.y).abs() < MARK_SPACING
+            }) {
                 position.x += MARK_SPACING;
             }
             placed.push((*constraint, position));

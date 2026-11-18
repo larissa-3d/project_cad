@@ -74,6 +74,23 @@
 //!   `a_cube_too_small_to_hold_a_letter_paints_without_a_panic`
 //! - A name stays inside its face (#225) —
 //!   `a_name_lying_on_its_face_never_leaves_it`
+//!
+//! Closes #742 — the whole transcription is in
+//! `crates/app/src/screens/viewport/render/drawing/tests.rs`; these bullets
+//! are the boxes the marks of the rules are painted in.
+//! - **Constraint marks** in small 18 px boxes (⊥, ∥…) — each mark's glyph
+//!   stands centred in a box 18 points across, painted behind it, filled and
+//!   bordered in the redesign's `constraint_mark_background` and
+//!   `constraint_mark_border` with the « Par défaut » profile —
+//!   `a_rule_s_mark_sits_in_a_box_18_px_across`; in the colours a profile sets
+//!   for them — `the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted`
+//! - found when the work opened: a mark is taken where its box is drawn, and
+//!   no further, and the boxes of marks set side by side neither overlap nor
+//!   touch, `spacing.xs` between them —
+//!   `a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap`
+//!
+//! The two box colours are read by the names a profile writes them under,
+//! `rule_background` and `rule_border`, as #742 did for its stroke colours.
 
 use cao_part::history::PointRef;
 use cao_part::{Operation, PartDocument};
@@ -1775,4 +1792,239 @@ fn the_triad_does_not_jump_as_the_camera_turns() {
         "{}; {jumps} moves are too large over the sweeps",
         worst.1,
     );
+}
+
+/// How wide a mark's box is, in points, and the room left between two boxes
+/// set side by side: `spacing.xs` of the redesign.
+const MARK_BOX: f32 = 18.0;
+const BETWEEN_BOXES: f32 = 2.0;
+
+/// The design file of the redesign, taken in when the tests are built.
+const DESIGN: &str = include_str!("../../../../../../../docs/redesign/tokens.json");
+
+/// A colour of the design file's `color.`, written `#RRGGBB`, as its bytes.
+///
+/// The path comes as its keys one by one: a dotted literal in a source of
+/// `cao_app` reads as a key of the language file to `language_keys.rs`.
+fn redesign(keys: &[&str]) -> [u8; 3] {
+    let tokens: serde_json::Value = serde_json::from_str(DESIGN).expect("the design file is JSON");
+    let hex = keys
+        .iter()
+        .try_fold(&tokens["color"], |value, key| value.get(key))
+        .and_then(serde_json::Value::as_str)
+        .and_then(|text| text.strip_prefix('#'))
+        .unwrap_or_else(|| panic!("{keys:?} is no #RRGGBB under color in the design file"));
+    let channel = |at: usize| u8::from_str_radix(&hex[at..at + 2], 16).expect("a hex byte");
+    [channel(0), channel(2), channel(4)]
+}
+
+fn bytes_of(colour: egui::Color32) -> [u8; 3] {
+    let [r, g, b, _] = colour.to_srgba_unmultiplied();
+    [r, g, b]
+}
+
+/// The default theme with colours of it set as a profile sets them, each under
+/// the name the profile's file writes it under.
+fn a_theme_setting(colours: &[(&str, Rgba)]) -> Theme {
+    let mut written = serde_json::to_value(Theme::default()).expect("a theme writes out");
+    for (name, colour) in colours {
+        written[*name] = serde_json::to_value(colour).expect("a colour writes out");
+    }
+    serde_json::from_value(written).expect("a theme reads back")
+}
+
+/// Each mark one frame paints of the drawing with two rules under `theme`, by
+/// its glyph, with the boxes painted before it that stand centred on it and
+/// are a mark's box across, give or take half a point.
+fn the_marks_and_their_boxes(theme: &Theme) -> Vec<(String, Vec<egui::epaint::RectShape>)> {
+    let mut state = ViewportState::default();
+    state.theme = theme.clone();
+    let mut document = a_drawing_with_two_rules();
+    let mut editor = SketchEditor {
+        phase: SketchPhase::Editing(0),
+        tool: Tool::Select,
+        ..Default::default()
+    };
+    let (mut extrusion, lang) = (ExtrusionState::default(), Catalogue::french());
+    let context = SketchContext {
+        document: &mut document,
+        editor: &mut editor,
+        extrusion: &mut extrusion,
+        lang: &lang,
+    };
+    let painted = shapes(|ui| paint_rule_marks(ui, &state, SCREEN, &context, None));
+    painted
+        .iter()
+        .enumerate()
+        .filter_map(|(rank, shape)| match shape {
+            egui::Shape::Text(glyph) => Some((rank, glyph)),
+            _ => None,
+        })
+        .map(|(rank, glyph)| {
+            let centre = egui::Rect::from_min_size(glyph.pos, glyph.galley.size()).center();
+            let boxes = painted[..rank]
+                .iter()
+                .filter_map(|shape| match shape {
+                    egui::Shape::Rect(shaped)
+                        if shaped.rect.center().distance(centre) <= 1.0
+                            && (shaped.rect.width() - MARK_BOX).abs() <= 0.5
+                            && (shaped.rect.height() - MARK_BOX).abs() <= 0.5 =>
+                    {
+                        Some(shaped.clone())
+                    }
+                    _ => None,
+                })
+                .collect();
+            (glyph.galley.text().to_string(), boxes)
+        })
+        .collect()
+}
+
+/// Which of each mark's boxes are filled and bordered in `fill` and `border`:
+/// the marks whose boxes are not, with what their boxes are painted in.
+fn boxes_not_in(
+    marks: &[(String, Vec<egui::epaint::RectShape>)],
+    fill: [u8; 3],
+    border: [u8; 3],
+) -> Vec<String> {
+    marks
+        .iter()
+        .filter(|(_, boxes)| {
+            !(boxes
+                .iter()
+                .any(|shaped| shaped.fill.a() == 255 && bytes_of(shaped.fill) == fill)
+                && boxes.iter().any(|shaped| {
+                    shaped.stroke.width > 0.0 && bytes_of(shaped.stroke.color) == border
+                }))
+        })
+        .map(|(glyph, boxes)| {
+            let painted: Vec<([u8; 3], u8, [u8; 3], f32)> = boxes
+                .iter()
+                .map(|shaped| {
+                    (
+                        bytes_of(shaped.fill),
+                        shaped.fill.a(),
+                        bytes_of(shaped.stroke.color),
+                        shaped.stroke.width,
+                    )
+                })
+                .collect();
+            format!("« {glyph} » sits in {painted:?}")
+        })
+        .collect()
+}
+
+#[test]
+fn a_rule_s_mark_sits_in_a_box_18_px_across() {
+    let marks = the_marks_and_their_boxes(&Theme::default());
+    assert!(
+        marks.len() >= 2,
+        "the drawing with two rules is marked {} time(s)",
+        marks.len()
+    );
+
+    let bare: Vec<&String> = marks
+        .iter()
+        .filter(|(_, boxes)| boxes.is_empty())
+        .map(|(glyph, _)| glyph)
+        .collect();
+    assert!(
+        bare.is_empty(),
+        "no box {MARK_BOX} points across is painted behind {bare:?}, centred on it",
+    );
+    let (fill, border) = (
+        redesign(&["sketch", "constraint_mark_background"]),
+        redesign(&["sketch", "constraint_mark_border"]),
+    );
+    let wrong = boxes_not_in(&marks, fill, border);
+    assert!(
+        wrong.is_empty(),
+        "a mark's box is filled {fill:?} and bordered {border:?}, the redesign's:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted() {
+    let (fill, border) = (
+        Rgba::opaque(0.10, 0.40, 0.20),
+        Rgba::opaque(0.90, 0.20, 0.50),
+    );
+    let theme = a_theme_setting(&[("rule_background", fill), ("rule_border", border)]);
+
+    let marks = the_marks_and_their_boxes(&theme);
+
+    assert!(
+        !marks.is_empty() && marks.iter().all(|(_, boxes)| !boxes.is_empty()),
+        "the marks are painted with no box behind them: {marks:?}",
+    );
+    let wrong = boxes_not_in(
+        &marks,
+        bytes_of(tint_to_color(fill)),
+        bytes_of(tint_to_color(border)),
+    );
+    assert!(
+        wrong.is_empty(),
+        "a profile's box colours for the marks, {fill:?} and {border:?}, are not the ones \
+         painted:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap() {
+    let mut sketch = cao_sketch::Sketch::new(cao_sketch::WorkPlane::XY);
+    let corners = [(0.0, 0.0), (40.0, 0.0), (0.0, 20.0), (40.0, 20.0)]
+        .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let low = sketch.add_segment(corners[0], corners[1]);
+    let high = sketch.add_segment(corners[2], corners[3]);
+    sketch.add_constraint(Constraint::Parallel {
+        first: low,
+        second: high,
+    });
+    sketch.add_constraint(Constraint::Equal {
+        first: low,
+        second: high,
+    });
+    let (state, _) = a_view();
+
+    let placed = placed_marks(
+        &sketch,
+        state.camera.view_projection(SCREEN.aspect_ratio()),
+        SCREEN,
+    );
+
+    assert!(
+        placed.len() >= 4,
+        "both rules are marked on both traits: {placed:?}"
+    );
+    let half = MARK_BOX / 2.0;
+    for (rule, at) in &placed {
+        for corner in [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)] {
+            let on_the_box = *at + egui::vec2(corner.0, corner.1) * (half - 0.5);
+            assert_eq!(
+                mark_under(&placed, on_the_box),
+                Some(*rule),
+                "a click on the box of the mark at {at:?}, at {on_the_box:?}, does not take it",
+            );
+        }
+        for off in [egui::vec2(half + 1.5, 0.0), egui::vec2(0.0, half + 1.5)] {
+            assert_ne!(
+                mark_under(&placed, *at + off),
+                Some(*rule),
+                "a click past the box of the mark at {at:?}, at {:?}, still takes it",
+                *at + off,
+            );
+        }
+    }
+    for (rank, (_, one)) in placed.iter().enumerate() {
+        for (_, other) in &placed[rank + 1..] {
+            let (apart_x, apart_y) = ((one.x - other.x).abs(), (one.y - other.y).abs());
+            assert!(
+                apart_x >= MARK_BOX + BETWEEN_BOXES || apart_y >= MARK_BOX + BETWEEN_BOXES,
+                "the boxes of the marks at {one:?} and {other:?} overlap or touch: \
+                 {apart_x} and {apart_y} apart, where a box is {MARK_BOX} across",
+            );
+        }
+    }
 }

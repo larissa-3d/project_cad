@@ -3,6 +3,7 @@
 //! of are pushed into the scene by [`crate::screens::annotations`]; only the
 //! text is here.
 
+use cao_prefs::theme::Theme;
 use cao_sketch::{DimensionTarget, Going};
 
 use crate::screens::sketch::apply_dimension_value;
@@ -87,7 +88,7 @@ pub(crate) fn paint_dimension_labels(
         } else {
             state.config.unit.format(value)
         };
-        let (text, color) = as_label(text, dimension.driven);
+        let (text, color) = as_label(text, dimension.driven, &state.theme);
         let color = match going.is_some_and(|going| going.values.contains(&dimension.target)) {
             true => to_color_of(state.theme.going),
             false => color,
@@ -98,13 +99,7 @@ pub(crate) fn paint_dimension_labels(
             }
             _ => color,
         };
-        painter.text(
-            position,
-            egui::Align2::CENTER_CENTER,
-            text,
-            egui::FontId::monospace(13.0),
-            color,
-        );
+        in_a_cartouche(&painter, position, text, color);
     }
 
     super::cuts::paint_cut_labels(
@@ -141,25 +136,42 @@ pub(crate) fn paint_dimension_labels(
         } else {
             state.config.unit.format(value)
         };
-        let (text, color) = as_label(text, read_only);
-        painter.text(
-            position,
-            egui::Align2::CENTER_CENTER,
-            text,
-            egui::FontId::monospace(13.0),
-            color,
-        );
+        let (text, color) = as_label(text, read_only, &state.theme);
+        in_a_cartouche(&painter, position, text, color);
     }
 }
 
-/// A value as it is written: a readout quieter and between brackets, since it
-/// reports rather than decides.
-fn as_label(text: String, read_only: bool) -> (String, egui::Color32) {
+/// A value as it is written: in the dimension colour, a readout in the
+/// read-only one's and between brackets, since it reports rather than decides.
+fn as_label(text: String, read_only: bool, theme: &Theme) -> (String, egui::Color32) {
     match read_only {
-        true => (format!("({text})"), tokens::TEXT_SUBDUED),
-        false => (text, tokens::ACCENT_AMBER_TEXT),
+        true => (format!("({text})"), to_color_of(theme.dimension_driven)),
+        false => (text, to_color_of(theme.dimension)),
     }
 }
+
+/// A value written centred on `position`, in a small rounded box bordered in
+/// its own colour.
+fn in_a_cartouche(
+    painter: &egui::Painter,
+    position: egui::Pos2,
+    text: String,
+    color: egui::Color32,
+) {
+    let galley = painter.layout_no_wrap(text, egui::FontId::monospace(13.0), color);
+    let value = egui::Rect::from_center_size(position, galley.size());
+    painter.rect(
+        value.expand2(CARTOUCHE_PADDING),
+        tokens::RADIUS_BUTTON,
+        tokens::BACKGROUND_FLOATING,
+        egui::Stroke::new(1.0, color),
+        egui::StrokeKind::Inside,
+    );
+    painter.galley(value.min, galley, color);
+}
+
+/// The room a cartouche leaves around its value, in points.
+const CARTOUCHE_PADDING: egui::Vec2 = egui::vec2(4.0, 1.0);
 
 /// The value of the dimension in hand, written right where that dimension is.
 ///

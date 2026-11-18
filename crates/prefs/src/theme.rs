@@ -181,6 +181,11 @@ pub struct Theme {
     /// The marks of the rules, written beside what they hold.
     #[serde(default = "Theme::default_rule")]
     pub rule: Rgba,
+    /// The box a rule's mark sits in, and its border.
+    #[serde(default = "Theme::default_rule_background")]
+    pub rule_background: Rgba,
+    #[serde(default = "Theme::default_rule_border")]
+    pub rule_border: Rgba,
     /// What a rule half laid down has already been shown.
     #[serde(default = "Theme::default_picked")]
     pub picked: Rgba,
@@ -254,6 +259,14 @@ impl Theme {
     fn default_tool_in_progress() -> Rgba {
         Rgba::from_bytes(0xF2, 0xA5, 0x41)
     }
+
+    fn default_rule_background() -> Rgba {
+        Rgba::from_bytes(0x20, 0x24, 0x2C)
+    }
+
+    fn default_rule_border() -> Rgba {
+        Rgba::from_bytes(0x3A, 0x40, 0x4C)
+    }
 }
 
 impl Default for Theme {
@@ -287,13 +300,15 @@ impl Default for Theme {
             tool_in_progress: Theme::default_tool_in_progress(),
             sketch_width: 2.0,
 
-            dimension: Rgba::new(0.98, 0.85, 0.35, 0.9),
+            dimension: Rgba::from_bytes(0x9A, 0xA6, 0xB8),
             dimension_driven: Rgba::new(0.62, 0.65, 0.70, 0.8),
 
             region_fill: Rgba::from_bytes(0x6C, 0xB6, 0xFF).with_alpha(0.10),
             solid: Rgba::opaque(0.78, 0.80, 0.84),
             fixed: Theme::default_fixed(),
             rule: Theme::default_rule(),
+            rule_background: Theme::default_rule_background(),
+            rule_border: Theme::default_rule_border(),
             picked: Theme::default_picked(),
             highlight: Rgba::new(0.30, 0.60, 0.95, 0.40),
             refused: Rgba::new(0.95, 0.35, 0.35, 0.40),

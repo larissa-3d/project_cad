@@ -48,12 +48,20 @@
 //!   on it, « 90° » when it is square — `a_line_in_progress_writes_its_angle_on_its_arc`
 //! - the length field by the cursor with an amber border —
 //!   `the_length_field_by_the_cursor_has_an_amber_border`
-//! - **Dimensions**: arrows — `a_dimension_is_drawn_with_an_arrow_at_each_end`;
-//!   the value in a cartouche — `a_dimension_s_value_sits_in_a_cartouche`; its
-//!   text in the dimension colour, which a profile sets —
-//!   `a_dimension_s_value_is_written_in_the_dimension_colour`
-//! - **Constraint marks** in small 18 px boxes (⊥, ∥…) —
-//!   `a_rule_s_mark_sits_in_a_box_18_px_across`
+//! - **Dimensions**: arrows — an arrowhead of two strokes at each end of the
+//!   dimension line, opening back along it, as it already was —
+//!   `a_dimension_is_drawn_with_an_arrow_at_each_end`; the value in a
+//!   cartouche, its text in the dimension colour, which a profile sets — held
+//!   in `crates/app/src/screens/viewport/render/dimensions/tests.rs`, under
+//!   its own block, by `a_dimension_s_value_sits_in_a_cartouche` and
+//!   `a_dimension_s_value_is_written_in_the_dimension_colour`: egui paints the
+//!   value, and no frame of the scene carries it
+//! - **Constraint marks** in small 18 px boxes (⊥, ∥…) — no test: in this
+//!   file; egui paints the marks, held in
+//!   `crates/app/src/screens/viewport/render/overlays/tests.rs`, under its own
+//!   block, by `a_rule_s_mark_sits_in_a_box_18_px_across`,
+//!   `the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted` and
+//!   `a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap`
 //! - **Grid**: today's step in millimetres that follows the zoom, in the
 //!   redesign's colours; axes X red, Y green, Z blue — no test: in this file;
 //!   true since #724 and left as it is, the colours held by
@@ -67,12 +75,17 @@
 //!   and `the_default_profile_carries_a_construction_grey_and_a_tool_amber`,
 //!   with the contrasts the issue decided by
 //!   `each_stroke_stands_off_the_sketch_background_by_the_contrast_decided`,
-//!   all in `crates/prefs/src/theme/tests.rs`, under its own block
+//!   the dimensions' colour by
+//!   `the_default_profile_draws_dimensions_in_the_redesign_s_colour`, the
+//!   marks' boxes by
+//!   `the_default_profile_boxes_the_rule_marks_in_the_redesign_s_colours`, all
+//!   in `crates/prefs/src/theme/tests.rs`, under its own block
 //! - Preferences › Apparence still sets each one: what a profile sets is what
 //!   is drawn — `the_construction_and_tool_colours_a_profile_sets_are_the_ones_drawn`;
-//!   the page's rows for the two new colours are held by
+//!   the page's rows for the new colours are held by
 //!   `the_appearance_page_offers_a_row_for_the_construction_and_the_tool_in_progress`
-//!   in `crates/app/tests/appearance.rs`, under its own block
+//!   and `the_appearance_page_offers_a_row_for_the_box_of_the_rule_marks` in
+//!   `crates/app/tests/appearance.rs`, under its own block
 //! - must not break: the length and angle fields by the cursor, and typing in
 //!   them — no test: in this file; held as they were by
 //!   `a_number_typed_while_drawing_goes_into_the_field` and
@@ -86,12 +99,15 @@
 //!   `a_crossing_holds_the_cursor_against_a_midpoint_that_is_nearer`,
 //!   `an_existing_point_wins_over_the_grid`,
 //!   `the_middle_of_a_trait_pulls_harder_than_its_body` among them
-//! - must not break: a read-only dimension still looks read-only —
-//!   `a_read_only_dimension_still_reads_apart_from_a_driving_one`
+//! - must not break: a read-only dimension still looks read-only — no test: in
+//!   this file; egui paints the value, held in
+//!   `crates/app/src/screens/viewport/render/dimensions/tests.rs`, under its
+//!   own block, by `a_read_only_dimension_still_reads_apart_from_a_driving_one`
 //! - decided by Tom for the whole redesign: old profiles and settings are
 //!   overwritten or ignored, with no migration — no test: in this file; read as
-//!   a theme saved before the two new colours still reading, held by
+//!   a theme saved before the new colours still reading, held by
 //!   `a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads`
+//!   and `a_theme_saved_before_the_rule_marks_box_colours_existed_still_reads`
 //!   in `crates/prefs/src/theme/tests.rs`
 //!
 //! The grid's spacing is out of scope: it stays in millimetres. The two colours
@@ -921,4 +937,69 @@ fn a_copy_s_preview_shows_with_the_pointer_off_the_drawing() {
         "the trait held, mirrored across the axis the panel holds, is shown with \
          the pointer over the panel"
     );
+}
+
+#[test]
+fn a_dimension_is_drawn_with_an_arrow_at_each_end() {
+    let mut document = a_part_with_a_rectangle();
+    document.apply(Operation::SetDimension {
+        sketch: 0,
+        target: DimensionTarget::Length(SegmentId(0)),
+        value: 10.0.into(),
+        placement: None,
+    });
+    let theme = Theme::default();
+    let (sketch, lines, _) = a_frame_of(document, SketchEditor::default(), &theme);
+    let (start, end) = sketch.endpoints(SegmentId(0));
+    let along = (end - start).normalize();
+    let pixel = a_view().units_per_pixel;
+
+    let dimension = tint(theme.dimension);
+    let drawn: Vec<(DVec2, DVec2)> = lines
+        .chunks(2)
+        .filter(|ends| ends[0].color == dimension)
+        .map(|ends| (place(&ends[0], &sketch), place(&ends[1], &sketch)))
+        .collect();
+    let Some(&(from, to)) = drawn.iter().find(|(from, to)| {
+        let run = *to - *from;
+        run.perp_dot(along).abs() < TOLERANCE && (run.length() - start.distance(end)).abs() < 1e-3
+    }) else {
+        panic!("no dimension line runs alongside the side the length holds: {drawn:?}");
+    };
+
+    for (tip, inward) in [(from, to - from), (to, from - to)] {
+        let heads: Vec<DVec2> = drawn
+            .iter()
+            .filter_map(
+                |&(one, other)| match (one.distance(tip), other.distance(tip)) {
+                    (near, _) if near < TOLERANCE && other.distance(tip) > TOLERANCE => Some(other),
+                    (_, near) if near < TOLERANCE && one.distance(tip) > TOLERANCE => Some(one),
+                    _ => None,
+                },
+            )
+            .map(|back| back - tip)
+            .filter(|back| back.perp_dot(inward).abs() > TOLERANCE)
+            .collect();
+        assert_eq!(
+            heads.len(),
+            2,
+            "two strokes make the arrow at {tip:?}, the end of the dimension line: {heads:?}",
+        );
+        let [one, other] = [heads[0], heads[1]];
+        assert!(
+            one.dot(inward) > 0.0 && other.dot(inward) > 0.0,
+            "the arrow at {tip:?} opens back along the line, not out past its end: {heads:?}",
+        );
+        assert!(
+            one.perp_dot(inward).signum() != other.perp_dot(inward).signum(),
+            "the arrow at {tip:?} has its two strokes on the same side of the line: {heads:?}",
+        );
+        for stroke in heads {
+            let long = stroke.length() / pixel;
+            assert!(
+                (6.0..=12.0).contains(&long),
+                "a stroke of the arrow at {tip:?} is {long:.1} px long on screen, no arrowhead",
+            );
+        }
+    }
 }
