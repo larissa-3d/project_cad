@@ -11,7 +11,12 @@ use cao_render::cube;
 use cao_sketch::{Constraint, Going, Selection, Sketch};
 use glam::{DVec2, DVec3};
 
+use crate::lang::Catalogue;
+use crate::screens::SketchContext;
 use crate::screens::viewport::cube_labels;
+use crate::screens::viewport::{ViewScale, ViewportState, corner_origin};
+use crate::ui::theme::tokens;
+use crate::wording::constraints;
 
 /// How wide the box a mark sits in is, in points.
 const MARK_BOX: f32 = 18.0;
@@ -22,11 +27,10 @@ const MARK_SPACING: f32 = MARK_BOX + 2.0;
 
 /// How far from its centre a mark answers a click, in points: its box.
 const MARK_REACH: f32 = MARK_BOX / 2.0;
-use crate::lang::Catalogue;
-use crate::screens::SketchContext;
-use crate::screens::viewport::{ViewScale, ViewportState, corner_origin};
-use crate::ui::theme::tokens;
-use crate::wording::constraints;
+
+/// The room left between a mark's box and the traits through the place it
+/// marks, in points.
+const MARK_CLEARS: f32 = 4.0;
 
 /// Where a world point lands on screen, or `None` when it is behind the camera.
 pub(crate) fn to_screen(
@@ -146,7 +150,9 @@ pub(crate) fn paint_rule_marks(
     }
 }
 
-/// Where each rule's mark is written on screen, one entry per mark.
+/// Where each rule's mark is written on screen, one entry per mark: its box
+/// clear of the traits through the place it marks, so that a click on a trait
+/// is the trait's.
 ///
 /// Several rules can hold the same corner — a middle and a right angle, say —
 /// so marks that would land on each other are set side by side. The painter
@@ -156,13 +162,14 @@ pub(crate) fn placed_marks(
     view_projection: glam::Mat4,
     rect: egui::Rect,
 ) -> Vec<(Constraint, egui::Pos2)> {
+    let screen = |at: DVec2| to_screen(sketch.plane.to_world(at), view_projection, rect);
     let mut placed: Vec<(Constraint, egui::Pos2)> = Vec::new();
     for constraint in sketch.constraints() {
         for at in sketch.rule_marks(*constraint) {
-            let Some(position) = to_screen(sketch.plane.to_world(at), view_projection, rect) else {
+            let Some(position) = screen(at) else {
                 continue;
             };
-            let mut position = position + egui::vec2(9.0, -9.0);
+            let mut position = position + clear_of(&arms_at(sketch, at, position, screen));
             while placed.iter().any(|(_, held)| {
                 (held.x - position.x).abs() < MARK_SPACING
                     && (held.y - position.y).abs() < MARK_SPACING
@@ -173,6 +180,71 @@ pub(crate) fn placed_marks(
         }
     }
     placed
+}
+
+/// The ways the traits through `at` leave it on screen, `here`: one for a
+/// trait ending there, two for one running through.
+fn arms_at(
+    sketch: &Sketch,
+    at: DVec2,
+    here: egui::Pos2,
+    screen: impl Fn(DVec2) -> Option<egui::Pos2>,
+) -> Vec<egui::Vec2> {
+    let mut arms = Vec::new();
+    for (id, _) in sketch.live_segments() {
+        let (start, end) = sketch.endpoints(id);
+        let span = end - start;
+        if span.length_squared() <= 0.0 {
+            continue;
+        }
+        let along = (at - start).dot(span) / span.length_squared();
+        let near = 1e-9 * span.length().max(1.0);
+        if (start + span * along).distance(at) > near || !(-1e-9..=1.0 + 1e-9).contains(&along) {
+            continue;
+        }
+        for (far, reach) in [(start, along), (end, 1.0 - along)] {
+            if let Some(far) = screen(far).filter(|_| reach > 1e-9) {
+                arms.push((far - here).normalized());
+            }
+        }
+    }
+    arms
+}
+
+/// Where a mark's box stands from the place it marks, on screen: beside a
+/// trait running through it, inside the corner two traits make there, behind
+/// the end of one — clear of each, every way the box can lie against it — and
+/// up and to the right where no trait runs.
+fn clear_of(arms: &[egui::Vec2]) -> egui::Vec2 {
+    let half = MARK_BOX / 2.0;
+    let room = |normal: egui::Vec2| half * (normal.x.abs() + normal.y.abs()) + MARK_CLEARS;
+    let around = half * std::f32::consts::SQRT_2 + MARK_CLEARS;
+    let up_and_right = egui::vec2(1.0, -1.0).normalized() * around;
+    match arms {
+        [] => up_and_right,
+        [one, other] if one.dot(*other) < -0.999 => {
+            let normal = one.rot90();
+            let normal = match normal.y > 0.0 || (normal.y == 0.0 && normal.x > 0.0) {
+                true => -normal,
+                false => normal,
+            };
+            normal * room(normal)
+        }
+        // Wide enough for the box to sit in the corner, as the redesign draws
+        // a right angle's.
+        [one, other] if (*one - *other).length() >= 1.0 => {
+            let sine_of_half = (*one - *other).length() / 2.0;
+            let inside = (*one + *other).normalized();
+            inside * (room(one.rot90()).max(room(other.rot90())) / sine_of_half)
+        }
+        _ => {
+            let behind = -arms.iter().fold(egui::Vec2::ZERO, |sum, arm| sum + *arm);
+            match behind.length() > 1e-3 {
+                true => behind.normalized() * around,
+                false => up_and_right,
+            }
+        }
+    }
 }
 
 /// The rule whose mark is under `pointer`: on the surface the mark is drawn

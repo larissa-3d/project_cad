@@ -118,7 +118,29 @@
 //!   a theme saved before the new colours still reading, held by
 //!   `a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads`
 //!   and `a_theme_saved_before_the_rule_marks_box_colours_existed_still_reads`
-//!   in `crates/prefs/src/theme/tests.rs`
+//!   in `crates/prefs/src/theme/tests.rs`; found in review, a « Par défaut »
+//!   profile already on disk kept the yellow and the green, so a settings file
+//!   of the version before opens on the defaults — held by
+//!   `a_default_profile_saved_with_the_old_sketch_colours_takes_the_new_ones_at_load`
+//!   in `crates/prefs/src/profiles/tests.rs`
+//! - found in review: a mark's box stood over the trait it marks, and a click
+//!   along the trait took the rule — no test: in this file; held by
+//!   `a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s`
+//!   in `crates/app/src/screens/viewport/render/overlays/tests.rs`, the whole
+//!   box still answering by
+//!   `a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap`
+//! - found in review: a snap's ring outlived the cursor — none is drawn once
+//!   the cursor has left the canvas, whichever snap it was —
+//!   `no_ring_is_drawn_once_the_cursor_has_left_the_canvas`; its name, and the
+//!   name standing clear of the fields the cursor carries, held in
+//!   `crates/app/tests/the_tool_in_progress.rs` by
+//!   `no_snap_is_named_once_the_pointer_has_left_the_canvas` and
+//!   `a_snap_s_name_stands_clear_of_the_fields_the_cursor_carries`
+//! - found in review: a fillet's and a chamfer's values stayed in amber, which
+//!   is the tool in progress's alone — written as a dimension's value is, in
+//!   the dimension colour and in its cartouche — no test: in this file; held in
+//!   `crates/app/src/screens/viewport/render/dimensions/tests.rs` by
+//!   `a_cut_s_value_is_written_like_a_dimension_s_in_its_colour_and_its_cartouche`
 //!
 //! The grid's spacing is out of scope: it stays in millimetres. The two colours
 //! the theme gains are read by the names a profile writes them under,
@@ -1220,4 +1242,48 @@ fn a_line_in_progress_shows_its_angle_as_an_amber_arc() {
             "drawing a line {how}, the arc is no arc of one circle: radii {smallest} to {largest}",
         );
     }
+}
+
+#[test]
+fn no_ring_is_drawn_once_the_cursor_has_left_the_canvas() {
+    let theme = a_theme_with_its_own_tool_colour();
+    let tool = hex_of(tint(theme.tool_in_progress));
+    let snaps = [
+        (Snap::Point, DVec2::new(20.0, 10.0)),
+        (
+            Snap::Midpoint(DVec2::new(40.0, 10.0)),
+            DVec2::new(40.0, 10.0),
+        ),
+        (
+            Snap::OnCurve(DVec2::new(50.0, 10.0)),
+            DVec2::new(50.0, 10.0),
+        ),
+        (
+            Snap::Crossing(DVec2::new(30.0, 10.0)),
+            DVec2::new(30.0, 10.0),
+        ),
+        (Snap::Centre(DVec2::new(35.0, 25.0)), DVec2::new(35.0, 25.0)),
+    ];
+
+    let still_ringed: Vec<String> = snaps
+        .into_iter()
+        .filter(|(snap, at)| {
+            let mut editor = SketchEditor::default();
+            editor.begin_editing(0, WorkPlane::XY);
+            editor.tool = Tool::Line;
+            editor.cursor = None;
+            editor.snap = Some(*snap);
+            let document =
+                a_part_with_a_trait(DVec2::new(20.0, 10.0), DVec2::new(60.0, 10.0), false);
+            let (sketch, lines, _) = a_frame_of(document, editor, &theme);
+            !round(&painted_in(&lines, &sketch, tool), *at, 4.0, 16.0).is_empty()
+        })
+        .map(|(snap, at)| format!("{snap:?} at {at:?}"))
+        .collect();
+
+    assert!(
+        still_ringed.is_empty(),
+        "with the cursor off the canvas, the last snap it was pulled onto is still ringed:\n  {}",
+        still_ringed.join("\n  "),
+    );
 }

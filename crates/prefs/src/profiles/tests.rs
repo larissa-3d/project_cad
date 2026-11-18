@@ -6,6 +6,15 @@
 //!   `a_profile_saved_with_viewport_colours_of_its_own_reads_back_with_them`;
 //!   the new defaults themselves are held in `crates/prefs/src/theme/tests.rs`
 //!
+//! Closes #742 — the whole transcription is in
+//! `crates/app/src/screens/viewport/render/drawing/tests.rs`; this bullet is
+//! the settings' share.
+//! - found in review: a « Par défaut » profile already on disk kept the yellow
+//!   and the green, so the new colours never showed; as decided, settings
+//!   saved before are overwritten, never migrated — a settings file of the
+//!   version before opens on the defaults, the redesign's colours with them —
+//!   `a_default_profile_saved_with_the_old_sketch_colours_takes_the_new_ones_at_load`
+//!
 //! Closes #794.
 //! - What the user removes stays removed: a shortcut unbound with « Retirer »,
 //!   a button removed from the toolbar. Restarting the application leaves the
@@ -204,6 +213,37 @@ fn a_default_profile_saved_with_the_old_ribbon_takes_the_new_one_at_load() {
         read.active().toolbar,
         ToolbarLayout::default(),
         "a profile saved before the ribbon was regrouped keeps the old ribbon",
+    );
+}
+
+/// The last version a settings file was written at with the sketch drawn in
+/// yellow and green, before #742 gave the « Par défaut » profile the
+/// redesign's colours: a figure of the past, which later versions leave where
+/// it is.
+const LAST_VERSION_OF_THE_OLD_SKETCH_COLOURS: u32 = 4;
+
+#[test]
+fn a_default_profile_saved_with_the_old_sketch_colours_takes_the_new_ones_at_load() {
+    let at = at();
+    let files = InMemoryFiles::default();
+    let mut profiles = Profiles::default();
+    let theme = &mut profiles.active_mut().theme;
+    theme.sketch_free = Rgba::opaque(0.98, 0.85, 0.35);
+    theme.sketch_settled = Rgba::opaque(0.45, 0.85, 0.55);
+    theme.dimension = Rgba::new(0.98, 0.85, 0.35, 0.9);
+    profiles.version = LAST_VERSION_OF_THE_OLD_SKETCH_COLOURS;
+    profiles
+        .save(&files, &at)
+        .expect("the settings are written");
+
+    let read = Profiles::load(&files, &at);
+
+    assert_eq!(read.active_name(), DEFAULT_PROFILE);
+    assert_eq!(
+        read.active().theme,
+        Settings::default().theme,
+        "the default profile saved before the redesign's colours keeps the yellow and the \
+         green: settings of that version are overwritten, never migrated",
     );
 }
 

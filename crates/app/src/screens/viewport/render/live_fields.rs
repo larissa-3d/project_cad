@@ -107,8 +107,6 @@ fn paint_live_fields(
         .fixed_pos(at + egui::vec2(20.0, 20.0))
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
-            // Bordered in the tool's colour: what it holds is the tool's, as
-            // much as the trait it draws.
             let border = egui::Stroke::new(1.0, tint_to_color(theme.tool_in_progress));
             egui::Frame::popup(ui.style())
                 .stroke(border)

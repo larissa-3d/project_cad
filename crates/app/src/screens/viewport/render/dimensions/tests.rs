@@ -17,6 +17,11 @@
 //!   « Par défaut » profile it is still written between brackets, and its
 //!   colour stands apart from a driving one's by more than the 1.26:1 the issue
 //!   calls "a hair apart" — `a_read_only_dimension_still_reads_apart_from_a_driving_one`
+//! - found in review: a fillet's and a chamfer's values kept the chrome's
+//!   amber, which is the tool in progress's alone — a cut's value is written
+//!   as a dimension's is, in the profile's dimension colour, opacity and all,
+//!   in a cartouche bordered in it —
+//!   `a_cut_s_value_is_written_like_a_dimension_s_in_its_colour_and_its_cartouche`
 
 use cao_part::history::PointRef;
 use cao_part::{Operation, PartDocument};
@@ -404,4 +409,100 @@ fn a_read_only_dimension_still_reads_apart_from_a_driving_one() {
             );
         }
     }
+}
+
+/// A plate a hundred by sixty, the corner of its foot and its right side
+/// chamfered 20 along the first and 30 along the second, and its top-left
+/// corner rounded by 20: two cuts, each writing its value, and no dimension.
+fn a_plate_with_a_chamfer_and_a_fillet() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::ZERO),
+        opposite: PointRef::New(DVec2::new(100.0, 60.0)),
+        construction: false,
+    });
+    document.apply(Operation::Chamfer {
+        sketch: 0,
+        corners: vec![cao_sketch::Corner::Between(
+            SegmentId(0).into(),
+            SegmentId(1).into(),
+        )],
+        mode: cao_part::history::ChamferAsked::from(cao_sketch::Chamfer::Sided {
+            first: 20.0,
+            second: 30.0,
+        }),
+        construction: false,
+    });
+    document.apply(Operation::Fillet {
+        sketch: 0,
+        corners: vec![cao_sketch::Corner::Between(
+            SegmentId(2).into(),
+            SegmentId(3).into(),
+        )],
+        radius: 20.0.into(),
+        construction: false,
+    });
+    document
+}
+
+#[test]
+fn a_cut_s_value_is_written_like_a_dimension_s_in_its_colour_and_its_cartouche() {
+    let theme = Theme {
+        dimension: Rgba::new(0.20, 0.80, 0.40, 0.70),
+        ..Theme::default()
+    };
+    let painted = the_values_painted(a_plate_with_a_chamfer_and_a_fillet(), &theme);
+    let written = values_written(&painted);
+    assert!(
+        written.iter().any(|(text, _, _)| text.starts_with('R'))
+            && written.iter().any(|(text, _, _)| text.contains('×')),
+        "the fillet's and the chamfer's values are both written: {written:?}",
+    );
+
+    let colour = to_color_of(theme.dimension);
+    let mut wrong = Vec::new();
+    for (text, rank, ink) in &written {
+        if !near(*ink, colour) {
+            wrong.push(format!("« {text} » is written {ink:?}, not {colour:?}"));
+        }
+        let egui::Shape::Text(said) = &painted[*rank] else {
+            unreachable!("a value written is a text");
+        };
+        let value = egui::Rect::from_min_size(said.pos, said.galley.size());
+        let around: Vec<&egui::epaint::RectShape> = painted[..*rank]
+            .iter()
+            .filter_map(|shape| match shape {
+                egui::Shape::Rect(shaped)
+                    if shaped.rect.expand(0.5).contains_rect(value)
+                        && value.expand(12.0).contains_rect(shaped.rect) =>
+                {
+                    Some(shaped)
+                }
+                _ => None,
+            })
+            .collect();
+        let in_a_cartouche = around
+            .iter()
+            .any(|shaped| shaped.corner_radius != egui::CornerRadius::ZERO)
+            && around.iter().any(|shaped| shaped.fill.a() > 0)
+            && around
+                .iter()
+                .any(|shaped| shaped.stroke.width > 0.0 && near(shaped.stroke.color, colour));
+        if !in_a_cartouche {
+            wrong.push(format!(
+                "« {text} » sits in no cartouche bordered {colour:?}: {around:?}"
+            ));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a cut's value is written as a dimension's is, in the profile's dimension colour, \
+         opacity and all, in a cartouche — amber is the tool in progress's alone:\n  {}",
+        wrong.join("\n  "),
+    );
 }
