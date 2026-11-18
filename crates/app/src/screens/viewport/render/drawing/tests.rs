@@ -36,17 +36,27 @@
 //! - a dashed snap guide — no test: set aside with the human when the work
 //!   opened, to an issue of its own, with the « Tangence » snap
 //! - a snap ring with its name (« Coïncidence », « Milieu », « Tangence »…) —
-//!   read as: each snap the sketch offers is ringed in the tool's amber —
-//!   `each_snap_is_ringed_in_the_tool_s_amber`; and named beside its ring, a
-//!   point « Coïncidence », a middle « Milieu », a crossing « Intersection », a
-//!   centre « Centre », a place on a curve « Sur la courbe » —
-//!   `each_snap_is_named_beside_its_ring`. « Tangence » has no snap to name:
-//!   none exists in `cao_sketch`, and it went with the snap guide
-//! - an angle arc with its value on the line (today only on the arc) — the arc,
-//!   amber, between the line in progress and the first axis —
-//!   `a_line_in_progress_shows_its_angle_as_an_amber_arc`; its value written
-//!   on it, « 90° » when it is square — `a_line_in_progress_writes_its_angle_on_its_arc`
-//! - the length field by the cursor with an amber border —
+//!   read as: each snap the sketch offers, a point included, is ringed in the
+//!   tool's amber, a ring of constant size on screen —
+//!   `each_snap_is_ringed_in_the_tool_s_amber`; and named beside its ring in a
+//!   pill bordered amber, a point « Coïncidence », a middle « Milieu », a
+//!   crossing « Intersection », a centre « Centre », a place on a curve « Sur
+//!   la courbe » — held in `crates/app/tests/the_tool_in_progress.rs`, under
+//!   its own block, by `each_snap_is_named_beside_its_ring`. « Tangence » has
+//!   no snap to name: the sketch crate offers none, and it went with the snap
+//!   guide
+//! - an angle arc with its value on the line (today only on the arc) — read
+//!   as: while a line is drawn, an amber arc at its start, of constant size on
+//!   screen, from the trait it is drawn on from — the one the chain laid just
+//!   before, or else the only trait ending where it starts — or else from the
+//!   horizontal, round to the line, the short way —
+//!   `a_line_in_progress_shows_its_angle_as_an_amber_arc`; the angle that arc
+//!   spans written beside it in a pill bordered amber, « 90° » when it is
+//!   square — held in `crates/app/tests/the_tool_in_progress.rs` by
+//!   `a_line_in_progress_writes_its_angle_on_its_arc`
+//! - the length field by the cursor with an amber border — no test: in this
+//!   file; egui paints the field, held in
+//!   `crates/app/tests/the_tool_in_progress.rs` by
 //!   `the_length_field_by_the_cursor_has_an_amber_border`
 //! - **Dimensions**: arrows — an arrowhead of two strokes at each end of the
 //!   dimension line, opening back along it, as it already was —
@@ -121,8 +131,8 @@ use cao_prefs::config::ViewportConfig;
 use cao_prefs::theme::Rgba;
 use cao_render::camera::OrbitCamera;
 use cao_sketch::{
-    AxisToward, ChainAnchor, DimensionTarget, SegmentId, SketchAxis, Stretch, ToolState, Toward,
-    WorkPlane,
+    AxisToward, ChainAnchor, DimensionTarget, SegmentId, SketchAxis, Snap, Stretch, ToolState,
+    Toward, WorkPlane,
 };
 use chrono::Utc;
 use glam::Vec3;
@@ -1001,5 +1011,213 @@ fn a_dimension_is_drawn_with_an_arrow_at_each_end() {
                 "a stroke of the arrow at {tip:?} is {long:.1} px long on screen, no arrowhead",
             );
         }
+    }
+}
+
+/// The steps one frame paints in `hex`, in the coordinates of the drawing.
+fn painted_in(lines: &[cao_render::Vertex], sketch: &Sketch, hex: [u8; 3]) -> Vec<(DVec2, DVec2)> {
+    lines
+        .chunks(2)
+        .filter(|ends| hex_of(ends[0].color) == hex)
+        .map(|ends| (place(&ends[0], sketch), place(&ends[1], sketch)))
+        .collect()
+}
+
+/// The steps among `steps` whose two ends stand at one same distance from
+/// `centre`, that distance between `near` and `far` pixels on screen: the
+/// pieces of a ring or of an arc drawn round it.
+fn round(steps: &[(DVec2, DVec2)], centre: DVec2, near: f64, far: f64) -> Vec<(DVec2, DVec2)> {
+    let pixel = a_view().units_per_pixel;
+    steps
+        .iter()
+        .copied()
+        .filter(|(one, other)| {
+            let (one, other) = (one.distance(centre), other.distance(centre));
+            (one - other).abs() <= 1e-3 * one.max(other)
+                && (near..=far).contains(&(one / pixel))
+                && (near..=far).contains(&(other / pixel))
+        })
+        .collect()
+}
+
+/// Whether `steps` go all the way round `centre`, no gap between them wider
+/// than a sixth of a turn, at one radius.
+fn goes_all_the_way_round(steps: &[(DVec2, DVec2)], centre: DVec2) -> bool {
+    let mut angles: Vec<f64> = steps
+        .iter()
+        .flat_map(|(one, other)| [*one, *other])
+        .map(|end| (end - centre).to_angle())
+        .collect();
+    angles.sort_by(f64::total_cmp);
+    let radii: Vec<f64> = steps.iter().map(|(one, _)| one.distance(centre)).collect();
+    let (smallest, largest) = radii
+        .iter()
+        .fold((f64::MAX, 0.0_f64), |(low, high), radius| {
+            (low.min(*radius), high.max(*radius))
+        });
+    let widest_gap = angles
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .chain(
+            angles
+                .first()
+                .zip(angles.last())
+                .map(|(first, last)| first + std::f64::consts::TAU - last),
+        )
+        .fold(0.0, f64::max);
+    steps.len() >= 6
+        && largest - smallest <= 0.02 * largest
+        && widest_gap <= std::f64::consts::TAU / 6.0
+}
+
+/// A theme whose tool colour is a teal of its own, amber being only its
+/// default: what is drawn in the tool's colour has to follow the profile, and
+/// the chrome's amber, which some tokens already wear, would hide one that
+/// does not.
+fn a_theme_with_its_own_tool_colour() -> Theme {
+    Theme {
+        tool_in_progress: Rgba::opaque(40.0 / 255.0, 180.0 / 255.0, 160.0 / 255.0),
+        ..Theme::default()
+    }
+}
+
+#[test]
+fn each_snap_is_ringed_in_the_tool_s_amber() {
+    let theme = a_theme_with_its_own_tool_colour();
+    let amber = hex_of(tint(theme.tool_in_progress));
+    let snaps = [
+        (Snap::Point, DVec2::new(20.0, 10.0)),
+        (
+            Snap::Midpoint(DVec2::new(40.0, 10.0)),
+            DVec2::new(40.0, 10.0),
+        ),
+        (
+            Snap::OnCurve(DVec2::new(50.0, 10.0)),
+            DVec2::new(50.0, 10.0),
+        ),
+        (
+            Snap::Crossing(DVec2::new(30.0, 10.0)),
+            DVec2::new(30.0, 10.0),
+        ),
+        (Snap::Centre(DVec2::new(35.0, 25.0)), DVec2::new(35.0, 25.0)),
+    ];
+
+    let unringed: Vec<String> = snaps
+        .into_iter()
+        .filter(|(snap, at)| {
+            let mut editor = SketchEditor::default();
+            editor.begin_editing(0, WorkPlane::XY);
+            editor.tool = Tool::Line;
+            editor.cursor = Some(*at);
+            editor.snap = Some(*snap);
+            let document =
+                a_part_with_a_trait(DVec2::new(20.0, 10.0), DVec2::new(60.0, 10.0), false);
+            let (sketch, lines, _) = a_frame_of(document, editor, &theme);
+            let ring = round(&painted_in(&lines, &sketch, amber), *at, 4.0, 16.0);
+            !goes_all_the_way_round(&ring, *at)
+        })
+        .map(|(snap, at)| format!("{snap:?} at {at:?}"))
+        .collect();
+
+    assert!(
+        unringed.is_empty(),
+        "no ring 8 to 32 px across, in the tool's amber {amber:?}, goes round the place the \
+         cursor was pulled onto, for:\n  {}",
+        unringed.join("\n  "),
+    );
+}
+
+/// An editor drawing a line from where `anchor` says, the chain having laid
+/// `previous` just before, the cursor at `cursor`.
+fn drawing_on_from(
+    anchor: ChainAnchor,
+    previous: Option<SegmentId>,
+    cursor: DVec2,
+) -> SketchEditor {
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(0, WorkPlane::XY);
+    editor.tool = Tool::Line;
+    editor.tool_state = ToolState::Line { anchor, previous };
+    editor.cursor = Some(cursor);
+    editor
+}
+
+#[test]
+fn a_line_in_progress_shows_its_angle_as_an_amber_arc() {
+    let theme = a_theme_with_its_own_tool_colour();
+    let amber = hex_of(tint(theme.tool_in_progress));
+    let (corner, cursor) = (DVec2::new(10.0, 10.0), DVec2::new(10.0, 40.0));
+    let a_trait_into_the_corner = || a_part_with_a_trait(DVec2::new(40.0, 40.0), corner, false);
+    let its_end = a_trait_into_the_corner().sketches()[0].segments()[0].end;
+    let cases = [
+        (
+            "from no trait, against the horizontal",
+            a_part_with_a_trait(DVec2::new(80.0, 80.0), DVec2::new(90.0, 80.0), false),
+            drawing_on_from(ChainAnchor::Pending(corner), None, DVec2::new(-20.0, 40.0)),
+            DVec2::X,
+            DVec2::new(-1.0, 1.0),
+            135.0,
+        ),
+        (
+            "on from the trait the chain laid just before",
+            a_trait_into_the_corner(),
+            drawing_on_from(ChainAnchor::Point(its_end), Some(SegmentId(0)), cursor),
+            DVec2::new(1.0, 1.0),
+            DVec2::Y,
+            45.0,
+        ),
+        (
+            "on from the only trait ending where it starts",
+            a_trait_into_the_corner(),
+            drawing_on_from(ChainAnchor::Point(its_end), None, cursor),
+            DVec2::new(1.0, 1.0),
+            DVec2::Y,
+            45.0,
+        ),
+    ];
+
+    for (how, document, editor, reference, line, sweep) in cases {
+        let (sketch, lines, _) = a_frame_of(document, editor, &theme);
+        let arc = round(&painted_in(&lines, &sketch, amber), corner, 12.0, 80.0);
+        assert!(
+            arc.len() >= 3,
+            "drawing a line {how}, no amber arc 12 to 80 px from its start at {corner:?}: \
+             the frame paints in amber {:?}",
+            painted_in(&lines, &sketch, amber),
+        );
+        let reference = reference.normalize();
+        let turning = reference.perp_dot(line).signum();
+        let swept: Vec<f64> = arc
+            .iter()
+            .flat_map(|(one, other)| [*one, *other])
+            .map(|end| {
+                let towards = end - corner;
+                turning
+                    * reference
+                        .perp_dot(towards)
+                        .atan2(reference.dot(towards))
+                        .to_degrees()
+            })
+            .collect();
+        let (least, most) = swept
+            .iter()
+            .fold((f64::MAX, f64::MIN), |(low, high), angle| {
+                (low.min(*angle), high.max(*angle))
+            });
+        assert!(
+            least.abs() <= 2.0 && (most - sweep).abs() <= 2.0,
+            "drawing a line {how}, its arc runs from {least:.1}° to {most:.1}° off the \
+             reference, where it spans the {sweep}° from the reference round to the line",
+        );
+        let radii: Vec<f64> = arc.iter().map(|(one, _)| one.distance(corner)).collect();
+        let (smallest, largest) = radii
+            .iter()
+            .fold((f64::MAX, 0.0_f64), |(low, high), radius| {
+                (low.min(*radius), high.max(*radius))
+            });
+        assert!(
+            largest - smallest <= 0.02 * largest,
+            "drawing a line {how}, the arc is no arc of one circle: radii {smallest} to {largest}",
+        );
     }
 }

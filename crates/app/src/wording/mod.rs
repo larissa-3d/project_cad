@@ -34,6 +34,7 @@ pub mod section;
 pub mod settings;
 pub mod shortcuts;
 pub mod sketch;
+pub mod snap;
 pub mod steps;
 pub mod storage;
 pub mod toolbar;
