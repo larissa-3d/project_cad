@@ -26,7 +26,13 @@
 //!   beside the transcription: no driver works egui's colour picker; and the
 //!   reset putting them back is
 //!   `the_reset_puts_every_viewport_colour_back_the_sketch_background_included`,
-//!   which compares the whole theme
+//!   which compares the whole theme; the two colours of a constraint mark's
+//!   box, new with the marks' boxes, have theirs beside « Fond des marques »
+//!   and « Contour des marques » —
+//!   `the_appearance_page_offers_a_row_for_the_box_of_the_rule_marks`, what
+//!   they set read off the frame in
+//!   `the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted`, in
+//!   `crates/app/src/screens/viewport/render/overlays/tests.rs`
 
 mod driver;
 
@@ -103,6 +109,27 @@ fn the_appearance_page_offers_a_row_for_the_construction_and_the_tool_in_progres
     );
 
     let missing: Vec<&str> = ["Construction", "Outil en cours"]
+        .into_iter()
+        .filter(|label| !a_colour_row_reads(&app, label))
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "Préférences › Apparence offers no colour beside {missing:?}",
+    );
+}
+
+#[test]
+fn the_appearance_page_offers_a_row_for_the_box_of_the_rule_marks() {
+    let mut app = driver::open("the_appearance_page_offers_a_row_for_the_box_of_the_rule");
+    the_appearance_page(&mut app);
+    assert!(
+        a_colour_row_reads(&app, "Marque de contrainte"),
+        "the marks' own colour, there before this issue, is read as no row of the page: \
+         the way a row is read is wrong, not the page",
+    );
+
+    let missing: Vec<&str> = ["Fond des marques", "Contour des marques"]
         .into_iter()
         .filter(|label| !a_colour_row_reads(&app, label))
         .collect();

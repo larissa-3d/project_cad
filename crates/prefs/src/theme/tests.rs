@@ -53,10 +53,19 @@
 //!   before the two new colours existed still reads, each at its default, as
 //!   every colour added to the theme before them does —
 //!   `a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads`
+//! - The « Par défaut » profile takes these colours, the dimensions' too: the
+//!   redesign's `sketch.dimension`, which the value is written in as well as
+//!   the lines — `the_default_profile_draws_dimensions_in_the_redesign_s_colour`;
+//!   the boxes of the constraint marks filled and bordered in its
+//!   `constraint_mark_background` and `constraint_mark_border`, two colours the
+//!   theme did not have — `the_default_profile_boxes_the_rule_marks_in_the_redesign_s_colours`,
+//!   and a theme saved before them still reads, each at its default —
+//!   `a_theme_saved_before_the_rule_marks_box_colours_existed_still_reads`
 //!
-//! The two new colours are read by the names a profile writes them under,
-//! `sketch_construction` and `tool_in_progress`: a profile is a file people
-//! hand to one another, and those names are what it carries.
+//! The new colours are read by the names a profile writes them under,
+//! `sketch_construction`, `tool_in_progress`, `rule_background` and
+//! `rule_border`: a profile is a file people hand to one another, and those
+//! names are what it carries.
 
 use super::*;
 
@@ -265,9 +274,13 @@ fn the_default_grid_and_axes_are_the_redesign_s() {
 }
 
 /// What the redesign leaves alone is pinned as it stood before it: the sketch
-/// strokes and areas moved with #742 and are held above; its dimensions are
-/// still #742's to change, and the extrusion's colours #740's. An edit to any
-/// of them should show here rather than slip through with another issue.
+/// strokes and areas and the dimensions' colour moved with #742 and are held
+/// below; the extrusion's colours are #740's. A read-only dimension's colour
+/// stays: the redesign names none, and the one it had stands apart from the
+/// redesign's dimension colour, which
+/// `a_read_only_dimension_still_reads_apart_from_a_driving_one` holds on a
+/// frame. An edit to any of them should show here rather than slip through
+/// with another issue.
 #[test]
 fn every_colour_the_redesign_does_not_name_keeps_its_default() {
     let theme = Theme::default();
@@ -277,11 +290,6 @@ fn every_colour_the_redesign_does_not_name_keeps_its_default() {
             "sketch_inactive",
             theme.sketch_inactive,
             Rgba::new(0.70, 0.72, 0.76, 0.8),
-        ),
-        (
-            "dimension",
-            theme.dimension,
-            Rgba::new(0.98, 0.85, 0.35, 0.9),
         ),
         (
             "dimension_driven",
@@ -536,5 +544,58 @@ fn a_theme_saved_before_the_construction_and_tool_colours_existed_still_reads() 
         [CONSTRUCTION, TOOL_IN_PROGRESS].map(|name| written_out(&read, name)),
         defaults,
         "a theme from before the two colours reads with others than the defaults",
+    );
+}
+
+#[test]
+fn the_default_profile_draws_dimensions_in_the_redesign_s_colour() {
+    let theme = the_default_profile_s_theme();
+
+    assert_eq!(
+        bytes(theme.dimension),
+        written("sketch.dimension"),
+        "the default profile draws its dimensions in another colour than the redesign's",
+    );
+}
+
+/// The names a profile writes the colours of a rule mark's box under.
+const RULE_BACKGROUND: &str = "rule_background";
+const RULE_BORDER: &str = "rule_border";
+
+#[test]
+fn the_default_profile_boxes_the_rule_marks_in_the_redesign_s_colours() {
+    let theme = the_default_profile_s_theme();
+
+    assert_eq!(
+        [RULE_BACKGROUND, RULE_BORDER].map(|name| written_out(&theme, name).map(bytes)),
+        [
+            Some(written("sketch.constraint_mark_background")),
+            Some(written("sketch.constraint_mark_border")),
+        ],
+        "the default profile writes the fill of a rule mark's box under `{RULE_BACKGROUND}` \
+         and its border under `{RULE_BORDER}`, the redesign's",
+    );
+}
+
+#[test]
+fn a_theme_saved_before_the_rule_marks_box_colours_existed_still_reads() {
+    let defaults = [RULE_BACKGROUND, RULE_BORDER].map(|name| written_out(&Theme::default(), name));
+    assert!(
+        defaults.iter().all(Option::is_some),
+        "the default theme writes no `{RULE_BACKGROUND}` or no `{RULE_BORDER}` colour: \
+         {defaults:?}",
+    );
+    let mut saved = serde_json::to_value(Theme::default()).expect("a theme writes out");
+    let fields = saved.as_object_mut().expect("a theme is an object");
+    fields.remove(RULE_BACKGROUND);
+    fields.remove(RULE_BORDER);
+
+    let read: Theme =
+        serde_json::from_value(saved).expect("a theme from before the box colours reads");
+
+    assert_eq!(
+        [RULE_BACKGROUND, RULE_BORDER].map(|name| written_out(&read, name)),
+        defaults,
+        "a theme from before the box colours reads with others than the defaults",
     );
 }

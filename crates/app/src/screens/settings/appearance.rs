@@ -101,6 +101,16 @@ pub(super) fn section(ui: &mut egui::Ui, profiles: &mut Profiles, lang: &Catalog
     );
     color_row(ui, &lang.t("settings.appearance.fixed"), &mut theme.fixed);
     color_row(ui, &lang.t("settings.appearance.rule"), &mut theme.rule);
+    color_row(
+        ui,
+        &lang.t("settings.appearance.rule_background"),
+        &mut theme.rule_background,
+    );
+    color_row(
+        ui,
+        &lang.t("settings.appearance.rule_border"),
+        &mut theme.rule_border,
+    );
     color_row(ui, &lang.t("settings.appearance.picked"), &mut theme.picked);
     color_row(ui, &lang.t("settings.appearance.going"), &mut theme.going);
     color_row(
