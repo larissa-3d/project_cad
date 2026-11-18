@@ -27,9 +27,10 @@ const ARC_PIXELS: f64 = 30.0;
 /// How many straight pieces the arc is drawn in.
 const ARC_PIECES: usize = 32;
 
-/// Where a snap's name stands from its ring, and how far an angle stands out
-/// past its arc, in points.
-const NAME_FROM_THE_RING: egui::Vec2 = egui::vec2(12.0, 10.0);
+/// Where a snap's name ends from its ring, up and to the left: down and to the
+/// right is where the cursor carries its fields. And how far an angle stands
+/// out past its arc, in points.
+const NAME_FROM_THE_RING: egui::Vec2 = egui::vec2(-10.0, -10.0);
 const ANGLE_CLEARS_ITS_ARC: f32 = 6.0;
 
 /// The room a pill leaves around what it says, in points.
@@ -94,7 +95,8 @@ pub(crate) fn paint_tool_in_progress(
         let said = wording::snap::name(context.lang, snap);
         let font = egui::FontId::proportional(TYPOGRAPHY_SIZES_DETAIL);
         in_a_pill(&painter, (said, font), colour, |size| {
-            egui::Rect::from_min_size(ring + NAME_FROM_THE_RING, size)
+            let ends = ring + NAME_FROM_THE_RING;
+            egui::Rect::from_min_max(ends - size, ends)
         });
     }
 
@@ -116,12 +118,13 @@ pub(crate) fn paint_tool_in_progress(
     }
 }
 
-/// The place a snap pulled the cursor onto: the cursor itself for a point of
-/// the drawing, which carries no place of its own.
+/// The place a snap pulled the cursor onto, while the cursor is on the
+/// canvas: the cursor itself for a point of the drawing, which carries no
+/// place of its own.
 fn snapped(context: &SketchContext<'_>) -> Option<(Snap, DVec2)> {
-    let snap = context.editor.snap?;
+    let (snap, cursor) = (context.editor.snap?, context.editor.cursor?);
     let at = match snap {
-        Snap::Point => context.editor.cursor?,
+        Snap::Point => cursor,
         Snap::Crossing(at) | Snap::Midpoint(at) | Snap::Centre(at) | Snap::OnCurve(at) => at,
     };
     Some((snap, at))

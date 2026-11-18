@@ -11,13 +11,13 @@ use glam::{DVec2, DVec3};
 
 use super::super::ViewportState;
 use super::curves::{push_arc_at, push_line};
+use super::dimensions::in_a_cartouche;
 use super::drawing::{sketch_colors, stroke_colors};
 use super::marks::push_point_marker;
 use super::overlays::{tint_to_color, to_screen};
 use super::{emphasis, tint, tint_at};
 use crate::screens::SketchContext;
 use crate::screens::viewport::ViewScale;
-use crate::ui::theme::tokens;
 use crate::wording::dimension;
 
 mod curve_sides;
@@ -356,16 +356,10 @@ pub(super) fn paint_cut_labels(
             continue;
         };
         let color = match cut.fits {
-            true => tokens::ACCENT_AMBER_TEXT,
+            true => tint_to_color(state.theme.dimension),
             false => tint_to_color(state.theme.refused),
         };
-        painter.text(
-            position,
-            egui::Align2::CENTER_CENTER,
-            text,
-            egui::FontId::monospace(13.0),
-            color,
-        );
+        in_a_cartouche(painter, position, text, color);
     }
 }
 

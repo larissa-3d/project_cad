@@ -23,6 +23,15 @@
 //!   `a_number_typed_while_drawing_goes_into_the_field` and
 //!   `a_name_typed_straight_into_the_field_lays_the_line_to_it` in
 //!   `crates/app/tests/variables.rs`
+//! - found in review: a snap's name stood half hidden under the fields the
+//!   cursor carries once a line was begun — its pill and their popup do not
+//!   overlap — `a_snap_s_name_stands_clear_of_the_fields_the_cursor_carries`
+//! - found in review: a snap's ring and name outlived the cursor, the last
+//!   place it was pulled onto still named with the pointer off the canvas —
+//!   no snap is named once the pointer has left it, whichever snap it was —
+//!   `no_snap_is_named_once_the_pointer_has_left_the_canvas`; the ring, in
+//!   `no_ring_is_drawn_once_the_cursor_has_left_the_canvas` in
+//!   `crates/app/src/screens/viewport/render/drawing/tests.rs`
 //!
 //! The amber is the profile's tool colour, `tool_in_progress`, whose default
 //! is the design file's amber. The tests open on a profile that sets it to a
@@ -342,5 +351,125 @@ fn the_length_field_by_the_cursor_has_an_amber_border() {
         framed,
         "no border of the tool's colour, {TOOL:?}, a point wide or more, stands round the \
          length field at {length:?}; what stands round it: {borders:?}",
+    );
+}
+
+/// The pills the last frame wrote exactly `text` in: each box painted before
+/// the text, around it, with a stroke of the tool's colour.
+fn the_pills_around(app: &driver::App, text: &str) -> Vec<egui::Rect> {
+    let shapes = painted(app);
+    shapes
+        .iter()
+        .enumerate()
+        .filter_map(|(rank, shape)| match shape {
+            egui::Shape::Text(written) if written.galley.text() == text => {
+                let at = egui::Rect::from_min_size(written.pos, written.galley.size());
+                shapes[..rank].iter().find_map(|shape| match shape {
+                    egui::Shape::Rect(pill)
+                        if pill.rect.expand(0.5).contains_rect(at)
+                            && at.expand(16.0).contains_rect(pill.rect)
+                            && pill.stroke.width > 0.0
+                            && is_the_tool_s(pill.stroke.color) =>
+                    {
+                        Some(pill.rect)
+                    }
+                    _ => None,
+                })
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_snap_s_name_stands_clear_of_the_fields_the_cursor_carries() {
+    let mut app = driver::open_held_with(
+        "a_snap_s_name_stands_clear_of_the_fields_the_cursor_carries",
+        a_profile_with_its_own_tool_colour(),
+    );
+    driver::create_a_part(&mut app, "Equerre");
+    driver::start_a_sketch(&mut app);
+    driver::start_a_line(&mut app);
+
+    driver::hover_at_sketch_point(&mut app, DVec2::ZERO);
+    app.run();
+
+    let hand = driver::sketch_point_on_screen(&app, DVec2::ZERO);
+    let carried = egui::Rect::from_min_size(hand, egui::vec2(480.0, 120.0));
+    let fields: Vec<egui::Rect> = app
+        .query_all_by_role(egui::accesskit::Role::TextInput)
+        .map(|field| field.rect())
+        .filter(|field| carried.contains_rect(*field))
+        .collect();
+    assert_eq!(
+        fields.len(),
+        2,
+        "a line under way carries its length and its angle by the cursor, at {hand:?}: \
+         {fields:?}",
+    );
+    let popup = painted(&app)
+        .iter()
+        .filter_map(|shape| match shape {
+            egui::Shape::Rect(frame)
+                if fields
+                    .iter()
+                    .all(|field| frame.rect.expand(0.5).contains_rect(*field)) =>
+            {
+                Some(frame.rect)
+            }
+            _ => None,
+        })
+        .min_by(|one, other| one.area().total_cmp(&other.area()))
+        .unwrap_or_else(|| fields[0].union(fields[1]));
+    let pills = the_pills_around(&app, "Coïncidence");
+    assert!(
+        !pills.is_empty(),
+        "the cursor on the sketch's origin, a point, is named « Coïncidence »: the frame \
+         writes near it {:?}",
+        written_near(&app, hand, 120.0),
+    );
+
+    let under: Vec<&egui::Rect> = pills.iter().filter(|pill| pill.intersects(popup)).collect();
+    assert!(
+        under.is_empty(),
+        "the name « Coïncidence », in {under:?}, stands under the fields the cursor carries, \
+         in {popup:?}",
+    );
+}
+
+#[test]
+fn no_snap_is_named_once_the_pointer_has_left_the_canvas() {
+    let test = "no_snap_is_named_once_the_pointer_has_left_the_canvas";
+    let mut app = the_line_tool_over_the_plate(test);
+    let off_the_canvas = app
+        .query_all_by_label("Ligne (L)")
+        .next()
+        .expect("the ribbon offers the line tool, outside the canvas")
+        .rect()
+        .center();
+
+    let mut outlived = Vec::new();
+    for (at, snap, name) in PLACES {
+        driver::hover_at_sketch_point(&mut app, at);
+        app.run();
+        assert!(
+            !the_pills_around(&app, name).is_empty(),
+            "the fixture names {snap} « {name} » while the cursor is on it",
+        );
+
+        app.hover_at(off_the_canvas);
+        app.run();
+        app.run();
+
+        if !the_pills_around(&app, name).is_empty() {
+            outlived.push(format!("{snap} at {at:?}, « {name} »"));
+        }
+    }
+
+    assert!(
+        outlived.is_empty(),
+        "with the pointer off the canvas, at {off_the_canvas:?}, the last snap is still \
+         named:\n  {}",
+        outlived.join("\n  "),
     );
 }

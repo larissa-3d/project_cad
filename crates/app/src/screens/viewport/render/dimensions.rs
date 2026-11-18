@@ -152,7 +152,7 @@ fn as_label(text: String, read_only: bool, theme: &Theme) -> (String, egui::Colo
 
 /// A value written centred on `position`, in a small rounded box bordered in
 /// its own colour.
-fn in_a_cartouche(
+pub(super) fn in_a_cartouche(
     painter: &egui::Painter,
     position: egui::Pos2,
     text: String,

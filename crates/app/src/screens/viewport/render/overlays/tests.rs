@@ -88,6 +88,12 @@
 //!   no further, and the boxes of marks set side by side neither overlap nor
 //!   touch, `spacing.xs` between them —
 //!   `a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap`
+//! - found in review: a mark's box stood over the trait it marks, its corner
+//!   on the trait's middle, and a click along the trait took the rule — read
+//!   with the view square onto the drawing, no point of any trait answers as a
+//!   mark, the rule's box standing clear of its trait and of its corner, as in
+//!   the redesign's mockup —
+//!   `a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s`
 //!
 //! The two box colours are read by the names a profile writes them under,
 //! `rule_background` and `rule_border`, as #742 did for its stroke colours.
@@ -2027,4 +2033,73 @@ fn a_rule_s_mark_answers_anywhere_on_its_box_and_no_two_boxes_overlap() {
             );
         }
     }
+}
+
+#[test]
+fn a_rule_s_mark_stands_clear_of_the_traits_so_a_click_on_a_trait_is_the_trait_s() {
+    let mut camera = OrbitCamera::default();
+    let (yaw, pitch) = cao_render::camera::view_angles_towards(Vec3::Z);
+    camera.set_view_angles(yaw, pitch);
+    let view_projection = camera.view_projection(SCREEN.aspect_ratio());
+    let pixel = f64::from(camera.world_units_per_pixel(SCREEN.height()));
+    let mut sketch = cao_sketch::Sketch::new(cao_sketch::WorkPlane::XY);
+    let (wide, high) = (300.0 * pixel, 200.0 * pixel);
+    let corners = [(0.0, 0.0), (wide, 0.0), (wide, high), (0.0, high)]
+        .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let sides: Vec<SegmentId> = (0..4)
+        .map(|rank| sketch.add_segment(corners[rank], corners[(rank + 1) % 4]))
+        .collect();
+    let (foot, right, top, left) = (sides[0], sides[1], sides[2], sides[3]);
+    for rule in [
+        Constraint::AxisParallel {
+            segment: foot,
+            axis: cao_sketch::SketchAxis::U,
+        },
+        Constraint::AxisParallel {
+            segment: top,
+            axis: cao_sketch::SketchAxis::U,
+        },
+        Constraint::AxisParallel {
+            segment: left,
+            axis: cao_sketch::SketchAxis::V,
+        },
+        Constraint::Perpendicular {
+            first: right,
+            second: top,
+        },
+    ] {
+        sketch.add_constraint(rule);
+    }
+
+    let placed = placed_marks(&sketch, view_projection, SCREEN);
+
+    assert_eq!(
+        placed.len(),
+        4,
+        "three traits held to an axis and a right angle at a corner are marked four times: \
+         {placed:?}",
+    );
+    let screen = |at: DVec2| {
+        to_screen(sketch.plane.to_world(at), view_projection, SCREEN)
+            .expect("the rectangle stands in front of the camera")
+    };
+    let mut taken = Vec::new();
+    for side in sides {
+        let (from, to) = sketch.endpoints(side);
+        let (from, to) = (screen(from), screen(to));
+        let steps = (from.distance(to) * 2.0).ceil() as usize;
+        for step in 0..=steps {
+            let on_the_trait = from + (to - from) * (step as f32 / steps as f32);
+            if let Some(rule) = mark_under(&placed, on_the_trait) {
+                taken.push(format!("{on_the_trait:?}, on {side:?}, takes {rule:?}"));
+            }
+        }
+    }
+    assert!(
+        taken.is_empty(),
+        "a mark's box stands over the trait, and a click meant for the trait takes the rule \
+         instead, at {} places — the marks at {placed:?}; the first:\n  {}",
+        taken.len(),
+        taken[..taken.len().min(6)].join("\n  "),
+    );
 }
