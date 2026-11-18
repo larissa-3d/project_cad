@@ -29,7 +29,8 @@ git for-each-ref --sort=-committerdate --count=6 \
 
 printf '\nAvant toute tâche : vérifier qu’aucune de ces branches ne fait déjà le travail demandé.\n'
 
-if [ "$(git config core.hooksPath 2>/dev/null)" != '.githooks' ]; then
+if [ "$(cd "$(git config core.hooksPath 2>/dev/null)" 2>/dev/null && pwd -P)" \
+    != "$(cd .githooks 2>/dev/null && pwd -P)" ]; then
     printf '\n⚠ Le hook git n’est pas activé sur ce clone. Une fois pour toutes :\n'
     printf '    git config core.hooksPath .githooks\n'
 fi
