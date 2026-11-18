@@ -256,6 +256,14 @@ pub fn the_minimum_size_asked(app: &App) -> Option<egui::Vec2> {
         .flatten()
 }
 
+/// Every minimum inner size the application has asked of its native window
+/// since it opened, in order.
+pub fn the_minimums_asked(app: &App) -> Vec<egui::Vec2> {
+    app.ctx
+        .with_plugin(|asked: &mut TheMinimumAsked| asked.0.clone())
+        .unwrap_or_default()
+}
+
 /// How many times the application has asked its native window for a minimum
 /// inner size since it opened.
 pub fn how_many_minimums_asked(app: &App) -> usize {

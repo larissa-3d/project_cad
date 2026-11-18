@@ -77,11 +77,13 @@ pub fn panel(
 }
 
 /// Asks the window to stand no shorter than what is around the panel's place,
-/// the panel closed: `ui` is where it would stand.
-pub fn closed(ui: &egui::Ui) {
+/// the panel closed, nor than where what the panels beside it hold `ends`:
+/// `ui` is where it would stand.
+pub fn closed(ui: &egui::Ui, ends: Option<f32>) {
     let ctx = ui.ctx();
-    let room = ui.available_rect_before_wrap().height();
-    hold_the_window(ctx, ctx.content_rect().height() - room);
+    let room = ui.available_rect_before_wrap();
+    let held = ends.map_or(0.0, |ends| (ends - room.top()).max(0.0));
+    hold_the_window(ctx, ctx.content_rect().height() - room.height() + held);
 }
 
 /// Asks the window to stand no shorter than `least`; asked again only when

@@ -24,17 +24,20 @@ pub enum VariablesAction {
     Erase(VariableId),
 }
 
-/// The panel, chrome and all, beside the history.
+/// The panel, chrome and all, beside the history, and where what it holds
+/// ends down the window.
 pub fn panel(
     ui: &mut egui::Ui,
     panel: &mut VariablesPanel,
     document: &PartDocument,
     lang: &Catalogue,
-) -> VariablesAction {
+) -> (VariablesAction, f32) {
     egui::Panel::left("variables_panel")
         .resizable(true)
         .default_size(320.0)
-        .show(ui, |ui| show(ui, panel, document, lang))
+        .show(ui, |ui| {
+            (show(ui, panel, document, lang), ui.cursor().top())
+        })
         .inner
 }
 
