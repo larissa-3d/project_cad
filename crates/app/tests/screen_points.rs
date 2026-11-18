@@ -91,6 +91,13 @@ const WINDOW_POSITIONS: &[WindowPosition] = &[
               nothing is aimed from it",
     },
     WindowPosition {
+        file: "crates/app/tests/the_part_panel_with_a_long_history.rs",
+        written: "driver::canvas(app)",
+        why: "the view read only for where it starts, to check that the minimum the \
+              window is asked grows by as much as the ribbon does from one tab to the \
+              other: nothing is aimed from it",
+    },
+    WindowPosition {
         file: "crates/app/tests/swapping_a_chamfer_s_sides.rs",
         written: "driver::canvas(&app)",
         why: "the view read only to check that the chamfer's panel stands over it, in \

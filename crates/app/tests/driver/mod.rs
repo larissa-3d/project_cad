@@ -216,10 +216,52 @@ fn launched(at: Locations, size: egui::Vec2) -> App {
                 cc.wgpu_render_state.is_none(),
                 "no renderer was asked for, so these tests run without a GPU adapter",
             );
+            cc.egui_ctx.add_plugin(TheMinimumAsked::default());
             CaoApp::new(cc, Some(at), None)
         });
     app.run();
     app
+}
+
+/// Every minimum inner size the application asked of its native window, in
+/// order, read off every frame's output from the very first: a frame that
+/// asks once is gone by the time a gesture's frames settle.
+#[derive(Default)]
+struct TheMinimumAsked(Vec<egui::Vec2>);
+
+impl egui::Plugin for TheMinimumAsked {
+    fn debug_name(&self) -> &'static str {
+        "the minimum asked of the window"
+    }
+
+    fn output_hook(&mut self, _ctx: &egui::Context, output: &mut egui::FullOutput) {
+        let asked = output
+            .viewport_output
+            .get(&egui::ViewportId::ROOT)
+            .into_iter()
+            .flat_map(|root| &root.commands)
+            .filter_map(|command| match command {
+                egui::ViewportCommand::MinInnerSize(size) => Some(*size),
+                _ => None,
+            });
+        self.0.extend(asked);
+    }
+}
+
+/// The minimum inner size the application last asked of its native window,
+/// `None` while it has asked none.
+pub fn the_minimum_size_asked(app: &App) -> Option<egui::Vec2> {
+    app.ctx
+        .with_plugin(|asked: &mut TheMinimumAsked| asked.0.last().copied())
+        .flatten()
+}
+
+/// How many times the application has asked its native window for a minimum
+/// inner size since it opened.
+pub fn how_many_minimums_asked(app: &App) -> usize {
+    app.ctx
+        .with_plugin(|asked: &mut TheMinimumAsked| asked.0.len())
+        .unwrap_or(0)
 }
 
 /// Where the application opened for `test` keeps what it writes.

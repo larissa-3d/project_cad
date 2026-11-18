@@ -60,7 +60,7 @@ impl CaoApp {
         let remembered = Remembered::read(locations);
         let explorer = Explorer::at(remembered.projects_dir().unwrap_or_default());
         let window = WindowKeeper::open(
-            cc.winit_window(),
+            cc,
             remembered.locations(),
             remembered.profiles.active().reopen_at_last_size,
         );

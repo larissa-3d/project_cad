@@ -59,14 +59,32 @@ pub fn panel(
         hovering: None,
         ends: Vec::new(),
     };
-    egui::Panel::left("part_tree_panel")
+    let shown = egui::Panel::left("part_tree_panel")
         .resizable(true)
         .default_size(240.0)
         .show(ui, |ui| {
             asked.action = history::at_the_bottom(ui, document, viewport, history_unfolded, lang);
+            let room = ui.max_rect().height();
             show(ui, &mut asked, lang);
+            room
         });
+    hold_the_window(ui.ctx(), shown.inner);
     (asked.action, asked.hovering)
+}
+
+/// Asks the window to stand no shorter than what is around the panel and what
+/// it holds at the least, `room` being what the panel was given; asked again
+/// only when that or the zoom changes, as the platform resizes the window on
+/// each ask and holds it in pixels of the zoom it was asked at.
+fn hold_the_window(ctx: &egui::Context, room: f32) {
+    let least = ctx.content_rect().height() - room + history::least_height(ctx);
+    let zoom = ctx.pixels_per_point();
+    let id = egui::Id::new("part_tree_least_window_height");
+    let asked = ctx.data(|data| data.get_temp::<(f32, f32)>(id));
+    if asked.is_none_or(|(asked, at)| (asked - least).abs() > 0.5 || at != zoom) {
+        ctx.data_mut(|data| data.insert_temp(id, (least, zoom)));
+        ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(egui::vec2(0.0, least)));
+    }
 }
 
 fn show(ui: &mut egui::Ui, asked: &mut Asked<'_>, lang: &Catalogue) {

@@ -24,7 +24,10 @@
 //!
 //! What the driver cannot see is a move made on the real window: the place is
 //! applied there once, in `CaoApp::new`, and the setting read there and nowhere
-//! else. The window the box's test watches is the harness's, which follows a
+//! else. The least height kept with it since #998 is the same: the window held
+//! no shorter than it, and the height asked handed down to be written, happen
+//! on a window the driver does not have; `crates/prefs/src/window_place/tests.rs`
+//! holds what is decided of it. The window the box's test watches is the harness's, which follows a
 //! size the application asks egui for and nothing the system is told directly. The screen's size is never asked under kittest, as there is no
 //! window to ask it from: a driver test that depended on it could not run.
 
@@ -87,6 +90,7 @@ fn the_driver_neither_reads_nor_writes_a_remembered_window_place() {
         width: 1500,
         height: 900,
         maximised: false,
+        least_height: None,
     };
     let mut app = driver::open_on_remembering(test, driver::SCREEN, remembered);
     let laid_down = std::fs::read(driver::window_place_file(test)).expect("the place is there");

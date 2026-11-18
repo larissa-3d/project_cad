@@ -36,6 +36,27 @@
 //!   screen — `a_place_on_a_screen_since_unplugged_opens_maximised_on_the_main_screen`,
 //!   against `a_place_on_the_second_screen_reopens_there_while_it_is_plugged_in`
 //!
+//! Closes #998.
+//! - A window size saved smaller than that opens at the minimum — decided as
+//!   the last minimum the application asked kept with the window's place, the
+//!   window opening held to it, start menu included: a place saved shorter
+//!   opens at it, `a_place_saved_shorter_than_its_least_height_opens_at_the_least_height`;
+//!   opened maximised the window is still held to it,
+//!   `opened_maximised_the_window_is_still_held_to_the_least_height_remembered`;
+//!   the last height asked is the one written,
+//!   `the_last_least_height_asked_while_the_application_ran_is_written_with_the_place`,
+//!   and one never asked again is written as it was remembered,
+//!   `a_least_height_not_asked_again_is_written_as_it_was_remembered`; it
+//!   reads back, `a_place_written_on_close_reads_back_as_it_was`, and a place
+//!   written before it was kept still does,
+//!   `a_place_written_before_the_least_height_was_kept_reads_back_with_none`
+//! - found in review: a least height taller than the screen opens the window
+//!   as tall as the screen and on it, the least height itself capped there,
+//!   since the window is held to it —
+//!   `a_least_height_taller_than_the_screen_opens_the_window_as_tall_as_the_screen_and_on_it`;
+//!   one the screen holds raises the window up rather than off its bottom —
+//!   `a_window_raised_to_its_least_height_moves_up_rather_than_run_off_its_screen_s_bottom`
+//!
 //! Positions and sizes are in desktop units, the ones the system lays its
 //! screens out in — points on macOS, pixels elsewhere: the place is the
 //! window's outer top-left corner and its inner size. The default size is
@@ -104,6 +125,7 @@ const THE_DEFAULT_CENTRED_ON_FULL_HD_AND_MAXIMISED: WindowPlace = WindowPlace {
     width: 1280,
     height: 800,
     maximised: true,
+    least_height: None,
 };
 
 const LEFT_ON_THE_SECOND_SCREEN: WindowPlace = WindowPlace {
@@ -112,6 +134,7 @@ const LEFT_ON_THE_SECOND_SCREEN: WindowPlace = WindowPlace {
     width: 1200,
     height: 800,
     maximised: false,
+    least_height: None,
 };
 
 fn at() -> Locations {
@@ -130,6 +153,7 @@ fn a_window_closed_where_it_stood_reopens_there_at_that_size() {
         width: 1000,
         height: 700,
         maximised: false,
+        least_height: None,
     };
 
     let opened = where_the_window_opens(
@@ -149,6 +173,7 @@ fn a_window_closed_maximised_reopens_maximised_over_the_rect_it_had_before() {
         width: 1600,
         height: 1000,
         maximised: true,
+        least_height: None,
     };
 
     let opened = where_the_window_opens(
@@ -191,6 +216,7 @@ fn the_default_size_is_counted_in_points_on_a_screen_of_scale_two() {
             width: 2560,
             height: 1600,
             maximised: true,
+            least_height: None,
         },
         "1280 × 800 points are 2560 × 1600 pixels at scale 2",
     );
@@ -228,6 +254,7 @@ fn with_the_setting_off_a_remembered_place_opens_as_if_nothing_were_remembered()
         width: 1000,
         height: 700,
         maximised: false,
+        least_height: None,
     };
 
     let opened = where_the_window_opens(Some(closed), ALWAYS_MAXIMISED, &[FULL_HD_AT_SCALE_ONE]);
@@ -269,6 +296,7 @@ fn no_screen_reported_at_all_still_gives_a_place_to_open_at() {
         width: 1000,
         height: 700,
         maximised: false,
+        least_height: None,
     };
 
     assert_eq!(
@@ -290,6 +318,7 @@ fn a_place_written_on_close_reads_back_as_it_was() {
     let files = InMemoryFiles::default();
     let closed = WindowPlace {
         maximised: true,
+        least_height: Some(THE_LEAST_HEIGHT_ASKED),
         ..LEFT_ON_THE_SECOND_SCREEN
     };
     assert_eq!(
@@ -344,6 +373,7 @@ const OPENED_OVER_THE_DEFAULT_RECT: WindowPlace = WindowPlace {
     width: 1280,
     height: 800,
     maximised: false,
+    least_height: None,
 };
 
 const MAXIMISED_ON_THE_MACBOOK: WindowSeen = WindowSeen {
@@ -400,6 +430,7 @@ fn written_at(seen: WindowSeen, maximised: bool) -> WindowPlace {
         width: seen.width,
         height: seen.height,
         maximised,
+        least_height: None,
     }
 }
 
@@ -560,6 +591,7 @@ fn a_window_dragged_and_closed_at_once_writes_the_rect_it_shows() {
             width: 1280,
             height: 800,
             maximised: false,
+            least_height: None,
         },
         "closed straight after a drag, the window reopens where it was let go",
     );
@@ -604,5 +636,223 @@ fn maximised_again_after_a_drag_the_window_goes_back_to_where_it_was_dragged() {
         written_at(WHERE_THE_USER_LEFT_IT, true),
         "opened maximised, restored, dragged, then maximised again: closed now, the \
          window reopens maximised and goes back to where it was dragged",
+    );
+}
+
+/// The least height the application asked of its window on the Part screen,
+/// one tab of the ribbon open.
+const THE_LEAST_HEIGHT_ASKED: u32 = 543;
+
+/// The same on the sketch's tab, whose ribbon holds a row more.
+const THE_LEAST_HEIGHT_ASKED_ON_THE_SKETCH_TAB: u32 = 621;
+
+#[test]
+fn a_place_saved_shorter_than_its_least_height_opens_at_the_least_height() {
+    let short = WindowPlace {
+        x: 200,
+        y: 120,
+        width: 1000,
+        height: 400,
+        maximised: false,
+        least_height: Some(THE_LEAST_HEIGHT_ASKED),
+    };
+    let tall = WindowPlace {
+        height: 700,
+        ..short
+    };
+
+    let opened_short = where_the_window_opens(
+        Some(short),
+        REOPENING_AT_THE_LAST_SIZE,
+        &[FULL_HD_AT_SCALE_ONE],
+    );
+    let opened_tall = where_the_window_opens(
+        Some(tall),
+        REOPENING_AT_THE_LAST_SIZE,
+        &[FULL_HD_AT_SCALE_ONE],
+    );
+
+    assert_eq!(
+        opened_short,
+        WindowPlace {
+            height: THE_LEAST_HEIGHT_ASKED,
+            ..short
+        },
+        "a place saved 400 high under a least height of {THE_LEAST_HEIGHT_ASKED} opens at it",
+    );
+    assert_eq!(
+        opened_tall, tall,
+        "a place saved taller than its least height opens as it was saved",
+    );
+}
+
+#[test]
+fn opened_maximised_the_window_is_still_held_to_the_least_height_remembered() {
+    let closed = WindowPlace {
+        x: 200,
+        y: 120,
+        width: 1000,
+        height: 700,
+        maximised: false,
+        least_height: Some(THE_LEAST_HEIGHT_ASKED),
+    };
+
+    let opened = where_the_window_opens(Some(closed), ALWAYS_MAXIMISED, &[FULL_HD_AT_SCALE_ONE]);
+
+    assert_eq!(
+        opened,
+        WindowPlace {
+            least_height: Some(THE_LEAST_HEIGHT_ASKED),
+            ..THE_DEFAULT_CENTRED_ON_FULL_HD_AND_MAXIMISED
+        },
+        "the setting off decides where the window opens, not how short it may be made",
+    );
+}
+
+#[test]
+fn the_last_least_height_asked_while_the_application_ran_is_written_with_the_place() {
+    let mut window = FollowedWindow::opened_at(OPENED_OVER_THE_DEFAULT_RECT);
+    window.saw(WHERE_THE_USER_LEFT_IT, after(0.0));
+
+    window.asked_no_shorter_than(THE_LEAST_HEIGHT_ASKED_ON_THE_SKETCH_TAB);
+    window.asked_no_shorter_than(THE_LEAST_HEIGHT_ASKED);
+    window.saw(WHERE_THE_USER_LEFT_IT, after(2.0));
+    let restored = window.place_to_write();
+    window.saw(MAXIMISED_ON_THE_MACBOOK, after(3.0));
+    let maximised = window.place_to_write();
+
+    assert_eq!(
+        restored,
+        WindowPlace {
+            least_height: Some(THE_LEAST_HEIGHT_ASKED),
+            ..written_at(WHERE_THE_USER_LEFT_IT, false)
+        },
+    );
+    assert_eq!(
+        maximised,
+        WindowPlace {
+            least_height: Some(THE_LEAST_HEIGHT_ASKED),
+            ..written_at(WHERE_THE_USER_LEFT_IT, true)
+        },
+        "maximised, the place written still keeps the least height last asked",
+    );
+}
+
+#[test]
+fn a_least_height_not_asked_again_is_written_as_it_was_remembered() {
+    let opened = WindowPlace {
+        least_height: Some(THE_LEAST_HEIGHT_ASKED),
+        ..OPENED_OVER_THE_DEFAULT_RECT
+    };
+    let mut window = FollowedWindow::opened_at(opened);
+
+    window.saw(WHERE_THE_USER_LEFT_IT, after(0.0));
+
+    assert_eq!(
+        window.place_to_write(),
+        WindowPlace {
+            least_height: Some(THE_LEAST_HEIGHT_ASKED),
+            ..written_at(WHERE_THE_USER_LEFT_IT, false)
+        },
+        "a session closed on the start menu asks nothing, and the next launch is held as \
+         this one was",
+    );
+}
+
+#[test]
+fn a_place_written_before_the_least_height_was_kept_reads_back_with_none() {
+    let files = InMemoryFiles::default();
+    files
+        .write(
+            Path::new("/config/window.json"),
+            br#"{ "x": 200, "y": 120, "width": 1000, "height": 700, "maximised": false }"#,
+        )
+        .expect("writes");
+
+    assert_eq!(
+        WindowPlace::load(&files, &at()),
+        Some(WindowPlace {
+            x: 200,
+            y: 120,
+            width: 1000,
+            height: 700,
+            maximised: false,
+            least_height: None,
+        }),
+        "a place written before #998 opens as it did",
+    );
+}
+
+/// A least height asked on a taller screen than the one the window reopens on.
+const A_LEAST_HEIGHT_TALLER_THAN_FULL_HD: u32 = 1200;
+
+#[test]
+fn a_least_height_taller_than_the_screen_opens_the_window_as_tall_as_the_screen_and_on_it() {
+    let closed = WindowPlace {
+        x: 200,
+        y: 120,
+        width: 1000,
+        height: 700,
+        maximised: false,
+        least_height: Some(A_LEAST_HEIGHT_TALLER_THAN_FULL_HD),
+    };
+    let screen = FULL_HD_AT_SCALE_ONE.height;
+
+    let reopened = where_the_window_opens(
+        Some(closed),
+        REOPENING_AT_THE_LAST_SIZE,
+        &[FULL_HD_AT_SCALE_ONE],
+    );
+    let maximised = where_the_window_opens(Some(closed), ALWAYS_MAXIMISED, &[FULL_HD_AT_SCALE_ONE]);
+
+    assert_eq!(
+        reopened,
+        WindowPlace {
+            y: 0,
+            height: screen,
+            least_height: Some(screen),
+            ..closed
+        },
+        "a least height of {A_LEAST_HEIGHT_TALLER_THAN_FULL_HD} on a screen {screen} high: \
+         the window is held no taller than the screen, and stands on it",
+    );
+    assert_eq!(
+        maximised,
+        WindowPlace {
+            y: 0,
+            height: screen,
+            least_height: Some(screen),
+            ..THE_DEFAULT_CENTRED_ON_FULL_HD_AND_MAXIMISED
+        },
+        "the rect a maximised window goes back to is held to the screen the same way",
+    );
+}
+
+#[test]
+fn a_window_raised_to_its_least_height_moves_up_rather_than_run_off_its_screen_s_bottom() {
+    let closed = WindowPlace {
+        x: 200,
+        y: 400,
+        width: 1000,
+        height: 500,
+        maximised: false,
+        least_height: Some(900),
+    };
+
+    let opened = where_the_window_opens(
+        Some(closed),
+        REOPENING_AT_THE_LAST_SIZE,
+        &[FULL_HD_AT_SCALE_ONE],
+    );
+
+    assert_eq!(
+        opened,
+        WindowPlace {
+            y: 180,
+            height: 900,
+            ..closed
+        },
+        "raised from 500 to 900 at 400 from the top, the window would end at 1300 on a screen \
+         1080 high; it moves up to end on the screen's bottom",
     );
 }
