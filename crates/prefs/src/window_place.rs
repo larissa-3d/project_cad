@@ -18,7 +18,8 @@ const DEFAULT_SIZE_IN_POINTS: (u32, u32) = (1280, 800);
 
 /// The window's outer top-left corner and inner size, and whether it is
 /// maximised. Maximised, the rect is still the one it goes back to once
-/// restored, never the screen's.
+/// restored, never the screen's. `least_height` is the inner height the
+/// application last held the window to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WindowPlace {
     pub x: i32,
@@ -26,6 +27,8 @@ pub struct WindowPlace {
     pub width: u32,
     pub height: u32,
     pub maximised: bool,
+    #[serde(default)]
+    pub least_height: Option<u32>,
 }
 
 /// A monitor as the system lays it out. `scale` is how many desktop units a
@@ -43,7 +46,8 @@ pub struct Monitor {
 /// its centre lies on one of the `monitors`; otherwise maximised, over the
 /// default size centred on the main monitor, the first of the slice. With no
 /// monitor reported at all, the remembered place stands, or the default size
-/// at the origin, and the system places the window.
+/// at the origin, and the system places the window. Whichever it is, it keeps
+/// the remembered least height, and is no shorter than it.
 pub fn where_the_window_opens(
     remembered: Option<WindowPlace>,
     reopen_at_last_size: bool,
@@ -55,9 +59,15 @@ pub fn where_the_window_opens(
                 .iter()
                 .any(|monitor| monitor.holds_the_centre_of(place))
     };
-    match remembered {
+    let least_height = remembered.and_then(|place| place.least_height);
+    let place = match remembered {
         Some(place) if reopen_at_last_size && fits(place) => place,
         _ => maximised_over_the_default_size(monitors.first()),
+    };
+    WindowPlace {
+        height: place.height.max(least_height.unwrap_or(0)),
+        least_height,
+        ..place
     }
 }
 
@@ -80,6 +90,7 @@ fn maximised_over_the_default_size(main: Option<&Monitor>) -> WindowPlace {
         width,
         height,
         maximised: true,
+        least_height: None,
     }
 }
 
@@ -111,6 +122,7 @@ pub struct FollowedWindow {
     /// The last rect that settled; its `maximised` is never read.
     to_go_back_to: WindowPlace,
     standing: Standing,
+    least_height: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -124,6 +136,7 @@ impl FollowedWindow {
     pub fn opened_at(place: WindowPlace) -> Self {
         let rect = WindowPlace {
             maximised: false,
+            least_height: None,
             ..place
         };
         let standing = if place.maximised {
@@ -137,7 +150,14 @@ impl FollowedWindow {
         Self {
             to_go_back_to: rect,
             standing,
+            least_height: place.least_height,
         }
+    }
+
+    /// The application held the window to an inner height of at least
+    /// `height`, the one to write with the place unless another follows.
+    pub fn asked_no_shorter_than(&mut self, height: u32) {
+        self.least_height = Some(height);
     }
 
     /// The window `seen` `at` a time counted from the origin `opened_at`
@@ -158,6 +178,7 @@ impl FollowedWindow {
             width: seen.width,
             height: seen.height,
             maximised: false,
+            least_height: None,
         };
         self.standing = match self.standing {
             _ if seen.maximised => Standing::Maximised,
@@ -169,14 +190,18 @@ impl FollowedWindow {
     }
 
     /// Maximised, the rect to go back to; otherwise the window as it stands,
-    /// settled or not.
+    /// settled or not. Either way, with the least height last held to.
     pub fn place_to_write(&self) -> WindowPlace {
-        match self.standing {
+        let place = match self.standing {
             Standing::Maximised => WindowPlace {
                 maximised: true,
                 ..self.to_go_back_to
             },
             Standing::Restored { rect, .. } => rect,
+        };
+        WindowPlace {
+            least_height: self.least_height,
+            ..place
         }
     }
 }
