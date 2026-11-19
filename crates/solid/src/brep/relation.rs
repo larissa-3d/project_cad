@@ -24,7 +24,9 @@ use super::surface::Surface;
 pub use crossing::{
     Crossing, Crossings, Lying, Touches, crossings, crossings_given, crossings_lying,
 };
-pub(in crate::brep) use nearly_parallel::{grazing, too_near_to_build, within_two_sags};
+#[cfg(test)]
+use nearly_parallel::grazing;
+pub(in crate::brep) use nearly_parallel::{grazed, too_near_to_build, within_two_sags};
 pub(in crate::brep) use revolved::apart_by;
 pub(in crate::brep) use round::{Gap, off_the_rim, untouched};
 pub use walls::Ruled;

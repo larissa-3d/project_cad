@@ -23,7 +23,8 @@ use super::operands::Operands;
 use crate::brep::Declined;
 use crate::brep::canonical::Registry;
 use crate::brep::curve::Wall;
-use crate::brep::relation::{Relation, at_a_slant, grazing, relation, too_near_to_build};
+use crate::brep::domain::Location;
+use crate::brep::relation::{Relation, at_a_slant, grazed, relation, too_near_to_build};
 use crate::brep::surface::Surface;
 use crate::brep::topology::{FaceId, SurfaceId};
 
@@ -61,7 +62,7 @@ pub(super) fn related(
                 && (too_near_to_build(&list[one], &list[other], &within, scale)
                     || on_a_pointed_face(operands, pair, &found))
                 || matches!(found, Relation::Meet(_) | Relation::Apart)
-                    && grazing(&list[one], &list[other], &within, scale);
+                    && grazing(operands, pair, &within);
             if found == Relation::Unsupported || too_near {
                 if clear(operands, pair) {
                     continue;
@@ -191,6 +192,41 @@ pub(super) fn facing(operands: &Operands, [one, other]: [SurfaceId; 2]) -> bool 
             .any(|first| seconds.iter().any(|second| operands.near(*first, *second)))
     };
     near(on(0, one), on(1, other)) || near(on(0, other), on(1, one))
+}
+
+/// Whether the cone and the wall of a pair graze (`relation/nearly_parallel.rs`)
+/// at a place standing on a face of one operand on one surface of the pair
+/// and on a face of the other operand on the other, its foot on each read
+/// against the faces lying there within the sag the place is read at, a
+/// face whose boundary cannot be traced read as holding it. The boxes
+/// `within` round the faces only spare the places that cannot be on them: a
+/// slot's drafted round end, leaving its front a few degrees short of the
+/// ruling nearest a fillet's round tangent to that front, stands in the
+/// round's box at that ruling, though no triangle of it is drawn there
+/// (#907).
+fn grazing(operands: &Operands, pair: [SurfaceId; 2], within: &[[DVec3; 2]]) -> bool {
+    let list = &operands.surfaces.list;
+    let [one, other] = pair;
+    let places = grazed(
+        &list[one.0 as usize],
+        &list[other.0 as usize],
+        within,
+        operands.scale_of(pair),
+    );
+    places.into_iter().any(|(place, room)| {
+        let on = |operand: usize, surface: SurfaceId| {
+            let shared = &list[surface.0 as usize];
+            let foot = shared.point(shared.parameters(place));
+            operands
+                .located(operand, surface, foot, room)
+                .map_or(true, |located| {
+                    located
+                        .iter()
+                        .any(|(_, location)| *location != Location::Outside)
+                })
+        };
+        on(0, one) && on(1, other) || on(0, other) && on(1, one)
+    })
 }
 
 /// Whether a curve read along a cone's rulings (`meet/ruled.rs`) has a
