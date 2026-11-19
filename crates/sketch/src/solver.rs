@@ -527,7 +527,8 @@ impl Sketch {
             | Constraint::EllipseTangent { .. } => self.tangent_equations(constraint, into),
             Constraint::EqualRadius { .. }
             | Constraint::EqualRadiusArc { .. }
-            | Constraint::EqualRadiusArcCircle { .. } => {
+            | Constraint::EqualRadiusArcCircle { .. }
+            | Constraint::SymmetricCircles(_) => {
                 into.extend(self.equal_radius_equations(constraint))
             }
             Constraint::Midpoint { point, segment } => {

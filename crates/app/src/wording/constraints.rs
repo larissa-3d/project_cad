@@ -31,7 +31,7 @@ pub fn label(lang: &Catalogue, rule: Constraint) -> String {
         | Constraint::CutTangent { .. } => "constraints.label.tangent",
         Constraint::Midpoint { .. } => "constraints.label.midpoint",
         Constraint::Fixed { .. } => "constraints.label.fixed",
-        Constraint::Symmetric(_) => "constraints.label.symmetric",
+        Constraint::Symmetric(_) | Constraint::SymmetricCircles(_) => "constraints.label.symmetric",
     })
 }
 
@@ -68,7 +68,9 @@ pub fn erased_label(lang: &Catalogue, rule: Constraint) -> String {
         | Constraint::CutTangent { .. } => "constraints.erased.tangent",
         Constraint::Midpoint { .. } => "constraints.erased.midpoint",
         Constraint::Fixed { .. } => "constraints.erased.fixed",
-        Constraint::Symmetric(_) => "constraints.erased.symmetric",
+        Constraint::Symmetric(_) | Constraint::SymmetricCircles(_) => {
+            "constraints.erased.symmetric"
+        }
     })
 }
 
@@ -100,7 +102,7 @@ pub fn mark(rule: Constraint) -> &'static str {
         | Constraint::CutTangent { .. } => "T",
         Constraint::Midpoint { .. } => "1/2",
         Constraint::Fixed { .. } => "X",
-        Constraint::Symmetric(_) => "<>",
+        Constraint::Symmetric(_) | Constraint::SymmetricCircles(_) => "<>",
     }
 }
 

@@ -4,7 +4,7 @@ use crate::duplicating::Duplicated;
 use crate::element::Element;
 use crate::holding::Support;
 use crate::sketch::{PointId, SegmentId, Sketch};
-use crate::symmetry::Symmetry;
+use crate::symmetry::{CircleSymmetry, Symmetry};
 
 impl Sketch {
     /// Copies the elements given to the other side of an axis, each copied
@@ -34,6 +34,12 @@ impl Sketch {
                 (true, ChosenAxis::Trait(on)) => Support::Segment(on).holding(point),
             };
             self.add_constraint(rule);
+        }
+        for pair in &pairing.elements {
+            if let (Element::Circle(circle), Element::Circle(twin)) = *pair {
+                let pair = CircleSymmetry { circle, twin, axis };
+                self.add_constraint(Constraint::SymmetricCircles(pair));
+            }
         }
         for rule in standing {
             if let Some(image) = pairing.carried(rule, axis) {

@@ -3,6 +3,7 @@
 use crate::arc::ArcId;
 use crate::axis::ChosenAxis;
 use crate::constraints::Constraint;
+use crate::corner_cut::CornerCutId;
 use crate::duplicating::Pairing;
 use crate::ellipse::EllipseId;
 use crate::sketch::{CircleId, Element, PointId, SegmentId};
@@ -117,6 +118,20 @@ impl Pairing {
                 at: at.and_then(|at| self.point(at)),
                 from,
             },
+            Constraint::AtCutPoint { point, cut, at } => Constraint::AtCutPoint {
+                point: self.point(point)?,
+                cut: self.cut(cut)?,
+                at,
+            },
+            Constraint::OnCut { point, cut } => Constraint::OnCut {
+                point: self.point(point)?,
+                cut: self.cut(cut)?,
+            },
+            Constraint::CutTangent { cut, segment, from } => Constraint::CutTangent {
+                cut: self.cut(cut)?,
+                segment: self.segment(segment)?,
+                from,
+            },
             Constraint::OnAxis { point, axis } if to_the_axes => Constraint::OnAxis {
                 point: self.point(point)?,
                 axis,
@@ -141,12 +156,20 @@ impl Pairing {
             | Constraint::AxisCollinear { .. }
             | Constraint::AxisParallel { .. }
             | Constraint::AxisPerpendicular { .. }
-            | Constraint::AtCutPoint { .. }
-            | Constraint::OnCut { .. }
-            | Constraint::CutTangent { .. }
             | Constraint::Fixed { .. }
-            | Constraint::Symmetric(_) => return None,
+            | Constraint::Symmetric(_)
+            | Constraint::SymmetricCircles(_) => return None,
         })
+    }
+
+    /// A copied cut names its sides in the order its original does, so the
+    /// place where it meets the side named first is the image of its
+    /// original's.
+    fn cut(&self, of: CornerCutId) -> Option<CornerCutId> {
+        self.cuts
+            .iter()
+            .find(|(was, _)| *was == of)
+            .map(|(_, now)| *now)
     }
 
     fn point(&self, of: PointId) -> Option<PointId> {

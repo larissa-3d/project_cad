@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use cao_sketch::{
-    ArcId, Area, ChosenAxis, CircleId, Constraint, CornerCutId, CurveId, DimensionTarget, Element,
-    EllipseId, PointId, SegmentId, Symmetry,
+    ArcId, Area, ChosenAxis, CircleId, CircleSymmetry, Constraint, CornerCutId, CurveId,
+    DimensionTarget, Element, EllipseId, PointId, SegmentId, Symmetry,
 };
 
 /// Where every element of one sketch landed after being re-emitted, so a later
@@ -264,11 +264,20 @@ pub(super) fn remap_constraint(constraint: Constraint, map: &SketchIdMap) -> Con
         Constraint::Symmetric(pair) => Constraint::Symmetric(Symmetry {
             point: map.points[&pair.point],
             twin: map.points[&pair.twin],
-            axis: match pair.axis {
-                ChosenAxis::Trait(segment) => ChosenAxis::Trait(map.segments[&segment]),
-                ChosenAxis::Sketch(axis) => ChosenAxis::Sketch(axis),
-            },
+            axis: remap_axis(pair.axis, map),
         }),
+        Constraint::SymmetricCircles(pair) => Constraint::SymmetricCircles(CircleSymmetry {
+            circle: map.circles[&pair.circle],
+            twin: map.circles[&pair.twin],
+            axis: remap_axis(pair.axis, map),
+        }),
+    }
+}
+
+fn remap_axis(axis: ChosenAxis, map: &SketchIdMap) -> ChosenAxis {
+    match axis {
+        ChosenAxis::Trait(segment) => ChosenAxis::Trait(map.segments[&segment]),
+        ChosenAxis::Sketch(axis) => ChosenAxis::Sketch(axis),
     }
 }
 

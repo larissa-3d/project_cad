@@ -15,6 +15,10 @@ impl Sketch {
         let segment = |id: SegmentId| id.0 < self.segments.len() && !self.is_erased_segment(id);
         let circle = |id: CircleId| id.0 < self.circles.len() && !self.is_erased_circle(id);
         let point = |id: PointId| id.0 < self.points.len() && !self.is_erased_point(id);
+        let axis_stands = |axis: ChosenAxis| match axis {
+            ChosenAxis::Trait(axis) => segment(axis),
+            ChosenAxis::Sketch(_) => true,
+        };
         match constraint {
             Constraint::Perpendicular { first, second }
             | Constraint::Parallel { first, second }
@@ -61,12 +65,13 @@ impl Sketch {
             | Constraint::AxisParallel { segment: on, .. }
             | Constraint::AxisPerpendicular { segment: on, .. } => segment(on),
             Constraint::Symmetric(pair) => {
-                point(pair.point)
-                    && point(pair.twin)
-                    && match pair.axis {
-                        ChosenAxis::Trait(axis) => segment(axis),
-                        ChosenAxis::Sketch(_) => true,
-                    }
+                point(pair.point) && point(pair.twin) && axis_stands(pair.axis)
+            }
+            Constraint::SymmetricCircles(pair) => {
+                pair.circle != pair.twin
+                    && circle(pair.circle)
+                    && circle(pair.twin)
+                    && axis_stands(pair.axis)
             }
             Constraint::Fixed { element } => match element {
                 Element::Point(held) => point(held),

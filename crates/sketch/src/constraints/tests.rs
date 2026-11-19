@@ -161,6 +161,11 @@ fn one_of_every_kind() -> (Sketch, Vec<Constraint>) {
             twin: its_twin,
             axis: crate::ChosenAxis::Sketch(SketchAxis::V),
         }),
+        Constraint::SymmetricCircles(crate::CircleSymmetry {
+            circle: round,
+            twin: other_round,
+            axis: crate::ChosenAxis::Sketch(SketchAxis::V),
+        }),
     ];
 
     let mut kinds: Vec<&str> = rules.iter().map(name_of).collect();
@@ -202,6 +207,7 @@ fn name_of(rule: &Constraint) -> &'static str {
         Constraint::AxisPerpendicular { .. } => "square to an axis, trait",
         Constraint::Fixed { .. } => "fixed",
         Constraint::Symmetric(_) => "symmetric across an axis",
+        Constraint::SymmetricCircles(_) => "two circles symmetric across an axis",
     }
 }
 

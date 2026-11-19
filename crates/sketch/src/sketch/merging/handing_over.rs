@@ -111,6 +111,7 @@ pub(super) fn handed_over(rule: Constraint, one: impl Fn(PointId) -> PointId) ->
         | Constraint::CutTangent { .. }
         | Constraint::AxisCollinear { .. }
         | Constraint::AxisParallel { .. }
-        | Constraint::AxisPerpendicular { .. } => rule,
+        | Constraint::AxisPerpendicular { .. }
+        | Constraint::SymmetricCircles(_) => rule,
     }
 }

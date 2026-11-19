@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::axis::ChosenAxis;
 use crate::constraints::Constraint;
-use crate::sketch::{Element, PointId, Sketch};
+use crate::sketch::{CircleId, Element, PointId, Sketch};
 
 /// A point and its twin, each the reflection of the other across the axis.
 ///
@@ -18,6 +18,15 @@ pub struct Symmetry {
     pub axis: ChosenAxis,
 }
 
+/// A circle and its twin across the axis, held to one radius: the part of the
+/// symmetry their centres' cannot say, and which goes with the axis as it does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct CircleSymmetry {
+    pub circle: CircleId,
+    pub twin: CircleId,
+    pub axis: ChosenAxis,
+}
+
 impl Sketch {
     /// The piece a mirror laid as the image of this one, or the one this is the
     /// image of: what goes with it when it is erased.
@@ -25,6 +34,17 @@ impl Sketch {
     /// Nothing for a piece no symmetry speaks of, nor for one that is its own
     /// image, lying on the axis.
     pub fn twin_of(&self, element: Element) -> Option<Element> {
+        if let Element::Circle(circle) = element {
+            return self
+                .constraints()
+                .iter()
+                .find_map(|rule| match *rule {
+                    Constraint::SymmetricCircles(pair) if pair.circle == circle => Some(pair.twin),
+                    Constraint::SymmetricCircles(pair) if pair.twin == circle => Some(pair.circle),
+                    _ => None,
+                })
+                .map(Element::Circle);
+        }
         let points = self.points_it_leans_on(element);
         self.symmetries()
             .filter(|pair| points.contains(&pair.point) || points.contains(&pair.twin))

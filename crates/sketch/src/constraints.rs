@@ -9,7 +9,7 @@ use crate::corner_cut::{CornerCutId, CutPoint};
 use crate::ellipse::EllipseId;
 use crate::laid_from::LaidFrom;
 use crate::sketch::{CircleId, Element, PointId, SegmentId};
-use crate::symmetry::Symmetry;
+use crate::symmetry::{CircleSymmetry, Symmetry};
 
 /// One of the sketch's own axes, usable as the fixed reference of an angle.
 ///
@@ -346,6 +346,8 @@ pub enum Constraint {
     },
     /// Two points mirror images of each other across an axis.
     Symmetric(Symmetry),
+    /// Two circles of one radius, each the mirror image of the other.
+    SymmetricCircles(CircleSymmetry),
 }
 
 /// A value the user has fixed.
