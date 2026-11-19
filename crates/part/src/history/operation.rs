@@ -7,8 +7,8 @@ use glam::DVec2;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    BlendShape, ChamferAsked, CutChange, ExtrusionMode, FaceAnchor, PointRef, RepeatsAsked,
-    RevolutionAxis, SectionAsked,
+    BlendShape, ChamferAsked, CutChange, ExtrusionMode, FaceAnchor, MirrorAsked, PointRef,
+    RepeatsAsked, RevolutionAxis, SectionAsked,
 };
 use crate::{formula::Formula, variables::VariableChange};
 
@@ -317,16 +317,16 @@ pub enum Operation {
         #[serde(default)]
         construction: bool,
     },
-    /// Lays a second copy of what was selected on the other side of an axis.
-    ///
-    /// The elements are recorded rather than worked out again on replay, for
-    /// the reason `Trim` records its points: what a click took hold of depends
-    /// on the reach the cursor had at the time.
+    /// A bare copy of what was selected laid across an axis, every point copied
+    /// and no rule: how a mirror saved before #320 replays. The elements are
+    /// recorded for the reason [`MirrorAsked`] gives.
     Mirror {
         sketch: usize,
         elements: Vec<Element>,
         axis: ChosenAxis,
     },
+    /// A copy laid across an axis and held to what it was copied from.
+    HeldMirror(MirrorAsked),
     /// Repeats what was selected around a point of the drawing, one step
     /// further round for each copy. The count is how many stand there in the
     /// end, the original among them.

@@ -1,4 +1,4 @@
-use cao_part::history::Operation;
+use cao_part::history::{MirrorAsked, Operation};
 use cao_part::{PartDocument, VariableChange, Variables};
 
 use crate::lang::Catalogue;
@@ -193,7 +193,12 @@ fn unfolded(
             sketch,
             elements,
             axis,
-        } => lang.t_with(
+        }
+        | Operation::HeldMirror(MirrorAsked {
+            sketch,
+            elements,
+            axis,
+        }) => lang.t_with(
             "history.detail.mirrored",
             &[
                 ("sketch", &number(*sketch).to_string()),

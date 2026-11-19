@@ -27,10 +27,14 @@ impl PartState {
         index: usize,
         elements: &[Element],
         axis: ChosenAxis,
+        held: bool,
     ) -> Option<Outcome> {
         let scale = self.scale();
         let sketch = self.sketches.get_mut(index)?;
-        sketch.mirror(elements, axis)?;
+        match held {
+            true => sketch.mirror(elements, axis)?,
+            false => sketch.mirror_bare(elements, axis)?,
+        };
         sketch.resolve(scale);
         None
     }

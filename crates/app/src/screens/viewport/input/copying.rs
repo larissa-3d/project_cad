@@ -1,4 +1,4 @@
-use cao_part::history::RepeatsAsked;
+use cao_part::history::{MirrorAsked, RepeatsAsked};
 use cao_part::{Formula, Operation, Variables};
 use cao_sketch::{
     ChosenAxis, LockedInput, Repeats, Selection, Sketch, axis_under, largest_count_around,
@@ -220,11 +220,11 @@ fn asked(context: &mut SketchContext<'_>, index: usize) -> Option<Operation> {
         (Tool::RectangularPattern, CopyTarget::Axis(direction)) => {
             in_rows(context, index, elements, direction)
         }
-        (Tool::Mirror, CopyTarget::Axis(axis)) => Some(Operation::Mirror {
+        (Tool::Mirror, CopyTarget::Axis(axis)) => Some(Operation::HeldMirror(MirrorAsked {
             sketch: index,
             elements,
             axis,
-        }),
+        })),
         _ => None,
     }
 }

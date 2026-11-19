@@ -109,7 +109,7 @@ pub fn label(lang: &Catalogue, variables: &Variables, operation: &Operation) -> 
             } => lang.t("history.edges_chamfered_changed"),
             _ => lang.t("history.extrusion_changed"),
         },
-        Operation::Mirror { .. } => lang.t("history.mirrored"),
+        Operation::Mirror { .. } | Operation::HeldMirror(_) => lang.t("history.mirrored"),
         Operation::CircularPattern { .. } => lang.t("history.circular_pattern"),
         Operation::RectangularPattern { .. } => lang.t("history.rectangular_pattern"),
         Operation::Revolve { angle, mode, .. } => lang.t_with(

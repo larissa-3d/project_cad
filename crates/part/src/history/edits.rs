@@ -1,7 +1,7 @@
 //! Which sketch an operation edits, which is what files it under a step of
 //! the design.
 
-use super::Operation;
+use super::{MirrorAsked, Operation};
 
 impl Operation {
     /// The sketch this operation edits, when it edits one.
@@ -60,6 +60,7 @@ impl Operation {
             | Self::Chamfer { sketch, .. }
             | Self::Fillet { sketch, .. }
             | Self::Mirror { sketch, .. }
+            | Self::HeldMirror(MirrorAsked { sketch, .. })
             | Self::CircularPattern { sketch, .. }
             | Self::RectangularPattern { sketch, .. } => Some(*sketch),
             Self::CutChange(change) => Some(change.sketch()),

@@ -75,9 +75,12 @@ fn corner_taken(context: &SketchContext<'_>, point: PointId) -> bool {
 /// Whether the mirror image of this piece is held: erasing it would take this
 /// one too, and what will go is seen before it goes.
 fn twin_selected(context: &SketchContext<'_>, what: Selection) -> bool {
-    let Selection::Element(element) = what else {
+    let (Selection::Element(element), selection) = (what, context.editor.selection()) else {
         return false;
     };
+    if selection.is_empty() {
+        return false;
+    }
     let Some(index) = context.editor.active_sketch() else {
         return false;
     };
@@ -86,9 +89,8 @@ fn twin_selected(context: &SketchContext<'_>, what: Selection) -> bool {
         .sketches()
         .get(index)
         .is_some_and(|sketch| {
-            sketch
-                .twin_of(element)
-                .is_some_and(|twin| context.editor.is_selected(Selection::Element(twin)))
+            let twins = &context.editor.lit_twins;
+            twins.lights(index, sketch, selection, element)
         })
 }
 

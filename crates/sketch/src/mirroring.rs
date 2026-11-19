@@ -1,3 +1,5 @@
+use glam::DVec2;
+
 use crate::axis::ChosenAxis;
 use crate::constraints::Constraint;
 use crate::duplicating::Duplicated;
@@ -16,16 +18,9 @@ impl Sketch {
     ///
     /// Nothing when the axis names no direction.
     pub fn mirror(&mut self, of: &[Element], axis: ChosenAxis) -> Option<Duplicated> {
-        let (through, along) = self.axis_line(axis)?;
+        let across = self.reflection(axis)?;
         let standing = self.constraints().to_vec();
-        let (made, pairing) = self.duplicate_paired(
-            of,
-            |at| {
-                let offset = at - through;
-                through + along * 2.0 * offset.dot(along) - offset
-            },
-            true,
-        );
+        let (made, pairing) = self.duplicate_paired(of, across, true);
         for (point, twin) in pairing.points.iter().copied() {
             let rule = match (point == twin, axis) {
                 (false, _) => Constraint::Symmetric(Symmetry { point, twin, axis }),
@@ -47,6 +42,22 @@ impl Sketch {
             }
         }
         Some(made)
+    }
+
+    /// Copies the elements given to the other side of an axis and nothing
+    /// more: every point copied, those on the axis too, and no rule laid.
+    /// What a mirror saved before the copy was held to its original replays.
+    pub fn mirror_bare(&mut self, of: &[Element], axis: ChosenAxis) -> Option<Duplicated> {
+        let across = self.reflection(axis)?;
+        Some(self.duplicate(of, across))
+    }
+
+    fn reflection(&self, axis: ChosenAxis) -> Option<impl Fn(DVec2) -> DVec2 + use<>> {
+        let (through, along) = self.axis_line(axis)?;
+        Some(move |at: DVec2| {
+            let offset = at - through;
+            through + along * 2.0 * offset.dot(along) - offset
+        })
     }
 
     fn is_an_end_of(&self, point: PointId, segment: SegmentId) -> bool {

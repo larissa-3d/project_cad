@@ -137,7 +137,10 @@
 //!   `the_mirror_laid_through_its_steps_is_the_one_laid_before`,
 //!   `the_rectangular_pattern_laid_through_its_steps_is_the_one_laid_before`,
 //!   each against the operation and the places the tool laid before #739,
-//!   written out rather than read back from the code. The circular pattern,
+//!   written out rather than read back from the code. Since #320 the mirror
+//!   lays `HeldMirror` rather than `Mirror`, by decision of that issue: the
+//!   copy is held to its original. What it names — the sketch, the elements,
+//!   the axis — and the places it lays are those of before #739. The circular pattern,
 //!   which this issue does not move, by the tests already there, which stay
 //!   green on this branch: `steps.rs` and `panel.rs` beside this file. What a
 //!   capped pattern says is only the circular pattern's, and stays held by
@@ -149,6 +152,7 @@
 //!   in `wording/pattern/tests.rs`; the pattern stopped at a full turn, by
 //!   `crates/part/tests/a_circular_pattern_stops_at_a_full_turn.rs`
 
+use cao_part::history::MirrorAsked;
 use cao_part::history::RepeatsAsked;
 use cao_part::{Formula, Operation};
 use cao_prefs::Command;
@@ -367,11 +371,11 @@ fn enter_on_the_mirror_s_axis_applies_the_mirror() {
     );
     assert_eq!(
         bench.last_laid(),
-        Some(&Operation::Mirror {
+        Some(&Operation::HeldMirror(MirrorAsked {
             sketch: 0,
             elements,
             axis: ChosenAxis::Trait(UPRIGHT),
-        })
+        }))
     );
 }
 
@@ -632,12 +636,12 @@ fn the_mirror_laid_through_its_steps_is_the_one_laid_before() {
 
     assert_eq!(
         bench.last_laid(),
-        Some(&Operation::Mirror {
+        Some(&Operation::HeldMirror(MirrorAsked {
             sketch: 0,
             elements,
             axis: ChosenAxis::Trait(UPRIGHT),
-        }),
-        "the operation the mirror laid from its slots before #739"
+        })),
+        "what the mirror named from its slots before #739, laid held since #320"
     );
     let gained = traits_gained(&bench, before);
     assert!(

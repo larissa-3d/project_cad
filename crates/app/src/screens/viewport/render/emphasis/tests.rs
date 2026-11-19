@@ -3,16 +3,21 @@
 //! Closes #320.
 //! - While one of them is selected, its twin is highlighted with it, so what
 //!   will go is seen before it goes —
-//!   `a_trait_held_by_the_selection_lights_its_mirrored_twin`
+//!   `a_trait_held_by_the_selection_lights_its_mirrored_twin`; found in review,
+//!   a circle's and a point's twin too —
+//!   `a_circle_held_by_the_selection_lights_its_mirrored_twin`,
+//!   `a_point_held_by_the_selection_lights_its_mirrored_twin` — and a trait
+//!   mirrored twice lights all three of its images —
+//!   `a_trait_mirrored_twice_lights_its_three_images_while_it_is_held`
 //!
 //! The issue's other criteria are held under their own `Closes #320` blocks, in
 //! `crates/sketch/tests/a_mirrored_copy_stays_symmetric_to_its_original.rs` and
 //! `crates/part/tests/mirroring_a_selection.rs`.
 
 use super::*;
-use cao_part::history::PointRef;
+use cao_part::history::{MirrorAsked, PointRef};
 use cao_part::{Operation, PartDocument};
-use cao_sketch::{ChosenAxis, Element, SegmentId, SketchAxis, ToolState, WorkPlane};
+use cao_sketch::{ChosenAxis, Element, PointId, SegmentId, SketchAxis, ToolState, WorkPlane};
 
 use crate::lang::Catalogue;
 use crate::screens::extrusion::ExtrusionState;
@@ -125,11 +130,11 @@ fn a_trait_mirrored_across_the_v_axis() -> (PartDocument, SegmentId, SegmentId) 
         end: PointRef::New(DVec2::new(6.0, 1.0)),
         construction: false,
     });
-    document.apply(Operation::Mirror {
+    document.apply(Operation::HeldMirror(MirrorAsked {
         sketch: 0,
         elements: vec![Element::Segment(SegmentId(0))],
         axis: ChosenAxis::Sketch(SketchAxis::V),
-    });
+    }));
     let copy = document.sketches()[0]
         .live_segments()
         .map(|(id, _)| id)
@@ -191,4 +196,142 @@ fn a_trait_held_by_the_selection_lights_its_mirrored_twin() {
         lit,
         "the copy is held and its original, which erasing it would take too, is not lit"
     );
+}
+
+fn a_document_mirroring(
+    laid: Vec<Operation>,
+    held: Vec<Element>,
+    axis: SketchAxis,
+) -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    for operation in laid {
+        document.apply(operation);
+    }
+    document.apply(Operation::HeldMirror(MirrorAsked {
+        sketch: 0,
+        elements: held,
+        axis: ChosenAxis::Sketch(axis),
+    }));
+    document
+}
+
+fn standing_at(document: &PartDocument, place: DVec2) -> PointId {
+    document.sketches()[0]
+        .live_points()
+        .find(|(_, at)| at.distance(place) < TOLERANCE)
+        .map(|(id, _)| id)
+        .unwrap_or_else(|| panic!("a point at {place}"))
+}
+
+#[test]
+fn a_circle_held_by_the_selection_lights_its_mirrored_twin() {
+    let mut document = a_document_mirroring(
+        vec![Operation::AddCircle {
+            sketch: 0,
+            center: PointRef::New(DVec2::new(4.0, 2.0)),
+            radius: 1.5,
+            rim: Vec::new(),
+            construction: false,
+        }],
+        vec![Element::Circle(cao_sketch::CircleId(0))],
+        SketchAxis::V,
+    );
+    let lit = tint_at(Theme::default().highlight, 1.0);
+    let (original, copy) = (
+        Element::Circle(cao_sketch::CircleId(0)),
+        Element::Circle(cao_sketch::CircleId(1)),
+    );
+
+    assert_eq!(colour_of(&mut document, original, original), lit);
+    assert_eq!(
+        colour_of(&mut document, original, copy),
+        lit,
+        "the original circle is held and its copy is not lit"
+    );
+    assert_eq!(
+        colour_of(&mut document, copy, original),
+        lit,
+        "the copied circle is held and its original is not lit"
+    );
+}
+
+#[test]
+fn a_point_held_by_the_selection_lights_its_mirrored_twin() {
+    let mut document = a_document_mirroring(
+        vec![Operation::AddPoint {
+            sketch: 0,
+            position: DVec2::new(4.0, 2.0),
+            on: Vec::new(),
+        }],
+        vec![Element::Point(PointId(1))],
+        SketchAxis::V,
+    );
+    let lit = tint_at(Theme::default().highlight, 1.0);
+    let original = Element::Point(PointId(1));
+    let copy = Element::Point(standing_at(&document, DVec2::new(-4.0, 2.0)));
+
+    assert_eq!(colour_of(&mut document, original, original), lit);
+    assert_eq!(
+        colour_of(&mut document, original, copy),
+        lit,
+        "the original point is held and its copy is not lit"
+    );
+    assert_eq!(
+        colour_of(&mut document, copy, original),
+        lit,
+        "the copied point is held and its original is not lit"
+    );
+}
+
+#[test]
+fn a_trait_mirrored_twice_lights_its_three_images_while_it_is_held() {
+    let mut document = a_document_mirroring(
+        vec![
+            Operation::AddSegment {
+                sketch: 0,
+                start: PointRef::New(DVec2::new(2.0, 1.0)),
+                end: PointRef::New(DVec2::new(6.0, 3.0)),
+                construction: false,
+            },
+            Operation::HeldMirror(MirrorAsked {
+                sketch: 0,
+                elements: vec![Element::Segment(SegmentId(0))],
+                axis: ChosenAxis::Sketch(SketchAxis::V),
+            }),
+        ],
+        vec![
+            Element::Segment(SegmentId(0)),
+            Element::Segment(SegmentId(1)),
+        ],
+        SketchAxis::U,
+    );
+    let lit = tint_at(Theme::default().highlight, 1.0);
+    let quarter = Element::Segment(SegmentId(0));
+
+    for flip in [
+        DVec2::new(-1.0, 1.0),
+        DVec2::new(1.0, -1.0),
+        DVec2::new(-1.0, -1.0),
+    ] {
+        let (from, to) = (
+            standing_at(&document, DVec2::new(2.0, 1.0) * flip),
+            standing_at(&document, DVec2::new(6.0, 3.0) * flip),
+        );
+        let image = document.sketches()[0]
+            .live_segments()
+            .find(|(_, side)| {
+                (side.start, side.end) == (from, to) || (side.start, side.end) == (to, from)
+            })
+            .map(|(id, _)| Element::Segment(id))
+            .expect("an image of the quarter");
+        assert_eq!(
+            colour_of(&mut document, quarter, image),
+            lit,
+            "the quarter is held and its image flipped by {flip} is not lit"
+        );
+    }
 }

@@ -266,7 +266,7 @@ impl PartState {
                 let scale = self.scale();
                 let sketch = self.sketches.get_mut(*sketch)?;
                 let twins: Vec<Element> =
-                    elements.iter().filter_map(|e| sketch.twin_of(*e)).collect();
+                    elements.iter().flat_map(|e| sketch.twins_of(*e)).collect();
                 for rule in constraints {
                     sketch.erase_constraint(*rule);
                 }
@@ -331,7 +331,10 @@ impl PartState {
                 sketch,
                 elements,
                 axis,
-            } => self.mirror(*sketch, elements, *axis),
+            } => self.mirror(*sketch, elements, *axis, false),
+            Operation::HeldMirror(asked) => {
+                self.mirror(asked.sketch, &asked.elements, asked.axis, true)
+            }
             Operation::CircularPattern {
                 sketch,
                 elements,

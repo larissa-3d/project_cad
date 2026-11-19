@@ -31,7 +31,10 @@
 //!   `a_rule_to_the_sketch_s_own_axes_is_not_carried_across_a_trait`,
 //!   `a_rule_to_a_trait_lying_on_the_axis_is_carried_with_that_trait_as_its_own_image`,
 //!   `a_rule_on_a_fillet_whose_corner_was_copied_is_carried_over`,
-//!   `a_point_held_where_a_fillet_meets_its_first_side_stays_there_on_the_copy`
+//!   `a_point_held_where_a_fillet_meets_its_first_side_stays_there_on_the_copy`,
+//!   `parallel_equal_and_tangent_rules_inside_the_original_are_carried_over`;
+//!   a fixed element is not carried, the copy being held by the symmetry —
+//!   `a_fixed_point_of_the_original_does_not_fix_its_copy`
 //! - Erasing a trait erases its twin, from either side; while one of them is
 //!   selected, its twin is highlighted with it — no test: the user erases
 //!   through the part's `EraseMany`, not `Sketch::erase`, which trimming and
@@ -1182,4 +1185,117 @@ fn erasing_the_axis_frees_a_mirrored_circle_s_radius() {
         (radius - 1.5).abs() < AFTER_THE_SOLVER,
         "with the axis gone the copy still took its original's radius: {radius}"
     );
+}
+
+#[test]
+fn parallel_equal_and_tangent_rules_inside_the_original_are_carried_over() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let (low, high) = (
+        [DVec2::new(2.0, 1.0), DVec2::new(6.0, 2.0)].map(|at| sketch.add_point(at)),
+        [DVec2::new(2.0, 4.0), DVec2::new(6.0, 5.0)].map(|at| sketch.add_point(at)),
+    );
+    let bottom = sketch.add_segment(low[0], low[1]);
+    let top = sketch.add_segment(high[0], high[1]);
+    let centre = sketch.add_point(DVec2::new(10.0, 3.0));
+    let circle = sketch.add_circle(centre, 2.0);
+    let side_start = sketch.add_point(DVec2::new(8.0, 1.0));
+    let side_end = sketch.add_point(DVec2::new(12.0, 1.0));
+    let touching = sketch.add_segment(side_start, side_end);
+    sketch.add_constraint(Constraint::Parallel {
+        first: bottom,
+        second: top,
+    });
+    sketch.add_constraint(Constraint::Equal {
+        first: bottom,
+        second: top,
+    });
+    sketch.add_constraint(Constraint::Tangent {
+        circle,
+        segment: touching,
+        at: None,
+        from: LaidFrom::Nowhere,
+    });
+
+    let made = sketch
+        .mirror(
+            &[
+                Element::Segment(bottom),
+                Element::Segment(top),
+                Element::Circle(circle),
+                Element::Segment(touching),
+            ],
+            ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+
+    let [copied_bottom, copied_top, copied_touching] =
+        [bottom, top, touching].map(|side| image_of(&sketch, &made, side, V_THROUGH, V_TOWARDS));
+    let copied_circle = made.circles[0];
+    for rule in [
+        Constraint::Parallel {
+            first: copied_bottom,
+            second: copied_top,
+        },
+        Constraint::Equal {
+            first: copied_bottom,
+            second: copied_top,
+        },
+    ] {
+        assert!(
+            sketch.carries(rule),
+            "{rule:?} did not come along: {:?}",
+            sketch.constraints()
+        );
+    }
+    let tangent_on_the_copy = sketch.constraints().iter().any(|rule| {
+        matches!(
+            rule,
+            Constraint::Tangent { circle, segment, .. }
+                if *circle == copied_circle && *segment == copied_touching
+        )
+    });
+    assert!(
+        tangent_on_the_copy,
+        "the copied trait is not held tangent to the copied circle: {:?}",
+        sketch.constraints()
+    );
+}
+
+#[test]
+fn a_fixed_point_of_the_original_does_not_fix_its_copy() {
+    let mut triangle = a_triangle_east_of_the_v_axis();
+    triangle.sketch.add_constraint(Constraint::Fixed {
+        element: Element::Point(triangle.corners[0]),
+    });
+    let held = the_sides(&triangle);
+
+    let made = triangle
+        .sketch
+        .mirror(&held, ChosenAxis::Sketch(SketchAxis::V))
+        .expect("an axis to mirror across");
+
+    let twins = twins(
+        &triangle.sketch,
+        &triangle.corners,
+        &made,
+        V_THROUGH,
+        V_TOWARDS,
+    );
+    let copy = twins[0].1;
+    let fixed: Vec<&Constraint> = triangle
+        .sketch
+        .constraints()
+        .iter()
+        .filter(|rule| matches!(rule, Constraint::Fixed { .. }))
+        .collect();
+    assert_eq!(
+        fixed,
+        vec![&Constraint::Fixed {
+            element: Element::Point(triangle.corners[0]),
+        }],
+        "the copy of a fixed point was fixed too, beside the symmetry that already holds it"
+    );
+    assert!(!triangle.sketch.carries(Constraint::Fixed {
+        element: Element::Point(copy),
+    }));
 }

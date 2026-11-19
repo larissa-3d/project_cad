@@ -2,6 +2,7 @@ use cao_sketch::{DimensionTarget, PointId, Rule, RulePick, Selection, ToolState,
 use glam::{DVec2, DVec3};
 
 mod copy_panel;
+mod lit_twins;
 mod live_input;
 mod matter_in_front;
 mod typed_dimension;
@@ -123,6 +124,7 @@ pub struct SketchEditor {
     pub(crate) copy_panel: Option<CopyPanel>,
     /// Copied from the profile in use every frame, as the viewport's config is.
     pub sketching: cao_prefs::SketchingConfig,
+    pub(crate) lit_twins: lit_twins::LitTwins,
 }
 
 /// What the cursor is offering to sketch on.

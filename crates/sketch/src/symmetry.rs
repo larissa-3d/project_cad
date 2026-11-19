@@ -28,33 +28,53 @@ pub struct CircleSymmetry {
 }
 
 impl Sketch {
-    /// The piece a mirror laid as the image of this one, or the one this is the
-    /// image of: what goes with it when it is erased.
+    /// Every piece a mirror laid as an image of this one, or that this is an
+    /// image of, and their images in turn: what goes with it when it is
+    /// erased, a piece mirrored twice taking its three images.
     ///
     /// Nothing for a piece no symmetry speaks of, nor for one that is its own
     /// image, lying on the axis.
-    pub fn twin_of(&self, element: Element) -> Option<Element> {
+    pub fn twins_of(&self, element: Element) -> Vec<Element> {
+        let mut found = vec![element];
+        let mut next = 0;
+        while let Some(reached) = found.get(next).copied() {
+            for image in self.images_of(reached) {
+                if !found.contains(&image) {
+                    found.push(image);
+                }
+            }
+            next += 1;
+        }
+        found.remove(0);
+        found
+    }
+
+    /// The pieces standing as the image of this one across each axis a
+    /// symmetry names it about.
+    fn images_of(&self, element: Element) -> Vec<Element> {
         if let Element::Circle(circle) = element {
             return self
                 .constraints()
                 .iter()
-                .find_map(|rule| match *rule {
+                .filter_map(|rule| match *rule {
                     Constraint::SymmetricCircles(pair) if pair.circle == circle => Some(pair.twin),
                     Constraint::SymmetricCircles(pair) if pair.twin == circle => Some(pair.circle),
                     _ => None,
                 })
-                .map(Element::Circle);
+                .map(Element::Circle)
+                .collect();
         }
         let points = self.points_it_leans_on(element);
         self.symmetries()
             .filter(|pair| points.contains(&pair.point) || points.contains(&pair.twin))
-            .find_map(|pair| {
+            .filter_map(|pair| {
                 let image: Vec<PointId> = points
                     .iter()
                     .map(|point| self.image_of(*point, pair.axis))
                     .collect();
                 self.standing_on(element, &image)
             })
+            .collect()
     }
 
     fn symmetries(&self) -> impl Iterator<Item = Symmetry> + '_ {
