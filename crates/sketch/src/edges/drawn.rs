@@ -35,6 +35,7 @@ pub(super) fn sides_and_cuts(
         };
         let from = end_at(vertex, places, segment.start, ends[0]);
         let to = end_at(vertex, places, segment.end, ends[1]);
+        debug_assert!(from.is_some() && to.is_some());
         let (Some(from), Some(to)) = (from, to) else {
             continue;
         };
@@ -62,6 +63,7 @@ pub(super) fn sides_and_cuts(
         let ends = pulled.of(id.into());
         let from = end_at(vertex, places, arc.start, ends[0]);
         let to = end_at(vertex, places, arc.end, ends[1]);
+        debug_assert!(from.is_some() && to.is_some());
         let (Some(from), Some(to)) = (from, to) else {
             continue;
         };

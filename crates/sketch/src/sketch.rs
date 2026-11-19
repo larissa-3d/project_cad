@@ -129,7 +129,7 @@ impl Sketch {
         Erased::holds(&self.erased.segments, segment.0)
     }
 
-    /// The segments still drawn, with their rank.
+    /// The points still drawn, with their rank.
     pub fn live_points(&self) -> impl Iterator<Item = (PointId, DVec2)> + '_ {
         self.points
             .iter()
