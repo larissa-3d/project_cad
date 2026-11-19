@@ -8,7 +8,6 @@ use super::{Kept, Landing, LengthOutcome, Sketch};
 use crate::constraints::{Constraint, DimensionTarget};
 use crate::corner_cut::CutCurve;
 use crate::equation::Equation;
-use crate::holding::Support;
 use crate::laid_from::LaidFrom;
 use crate::resizing::Curved;
 use crate::sketch::{Element, PointId};
@@ -17,7 +16,7 @@ impl Sketch {
     /// Lays a rule down and settles the drawing into it, the thing it was laid
     /// from held where it is.
     pub fn lay_rule(&mut self, rule: Constraint, millimeters_per_unit: f64) -> LengthOutcome {
-        if self.on_its_own_centre(rule) {
+        if self.on_its_own_centre(rule, |a, b| a == b) {
             return LengthOutcome::BestEffort;
         }
         if !self.carries(rule) && self.holds_up(rule) {
@@ -29,22 +28,6 @@ impl Sketch {
             return landed;
         }
         self.land(rule.laid_from(), Landing::Rule(rule), millimeters_per_unit)
-    }
-
-    /// A curve's centre held on the curve itself: it could only hold with the
-    /// curve shrunk to nothing, and the solver writes no row for it, so it
-    /// would be carried untrue.
-    fn on_its_own_centre(&self, rule: Constraint) -> bool {
-        let Some((point, on)) = Support::held_by(rule) else {
-            return false;
-        };
-        let centre = match on {
-            Support::Circle(circle) => self.circles().get(circle.0).map(|c| c.center),
-            Support::Arc(arc) => self.arcs().get(arc.0).map(|a| a.center),
-            Support::Ellipse(ellipse) => self.ellipses().get(ellipse.0).map(|e| e.center),
-            _ => None,
-        };
-        centre == Some(point)
     }
 
     /// Every point held on two things or more.

@@ -6,8 +6,10 @@
 //! question — is what it names still there — asked of the kinds it names.
 
 use super::{CircleId, Constraint, Element, PointId, SegmentId, Sketch};
+use crate::arc::ArcId;
 use crate::axis::ChosenAxis;
 use crate::corner_cut::CutPoint;
+use crate::ellipse::EllipseId;
 
 impl Sketch {
     /// Whether everything a rule speaks of is still drawn.
@@ -81,5 +83,50 @@ impl Sketch {
                 Element::Ellipse(held) => !self.is_erased_ellipse(held),
             },
         }
+    }
+
+    /// Whether a rule puts a curve's own centre on the curve, or has the curve
+    /// touch something there: it could only hold with the curve shrunk to
+    /// nothing, and the solver writes no row for it. `same` says which points
+    /// are one, so that a merge can ask it of the drawing it would leave.
+    pub(super) fn on_its_own_centre(
+        &self,
+        rule: Constraint,
+        same: impl Fn(PointId, PointId) -> bool,
+    ) -> bool {
+        let circle = |id: CircleId| self.circles.get(id.0).map(|circle| circle.center);
+        let arc = |id: ArcId| self.arcs.get(id.0).copied();
+        let ellipse = |id: EllipseId| self.ellipses.get(id.0).map(|ellipse| ellipse.center);
+        let (point, centre) = match rule {
+            Constraint::OnCircle {
+                point, circle: on, ..
+            } => (point, circle(on)),
+            Constraint::OnArc { point, arc: on, .. } => match arc(on) {
+                Some(curve) if same(curve.center, curve.start) || same(curve.center, curve.end) => {
+                    return false;
+                }
+                curve => (point, curve.map(|curve| curve.center)),
+            },
+            Constraint::OnEllipse {
+                point, ellipse: on, ..
+            } => (point, ellipse(on)),
+            Constraint::Tangent {
+                circle: on,
+                at: Some(at),
+                ..
+            } => (at, circle(on)),
+            Constraint::ArcTangent {
+                arc: on,
+                at: Some(at),
+                ..
+            } => (at, arc(on).map(|curve| curve.center)),
+            Constraint::EllipseTangent {
+                ellipse: on,
+                at: Some(at),
+                ..
+            } => (at, ellipse(on)),
+            _ => return false,
+        };
+        centre.is_some_and(|centre| same(point, centre))
     }
 }
