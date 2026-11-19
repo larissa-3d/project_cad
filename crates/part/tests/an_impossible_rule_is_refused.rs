@@ -21,6 +21,17 @@
 //! - The cases above hold in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the three drawings are held to its rules there, under
 //!   the same names, in `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1037.
+//! - Both kinds of curve refuse the tangency with the drawing unchanged,
+//!   whether the radius is typed or not —
+//!   `a_tangency_between_an_arc_and_a_trait_through_its_centre_is_refused`,
+//!   `a_tangency_between_an_arc_of_free_radius_and_a_trait_through_its_centre_is_refused`,
+//!   `a_tangency_between_a_circle_and_a_trait_through_its_centre_is_refused`,
+//!   `a_tangency_between_a_circle_of_free_radius_and_a_trait_through_its_centre_is_refused`
+//! - The cases above hold in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the four drawings are held to its rules there, under
+//!   the same names, in `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -232,4 +243,146 @@ fn half_an_ellipse_s_centre_put_on_its_own_curve_is_refused() {
     });
 
     centre_put_on_its_own_curve_is_refused(document, Element::Ellipse(cao_sketch::EllipseId(0)));
+}
+
+/// A circle of radius 25 about (20, 15), and a trait starting on its centre,
+/// the radius typed when `typed`.
+fn a_circle_and_a_trait_from_its_centre(typed: bool) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        radius: 25.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let centre = document.sketches()[0].circles()[0].center;
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::Existing(centre),
+        end: PointRef::New(DVec2::new(60.0, 45.0)),
+        construction: false,
+    });
+    if typed {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target: DimensionTarget::Radius(cao_sketch::CircleId(0)),
+            value: 25.0.into(),
+            placement: None,
+        });
+    }
+    document
+}
+
+/// An arc of radius 25 about (20, 15), a quarter turn from (45, 15), and a
+/// trait starting on its centre, the radius typed when `typed`.
+fn an_arc_and_a_trait_from_its_centre(typed: bool) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddArc {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        start: PointRef::New(DVec2::new(45.0, 15.0)),
+        end: PointRef::New(DVec2::new(20.0, 40.0)),
+        construction: false,
+    });
+    let centre = document.sketches()[0].arcs()[0].center;
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::Existing(centre),
+        end: PointRef::New(DVec2::new(60.0, 45.0)),
+        construction: false,
+    });
+    if typed {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target: DimensionTarget::ArcRadius(cao_sketch::ArcId(0)),
+            value: 25.0.into(),
+            placement: None,
+        });
+    }
+    document
+}
+
+fn radius_of(document: &PartDocument, curve: Element) -> f64 {
+    let sketch = &document.sketches()[0];
+    match curve {
+        Element::Circle(circle) => sketch.circle(circle).radius,
+        Element::Arc(arc) => sketch.arc_radius(arc),
+        other => panic!("not a round curve: {other:?}"),
+    }
+}
+
+fn tangency_through_the_centre_is_refused(mut document: PartDocument, curve: Element) {
+    let sketch = &document.sketches()[0];
+    let picks = [
+        RulePick::Element(Element::Segment(SegmentId(0))),
+        RulePick::Element(curve),
+    ];
+    let Some(RuleIntent::Constrain(rule)) = rule_intent(Rule::Tangent, &picks, sketch) else {
+        panic!("the tool offers no tangency for a trait and a curve");
+    };
+    let before = sketch.clone();
+    let radius = radius_of(&document, curve);
+    let recorded = steps(&document);
+
+    let outcome = document.apply(Operation::Constrain {
+        sketch: 0,
+        constraint: rule,
+    });
+
+    assert_eq!(
+        outcome,
+        Some(Outcome::RuleRefused),
+        "{rule:?} was laid, the radius now {}",
+        radius_of(&document, curve)
+    );
+    let sketch = &document.sketches()[0];
+    assert!(!sketch.carries(rule), "the rule is not kept");
+    assert_eq!(sketch.points().len(), before.points().len());
+    assert!(
+        sketch
+            .points()
+            .iter()
+            .zip(before.points())
+            .all(|(now, was)| now.distance(*was) < 1e-9),
+        "nothing about the drawing moved"
+    );
+    assert!(
+        (radius_of(&document, curve) - radius).abs() < 1e-9,
+        "the radius stays {radius}, got {}",
+        radius_of(&document, curve)
+    );
+    assert_eq!(steps(&document), recorded, "the history has no new step");
+}
+
+#[test]
+fn a_tangency_between_an_arc_and_a_trait_through_its_centre_is_refused() {
+    tangency_through_the_centre_is_refused(
+        an_arc_and_a_trait_from_its_centre(true),
+        Element::Arc(cao_sketch::ArcId(0)),
+    );
+}
+
+#[test]
+fn a_tangency_between_an_arc_of_free_radius_and_a_trait_through_its_centre_is_refused() {
+    tangency_through_the_centre_is_refused(
+        an_arc_and_a_trait_from_its_centre(false),
+        Element::Arc(cao_sketch::ArcId(0)),
+    );
+}
+
+#[test]
+fn a_tangency_between_a_circle_and_a_trait_through_its_centre_is_refused() {
+    tangency_through_the_centre_is_refused(
+        a_circle_and_a_trait_from_its_centre(true),
+        Element::Circle(cao_sketch::CircleId(0)),
+    );
+}
+
+#[test]
+fn a_tangency_between_a_circle_of_free_radius_and_a_trait_through_its_centre_is_refused() {
+    tangency_through_the_centre_is_refused(
+        a_circle_and_a_trait_from_its_centre(false),
+        Element::Circle(cao_sketch::CircleId(0)),
+    );
 }

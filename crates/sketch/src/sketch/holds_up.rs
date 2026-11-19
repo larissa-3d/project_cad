@@ -86,9 +86,10 @@ impl Sketch {
     }
 
     /// Whether a rule puts a curve's own centre on the curve, or has the curve
-    /// touch something there: it could only hold with the curve shrunk to
-    /// nothing, and the solver writes no row for it. `same` says which points
-    /// are one, so that a merge can ask it of the drawing it would leave.
+    /// touch a trait that ends there or touch anything there: it could only
+    /// hold with the curve shrunk to nothing, and the solver writes no row for
+    /// it. `same` says which points are one, so that a merge can ask it of the
+    /// drawing it would leave.
     pub(super) fn on_its_own_centre(
         &self,
         rule: Constraint,
@@ -97,36 +98,51 @@ impl Sketch {
         let circle = |id: CircleId| self.circles.get(id.0).map(|circle| circle.center);
         let arc = |id: ArcId| self.arcs.get(id.0).copied();
         let ellipse = |id: EllipseId| self.ellipses.get(id.0).map(|ellipse| ellipse.center);
-        let (point, centre) = match rule {
+        let touching = |segment: SegmentId, at: Option<PointId>| {
+            let ends = self
+                .segments
+                .get(segment.0)
+                .map(|line| (line.start, line.end));
+            [at, ends.map(|ends| ends.0), ends.map(|ends| ends.1)]
+        };
+        let (points, centre) = match rule {
             Constraint::OnCircle {
                 point, circle: on, ..
-            } => (point, circle(on)),
+            } => ([Some(point), None, None], circle(on)),
             Constraint::OnArc { point, arc: on, .. } => match arc(on) {
                 Some(curve) if same(curve.center, curve.start) || same(curve.center, curve.end) => {
                     return false;
                 }
-                curve => (point, curve.map(|curve| curve.center)),
+                curve => ([Some(point), None, None], curve.map(|curve| curve.center)),
             },
             Constraint::OnEllipse {
                 point, ellipse: on, ..
-            } => (point, ellipse(on)),
+            } => ([Some(point), None, None], ellipse(on)),
             Constraint::Tangent {
                 circle: on,
-                at: Some(at),
+                segment,
+                at,
                 ..
-            } => (at, circle(on)),
+            } => (touching(segment, at), circle(on)),
             Constraint::ArcTangent {
                 arc: on,
-                at: Some(at),
+                segment,
+                at,
                 ..
-            } => (at, arc(on).map(|curve| curve.center)),
+            } => (touching(segment, at), arc(on).map(|curve| curve.center)),
             Constraint::EllipseTangent {
                 ellipse: on,
-                at: Some(at),
+                segment,
+                at,
                 ..
-            } => (at, ellipse(on)),
+            } => (touching(segment, at), ellipse(on)),
             _ => return false,
         };
-        centre.is_some_and(|centre| same(point, centre))
+        centre.is_some_and(|centre| {
+            points
+                .into_iter()
+                .flatten()
+                .any(|point| same(point, centre))
+        })
     }
 }
