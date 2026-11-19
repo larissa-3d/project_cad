@@ -83,4 +83,13 @@ impl PartDocument {
     pub fn reduced_at(&self, step: u32) -> Option<crate::Reduced> {
         self.state.reduced.get(&step).copied()
     }
+
+    /// The mirrored twins the erase of that number took along beyond the
+    /// elements it was given.
+    pub fn twins_erased_at(&self, step: u32) -> &[cao_sketch::Element] {
+        self.state
+            .twins_erased
+            .get(&step)
+            .map_or(&[], Vec::as_slice)
+    }
 }
