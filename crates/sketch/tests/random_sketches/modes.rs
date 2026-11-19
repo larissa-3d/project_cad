@@ -9,7 +9,8 @@ use super::random::Random;
 /// What each drawing of a campaign gets besides what it draws.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Mode {
-    /// No dimension and no rule: #500's campaign as it is.
+    /// No dimension and no rule: #500's drawings unchanged, held to #500's
+    /// rules and to the symmetry a mirror lays.
     Free,
     /// Each drawing draws its own shares, from 0 to 100 %: of the dimensions
     /// it could take, of the rules it could take, and of its pieces made

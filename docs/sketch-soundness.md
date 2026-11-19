@@ -173,7 +173,7 @@ They are drawn in one of four **modes**, chosen when the campaign is launched:
 
 | Mode | `CAO_FUZZ_MODE` | What each drawing gets besides what it draws |
 | --- | --- | --- |
-| Free | `free`, or nothing | nothing: #500's campaign as it is |
+| Free | `free`, or nothing | nothing: #500's drawings unchanged, held to #500's rules and to a mirror's symmetry |
 | Random mix | `mix` | its own three shares, each nought, the whole, or a step between: of the dimensions it could take, of the rules it could take, and of its pieces made entirely constrained; and up to two drags |
 | Fixed shares | `shares` | the same three percentages for every drawing, given as `CAO_FUZZ_SHARES=dimensions,rules,constrained`; and up to two drags |
 | All constrained | `constrained` | every piece made entirely constrained, and nothing else |
@@ -254,7 +254,9 @@ stand off by a tenth of a micron on a metre — `HELD`, a hundred times what the
 solver settles to — against how far the drawing reaches; an angle by what
 moves the end of its arm that far, `HELD` times the reach over the arm, in
 radians; an angle whose arm has shrunk under that length may not stray at all,
-since nothing is left to read it on. A value the drawing already measured
+since nothing is left to read it on, and one whose arm has gone to nothing,
+which the sketch measures as no angle, is untrue — it is reported measuring
+not a number rather than dropped. A value the drawing already measured
 moves nothing, and a flaw of the areas found before anything has moved is
 still the rule's own; after, it comes back as `Moved`.
 

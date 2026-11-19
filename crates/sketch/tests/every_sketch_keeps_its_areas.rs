@@ -110,6 +110,7 @@
 //!   `a_drawing_settled_on_what_it_was_promised_tells_the_truth`,
 //!   `a_dimension_measuring_other_than_its_value_breaks_the_truth`,
 //!   `an_angle_read_on_a_trait_flattened_to_nothing_breaks_the_truth`,
+//!   `an_angle_that_reads_nothing_on_an_arm_of_no_length_breaks_the_truth`,
 //!   `an_accepted_rule_that_does_not_hold_breaks_the_truth`,
 //!   `a_mirrored_pair_pulled_out_of_its_symmetry_is_read_off_by_as_far`,
 //!   `a_refused_dimension_that_moves_the_drawing_breaks_the_truth`,
@@ -1567,6 +1568,24 @@ fn an_angle_read_on_a_trait_flattened_to_nothing_breaks_the_truth() {
             "an arm {arm} long"
         );
     }
+}
+
+#[test]
+fn an_angle_that_reads_nothing_on_an_arm_of_no_length_breaks_the_truth() {
+    let verdict = tells_the_truth(&[Promise::Turned {
+        near: at(1.0, -0.7675),
+        degrees: 81.258,
+        measured: f64::NAN,
+        arm: 0.0,
+    }]);
+    assert!(
+        matches!(
+            verdict,
+            Err(Flaw::Untrue { near, value, measured })
+                if near == at(1.0, -0.7675) && value == 81.258 && measured.is_nan()
+        ),
+        "{verdict:?}"
+    );
 }
 
 #[test]

@@ -59,7 +59,8 @@ pub struct Piece {
 /// Every accepted dimension measures its value, every accepted rule holds,
 /// and every refused one leaves the drawing as it was. An angle may stray by
 /// what moves the end of its arm as far as a length may stray; one whose arm
-/// is shorter than that may not stray at all.
+/// is shorter than that may not stray at all, and one that measures nothing,
+/// not a number, is untrue.
 pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
     for promise in promises {
         match promise {
@@ -69,7 +70,7 @@ pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
                 measured,
             } => {
                 let allowed = HELD * reach(&[*near]).max(value.abs());
-                if (measured - value).abs() > allowed {
+                if strays((measured - value).abs(), allowed) {
                     return Err(Flaw::Untrue {
                         near: *near,
                         value: *value,
@@ -88,7 +89,7 @@ pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
                     true => (length / arm).to_degrees(),
                     false => 0.0,
                 };
-                if (measured - degrees).abs() > allowed {
+                if strays((measured - degrees).abs(), allowed) {
                     return Err(Flaw::Untrue {
                         near: *near,
                         value: *degrees,
@@ -126,6 +127,12 @@ pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
         }
     }
     Ok(())
+}
+
+/// Whether a promise stands off by more than it may, or by what no number
+/// says.
+fn strays(off: f64, allowed: f64) -> bool {
+    off.is_nan() || off > allowed
 }
 
 /// Every piece made entirely constrained is said to be, point by point, and

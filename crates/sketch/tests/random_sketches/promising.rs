@@ -391,23 +391,23 @@ fn arm(sketch: &Sketch, target: DimensionTarget) -> Option<f64> {
 }
 
 /// What a value or a rule kept says of the drawing as it now stands, or
-/// nothing once it is no longer on it.
+/// nothing once it is no longer on it. An angle still laid on an arm shrunk to
+/// nothing measures nothing at all, read as not a number, which no value is.
 fn reread(sketch: &Sketch, kept: &Kept) -> Option<Promise> {
     match kept {
         Kept::Value { target, near, .. } => {
             let laid = sketch.dimension_of(*target).filter(|laid| !laid.driven)?;
-            let measure = measured(sketch, *target)?;
             Some(match target.is_angle() {
                 true => Promise::Turned {
                     near: *near,
                     degrees: laid.value,
-                    measured: measure,
+                    measured: measured(sketch, *target).unwrap_or(f64::NAN),
                     arm: arm(sketch, *target)?,
                 },
                 false => Promise::Measured {
                     near: *near,
                     value: laid.value,
-                    measured: measure,
+                    measured: measured(sketch, *target)?,
                 },
             })
         }
