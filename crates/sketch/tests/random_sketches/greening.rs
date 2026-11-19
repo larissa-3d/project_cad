@@ -5,9 +5,10 @@
 //! already held.
 
 use cao_sketch::{
-    ArcId, CircleId, EllipseId, PointId, Rule, SegmentId, Sketch, SketchAxis, Support,
+    ArcId, CircleId, Element, EllipseId, PointId, Rule, SegmentId, Sketch, SketchAxis, Support,
 };
 
+use super::Gesture;
 use super::asking::{Ask, Asker, Target};
 use super::holding::SCALE;
 use super::laying::reach;
@@ -122,6 +123,16 @@ impl Asker<'_> {
     /// takes some freedom away, left out otherwise. Its values are what it
     /// measures, so that it turns green where it stands.
     pub(super) fn make_green(&mut self, piece: &[PointId]) {
+        let places: Vec<[f64; 2]> = self
+            .sketch
+            .live_points()
+            .filter(|(point, _)| piece.contains(point))
+            .map(|(_, at)| at.to_array())
+            .collect();
+        if places.is_empty() {
+            return;
+        }
+        let mut given = Vec::new();
         for ask in self.what_green_takes(piece) {
             let settled = self.sketch.settled_points(SCALE);
             let is_settled = |point: PointId| settled.get(point.0).copied().unwrap_or(false);
@@ -137,8 +148,17 @@ impl Asker<'_> {
                 < self.sketch.freedom(SCALE).degrees_of_freedom
             {
                 self.sketch = trial;
-                self.gestures.push(gesture);
+                given.push(gesture);
             }
+        }
+        let settled = self.sketch.settled_points(SCALE);
+        let all_settled = piece.iter().all(|point| settled[point.0]);
+        match all_settled || freedom_left(&self.sketch, piece) == 0 {
+            true => self.gestures.push(Gesture::Green {
+                piece: places,
+                given,
+            }),
+            false => self.gestures.extend(given),
         }
     }
 
@@ -193,11 +213,24 @@ impl Asker<'_> {
                 false => Ask::Corner(one, other),
             });
         }
-        asks.extend(
-            sides
-                .iter()
-                .map(|side| Ask::AgainstAxis(*side, SketchAxis::U)),
-        );
+        for side in &sides {
+            let (from, to) = sketch.endpoints(*side);
+            let way = to - from;
+            let along = match (
+                way.y.abs() <= 1e-12 * way.length(),
+                way.x.abs() <= 1e-12 * way.length(),
+            ) {
+                (true, _) => Some(SketchAxis::U),
+                (_, true) => Some(SketchAxis::V),
+                _ => None,
+            };
+            asks.push(match along {
+                Some(axis) => {
+                    Ask::Ruled(Rule::Parallel, Target::Segment(*side), Target::Axis(axis))
+                }
+                None => Ask::AgainstAxis(*side, SketchAxis::U),
+            });
+        }
         for point in piece {
             asks.extend([
                 Ask::FromOrigin(*point, SketchAxis::U),
@@ -239,6 +272,34 @@ impl Asker<'_> {
             _ => false,
         }
     }
+}
+
+/// How much freedom a piece still has, as the sketch counts it: what the
+/// drawing loses once the piece is taken out of it.
+///
+/// A piece is said to be made green when either this or the settled points
+/// say so, and the rules then hold it to both. One the clicks could not give
+/// all it needed — two of its points on top of each other, which no click
+/// tells apart — is said to be by neither, and claims nothing.
+fn freedom_left(sketch: &Sketch, piece: &[PointId]) -> usize {
+    let mut without = sketch.clone();
+    for (curve, points) in curves_and_points(sketch) {
+        if points.iter().any(|point| piece.contains(point)) {
+            without.erase(match curve {
+                Curve::Segment(side) => Element::Segment(side),
+                Curve::Circle(circle) => Element::Circle(circle),
+                Curve::Arc(arc) => Element::Arc(arc),
+                Curve::Ellipse(ellipse) => Element::Ellipse(ellipse),
+            });
+        }
+    }
+    for point in piece {
+        if without.live_points().any(|(alive, _)| alive == *point) {
+            without.erase(Element::Point(*point));
+        }
+    }
+    let freedom = |sketch: &Sketch| sketch.freedom(SCALE).degrees_of_freedom;
+    freedom(sketch).saturating_sub(freedom(&without))
 }
 
 /// The four points nearest `point` that stand off both its axes, for its

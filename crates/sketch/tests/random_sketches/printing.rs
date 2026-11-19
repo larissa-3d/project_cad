@@ -252,6 +252,18 @@ impl Display for Gesture {
                 Pair(*from),
                 Pair(*to)
             ),
+            Gesture::Green { piece, given } => {
+                write!(
+                    out,
+                    "Gesture::Green {{ piece: {}, given: vec![",
+                    Places(piece)
+                )?;
+                for (index, gesture) in given.iter().enumerate() {
+                    let separator = if index == 0 { "" } else { ", " };
+                    write!(out, "{separator}{gesture}")?;
+                }
+                write!(out, "] }}")
+            }
         }
     }
 }

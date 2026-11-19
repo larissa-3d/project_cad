@@ -3,7 +3,9 @@
 //! Every change offered here makes a drawing simpler and never undoes
 //! another: a gesture dropped, a curve made straight, a corner cut rather than
 //! rounded, a copy made fewer times, construction drawn plain, a number
-//! rounded. That is what makes the shrinking finish — no two changes lead back
+//! rounded. A piece made entirely constrained is only ever dropped whole:
+//! rounded, or a value of it dropped, it would be held to a green it was no
+//! longer given. That is what makes the shrinking finish — no two changes lead back
 //! to where the first started.
 
 use glam::DVec2;
@@ -364,6 +366,7 @@ impl Gesture {
                 from: pair(from),
                 to: pair(to),
             },
+            Gesture::Green { .. } => self.clone(),
         }
     }
 }

@@ -20,13 +20,14 @@ mod holding;
 mod laying;
 mod modes;
 mod printing;
+mod promising;
 mod random;
 mod rules;
 mod settling;
 mod smaller;
 
 pub use campaign::{Check, Report, answer, apart, campaign, shrink};
-pub use checking::{check, holds, played};
+pub use checking::{Promised, check, holds, keeps_its_promises, played, promises_of};
 pub use drawing::drawn;
 pub use laying::laid;
 pub use modes::{Mode, drawn_in};
@@ -126,6 +127,14 @@ pub enum Gesture {
     },
     /// A press at `from` dragged to `to` and let go.
     Drag { from: [f64; 2], to: [f64; 2] },
+    /// A piece made entirely constrained: the points standing at `piece`, and
+    /// the dimensions and rules it was given for it, kept and dropped as one.
+    /// The piece is held to its green only while every one of them is laid
+    /// and taken.
+    Green {
+        piece: Vec<[f64; 2]>,
+        given: Vec<Gesture>,
+    },
 }
 
 /// What a copy is laid along or across.
@@ -157,7 +166,10 @@ impl Gesture {
 
     /// Whether the gesture lays a dimension or a rule.
     pub fn constrains(&self) -> bool {
-        matches!(self, Gesture::Dimension { .. } | Gesture::Rule { .. })
+        matches!(
+            self,
+            Gesture::Dimension { .. } | Gesture::Rule { .. } | Gesture::Green { .. }
+        )
     }
 
     /// Whether the gesture drags what is drawn: a point moved, a side pulled,

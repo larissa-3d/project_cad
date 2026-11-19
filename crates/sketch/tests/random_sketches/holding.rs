@@ -7,7 +7,7 @@
 //! only set the scale would move nothing.
 
 use cao_sketch::{
-    CurveDrag, DimensionMode, DimensionPick, DimensionPicks, DimensionTarget, Element,
+    Constraint, CurveDrag, DimensionMode, DimensionPick, DimensionPicks, DimensionTarget, Element,
     LengthOutcome, PointId, Pulled, Rule, RuleIntent, RulePick, SideDrag, Sketch, SnapSettings,
     Support, axis_under, measure_pick, rule_intent,
 };
@@ -123,15 +123,13 @@ fn hang_on_a_cut_point(sketch: &mut Sketch, at: DVec2, snap: f64) {
 /// fixed: nought or less refused but for an angle to an axis, a value saying
 /// nothing new kept as a readout, and one the drawing cannot fully honour
 /// refused, the drawing as it was.
-pub(super) fn type_value(sketch: &mut Sketch, target: DimensionTarget, value: f64) {
-    if !target.takes(value) {
-        return;
-    }
-    if value <= 0.0 && !matches!(target, DimensionTarget::AxisAngle { .. }) {
-        return;
+pub(super) fn type_value(sketch: &mut Sketch, target: DimensionTarget, value: f64) -> Taken {
+    if !target.takes(value) || value <= 0.0 && !matches!(target, DimensionTarget::AxisAngle { .. })
+    {
+        return Taken::Refused;
     }
     let Some(measure) = measured(sketch, target) else {
-        return;
+        return Taken::Nothing;
     };
     let readout = match sketch.dimension_of(target) {
         Some(laid) => laid.driven,
@@ -139,13 +137,30 @@ pub(super) fn type_value(sketch: &mut Sketch, target: DimensionTarget, value: f6
     };
     if readout {
         sketch.set_dimension(target, measure, true);
-        return;
+        return Taken::Readout;
     }
     let before = sketch.clone();
     sketch.set_dimension(target, value, false);
     if sketch.land_value(target, SCALE) != LengthOutcome::Exact {
         *sketch = before;
+        return Taken::Refused;
     }
+    Taken::Held
+}
+
+/// What became of a value typed or a rule laid.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) enum Taken {
+    /// It drives the drawing from now on.
+    Held,
+    /// It was kept as a readout, saying nothing new.
+    Readout,
+    /// Two points were joined into one.
+    Joined,
+    /// The drawing could not take it, and was left as it was.
+    Refused,
+    /// The tool was given nothing to act on, or something already there.
+    Nothing,
 }
 
 /// What a click of the constraint tool picks (`constrain.rs` in the
@@ -205,22 +220,30 @@ pub(super) fn rule_picks(sketch: &Sketch, rule: Rule, clicks: &[[f64; 2]]) -> Ve
 /// The rule laid as the constraint tool and `cao_part` lay it: a rule already
 /// carried is not laid again, one that cannot hold is refused with the
 /// drawing as it was, and two points brought together are joined.
-pub(super) fn lay_rule(sketch: &mut Sketch, rule: Rule, clicks: &[[f64; 2]]) {
+pub(super) fn lay_rule(
+    sketch: &mut Sketch,
+    rule: Rule,
+    clicks: &[[f64; 2]],
+) -> (Taken, Option<Constraint>) {
     let picks = rule_picks(sketch, rule, clicks);
     if picks.len() < rule.arity() {
-        return;
+        return (Taken::Nothing, None);
     }
     match rule_intent(rule, &picks, sketch) {
         Some(RuleIntent::Constrain(constraint)) if !sketch.carries(constraint) => {
             let before = sketch.clone();
             if sketch.lay_rule(constraint, SCALE) == LengthOutcome::BestEffort {
                 *sketch = before;
+                return (Taken::Refused, Some(constraint));
             }
+            (Taken::Held, Some(constraint))
         }
-        Some(RuleIntent::Merge { kept, dropped }) => {
-            sketch.join_points(kept, dropped, SCALE);
-        }
-        _ => {}
+        Some(RuleIntent::Merge { kept, dropped }) => match sketch.join_points(kept, dropped, SCALE)
+        {
+            true => (Taken::Joined, None),
+            false => (Taken::Refused, None),
+        },
+        _ => (Taken::Nothing, None),
     }
 }
 

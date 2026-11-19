@@ -99,14 +99,27 @@ pub(super) fn asked(random: &mut Random, drawing: &[Gesture], shares: Shares) ->
     for index in (1..asks.len()).rev() {
         asks.swap(index, asker.random.below(index + 1));
     }
-    let made_green: Vec<Vec<PointId>> = pieces(&asker.sketch)
-        .into_iter()
-        .filter(|_| asker.random.chance(shares.constrained))
+    // Which pieces are made green is drawn before the asks, where it always
+    // was, so that a seed keeps its case; the choices fall on the pieces as
+    // the asks leave them, a rule having perhaps joined two.
+    let chosen: Vec<bool> = pieces(&asker.sketch)
+        .iter()
+        .map(|_| asker.random.chance(shares.constrained))
         .collect();
     for ask in asks {
         if let Some(gesture) = asker.gesture(ask, false) {
             gesture.lay(&mut asker.sketch);
             asker.gestures.push(gesture);
+        }
+    }
+    let mut made_green: Vec<Vec<PointId>> = Vec::new();
+    for (index, piece) in pieces(&asker.sketch).into_iter().enumerate() {
+        let chosen = match chosen.get(index) {
+            Some(chosen) => *chosen,
+            None => asker.random.chance(shares.constrained),
+        };
+        if chosen {
+            made_green.push(piece);
         }
     }
     for piece in made_green {

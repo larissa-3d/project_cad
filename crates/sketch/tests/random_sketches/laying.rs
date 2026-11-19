@@ -300,7 +300,14 @@ impl Gesture {
                     holding::type_value(sketch, target, *value);
                 }
             }
-            Gesture::Rule { rule, clicks } => holding::lay_rule(sketch, *rule, clicks),
+            Gesture::Rule { rule, clicks } => {
+                holding::lay_rule(sketch, *rule, clicks);
+            }
+            Gesture::Green { given, .. } => {
+                for gesture in given {
+                    gesture.lay(sketch);
+                }
+            }
             Gesture::Drag { from, to } => {
                 holding::drag(sketch, DVec2::from(*from), DVec2::from(*to));
             }
