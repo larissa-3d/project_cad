@@ -58,3 +58,6 @@ impl Sketch {
         into.extend([middle, square]);
     }
 }
+
+#[cfg(test)]
+mod tests;

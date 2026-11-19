@@ -251,3 +251,34 @@ fn an_arc_symmetric_about_the_axis_is_not_copied_onto_itself() {
         "the curve reads the same either side of the axis, so its copy covers it"
     );
 }
+
+#[test]
+fn a_bare_mirror_copies_every_point_those_on_the_axis_too_and_lays_no_rule() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let foot = sketch.add_point(DVec2::new(0.0, 1.0));
+    let corner = sketch.add_point(DVec2::new(3.0, 1.0));
+    let side = Element::Segment(sketch.add_segment(foot, corner));
+
+    let made = sketch
+        .mirror_bare(&[side], ChosenAxis::Sketch(SketchAxis::V))
+        .expect("an axis to mirror across");
+
+    let mut got = places(&sketch, &made);
+    got.sort_by(|a, b| a.x.total_cmp(&b.x));
+    assert_eq!(made.points.len(), 2, "the foot on the axis is copied too");
+    assert!(
+        got[0].distance(DVec2::new(-3.0, 1.0)) <= TOLERANCE,
+        "{got:?}"
+    );
+    assert!(
+        got[1].distance(DVec2::new(0.0, 1.0)) <= TOLERANCE,
+        "{got:?}"
+    );
+    assert!(!made.points.contains(&foot));
+    assert_eq!(made.segments.len(), 1);
+    assert!(
+        sketch.constraints().is_empty(),
+        "a bare mirror laid {:?}",
+        sketch.constraints()
+    );
+}

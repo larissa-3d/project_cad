@@ -19,7 +19,11 @@
 //!   leave it. A half-profile closed by a mirror stays closed —
 //!   `a_point_on_the_axis_is_shared_by_the_original_and_its_copy`,
 //!   `a_point_shared_across_the_axis_slides_along_it_and_cannot_leave_it`,
-//!   `a_half_profile_closed_by_a_mirror_stays_closed_when_dragged`
+//!   `a_half_profile_closed_by_a_mirror_stays_closed_when_dragged`; across a
+//!   trait, a point in its middle stays on it —
+//!   `a_point_shared_in_the_middle_of_an_axis_trait_stays_on_it_when_dragged`
+//!   — and one of its ends is held by nothing more —
+//!   `a_point_ending_the_axis_trait_is_held_by_nothing_more`
 //! - The copy carries the rules internal to the original — horizontal,
 //!   parallel, tangent, … — when every element the rule speaks of was copied,
 //!   so a mirrored rectangle stays a rectangle. A rule from the original to
@@ -32,14 +36,20 @@
 //!   `a_rule_to_a_trait_lying_on_the_axis_is_carried_with_that_trait_as_its_own_image`,
 //!   `a_rule_on_a_fillet_whose_corner_was_copied_is_carried_over`,
 //!   `a_point_held_where_a_fillet_meets_its_first_side_stays_there_on_the_copy`,
-//!   `parallel_equal_and_tangent_rules_inside_the_original_are_carried_over`;
+//!   `parallel_equal_and_tangent_rules_inside_the_original_are_carried_over`,
+//!   `rules_on_copied_curves_are_carried_over`,
+//!   `rules_to_the_sketch_s_axes_are_carried_across_one_of_them`,
+//!   `rules_to_the_sketch_s_axes_are_not_carried_across_a_slanted_trait`;
 //!   a fixed element is not carried, the copy being held by the symmetry —
 //!   `a_fixed_point_of_the_original_does_not_fix_its_copy`
 //! - Erasing a trait erases its twin, from either side; while one of them is
-//!   selected, its twin is highlighted with it — no test: the user erases
-//!   through the part's `EraseMany`, not `Sketch::erase`, which trimming and
-//!   merging call too; answered under a `Closes #320` block of its own in
-//!   `crates/part/tests/mirroring_a_selection.rs`, and the highlight in
+//!   selected, its twin is highlighted with it — what the twin of each piece
+//!   is, here: `every_mirrored_piece_names_its_twin_and_is_named_by_it`,
+//!   `a_trait_ending_on_the_axis_names_the_copy_ending_there_too_and_the_shared_point_names_none`,
+//!   `a_piece_mirrored_twice_names_its_three_images`; the erasing goes through
+//!   the part's `EraseMany`, not `Sketch::erase`, which trimming and merging
+//!   call too, and is answered under a `Closes #320` block of its own in
+//!   `crates/part/tests/mirroring_a_selection.rs`, the highlight in
 //!   `crates/app/src/screens/viewport/render/emphasis/tests.rs`
 //! - Erasing the axis frees the copy. Both drawings stay where they are; the
 //!   symmetry goes with the axis. The carried-over rules stay —
@@ -67,8 +77,9 @@
 //!   `crates/app/src/screens/viewport/input/copying/tests/panel.rs`
 
 use cao_sketch::{
-    ChosenAxis, CircleId, Constraint, CutPoint, CutShape, DimensionTarget, Duplicated, Element,
-    LaidFrom, LengthOutcome, PointId, Repeats, SegmentId, Sketch, SketchAxis, WorkPlane,
+    ChosenAxis, CircleId, CircleSymmetry, Constraint, CutPoint, CutShape, DimensionTarget,
+    Duplicated, Element, LaidFrom, LengthOutcome, PointId, Repeats, SegmentId, Sketch, SketchAxis,
+    Symmetry, WorkPlane,
 };
 use glam::DVec2;
 
@@ -1298,4 +1309,443 @@ fn a_fixed_point_of_the_original_does_not_fix_its_copy() {
     assert!(!triangle.sketch.carries(Constraint::Fixed {
         element: Element::Point(copy),
     }));
+}
+
+fn point_at(sketch: &Sketch, place: DVec2) -> PointId {
+    sketch
+        .live_points()
+        .find(|(_, at)| at.distance(place) < 1e-9)
+        .map(|(id, _)| id)
+        .unwrap_or_else(|| panic!("a point at {place}"))
+}
+
+#[test]
+fn every_mirrored_piece_names_its_twin_and_is_named_by_it() {
+    let mut triangle = a_triangle_east_of_the_v_axis();
+    let sketch = &mut triangle.sketch;
+    let centre = sketch.add_point(DVec2::new(10.0, 2.0));
+    let circle = sketch.add_circle(centre, 1.5);
+    let other_centre = sketch.add_point(DVec2::new(10.0, 6.0));
+    let other_circle = sketch.add_circle(other_centre, 0.5);
+    let [arc_centre, arc_start, arc_end] =
+        [(15.0, 1.0), (18.0, 1.0), (15.0, 4.0)].map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let arc = sketch.add_arc(arc_centre, arc_start, arc_end);
+    let [oval_centre, west, east, south, north] = [
+        (30.0, 10.0),
+        (25.0, 10.0),
+        (35.0, 10.0),
+        (30.0, 8.0),
+        (30.0, 12.0),
+    ]
+    .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let ellipse = sketch.add_ellipse(oval_centre, [west, east], [south, north]);
+    let alone = sketch.add_point(DVec2::new(12.0, 7.0));
+    let mut held = triangle.sides.map(Element::Segment).to_vec();
+    held.extend([
+        Element::Circle(circle),
+        Element::Circle(other_circle),
+        Element::Arc(arc),
+        Element::Ellipse(ellipse),
+        Element::Point(alone),
+    ]);
+
+    let made = sketch
+        .mirror(&held, ChosenAxis::Sketch(SketchAxis::V))
+        .expect("an axis to mirror across");
+
+    let mut pairs: Vec<(Element, Element)> = triangle
+        .sides
+        .iter()
+        .map(|side| {
+            (
+                Element::Segment(*side),
+                Element::Segment(image_of(sketch, &made, *side, V_THROUGH, V_TOWARDS)),
+            )
+        })
+        .collect();
+    pairs.extend([
+        (Element::Circle(circle), Element::Circle(made.circles[0])),
+        (
+            Element::Circle(other_circle),
+            Element::Circle(made.circles[1]),
+        ),
+        (Element::Arc(arc), Element::Arc(made.arcs[0])),
+        (
+            Element::Ellipse(ellipse),
+            Element::Ellipse(made.ellipses[0]),
+        ),
+        (
+            Element::Point(alone),
+            Element::Point(point_at(sketch, DVec2::new(-12.0, 7.0))),
+        ),
+    ]);
+    for (original, copy) in pairs {
+        assert_eq!(sketch.twins_of(original), vec![copy], "{original:?}");
+        assert_eq!(sketch.twins_of(copy), vec![original], "{copy:?}");
+    }
+}
+
+#[test]
+fn a_trait_ending_on_the_axis_names_the_copy_ending_there_too_and_the_shared_point_names_none() {
+    let (half, made) = mirrored_half_profile();
+    let [foot, _] = half.on_the_axis;
+    let base = half.sides[0];
+    let copied_base = image_of(&half.sketch, &made, base, V_THROUGH, V_TOWARDS);
+
+    assert_eq!(
+        half.sketch.twins_of(Element::Segment(base)),
+        vec![Element::Segment(copied_base)]
+    );
+    assert_eq!(
+        half.sketch.twins_of(Element::Point(foot)),
+        Vec::new(),
+        "a point on the axis is its own image, and has no twin to go with it"
+    );
+}
+
+#[test]
+fn a_piece_mirrored_twice_names_its_three_images() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let start = sketch.add_point(DVec2::new(2.0, 1.0));
+    let end = sketch.add_point(DVec2::new(6.0, 3.0));
+    let quarter = sketch.add_segment(start, end);
+    let half = sketch
+        .mirror(
+            &[Element::Segment(quarter)],
+            ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+    sketch
+        .mirror(
+            &[
+                Element::Segment(quarter),
+                Element::Segment(half.segments[0]),
+            ],
+            ChosenAxis::Sketch(SketchAxis::U),
+        )
+        .expect("an axis to mirror across");
+
+    let mut twins = sketch.twins_of(Element::Segment(quarter));
+    let mut wanted: Vec<Element> = [(-1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]
+        .map(|(x, y)| {
+            let flip = DVec2::new(x, y);
+            let (from, to) = (
+                point_at(&sketch, DVec2::new(2.0, 1.0) * flip),
+                point_at(&sketch, DVec2::new(6.0, 3.0) * flip),
+            );
+            sketch
+                .live_segments()
+                .find(|(_, side)| (side.start, side.end) == (from, to))
+                .map(|(id, _)| Element::Segment(id))
+                .expect("an image of the quarter")
+        })
+        .to_vec();
+    twins.sort_by_key(|element| format!("{element:?}"));
+    wanted.sort_by_key(|element| format!("{element:?}"));
+    assert_eq!(twins, wanted);
+}
+
+#[test]
+fn a_symmetry_is_one_rule_whichever_way_round_it_is_named() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let point = sketch.add_point(DVec2::new(4.0, 2.0));
+    let centre = sketch.add_point(DVec2::new(8.0, 2.0));
+    let circle = sketch.add_circle(centre, 1.0);
+    sketch
+        .mirror(
+            &[Element::Point(point), Element::Circle(circle)],
+            ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+    let reversed: Vec<Constraint> = sketch
+        .constraints()
+        .iter()
+        .filter_map(|rule| match *rule {
+            Constraint::Symmetric(pair) => Some(Constraint::Symmetric(Symmetry {
+                point: pair.twin,
+                twin: pair.point,
+                axis: pair.axis,
+            })),
+            Constraint::SymmetricCircles(pair) => {
+                Some(Constraint::SymmetricCircles(CircleSymmetry {
+                    circle: pair.twin,
+                    twin: pair.circle,
+                    axis: pair.axis,
+                }))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        reversed.len(),
+        3,
+        "the point and the centre each held to their twin, and the two radii"
+    );
+
+    for rule in reversed {
+        assert!(
+            sketch.carries(rule),
+            "{rule:?} is the rule the mirror laid, named the other way round"
+        );
+        sketch.erase_constraint(rule);
+        assert!(
+            !sketch.carries(rule),
+            "{rule:?} named the other way round could not be erased"
+        );
+    }
+}
+
+fn rules_to_the_axes_across(
+    axis_of: impl Fn(&mut Sketch) -> ChosenAxis,
+) -> (Sketch, [Constraint; 3]) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let axis = axis_of(&mut sketch);
+    let on_u = sketch.add_point(DVec2::new(3.0, 0.0));
+    let (lying_start, lying_end) = (
+        sketch.add_point(DVec2::new(5.0, 0.0)),
+        sketch.add_point(DVec2::new(8.0, 0.0)),
+    );
+    let lying = sketch.add_segment(lying_start, lying_end);
+    let (upright_start, upright_end) = (
+        sketch.add_point(DVec2::new(4.0, 2.0)),
+        sketch.add_point(DVec2::new(4.0, 5.0)),
+    );
+    let upright = sketch.add_segment(upright_start, upright_end);
+    for rule in [
+        Constraint::OnAxis {
+            point: on_u,
+            axis: SketchAxis::U,
+        },
+        Constraint::AxisCollinear {
+            segment: lying,
+            axis: SketchAxis::U,
+        },
+        Constraint::AxisPerpendicular {
+            segment: upright,
+            axis: SketchAxis::U,
+        },
+    ] {
+        sketch.add_constraint(rule);
+    }
+    let held = [
+        Element::Point(on_u),
+        Element::Segment(lying),
+        Element::Segment(upright),
+    ];
+    let mut made = sketch
+        .mirror(&held, axis)
+        .expect("an axis to mirror across");
+    let (through, towards) = match axis {
+        ChosenAxis::Sketch(_) => (V_THROUGH, V_TOWARDS),
+        ChosenAxis::Trait(segment) => sketch.endpoints(segment),
+    };
+    let copied_point = made.points.remove(
+        made.points
+            .iter()
+            .position(|point| {
+                sketch.point(*point).distance(mirrored_about(
+                    DVec2::new(3.0, 0.0),
+                    through,
+                    towards,
+                )) < 1e-9
+            })
+            .expect("a copy of the point on the axis"),
+    );
+    let images = [
+        Constraint::OnAxis {
+            point: copied_point,
+            axis: SketchAxis::U,
+        },
+        Constraint::AxisCollinear {
+            segment: image_of(&sketch, &made, lying, through, towards),
+            axis: SketchAxis::U,
+        },
+        Constraint::AxisPerpendicular {
+            segment: image_of(&sketch, &made, upright, through, towards),
+            axis: SketchAxis::U,
+        },
+    ];
+    (sketch, images)
+}
+
+#[test]
+fn rules_to_the_sketch_s_axes_are_carried_across_one_of_them() {
+    let (sketch, images) = rules_to_the_axes_across(|_| ChosenAxis::Sketch(SketchAxis::V));
+
+    for rule in images {
+        assert!(
+            sketch.carries(rule),
+            "across V the image of {rule:?} holds, and the copy was not given it: {:?}",
+            sketch.constraints()
+        );
+    }
+}
+
+#[test]
+fn rules_to_the_sketch_s_axes_are_not_carried_across_a_slanted_trait() {
+    let (sketch, images) = rules_to_the_axes_across(|sketch| {
+        let low = sketch.add_point(DVec2::new(-2.0, -6.0));
+        let high = sketch.add_point(DVec2::new(1.0, 6.0));
+        ChosenAxis::Trait(sketch.add_segment(low, high))
+    });
+
+    for rule in images {
+        assert!(
+            !sketch.carries(rule),
+            "across a slanted trait {rule:?} would no longer hold, and the copy was given it"
+        );
+    }
+}
+
+#[test]
+fn rules_on_copied_curves_are_carried_over() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let [arc_centre, arc_start, arc_end] =
+        [(5.0, 1.0), (8.0, 1.0), (5.0, 4.0)].map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let arc = sketch.add_arc(arc_centre, arc_start, arc_end);
+    let grazing_start = sketch.add_point(DVec2::new(8.0, -3.0));
+    let grazing_end = sketch.add_point(DVec2::new(8.0, -1.0));
+    let grazing = sketch.add_segment(grazing_start, grazing_end);
+    let on_the_arc_at = DVec2::new(5.0, 1.0) + DVec2::splat(3.0 / 2.0_f64.sqrt());
+    let on_the_arc = sketch.add_point(on_the_arc_at);
+    let [oval_centre, west, east, south, north] = [
+        (20.0, 10.0),
+        (5.0, 10.0),
+        (35.0, 10.0),
+        (20.0, 5.0),
+        (20.0, 15.0),
+    ]
+    .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let ellipse = sketch.add_ellipse(oval_centre, [west, east], [south, north]);
+    let on_the_ellipse_at = DVec2::new(20.0 + 15.0 * 0.5, 10.0 + 5.0 * 3.0_f64.sqrt() / 2.0);
+    let on_the_ellipse = sketch.add_point(on_the_ellipse_at);
+    let rounds = [(30.0, 2.0), (36.0, 2.0)].map(|(x, y)| {
+        let centre = sketch.add_point(DVec2::new(x, y));
+        sketch.add_circle(centre, 1.5)
+    });
+    for rule in [
+        Constraint::ArcTangent {
+            arc,
+            segment: grazing,
+            at: None,
+            from: LaidFrom::Nowhere,
+        },
+        Constraint::OnArc {
+            point: on_the_arc,
+            arc,
+            from: LaidFrom::Nowhere,
+        },
+        Constraint::OnEllipse {
+            point: on_the_ellipse,
+            ellipse,
+            from: LaidFrom::Nowhere,
+        },
+        Constraint::EqualRadius {
+            first: rounds[0],
+            second: rounds[1],
+        },
+    ] {
+        sketch.add_constraint(rule);
+        assert!(sketch.carries(rule), "the fixture could not lay {rule:?}");
+    }
+
+    let made = sketch
+        .mirror(
+            &[
+                Element::Arc(arc),
+                Element::Segment(grazing),
+                Element::Point(on_the_arc),
+                Element::Ellipse(ellipse),
+                Element::Point(on_the_ellipse),
+                Element::Circle(rounds[0]),
+                Element::Circle(rounds[1]),
+            ],
+            ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+
+    let image = |place: DVec2| point_at(&sketch, mirrored_about(place, V_THROUGH, V_TOWARDS));
+    let (copied_arc, copied_grazing) = (
+        made.arcs[0],
+        image_of(&sketch, &made, grazing, V_THROUGH, V_TOWARDS),
+    );
+    let grazing_on_the_copy = sketch.constraints().iter().any(|rule| {
+        matches!(
+            rule,
+            Constraint::ArcTangent { arc, segment, .. }
+                if *arc == copied_arc && *segment == copied_grazing
+        )
+    });
+    assert!(
+        grazing_on_the_copy,
+        "the copied trait does not graze the copied arc: {:?}",
+        sketch.constraints()
+    );
+    for rule in [
+        Constraint::OnArc {
+            point: image(on_the_arc_at),
+            arc: copied_arc,
+            from: LaidFrom::Nowhere,
+        },
+        Constraint::OnEllipse {
+            point: image(on_the_ellipse_at),
+            ellipse: made.ellipses[0],
+            from: LaidFrom::Nowhere,
+        },
+        Constraint::EqualRadius {
+            first: made.circles[0],
+            second: made.circles[1],
+        },
+    ] {
+        assert!(
+            sketch.carries(rule),
+            "{rule:?} did not come along with the curves it speaks of: {:?}",
+            sketch.constraints()
+        );
+    }
+}
+
+#[test]
+fn a_point_ending_the_axis_trait_is_held_by_nothing_more() {
+    let mut half = half_a_profile_standing_on_the_v_axis();
+    let [foot, head] = half.on_the_axis;
+    let axis = half.sketch.add_segment(foot, head);
+
+    half.sketch
+        .mirror(&half.sides.map(Element::Segment), ChosenAxis::Trait(axis))
+        .expect("a trait to mirror across");
+
+    let held_on_the_axis: Vec<&Constraint> = half
+        .sketch
+        .constraints()
+        .iter()
+        .filter(|rule| matches!(rule, Constraint::OnSegment { segment, .. } if *segment == axis))
+        .collect();
+    assert!(
+        held_on_the_axis.is_empty(),
+        "the axis's own ends were held on it besides: {held_on_the_axis:?}"
+    );
+}
+
+#[test]
+fn a_point_shared_in_the_middle_of_an_axis_trait_stays_on_it_when_dragged() {
+    let mut half = half_a_profile_standing_on_the_v_axis();
+    let low = half.sketch.add_point(DVec2::new(0.0, -5.0));
+    let high = half.sketch.add_point(DVec2::new(0.0, 10.0));
+    let axis = half.sketch.add_segment(low, high);
+    half.sketch
+        .mirror(&half.sides.map(Element::Segment), ChosenAxis::Trait(axis))
+        .expect("a trait to mirror across");
+    let head = half.on_the_axis[1];
+
+    drag(&mut half.sketch, head, DVec2::new(1.0, 1.0));
+
+    let (through, towards) = half.sketch.endpoints(axis);
+    let off = (towards - through)
+        .normalize()
+        .perp_dot(half.sketch.point(head) - through);
+    assert!(
+        off.abs() < AFTER_THE_SOLVER,
+        "the point shared on the axis left it by {off}"
+    );
 }
