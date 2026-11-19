@@ -54,8 +54,8 @@ pub(super) use triangle::{cut_across, joined_across, polygon_across, tip};
 /// cut's prism must reach, whether the faces meet inwards, the way into
 /// either running the way the other faces: a corner to fill in rather than
 /// cut off — and the edges its cut's face crosses at the convex corners it
-/// ends at alone, as [`corners::crossed`] reads them once a step has its
-/// list, none until then.
+/// ends at, as [`corners::crossed`] reads them once a step has its list,
+/// none until then.
 pub(super) struct Wedge {
     pub point: DVec3,
     pub along: DVec3,
@@ -144,7 +144,9 @@ impl Exact {
     /// four or more of them meet at, all convex and every edge ending there
     /// named, is cleared before any edge is laid, as [`Exact::cleared`] clears
     /// it, so that no cut carried past it takes the matter of a face its edge
-    /// does not lie on, and closed the same way once all are laid. A corner
+    /// does not lie on, and closed the same way once all are laid; some of
+    /// them named and not all, each is laid in turn where `meeting` says so,
+    /// nothing closing the corner (#942). A corner
     /// three of them meet at, two of one sense and the odd one of the other —
     /// two feet and the upright above them, two top edges and the upright
     /// below them — is gone round its odd edge as `meeting` says, as
@@ -162,9 +164,9 @@ impl Exact {
     /// is neither convex — every edge ending there a wedge whose faces meet
     /// outwards — nor two of one sense beside an edge of the other left out of
     /// the list, nor two concave beside a third concave, nor three of mixed
-    /// sense, three or more meeting at a corner where another edge ends too,
-    /// four or more that `meeting` closes on no one surface, where `meeting`
-    /// raises two together an edge
+    /// sense, three or more meeting at a corner where another edge ends too
+    /// but where `meeting` says, four or more that `meeting` closes on no
+    /// one surface, where `meeting` raises two together an edge
     /// meeting two others but in a closed chain, cut down to one cylinder as
     /// [`Exact::closed_round`] cuts it, or one of two laid together that meets another
     /// edge of the list at a corner any other way — a notch's two edges among
@@ -273,7 +275,7 @@ impl Exact {
     /// steps' numbers of `before` ended and answering to the `laid` numbers
     /// from there, in one piece, every corner of it on one of the edges' faces
     /// — where the faces met at the edges' ends trim it — or on an edge one of
-    /// them crosses where it ends alone at a convex corner, as its `crossed`
+    /// them crosses where it ends at a convex corner, as its `crossed`
     /// holds them, the face ending there across the faces round it, or a
     /// corner of a face numbered in `mitred`, where a mitre with it ends — at
     /// a corner that is not square, on a face of the other edge, short of the

@@ -75,8 +75,10 @@ impl Body {
     /// every edge ending there named — a right pyramid's apex — are closed
     /// there by one polygon through the points where each two beside each
     /// other cross, where those lie on one plane, and declined `Unsupported`
-    /// where they do not; so are some of a corner's edges named and not all,
-    /// three of a pyramid's four hips. Two cut off where they meet
+    /// where they do not. Some of a corner's edges named and not all — two at
+    /// a hip's foot on a box, three of a pyramid's four hips — are cut each
+    /// by its flat, mitred where they meet, the others left sharp and nothing
+    /// laid at the corner (#942). Two cut off where they meet
     /// beside a concave edge left sharp — the L's top edges at its inner
     /// corner, a pocket's rim — each stop flush on the face the other runs
     /// along and are mitred past it, down to the concave edge, no face laid

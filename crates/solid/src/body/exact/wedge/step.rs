@@ -40,12 +40,14 @@ impl Exact {
     /// where its blend runs laid before any other edge of the list, whatever
     /// its rank, as [`runs`] holds it for the kind's `set_back`, with
     /// [`reach_within`]: the least any edge takes alone bounds the step in
-    /// every order (#877), and the edges its face crosses where it ends alone
-    /// at a convex corner, as [`corners::crossed`] reads them (#943).
-    /// Declined `Lost` where a name no longer finds its edge, and
-    /// `Unsupported` where an edge is not a wedge, two names find one edge,
-    /// or the corners are declined as [`corners::admit`] and
-    /// [`corners::closed`] decline them.
+    /// every order (#877), and the edges its face crosses where it ends at a
+    /// convex corner alone, or with some of the edges there and not all, as
+    /// [`corners::crossed`] reads them (#943, #942). Declined `Lost` where a
+    /// name no longer finds its edge, and `Unsupported` where an edge is not a
+    /// wedge, two names find one edge, or the corners are declined as
+    /// [`corners::admit`] and [`corners::closed`] decline them, the latter
+    /// leaving out a corner some of whose edges are named where the kind's
+    /// apex lays them so.
     pub(super) fn step(&self, names: &[EdgeName], kind: &Kind) -> Result<Step, Declined> {
         let found = names
             .iter()
@@ -57,7 +59,7 @@ impl Exact {
             return Err(Declined::Unsupported);
         }
         let beside = corners::admit(&self.brep, &edges)?;
-        let closed = corners::closed(&self.brep, &edges)?;
+        let closed = corners::closed(&self.brep, &edges, kind.meeting.closing.apex.some)?;
         let mut wedges: Vec<Wedge> = found.into_iter().map(|(_, wedge)| wedge).collect();
         let reached = |rank: usize, side: usize| {
             let ends = runs(

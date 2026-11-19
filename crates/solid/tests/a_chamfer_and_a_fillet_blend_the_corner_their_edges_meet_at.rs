@@ -168,19 +168,24 @@
 //!   no fixture on those surfaces tells where along the edge the samples stand
 //! - Three named edges at a vertex where four edges end are declined
 //!   `Unsupported`, for the fillet and the chamfer, whichever three, and the
-//!   four as well — `a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported`.
+//!   four as well — `a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported`,
+//!   since #942
+//!   `a_fillet_on_three_of_the_four_edges_at_a_pyramid_s_apex_is_declined_as_unsupported`.
 //!   The guard that counts the edges ending there is not alone in holding
 //!   it: around such a vertex the faces run in a ring, so any three of its
 //!   edges hold two that share no face, and the corner's closing, reading
 //!   where each two of them cross on the face they share, declines it too.
 //!   The four were declined until #804 closed the pyramid's apex on one
 //!   surface, a piece of sphere or a square, held in its block below; the
-//!   three stay declined, for #942. #699 held this on a pyramid standing on a
-//!   box, whose hips' feet are vertices where four edges end too; since #804
-//!   it is held on a pyramid standing on its own base, each hip's foot a
-//!   corner of three edges, so that only the apex declines it. The pyramid on
-//!   the box waited on #943, which takes a cut ending alone at a vertex of four
-//!   edges, held since in
+//!   three stayed declined until #942 chamfered them, each flat cut as the
+//!   booleans cut it, held in
+//!   `a_lone_edge_ending_at_a_vertex_of_four_or_more_edges_is_chamfered_or_rounded.rs`,
+//!   and the fillet on them stays declined, for #1031. #699 held this on a
+//!   pyramid standing on a box, whose hips' feet are vertices where four
+//!   edges end too; since #804 it is held on a pyramid standing on its own
+//!   base, each hip's foot a corner of three edges, so that only the apex
+//!   declines it. The pyramid on the box waited on #943, which takes a cut
+//!   ending alone at a vertex of four edges, held since in
 //!   `a_lone_edge_ending_at_a_vertex_of_four_or_more_edges_is_chamfered_or_rounded.rs`
 //! - A later edge the step's own earlier cut takes whole at their corner is
 //!   laid even so, as the body given reads it, so that the step lays both
@@ -426,7 +431,12 @@
 //!   in, declined `Unsupported` for the fillet and for the chamfer at 1, the
 //!   hip left out running into the apex sharp, which neither closing reaches,
 //!   until #942; the list of the four hips leaves that test for the two tests
-//!   above
+//!   above. Since #942 the chamfer on three hips is built, held in
+//!   `a_lone_edge_ending_at_a_vertex_of_four_or_more_edges_is_chamfered_or_rounded.rs`
+//!   by
+//!   `a_chamfer_on_three_of_the_four_hips_at_a_pyramid_s_apex_cuts_the_part_by_each_hip_s_flat_and_leaves_the_fourth_hip_sharp_whatever_the_order`,
+//!   and the pin, keeping the fillet alone, declined until #1031, is
+//!   `a_fillet_on_three_of_the_four_edges_at_a_pyramid_s_apex_is_declined_as_unsupported`
 //! - An apex of four edges whose faces share no sphere stays declined in
 //!   every order, pinned —
 //!   `a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_share_no_sphere_are_declined_as_unsupported_whatever_the_order`.
@@ -436,7 +446,8 @@
 //!   front and back as from the left and right, and the four crossings of the
 //!   flats at 1 on no one plane; then its four hips, in each of the 24 orders,
 //!   declined `Unsupported` for the fillet and for the chamfer at 1, until
-//!   #942. Green before the branch and after, a pin rather than a red test
+//!   #942, and since #942 until #1031, which took that case over. Green
+//!   before the branch and after, a pin rather than a red test
 //! - Decision (2026-11-13): the closings of #699 carry over to a vertex of
 //!   four edges where the shape allows one surface, every edge at it named.
 //!   Among rounds, where the faces round the vertex are all tangent to one
@@ -449,8 +460,9 @@
 //!   `a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_the_flats_edges_cross_whatever_the_order`.
 //!   Set aside, declined `Unsupported` in every order and pinned, for #942:
 //!   some of the vertex's edges named, not all, and an apex whose faces share
-//!   no sphere or whose crossings lie on no one plane —
-//!   `a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported`,
+//!   no sphere or whose crossings lie on no one plane — since #942, which
+//!   chamfers three of the four hips, the rest for #1031 —
+//!   `a_fillet_on_three_of_the_four_edges_at_a_pyramid_s_apex_is_declined_as_unsupported`,
 //!   `a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_share_no_sphere_are_declined_as_unsupported_whatever_the_order`
 //! - The patch at an apex of four answers to the number after its four
 //!   edges' faces, as #699 numbers its triangle and its piece of sphere: on a
@@ -481,7 +493,7 @@
 //!   some three times it, where the later check lets the closing through: on
 //!   the base 10 by 9.999999, the crossing on the left 1.6 tolerances off, the
 //!   chamfer at 1 is declined `Unsupported` in each of the 24 orders, until
-//!   #942 —
+//!   #942, and since #942 until #1031 —
 //!   `a_chamfer_on_the_four_hips_of_a_pyramid_whose_crossings_lie_a_hair_off_one_plane_past_the_kernel_s_tolerance_is_declined_as_unsupported_whatever_the_order`.
 //!   Read as: before each step, the crossing's distance off the plane read
 //!   from the fixture, 0.025 on the first, between 1.2 and 2 tolerances on the
@@ -5774,8 +5786,7 @@ fn a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_t
 }
 
 #[test]
-fn a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_declined_as_unsupported()
- {
+fn a_fillet_on_three_of_the_four_edges_at_a_pyramid_s_apex_is_declined_as_unsupported() {
     let pyramid = pyramid_on_its_base(SQUARE);
     assert!(
         (pyramid.volume() - PYRAMID_VOLUME).abs() < EXACT * PYRAMID_VOLUME,
@@ -5792,20 +5803,13 @@ fn a_fillet_and_a_chamfer_on_three_of_the_four_edges_at_a_pyramid_s_apex_are_dec
             let what = format!("{}, {} left sharp", hips_called(&apex, &list), sharp.called);
 
             let filleted = pyramid.fillet_edges(&names, 1.0).err();
-            let chamfered = pyramid.chamfer_edges(&names, 1.0).err();
 
             assert_eq!(
                 filleted,
                 Some(Declined::Unsupported),
                 "the fillet on {what}: the hip left out runs into the apex sharp, which the \
                  piece of sphere does not reach — a broken step and its reason, and no body, \
-                 until #942"
-            );
-            assert_eq!(
-                chamfered,
-                Some(Declined::Unsupported),
-                "the chamfer on {what}: the hip left out runs into the apex sharp, which the \
-                 square does not reach — a broken step and its reason, and no body, until #942"
+                 until #1031"
             );
         }
     }
@@ -5855,13 +5859,13 @@ fn a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_10_by_6_whose_faces_shar
             filleted,
             Some(Declined::Unsupported),
             "the fillet on {what}, the four slopes touching no one sphere: a broken step and \
-             its reason, and no body, until #942"
+             its reason, and no body, until #1031"
         );
         assert_eq!(
             chamfered,
             Some(Declined::Unsupported),
             "the chamfer on {what}, the four flats' crossings on no one plane: a broken step and \
-             its reason, and no body, until #942"
+             its reason, and no body, until #1031"
         );
     }
 }
@@ -5894,7 +5898,7 @@ fn a_chamfer_on_the_four_hips_of_a_pyramid_10_by_9_8_whose_crossings_lie_a_littl
             chamfered,
             Some(Declined::Unsupported),
             "the chamfer on {}, the four flats' crossings a little off one plane: a broken step \
-             and its reason, and no body, until #942",
+             and its reason, and no body, until #1031",
             hips_called(&apex, &order)
         );
     }
@@ -5930,7 +5934,7 @@ fn a_chamfer_on_the_four_hips_of_a_pyramid_whose_crossings_lie_a_hair_off_one_pl
             chamfered,
             Some(Declined::Unsupported),
             "the chamfer on {}, the four flats' crossings a hair off one plane, past what the \
-             kernel takes for one place: a broken step and its reason, and no body, until #942",
+             kernel takes for one place: a broken step and its reason, and no body, until #1031",
             hips_called(&apex, &order)
         );
     }
