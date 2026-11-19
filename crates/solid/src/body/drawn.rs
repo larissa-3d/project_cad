@@ -2,6 +2,8 @@
 //! from: what the view draws, lights and picks in, and what the body becomes
 //! when it has to be joined to flats.
 
+mod corner_normals;
+
 use glam::DVec3;
 
 use super::FaceHit;

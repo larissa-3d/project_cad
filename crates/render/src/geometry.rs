@@ -160,32 +160,52 @@ pub fn push_background(
 
 /// Emits a solid's triangles, each shaded from the way it faces.
 ///
-/// The shade is worked out here, once per face, and baked into the colour: a
-/// part made of flat faces reads better flat-shaded than smoothed, and it saves
-/// carrying a normal all the way through the vertex format for geometry that
-/// has no curves to smooth.
+/// The shade is worked out here and baked into the colour, which saves
+/// carrying a normal all the way through the vertex format.
 ///
 /// The light follows the camera rather than sitting in the world: a face turned
 /// towards the viewer is always the bright one, so turning the part never
 /// leaves it staring at an unlit side.
 pub fn push_solid(out: &mut Vec<Vertex>, triangles: &[[Vec3; 3]], color: [f32; 4], towards: Vec3) {
-    let light = (towards.normalize_or(Vec3::NEG_Z) * -1.0 + Vec3::new(0.35, 0.2, 0.55))
-        .normalize_or(Vec3::Z);
-
+    let light = light_from(towards);
     for [a, b, c] in triangles {
-        let normal = (*b - *a).cross(*c - *a).normalize_or_zero();
-        // Ambient light keeps a face turned away readable instead of black.
-        let shade = 0.42 + 0.58 * normal.dot(light).max(0.0);
-        let shaded = [
-            color[0] * shade,
-            color[1] * shade,
-            color[2] * shade,
-            color[3],
-        ];
+        let shaded = shaded(color, (*b - *a).cross(*c - *a), light);
         for corner in [a, b, c] {
             out.push(Vertex::solid(*corner, shaded));
         }
     }
+}
+
+/// Emits a solid's triangles as [`push_solid`] does, each corner shaded from
+/// the way the solid faces there rather than from the triangle: a curved face
+/// is lit smooth across its facets.
+pub fn push_smooth_solid(
+    out: &mut Vec<Vertex>,
+    triangles: &[([Vec3; 3], [Vec3; 3])],
+    color: [f32; 4],
+    towards: Vec3,
+) {
+    let light = light_from(towards);
+    for (corners, normals) in triangles {
+        for (corner, normal) in corners.iter().zip(normals) {
+            out.push(Vertex::solid(*corner, shaded(color, *normal, light)));
+        }
+    }
+}
+
+fn light_from(towards: Vec3) -> Vec3 {
+    (towards.normalize_or(Vec3::NEG_Z) * -1.0 + Vec3::new(0.35, 0.2, 0.55)).normalize_or(Vec3::Z)
+}
+
+fn shaded(color: [f32; 4], normal: Vec3, light: Vec3) -> [f32; 4] {
+    // Ambient light keeps a face turned away readable instead of black.
+    let shade = 0.42 + 0.58 * normal.normalize_or_zero().dot(light).max(0.0);
+    [
+        color[0] * shade,
+        color[1] * shade,
+        color[2] * shade,
+        color[3],
+    ]
 }
 
 pub struct AxisStyle {
