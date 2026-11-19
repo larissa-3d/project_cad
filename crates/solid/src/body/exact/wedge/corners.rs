@@ -175,6 +175,13 @@ fn ending(body: &brep::Body, corner: VertexId) -> impl Iterator<Item = EdgeId> +
     })
 }
 
+/// Whether every edge ending at `corner` is straight between two flat faces
+/// meeting inwards: a pocket's bottom corner, where two fills beside the
+/// third, left out, meet in a valley.
+pub(super) fn hollow(body: &brep::Body, corner: VertexId) -> bool {
+    ending(body, corner).all(|edge| Wedge::faced(body, edge).is_ok_and(|wedge| wedge.inwards))
+}
+
 /// Whether two edges share a corner.
 pub(super) fn meet(body: &brep::Body, [one, other]: [EdgeId; 2]) -> bool {
     let ends = |edge: EdgeId| body.edge(edge).ends.into_iter().flatten();

@@ -60,7 +60,11 @@ impl Exact {
     /// as two distances, meeting on a ridge in its place, that flat gone and
     /// its number answering to no face (#837) — and three at a concave corner,
     /// a pocket's bottom, by that triangle joined, filling the hollow the three
-    /// fills leave, as [`joined_across`] lays it. Four or more meeting at a
+    /// fills leave, as [`joined_across`] lays it — the two at the ends of a
+    /// pocket's floor edge as wide as two distances, its uprights and the two
+    /// floor edges along the pocket named, meeting in a crease in its place,
+    /// that edge's flat filled whole and its number answering to no face
+    /// (#919). Four or more meeting at a
     /// convex corner, every edge ending there named — a right pyramid's apex
     /// — are closed by one polygon through the points where each two beside
     /// each other cross, where those lie on one plane: the tip past it cut off
