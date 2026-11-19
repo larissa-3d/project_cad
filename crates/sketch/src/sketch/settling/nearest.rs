@@ -125,11 +125,12 @@ impl Sketch {
         self.worst_error(millimeters_per_unit, self.drawing_size()) < SOLVED
     }
 
-    /// Which shape each point belongs to, as `point_groups` reads them, with
-    /// what an arc or an ellipse stands on joined to where it hangs from: an
-    /// arc off the end of a trait goes with that end.
+    /// Which shape each point belongs to, with what an arc or an ellipse
+    /// stands on joined to where it hangs from: an arc off the end of a trait
+    /// goes with that end. The origin joins none of them: a value retyped in
+    /// one shape drawn from it stretches no other.
     fn shapes_joined(&self) -> Vec<usize> {
-        let mut group = self.point_groups();
+        let mut group = self.groups_joined(false);
         fn root(group: &mut [usize], mut point: usize) -> usize {
             while group[point] != point {
                 group[point] = group[group[point]];
@@ -143,7 +144,8 @@ impl Sketch {
             .chain(self.live_ellipses().map(|(id, _)| Element::Ellipse(id)))
             .collect();
         for curve in curves {
-            let points = self.points_it_leans_on(curve);
+            let mut points = self.points_it_leans_on(curve);
+            points.retain(|point| !self.is_origin(*point));
             for pair in points.windows(2) {
                 let (a, b) = (root(&mut group, pair[0].0), root(&mut group, pair[1].0));
                 group[a] = b;

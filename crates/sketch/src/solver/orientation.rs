@@ -270,7 +270,7 @@ impl Sketch {
     /// The same, the origin joining shapes drawn from it only if asked. Two
     /// shapes meeting only there can still turn against each other, so the
     /// verdict and the solver each read them keeping their own way round.
-    fn groups_joined(&self, through_the_origin: bool) -> Vec<usize> {
+    pub(crate) fn groups_joined(&self, through_the_origin: bool) -> Vec<usize> {
         let mut group: Vec<usize> = (0..self.points().len()).collect();
 
         fn root(group: &mut [usize], mut point: usize) -> usize {

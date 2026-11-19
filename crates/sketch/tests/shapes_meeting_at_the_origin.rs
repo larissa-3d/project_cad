@@ -20,7 +20,9 @@
 //!   and each trait from the origin keeps its own way round —
 //!   `two_legs_along_the_axes_from_the_origin_are_settled_by_their_lengths_alone`,
 //!   `a_chain_through_the_origin_along_an_axis_is_settled_by_its_two_lengths`,
-//!   `a_free_square_trait_from_the_origin_beside_a_settled_rectangle_leaves_only_its_length_free`
+//!   `a_free_square_trait_from_the_origin_beside_a_settled_rectangle_leaves_only_its_length_free`;
+//!   and a value landed in one shape carries no other shape met only at the
+//!   origin — `a_free_trait_from_the_origin_stays_put_when_a_rectangle_beside_it_is_retyped`
 //! - The cases above hold in #501's campaign — no test: held by
 //!   `crates/sketch/tests/what_random_sketches_found.rs`, under the same issue
 
@@ -381,4 +383,35 @@ fn a_free_square_trait_from_the_origin_beside_a_settled_rectangle_leaves_only_it
         1,
         "the trait keeps its way round and is free only in length",
     );
+}
+
+#[test]
+fn a_free_trait_from_the_origin_stays_put_when_a_rectangle_beside_it_is_retyped() {
+    for trait_first in [false, true] {
+        let case = format!("free trait drawn first: {trait_first}");
+        let mut sketch = Sketch::new(WorkPlane::XY);
+        let mut free = None;
+        if trait_first {
+            free = Some(trait_from(&mut sketch, Sketch::ORIGIN, [-3.0, 5.0]).0);
+        }
+        let rectangle = rectangle_from_the_origin(&mut sketch, 6.0);
+        let free = free.unwrap_or_else(|| trait_from(&mut sketch, Sketch::ORIGIN, [-3.0, 5.0]).0);
+
+        let (target, height) = rectangle.retyped;
+        sketch.set_dimension(target, height, false);
+        sketch.land_value(target, SCALE);
+
+        let found = sketch.point(free);
+        assert!(
+            found.distance(DVec2::new(-3.0, 5.0)) < LANDED,
+            "{case}: the free trait's end is at {found} after the rectangle was retyped",
+        );
+        for (point, place) in rectangle.points.iter().zip(&rectangle.lands_at) {
+            let found = sketch.point(*point);
+            assert!(
+                found.distance(*place) < LANDED,
+                "{case}: the rectangle's corner meant for {place} is at {found}",
+            );
+        }
+    }
 }
