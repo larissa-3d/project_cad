@@ -7,7 +7,9 @@
 //! places, never asked of the sketch that is being checked. A fixed element
 //! promises nothing: it gives way when nothing else can (`docs/sketch.md`).
 
-use cao_sketch::{Constraint, DimensionTarget, PointId, Sketch, SketchAxis};
+use cao_sketch::{
+    ChosenAxis, CircleSymmetry, Constraint, DimensionTarget, PointId, Sketch, SketchAxis, Symmetry,
+};
 use glam::DVec2;
 
 use super::Gesture;
@@ -398,6 +400,17 @@ fn axis_way(axis: SketchAxis) -> DVec2 {
     axis.direction()
 }
 
+/// A place a mirror's axis runs through, and its direction, of length one.
+fn axis_line(sketch: &Sketch, axis: ChosenAxis) -> (DVec2, DVec2) {
+    match axis {
+        ChosenAxis::Sketch(axis) => (DVec2::ZERO, axis_way(axis)),
+        ChosenAxis::Trait(side) => {
+            let (from, way) = direction(sketch, side);
+            (from, way.normalize_or_zero())
+        }
+    }
+}
+
 /// How far the drawing stands from a rule, in its own lengths: nought when it
 /// holds. Nothing for the rules a cut carries, whose places are the cut's own,
 /// nor for a fixed element.
@@ -486,6 +499,16 @@ fn off_by(sketch: &Sketch, rule: Constraint) -> Option<f64> {
         }
         Constraint::AxisPerpendicular { segment, axis } => {
             axis_way(axis).dot(direction(sketch, segment).1).abs()
+        }
+        Constraint::Symmetric(Symmetry { point, twin, axis }) => {
+            let (through, way) = axis_line(sketch, axis);
+            let (one, other) = (sketch.point(point), sketch.point(twin));
+            let middle_off = way.perp_dot((one + other) / 2.0 - through).abs();
+            let pair_along = way.dot(other - one).abs();
+            middle_off.max(pair_along)
+        }
+        Constraint::SymmetricCircles(CircleSymmetry { circle, twin, .. }) => {
+            (sketch.circle(circle).radius - sketch.circle(twin).radius).abs()
         }
         Constraint::Fixed { .. }
         | Constraint::AtCutPoint { .. }
