@@ -494,8 +494,9 @@
 //!   nothing of it drawn inside the fillet's section; the cone's foot and its
 //!   edge with the front run short to the fillet, no corner left where the
 //!   foot of the front ended; every ray down onto the fillet a little short
-//!   of the cone meeting it on its round; and nothing of the fillet drawn
-//!   past the cone. It is #807's decline pin,
+//!   of the cone meeting it on its round; nothing of the fillet drawn past
+//!   the cone; and the part joined to the fillet's prism by the booleans
+//!   alone holding the matter the sum gives. It is #807's decline pin,
 //!   `a_fillet_at_the_foot_of_a_slot_s_drafted_wall_meeting_its_drafted_round_end_at_a_few_degrees_is_declined_as_unsupported`,
 //!   turned round and renamed for what it now builds. The round meets the
 //!   cone at a slant everywhere, at its shallowest along its line on the
@@ -519,17 +520,31 @@
 //!   [`PAST_THE_AXIS`] past the plane through the round's axis rather than
 //!   3, which leaves that slot as it was and is what a slot set back by 0.6
 //!   or more needs, and the chamfer is read, as the fillet is, along its edge
-//!   on the cone and at its corners there. Running them is the answer
+//!   on the cone and at its corners there, and the part joined to the
+//!   chamfer's prism holds what the sum gives. Running them is the answer.
 //!
-//! The fillet's matter has no booleans to check it by on the slot at a few
-//! degrees: the part joined to the fillet's prism, run from the plate's left
-//! side past the cone, declines `Unsupported` as the step does, while the
-//! same prism stopped short of the cone joins. The chamfer's prism joins,
-//! and holds the chamfer's matter; so do the fillet's on the slots set back
-//! by 0.6 and 1. The sum the test takes is checked against the inner
-//! integral along Y in closed form, summed along the round by Gauss and
-//! Legendre's rule: they agree to some 1e-9 at a fillet of 1, a ten
-//! thousandth of what [`EXACT`] allows.
+//! The booleans check the sum the fill's matter is taken by: the part joined
+//! to the fill's prism, run from the plate's left side past the cone, holds
+//! it within [`EXACT`], for the chamfer and for the fillet on every slot
+//! above. Before #907 that join declined `Unsupported` on the slots set back
+//! by 0.1 and 0.3, as the step did, though the same prism stopped short of
+//! the cone joined; the sum was then checked against the inner integral
+//! along Y in closed form, summed along the round by Gauss and Legendre's
+//! rule, the two agreeing to some 1e-9 at a fillet of 1, a ten-thousandth of
+//! what [`EXACT`] allows.
+//!
+//! The join declined because the booleans' grazing decline read the ruling
+//! the fillet's round comes nearest without meeting it, the cone's ruling at
+//! −Y, inside the cone face's box, though the face starts a few degrees
+//! round from it. #907 reads it on the faces, within the sag of a chord
+//! where the place is read. A round end that turns in by so little that this
+//! ruling stands within that sag of its face is grazed still, and the fillet
+//! stays declined, the step and the part joined to its prism alike — set
+//! back by 0.02, half a degree, the ruling some 0.02 off the face, inside
+//! the sag of some 0.038 the cone is drawn at there —
+//! `a_fillet_at_the_foot_of_a_slot_s_drafted_wall_whose_round_end_turns_in_by_half_a_degree_is_declined_as_unsupported`.
+//! The grazing decline itself is held on a frustum and a rod, in
+//! `a_wall_against_a_cone_at_any_angle.rs`.
 
 mod step_reader;
 
@@ -5827,6 +5842,35 @@ impl DraftedSection {
         [self.on_the_floor(), self.on_the_wall()]
             .map(|at| DVec3::new(self.slot.on_the_end(at.x, at.y), at.x, at.y))
     }
+
+    /// The fill's prism, for the booleans alone to join: its section drawn
+    /// on the plate's left side and raised along X to x = 35, past the cone
+    /// into the matter, which already holds what the prism covers there — so
+    /// that the part joined to it holds the part's matter and the fill's.
+    fn prism(self, part: &Body) -> Body {
+        let runs = match self.fill {
+            Fill::Chamfer => vec![Run::Straight; 3],
+            Fill::Fillet => vec![
+                Run::Straight,
+                Run::Round {
+                    center: self.centre(),
+                    turn: -(PI - self.angle()),
+                },
+                Run::Straight,
+            ],
+        };
+        let section = Contour {
+            corners: vec![Self::foot(), self.on_the_floor(), self.on_the_wall()],
+            runs,
+        };
+        let across = Frame {
+            origin: DVec3::ZERO,
+            u: DVec3::Y,
+            v: DVec3::Z,
+        };
+        part.tool_raised(&profile(section), across, DVec3::X * 35.0)
+            .expect("the fill's prism raises")
+    }
 }
 
 /// Holds that the faces whose sides are `between` meet along one edge
@@ -5986,8 +6030,9 @@ fn foot_of_the_drafted_slot_s_front(part: &Body) -> EdgeName {
 /// it and none inside the fill's section; the cone's foot and its edge with
 /// the front run short to the fill, and no corner left where the foot of the
 /// front ended; every ray down onto the fill a little short of the cone
-/// meeting it on its surface; and nothing of the fill standing past the
-/// cone.
+/// meeting it on its surface; nothing of the fill standing past the cone;
+/// and the part joined to the fill's [`DraftedSection::prism`] by the
+/// booleans alone holding the matter the sum promised, which checks the sum.
 fn filled_flush_on_the_drafted_slot_s_end(slot: DraftedSlot, fill: Fill, value: f64, what: &str) {
     let part = slot.body();
     the_slot_is_drafted_walls_and_end(&part, slot);
@@ -6010,11 +6055,22 @@ fn filled_flush_on_the_drafted_slot_s_end(slot: DraftedSlot, fill: Fill, value: 
         Fill::Chamfer => value * value,
         Fill::Fillet => value * value + (PI - section.angle()) * value * SLOT_FRONT_END,
     };
+    let promised = slot.volume() + section.matter();
     sound_drawn_within(
         &body,
-        slot.volume() + section.matter(),
+        promised,
         drawn_within(&part, slot.end_area() + laid_area),
         what,
+    );
+    let joined = part
+        .union(&section.prism(&part))
+        .unwrap_or_else(|declined| {
+            panic!("{what}: the part joined to the fill's prism declined, {declined:?}")
+        });
+    assert!(
+        (joined.volume() - promised).abs() <= EXACT * promised,
+        "{what}: the part joined to the fill's prism holds {}, where the sum promised {promised}",
+        joined.volume()
     );
     let made = match fill {
         Fill::Chamfer => one_flat_face_more(&part, &body, what),
@@ -6142,9 +6198,6 @@ fn a_chamfer_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_the_drafte
 /// half the slot's width.
 const DRAFTED_FILLETS: [f64; 3] = [1.0, 0.3, 2.0];
 
-/// #807's decline pin of this fillet, turned round: the round tangent to
-/// the floor and the drafted front, its prism trimmed on the cone and
-/// joined flush to the part as the chamfer's flat above is.
 #[test]
 fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_the_drafted_round_end_it_meets_at_a_few_degrees()
  {
@@ -6158,9 +6211,6 @@ fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_the_drafted
     }
 }
 
-/// The same slot with its round's axis set back by 0.3, so that the round
-/// leaves the front's end turning in by some 8.5 degrees: declined as the
-/// 2.9 degrees are, by #907's own finding.
 #[test]
 fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_a_drafted_round_end_it_meets_at_eight_and_a_half_degrees()
  {
@@ -6178,9 +6228,6 @@ fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_a_drafted_r
     }
 }
 
-/// The same slot with its round's axis set back by 0.6 and by a whole unit,
-/// so that the round leaves the front's end turning in by some 17 and 27
-/// degrees: built flush before #907, and kept so.
 #[test]
 fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_a_drafted_round_end_it_meets_more_steeply()
  {
@@ -6195,6 +6242,38 @@ fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_is_trimmed_flush_on_a_drafted_r
                      end turning in by {turning_in}"
                 ),
             );
+        }
+    }
+}
+
+#[test]
+fn a_fillet_at_the_foot_of_a_slot_s_drafted_wall_whose_round_end_turns_in_by_half_a_degree_is_declined_as_unsupported()
+ {
+    let slot = DraftedSlot { off: -0.02 };
+    let part = slot.body();
+    the_slot_is_drafted_walls_and_end(&part, slot);
+    let foot = foot_of_the_drafted_slot_s_front(&part);
+    for value in DRAFTED_FILLETS {
+        let what = format!(
+            "the fillet of {value} at the foot of the drafted slot's front, its round end turning \
+             in by half a degree"
+        );
+        let section = DraftedSection {
+            slot,
+            fill: Fill::Fillet,
+            value,
+        };
+
+        let declined = [
+            ("the step", part.fillet(&foot, value).err()),
+            (
+                "the part joined to its prism",
+                part.union(&section.prism(&part)).err(),
+            ),
+        ];
+
+        for (how, declined) in declined {
+            assert_eq!(declined, Some(Declined::Unsupported), "{what}, {how}");
         }
     }
 }
