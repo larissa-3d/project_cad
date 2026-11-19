@@ -393,8 +393,8 @@ It can:
   the box past the plane through its axis and by its own disc, raised along
   the axis over what the long edges span between its near side and that
   plane: the fill ends flush on the round and nothing of it enters the
-  pillar, so a bore through a boss stays one whole face wherever it reaches
-  (#915, `fill/round.rs`). A sphere end the edge runs out of
+  pillar, so a bore through a boss, inside its outer cylinder, stays one
+  whole face (#915, `fill/round.rs`). A sphere end the edge runs out of
   trims a chamfer's prism by the box past where its long edges leave the
   sphere, raised as a plane's end is, less the piece of the ball that box
   takes in, turned about the sphere's own axis, so that the fill's end lies
@@ -436,7 +436,10 @@ It can:
   face but the edge's two meets the edge, or several do; a flat one lying
   along the edge; a round the edge runs into at its end, its matter outside
   — a slot's round end — or a cone or a sphere it runs into, or a round
-  that turns away short of the fill's reach, or a cone a long edge of
+  that turns away short of the fill's reach; a bore breaking out of a
+  boss's round where the fill meets it, or into the wall, the fill ending on
+  the bore or the boss's disc leaving a face of its own on it (#915); or a
+  cone a long edge of
   the prism misses — a drafted slot's round end, the margin sunk into its
   wall passing outside the cone (#807); and one leaning so far that its
   plane misses the prism's long edges between the prism's two ends. And a

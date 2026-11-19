@@ -123,7 +123,11 @@ pub(super) fn outside_cylinder(
 /// along the axis over what the long edges span along it from the
 /// cylinder's near side to that plane, and the clearance [`long_edges`]
 /// gives. The fill so ends flush on the cylinder and nothing of it enters
-/// the pillar: a bore through a boss stays as it was (#915).
+/// the pillar: a bore through a boss, inside that cylinder, stays as it was
+/// (#915). A bore breaking out of the round where the fill meets it, or into
+/// the wall, is declined: the edge then ends on the bore, its matter outside,
+/// or the disc leaves a face of its own on the fill, which
+/// [`Exact::cut_along`] finds stray.
 /// [`outside_cylinder`] would start its cut where the first edge leaves the
 /// pillar, on its far side, and leave a corner on its foot where the fill
 /// crosses it there. Declined as [`beyond`] declines; a disc the kernel
