@@ -115,12 +115,30 @@
 //!   `a_chain_closing_a_hair_from_a_rectangle_s_corner_keeps_as_many_areas_as_it_closes`,
 //!   `a_line_passing_a_hair_from_where_a_circle_touches_a_side_keeps_as_many_areas_as_it_closes`,
 //!   `a_diagonal_ending_a_hair_from_a_rectangle_s_corner_keeps_as_many_areas_as_it_closes`
+//!
+//! Closes #501.
+//! - what the first campaigns find is written down, one issue per distinct
+//!   failure. Nothing is fixed here — each kept ignored under its issue:
+//!   `a_merge_that_would_leave_a_value_measuring_a_point_against_itself_is_refused`,
+//!   `a_tangency_between_an_arc_and_a_trait_through_its_centre_is_refused`,
+//!   `a_circle_s_centre_put_on_its_own_circle_is_refused`,
+//!   `a_green_rectangle_stays_green_when_a_chain_is_joined_at_the_origin`,
+//!   `a_green_square_stays_green_when_a_trait_is_joined_at_the_origin`,
+//!   `a_green_straight_chain_stays_green_when_a_free_trait_is_drawn_from_the_origin`,
+//!   `a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first`,
+//!   `a_drag_never_moves_a_fixed_point_it_did_not_grab`,
+//!   `a_trait_given_a_horizontal_value_is_not_turned_vertical`,
+//!   `half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new`,
+//!   `collinear_between_two_equal_sides_an_angle_holds_apart_is_refused`,
+//!   `a_point_erased_where_two_curves_cross_leaves_them_their_areas`,
+//!   `an_arc_whose_two_ends_are_brought_onto_one_place_keeps_the_rules_of_its_areas`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
 #[allow(dead_code, unused_imports)]
 mod random_sketches;
 
+use glam::DVec2;
 use random_sketches::areas::areas_of;
 use random_sketches::checking::areas_keep_the_rules;
 use random_sketches::enclosing::{Enclosure, curves_of};
@@ -802,6 +820,417 @@ fn a_diagonal_ending_a_hair_from_a_rectangle_s_corner_keeps_as_many_areas_as_it_
             through: vec![[0.0, 0.0], [3.0, 3.0]],
             closed: false,
             construction: false,
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1036"]
+fn a_merge_that_would_leave_a_value_measuring_a_point_against_itself_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [2.0, 0.0],
+            opposite: [0.5, 1.0],
+            construction: false,
+        },
+        Gesture::Dimension {
+            clicks: vec![[0.5, 0.0], [0.0, 0.0], [0.25, -0.1767766952966369]],
+            value: 0.5,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[0.5, 0.0], [0.0, 0.0]],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1037"]
+fn a_tangency_between_an_arc_and_a_trait_through_its_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Chain {
+            through: vec![[7.5, 5.0], [0.0, 0.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [0.0, 0.0],
+            start: [0.0, -3.0],
+            degrees: 300.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[0.0, -9.600189391222042], [3.75, 2.5]],
+        },
+        Gesture::Dimension {
+            clicks: vec![
+                [1.5000000000000009, 2.5980762113533156],
+                [1.834836879470614, 2.739642973376938],
+            ],
+            value: 3.6,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![
+                [-5.9617084529937e-12, 0.6611054965051814],
+                [1.7999999999956326, 3.117691453616419],
+            ],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1038"]
+fn a_circle_s_centre_put_on_its_own_circle_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [20.0, 15.0],
+            radius: 25.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[20.0, 15.0], [44.0, 22.0]],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1039"]
+fn a_green_rectangle_stays_green_when_a_chain_is_joined_at_the_origin() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [0.0, 0.0],
+            opposite: [4.0, 2.0],
+            construction: false,
+        },
+        Gesture::Green {
+            piece: vec![[4.0, 0.0], [4.0, 2.0], [0.0, 2.0]],
+            given: vec![
+                Gesture::Dimension {
+                    clicks: vec![[2.0, 0.0], [2.3, 0.6]],
+                    value: 4.0,
+                },
+                Gesture::Dimension {
+                    clicks: vec![[4.0, 1.0], [3.4, 1.3]],
+                    value: 2.0,
+                },
+                Gesture::Rule {
+                    rule: cao_sketch::Rule::Perpendicular,
+                    clicks: vec![[2.0, 0.0], [4.0, 1.0]],
+                },
+                Gesture::Rule {
+                    rule: cao_sketch::Rule::Perpendicular,
+                    clicks: vec![[4.0, 1.0], [2.0, 2.0]],
+                },
+                Gesture::Rule {
+                    rule: cao_sketch::Rule::Perpendicular,
+                    clicks: vec![[2.0, 2.0], [0.0, 1.0]],
+                },
+            ],
+        },
+        Gesture::Chain {
+            through: vec![[6.0, 3.0], [9.0, 5.0], [12.0, 3.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[6.0, 3.0], [0.0, 0.0]],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1039"]
+fn a_green_square_stays_green_when_a_trait_is_joined_at_the_origin() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [0.0, 0.0],
+            opposite: [3.5, 3.5],
+            construction: true,
+        },
+        Gesture::Green {
+            piece: vec![[3.5, 0.0], [3.5, 3.5], [0.0, 3.5]],
+            given: vec![
+                Gesture::Dimension {
+                    clicks: vec![[1.75, 0.0], [2.396829281940165, 0.27347503408557633]],
+                    value: 3.5,
+                },
+                Gesture::Dimension {
+                    clicks: vec![[3.5, 1.75], [4.146829281940165, 2.0234750340855765]],
+                    value: 3.5,
+                },
+                Gesture::Dimension {
+                    clicks: vec![[1.75, 3.5], [2.396829281940165, 3.7734750340855765]],
+                    value: 3.5,
+                },
+                Gesture::Dimension {
+                    clicks: vec![[0.0, 1.75], [0.646829281940165, 2.0234750340855765]],
+                    value: 3.5,
+                },
+                Gesture::Rule {
+                    rule: cao_sketch::Rule::Perpendicular,
+                    clicks: vec![[1.75, 0.0], [0.0, 1.75]],
+                },
+            ],
+        },
+        Gesture::Chain {
+            through: vec![[4.0, 3.0], [4.0, 8.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[4.0, 3.0], [0.0, 0.0]],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1039"]
+fn a_green_straight_chain_stays_green_when_a_free_trait_is_drawn_from_the_origin() {
+    random_sketches::holds(&[
+        Gesture::Chain {
+            through: vec![[5.0, 5.0], [5.0, -12.5], [5.0, -22.5], [5.0, -37.5]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Green {
+            piece: vec![[5.0, 5.0], [5.0, -12.5], [5.0, -22.5], [5.0, -37.5]],
+            given: vec![
+                Gesture::Rule {
+                    rule: cao_sketch::Rule::Coincident,
+                    clicks: vec![[5.0, 5.0], [0.0, 0.0]],
+                },
+                Gesture::Dimension {
+                    clicks: vec![[5.0, -17.5], [7.7975095525956295, -16.31723193180734]],
+                    value: 10.0,
+                },
+                Gesture::Dimension {
+                    clicks: vec![[5.0, -30.0], [7.7975095525956295, -28.81723193180734]],
+                    value: 15.0,
+                },
+                Gesture::Dimension {
+                    clicks: vec![
+                        [2.5, -6.25],
+                        [5.0, -17.5],
+                        [7.7975095525956295, -11.317231931807338],
+                    ],
+                    value: 158.19859051364818,
+                },
+                Gesture::Dimension {
+                    clicks: vec![
+                        [5.0, -17.5],
+                        [5.0, -30.0],
+                        [7.7975095525956295, -21.31723193180734],
+                    ],
+                    value: 180.0,
+                },
+                Gesture::Dimension {
+                    clicks: vec![[5.0, -12.5], [0.0, 0.0], [2.5, -6.25]],
+                    value: 13.46291201783626,
+                },
+            ],
+        },
+        Gesture::Chain {
+            through: vec![[0.0, 0.0], [-3.0, 7.0]],
+            closed: false,
+            construction: false,
+        },
+    ]);
+}
+
+/// Whether a point of the drawing laid from `gestures` stands at `place`.
+fn stands_at(gestures: &[Gesture], place: [f64; 2]) -> bool {
+    laid(gestures)
+        .live_points()
+        .any(|(_, at)| at.distance(DVec2::from(place)) < 1e-6)
+}
+
+#[test]
+#[ignore = "#1040"]
+fn a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first() {
+    let drawing = [
+        Gesture::Rectangle {
+            corner: [15.0, 40.0],
+            opposite: [25.0, 55.0],
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Fixed,
+            clicks: vec![[15.0, 47.0]],
+        },
+        Gesture::Circle {
+            centre: [20.0, 30.0],
+            radius: 5.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[20.0, 35.0], [15.0, 47.0]],
+        },
+    ];
+    assert!(
+        stands_at(&drawing, [15.0, 40.0]) && stands_at(&drawing, [15.0, 55.0]),
+        "the fixed side left (15, 40)–(15, 55)"
+    );
+}
+
+#[test]
+#[ignore = "#1041"]
+fn a_drag_never_moves_a_fixed_point_it_did_not_grab() {
+    let drawing = [
+        Gesture::Chain {
+            through: vec![[2.0, 2.0], [8.0, 2.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Fixed,
+            clicks: vec![[8.0, 2.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[5.0, 2.0], [20.0, 0.0]],
+        },
+        Gesture::Dimension {
+            clicks: vec![[5.0, 2.0], [5.3, 2.6]],
+            value: 6.0,
+        },
+        Gesture::Drag {
+            from: [2.0, 2.0],
+            to: [4.456, 2.0],
+        },
+    ];
+    assert!(
+        stands_at(&drawing, [8.0, 2.0]),
+        "the fixed point left (8, 2)"
+    );
+}
+
+#[test]
+#[ignore = "#1042"]
+fn a_trait_given_a_horizontal_value_is_not_turned_vertical() {
+    random_sketches::holds(&[
+        Gesture::Chain {
+            through: vec![[2.0, 1.0], [8.0, 4.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Dimension {
+            clicks: vec![[2.0, 1.0], [8.0, 4.0], [5.0, -1.0]],
+            value: 6.0,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[5.0, 2.5], [0.0, 20.0]],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1043"]
+fn half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new() {
+    random_sketches::holds(&[
+        Gesture::HalfEllipse {
+            from: [3.5, 4.0],
+            to: [3.5, -1.0],
+            rise: 2.5,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[3.5, -1.0], [3.5, 1.5]],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1044"]
+fn collinear_between_two_equal_sides_an_angle_holds_apart_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [0.0, 1.0],
+            opposite: [1.0, -2.5],
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Equal,
+            clicks: vec![[0.5, -2.5], [0.0, -1.0]],
+        },
+        Gesture::Dimension {
+            clicks: vec![[0.0, -2.0], [0.0, -4.0], [0.0, -2.0]],
+            value: 0.0,
+        },
+        Gesture::Dimension {
+            clicks: vec![[1.0, -0.75], [1.1005813787660643, -0.7074748751263735]],
+            value: 3.535,
+        },
+        Gesture::Dimension {
+            clicks: vec![
+                [1.0, -0.7675000000000001],
+                [0.49999999999874134, -2.532501458206094],
+                [1.101511629771004, -2.4920815713097606],
+            ],
+            value: 81.258,
+        },
+        Gesture::Dimension {
+            clicks: vec![
+                [0.4999999999986858, -2.6118858950394626],
+                [-2.725310900930187e-12, -2.182894887207884],
+                [0.10560651589716795, -2.6441220713019273],
+            ],
+            value: 81.25800000001097,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Collinear,
+            clicks: vec![
+                [-2.725310900930187e-12, -2.182894887207884],
+                [0.4999999999986858, -2.6118858950394626],
+            ],
+        },
+    ]);
+}
+
+#[test]
+#[ignore = "#1045"]
+fn a_point_erased_where_two_curves_cross_leaves_them_their_areas() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [5.0, 5.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[1.0, 5.0], [10.0, 5.0], [5.5, 12.0]],
+            closed: true,
+            construction: false,
+        },
+        Gesture::Point { at: [2.0, 5.0] },
+        Gesture::Erase { at: [2.0, 5.0] },
+    ]);
+}
+
+#[test]
+#[ignore = "#1046"]
+fn an_arc_whose_two_ends_are_brought_onto_one_place_keeps_the_rules_of_its_areas() {
+    random_sketches::holds(&[
+        Gesture::Point { at: [0.0, 3.0] },
+        Gesture::Arc {
+            centre: [7.0, 1.0],
+            start: [7.0, -0.5],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[8.5, 1.0], [0.0, 3.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[7.131839854487193, -2.2632899575621437], [0.0, 0.0]],
         },
     ]);
 }

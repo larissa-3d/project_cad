@@ -137,8 +137,8 @@ tool of the sketch mode:
 - **changing** — a fillet, a chamfer, a mirror, a circular and a rectangular
   pattern, a division at a crossing, a trim, an erasure.
 
-No value, no rule and no dragged point: those make the solver move the
-drawing, and they are #501.
+In the free mode, that is all: no value, no rule and no dragged point. The
+other modes add them, below.
 
 A gesture acts on what lies **at a place** rather than on an index, the way a
 click does, and `random_sketches/laying.rs` lays it the way its tool does
@@ -163,6 +163,90 @@ finer* on every pair of places its drawings are drawn through. Some drawings
 are thirty times larger, where a tolerance taken in absolute units stops
 holding.
 
+## Values, rules and drags
+
+A dimension typed, a rule laid and a point dragged are what make the solver
+move a drawing, and a drawing it moved has promised something: the value it was
+typed, the rule it was given, the green of a piece given all it needs (#501).
+They are drawn in one of four **modes**, chosen when the campaign is launched:
+
+| Mode | `CAO_FUZZ_MODE` | What each drawing gets besides what it draws |
+| --- | --- | --- |
+| Free | `free`, or nothing | nothing: #500's campaign as it is |
+| Random mix | `mix` | its own three shares, each nought, the whole, or a step between: of the dimensions it could take, of the rules it could take, and of its pieces made entirely constrained; and up to two drags |
+| Fixed shares | `shares` | the same three percentages for every drawing, given as `CAO_FUZZ_SHARES=dimensions,rules,constrained`; and up to two drags |
+| All constrained | `constrained` | every piece made entirely constrained, and nothing else |
+
+A mode the campaign does not know, or shares that are not three percentages,
+stop it before the first drawing. The same seed in the same mode is always the
+same case, and in the free mode it is the drawing `drawn` gives: what a mode
+adds is drawn from a stream of its own and laid after the drawing
+(`random_sketches/modes.rs`, `asking.rs`).
+
+**What a drawing could take** is read off it once drawn: a length for each
+trait, an angle at each corner and to an axis, a diameter or a radius for each
+circle, a radius and a sweep for each arc, a distance from the origin for each
+lone point; and for rules, every one the constraint tool lays — perpendicular,
+parallel, equal, collinear, between two traits or against an axis; equal radius;
+concentric; a point on a trait, a circle, an arc or an ellipse, or onto another
+point; tangent; midpoint; fixed. A drawing is offered a handful of each, picked
+at random, so that the solver's time on a large drawing stays the gate's to
+spend. A value is drawn **around what the drawing measures** at the moment it
+is typed: most of the time that measure or near it, so that the drawing moves
+more or less; now and then one it cannot take.
+
+**A piece** is a group of curves joined by their points and by what holds a
+point on a curve, the origin joining none. **Made entirely constrained**, it is
+given what [`sketch.md`](sketch.md) says it takes to turn green — attached to
+the origin, its shape values, which way round it lies — in that order, each
+kept only when it takes some freedom away (`random_sketches/greening.rs`). The
+values are what it measures, so it turns green where it stands. It is written
+as one gesture, the piece's places and what it was given, which a case shrinks
+whole or not at all, and it is held to its green only while every one of them
+is still laid and taken and the places still name one piece of the drawing.
+A piece whose points the sketch does not all call settled, or one of whose
+circles can still change size, claims nothing.
+
+**A drag** is a press at one place let go at another, with nothing selected:
+a point is moved, the centre of an arc or an ellipse carries its curve, and a
+press on no point pulls the side or the curve under it — across, a side
+travels and a curve is drawn to another size; along, the shape turns.
+
+Each is written as **the clicks that reach it**, like every other gesture, and
+`random_sketches/holding.rs` lays it the way the application and `cao_part`
+do. The dimension tool reads its clicks as the smart dimension does — what is
+picked, refined by the next click, put down by the last — and the value typed
+into it is refused at nought or less but for an angle to an axis, kept as a
+readout when it says nothing new, and refused with the drawing put back when
+the solver cannot honour it. The constraint tool picks what the application
+picks and lays what `rule_intent` makes of it: a rule already carried is not
+laid again, two points brought together are joined. A unit of the drawing
+stands for a millimetre: the first value a part is given fixes its scale in
+`cao_part`, out of reach here.
+
+## The promises
+
+Checked after every gesture of a case, on top of the rules of the areas, by
+`random_sketches/settling.rs`; what each reads is gathered as the case is
+played by `random_sketches/promising.rs`.
+
+| Rule | Function | What breaks it |
+| --- | --- | --- |
+| A dimension tells the truth | `tells_the_truth` | once the drawing settles, a value it took measures something else, or a rule it took does not hold; or one it refused leaves the drawing other than it was, a point moved, or one more or one fewer |
+| Green is fixed | `green_is_fixed` | a point of a piece made entirely constrained is not said settled; the whole drawing, every piece of it made so, is not said fully constrained; or a piece is still green with one of its values taken away |
+| The areas hold | `areas_hold` | any rule of the areas breaks once a value, a rule or a drag has moved the drawing |
+
+A value and a rule are read again on the drawing as it stands after each
+gesture, followed onto the point that stays when two are joined, and dropped
+once they are off it. How far a rule stands from holding is worked out in the
+harness from the drawing's places, never asked of the sketch. A length may
+stand off by a tenth of a micron on a metre — `HELD`, a hundred times what the
+solver settles to — against how far the drawing reaches; an angle by what
+moves the end of its arm that far, `HELD` times the reach over the arm, in
+radians. A value the drawing already measured moves nothing, and a flaw of the
+areas found before anything has moved is still the rule's own; after, it comes
+back as `Moved`.
+
 ## Running a campaign
 
 A campaign is not a unit test. It is ignored by the gate and run by hand,
@@ -175,7 +259,15 @@ CAO_FUZZ_SECONDS=300 cargo test --release -p cao_sketch \
 
 `CAO_FUZZ_SEED` starts from a given seed rather than from the clock;
 `CAO_FUZZ_PATIENCE` is how many seconds a single drawing may take before it
-counts as no answer. They mean what they mean for the solids. `--release` is
+counts as no answer. `CAO_FUZZ_MODE` and `CAO_FUZZ_SHARES` choose
+the mode, as above:
+
+```sh
+CAO_FUZZ_MODE=shares CAO_FUZZ_SHARES=30,50,20 CAO_FUZZ_SECONDS=300 \
+    cargo test --release -p cao_sketch \
+    --test every_sketch_keeps_its_areas -- --ignored --nocapture
+```
+ They mean what they mean for the solids. `--release` is
 worth it: the same minutes try several times more drawings.
 
 The deadline is checked between drawings, so a run can overshoot it by one
@@ -230,8 +322,21 @@ given, and how many it closes.
 - **A merge and a split in the same drawing**: the count compares totals, so
   two areas given as one beside one given as two along no curve leave it whole,
   and pass when the tint and the matter stay right.
-- **Dimensions, rules, dragging**, and whether a piece is entirely
-  constrained: #501.
+- **A fixed element** promises nothing. It holds its place while the drawing
+  settles, but [`sketch.md`](sketch.md) ranks it last among what may give, and
+  lets it go when nothing else can; a point grabbed by the hand follows the
+  hand. Where it gives wrongly is #1040's and #1041's to say.
+- **Green, read by the sketch alone.** A piece is made green by what takes
+  freedom away as the sketch counts it, and held to the points it says
+  settled and the circle sizes it says held: worked around its rank, not
+  independent of it. A value the rank wrongly takes for one that adds nothing
+  is left out and replaced, unseen; only *still green without one of its
+  values* catches the other way, a value the rank counts that green does not
+  need.
+- **Magnets and the grid.** A drag goes where its places say, with no magnet
+  and no grid pulling it, and holds nothing selected.
+- **A rectangle as the application draws it.** The harness lays four bare
+  traits, where the application's rectangle arrives dimensioned.
 - **The solid** and undo: #448.
 
 ## Where a finding goes
@@ -277,3 +382,22 @@ what the other rules could not see:
 The thin loops are kept under #670 in `what_random_sketches_found.rs`, beside
 the touches #419 already had there; the reckoning's own misreading is held in
 `what_closes_around_a_place.rs`.
+
+The first campaigns with values, rules and drags, in every mode, found what
+the areas alone could not, each now an issue of its own and kept under it in
+`what_random_sketches_found.rs`:
+
+| Cause | Issue |
+| --- | --- |
+| A merge of the two points a value measures, leaving it measuring a point against itself | #1036 |
+| A tangency between a trait and the curve whose centre it passes through, shrinking the curve to nothing | #1037 |
+| A curve made coincident with its own centre, laid and left untrue | #1038 |
+| A green shape no longer said green once another is attached at the origin | #1039 |
+| A fixed trait moved by a rule that could have moved the free curve | #1040 |
+| A drag moving a fixed point it did not grab | #1041 |
+| A rule laid that turns a shape against its horizontal or vertical value | #1042 |
+| Half an ellipse whose end is made one with its own centre, enclosing no area | #1043 |
+| Two equal sides an angle holds apart, made collinear and shrunk to nothing | #1044 |
+| An erased point where curves cross, losing an area | #1045 |
+| An arc whose two ends stand at one place | #1046 |
+| The area failures on exact contacts, sorted by cause | #1047 |

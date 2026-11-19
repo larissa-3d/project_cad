@@ -5,7 +5,8 @@
 //! already held.
 
 use cao_sketch::{
-    ArcId, CircleId, Element, EllipseId, PointId, Rule, SegmentId, Sketch, SketchAxis, Support,
+    ArcId, CircleId, DimensionTarget, EllipseId, PointId, Rule, SegmentId, Sketch, SketchAxis,
+    Support,
 };
 
 use super::Gesture;
@@ -153,7 +154,7 @@ impl Asker<'_> {
         }
         let settled = self.sketch.settled_points(SCALE);
         let all_settled = piece.iter().all(|point| settled[point.0]);
-        match all_settled || freedom_left(&self.sketch, piece) == 0 {
+        match all_settled && !radius_free(&self.sketch, piece) {
             true => self.gestures.push(Gesture::Green {
                 piece: places,
                 given,
@@ -231,12 +232,14 @@ impl Asker<'_> {
                 None => Ask::AgainstAxis(*side, SketchAxis::U),
             });
         }
+        let settled = sketch.settled_points(SCALE);
         for point in piece {
             asks.extend([
                 Ask::FromOrigin(*point, SketchAxis::U),
                 Ask::FromOrigin(*point, SketchAxis::V),
             ]);
-            for reference in slanted_from(sketch, *point) {
+            let held = |reference: PointId| piece.contains(&reference) || settled[reference.0];
+            for reference in slanted_from(sketch, *point, held) {
                 asks.extend([
                     Ask::FromPoint(*point, reference, Some(SketchAxis::U)),
                     Ask::FromPoint(*point, reference, Some(SketchAxis::V)),
@@ -274,43 +277,57 @@ impl Asker<'_> {
     }
 }
 
-/// How much freedom a piece still has, as the sketch counts it: what the
-/// drawing loses once the piece is taken out of it.
-///
-/// A piece is said to be made green when either this or the settled points
-/// say so, and the rules then hold it to both. One the clicks could not give
-/// all it needed — two of its points on top of each other, which no click
-/// tells apart — is said to be by neither, and claims nothing.
-fn freedom_left(sketch: &Sketch, piece: &[PointId]) -> usize {
-    let mut without = sketch.clone();
-    for (curve, points) in curves_and_points(sketch) {
-        if points.iter().any(|point| piece.contains(point)) {
-            without.erase(match curve {
-                Curve::Segment(side) => Element::Segment(side),
-                Curve::Circle(circle) => Element::Circle(circle),
-                Curve::Arc(arc) => Element::Arc(arc),
-                Curve::Ellipse(ellipse) => Element::Ellipse(ellipse),
+/// Whether a circle of the piece can still change size: a copy made by a
+/// mirror or a pattern has no point on its rim, and its points all settled
+/// say nothing of its radius. A diameter laid on trial tells: if it takes
+/// some freedom away, the radius was free.
+pub(super) fn radius_free(sketch: &Sketch, piece: &[PointId]) -> bool {
+    let freedom = sketch.freedom(SCALE).degrees_of_freedom;
+    curves_and_points(sketch)
+        .into_iter()
+        .filter(|(_, points)| points.iter().any(|point| piece.contains(point)))
+        .filter_map(|(curve, _)| match curve {
+            Curve::Circle(circle) => Some(circle),
+            _ => None,
+        })
+        .any(|circle| {
+            let held = [
+                DimensionTarget::Diameter(circle),
+                DimensionTarget::Radius(circle),
+            ]
+            .iter()
+            .any(|target| {
+                sketch
+                    .dimension_of(*target)
+                    .is_some_and(|laid| !laid.driven)
             });
-        }
-    }
-    for point in piece {
-        if without.live_points().any(|(alive, _)| alive == *point) {
-            without.erase(Element::Point(*point));
-        }
-    }
-    let freedom = |sketch: &Sketch| sketch.freedom(SCALE).degrees_of_freedom;
-    freedom(sketch).saturating_sub(freedom(&without))
+            if held {
+                return false;
+            }
+            let mut trial = sketch.clone();
+            trial.set_dimension(
+                DimensionTarget::Diameter(circle),
+                sketch.circle(circle).radius * 2.0,
+                false,
+            );
+            trial.freedom(SCALE).degrees_of_freedom < freedom
+        })
 }
 
 /// The four points nearest `point` that stand off both its axes, for its
-/// width and its height to be read from where the origin reads only one.
-fn slanted_from(sketch: &Sketch, point: PointId) -> Vec<PointId> {
+/// width and its height to be read from where the origin reads only one,
+/// among those `held` — of the same piece, or settled already: measured from a
+/// point still free, a value holds nothing.
+fn slanted_from(sketch: &Sketch, point: PointId, held: impl Fn(PointId) -> bool) -> Vec<PointId> {
     let at = sketch.point(point);
     let apart = reach(at, 1e-6);
     let mut others: Vec<(PointId, f64)> = sketch
         .live_points()
         .filter(|(other, place)| {
-            *other != point && (place.x - at.x).abs() > apart && (place.y - at.y).abs() > apart
+            *other != point
+                && held(*other)
+                && (place.x - at.x).abs() > apart
+                && (place.y - at.y).abs() > apart
         })
         .map(|(other, place)| (other, place.distance(at)))
         .collect();

@@ -4,14 +4,15 @@
 //! has moved anything yet.
 //!
 //! How far a rule stands from holding is worked out here from the drawing's
-//! places, never asked of the sketch that is being checked.
+//! places, never asked of the sketch that is being checked. A fixed element
+//! promises nothing: it gives way when nothing else can (`docs/sketch.md`).
 
-use cao_sketch::{Constraint, DimensionTarget, Element, PointId, Sketch, SketchAxis};
+use cao_sketch::{Constraint, DimensionTarget, PointId, Sketch, SketchAxis};
 use glam::DVec2;
 
 use super::Gesture;
 use super::checking::Promised;
-use super::greening::pieces;
+use super::greening::{pieces, radius_free};
 use super::holding::{SCALE, Taken, dimension_aimed, lay_rule, measured, type_value};
 use super::settling::{Piece, Promise};
 
@@ -19,14 +20,13 @@ use super::settling::{Piece, Promise};
 #[derive(Clone, Debug)]
 enum Kept {
     Value {
+        number: usize,
         target: DimensionTarget,
         near: DVec2,
     },
     Rule {
         rule: Constraint,
         near: DVec2,
-        /// For a fixed element, where its points stood when it was fixed.
-        stood: Vec<(PointId, DVec2)>,
     },
 }
 
@@ -43,6 +43,7 @@ pub(super) struct Promises {
     kept: Vec<Kept>,
     claims: Vec<Claim>,
     moved: bool,
+    values_kept: usize,
 }
 
 impl Promises {
@@ -60,21 +61,12 @@ impl Promises {
                 let mut all_taken = true;
                 for one in given {
                     match self.take(one, sketch, &mut refused) {
-                        (_, Some(Kept::Value { target, .. })) => values.push(target),
+                        (_, Some(Kept::Value { number, .. })) => values.push(number),
                         (taken, _) => all_taken &= taken,
                     }
                 }
                 if all_taken && let Some(named) = named {
-                    let points = grouped(sketch, &named);
-                    let green_without = values
-                        .iter()
-                        .map(|target| {
-                            let mut without = sketch.clone();
-                            without.erase_dimension(*target);
-                            let settled = without.settled_points(SCALE);
-                            points.iter().all(|point| settled[point.0])
-                        })
-                        .collect();
+                    let green_without = self.green_without(sketch, &named, &values);
                     self.claims.push(Claim {
                         points: named,
                         green_without,
@@ -86,7 +78,33 @@ impl Promises {
         if gesture.constrains() || gesture.drags() {
             self.moved |= moved(&before, sketch.points());
         }
+        self.follow_joins(sketch);
         self.promised(sketch, refused)
+    }
+
+    /// For each value a piece was given that still drives the drawing, whether
+    /// the piece would still be green without it: every point settled, and
+    /// the size of every circle held.
+    fn green_without(&self, sketch: &Sketch, named: &[PointId], values: &[usize]) -> Vec<bool> {
+        let points = grouped(sketch, named);
+        self.kept
+            .iter()
+            .filter_map(|kept| match kept {
+                Kept::Value { number, target, .. } if values.contains(number) => Some(*target),
+                _ => None,
+            })
+            .filter(|target| {
+                sketch
+                    .dimension_of(*target)
+                    .is_some_and(|laid| !laid.driven)
+            })
+            .map(|target| {
+                let mut without = sketch.clone();
+                without.erase_dimension(target);
+                let settled = without.settled_points(SCALE);
+                points.iter().all(|point| settled[point.0]) && !radius_free(&without, &points)
+            })
+            .collect()
     }
 
     /// Lays a dimension or a rule, and keeps it when the drawing took it. A
@@ -105,10 +123,14 @@ impl Promises {
                 };
                 let before = live_places(sketch);
                 match type_value(sketch, target, *value) {
-                    Taken::Held => Kept::Value {
-                        target,
-                        near: DVec2::from(clicks[0]),
-                    },
+                    Taken::Held => {
+                        self.values_kept += 1;
+                        Kept::Value {
+                            number: self.values_kept,
+                            target,
+                            near: DVec2::from(clicks[0]),
+                        }
+                    }
                     taken => {
                         if taken == Taken::Refused {
                             refused.push(Promise::Refused {
@@ -130,12 +152,12 @@ impl Promises {
                     });
                 }
                 let Some(rule) = laid.filter(|_| taken == Taken::Held) else {
+                    self.follow_joins(sketch);
                     return (taken == Taken::Joined, None);
                 };
                 Kept::Rule {
                     rule,
                     near: DVec2::from(clicks[0]),
-                    stood: stood(sketch, rule),
                 }
             }
             _ => return (false, None),
@@ -147,6 +169,34 @@ impl Promises {
         }
         self.kept.push(kept.clone());
         (true, Some(kept))
+    }
+
+    /// Two points joined into one carry their values over to the point that
+    /// stays: a value kept is followed onto the one now laid in its place, a
+    /// distance between the same things but for a point that is gone.
+    fn follow_joins(&mut self, sketch: &Sketch) {
+        let alive: Vec<PointId> = sketch.live_points().map(|(point, _)| point).collect();
+        for index in 0..self.kept.len() {
+            let Kept::Value { target, .. } = self.kept[index] else {
+                continue;
+            };
+            if sketch.dimension_of(target).is_some() {
+                continue;
+            }
+            let followed = sketch
+                .dimensions()
+                .iter()
+                .map(|laid| laid.target)
+                .find(|laid| {
+                    redirected_from(target, *laid, &alive)
+                    && !self.kept.iter().any(
+                        |other| matches!(other, Kept::Value { target: kept, .. } if kept == laid),
+                    )
+                });
+            if let (Some(laid), Kept::Value { target, .. }) = (followed, &mut self.kept[index]) {
+                *target = laid;
+            }
+        }
     }
 
     fn promised(&self, sketch: &Sketch, refused: Vec<Promise>) -> Promised {
@@ -204,31 +254,62 @@ impl Promises {
     }
 }
 
-/// The points of the pieces of the drawing that stand wholly at a piece's
-/// places, when there is one at every place and no more: a case shrunk out of the
-/// drawing a piece was made green on names none, rather than a piece it never
-/// gave what green takes. Two points laid on top of each other are told apart
-/// by the piece each belongs to.
+/// Whether `laid` is `kept` with some of its points, gone since, replaced by
+/// others: what joining two points does to a value on one of them.
+fn redirected_from(kept: DimensionTarget, laid: DimensionTarget, alive: &[PointId]) -> bool {
+    let follows = |was: PointId, now: PointId| was == now || !alive.contains(&was);
+    match (kept, laid) {
+        (
+            DimensionTarget::Distance { from, to },
+            DimensionTarget::Distance {
+                from: now_from,
+                to: now_to,
+            },
+        ) => follows(from, now_from) && follows(to, now_to),
+        (
+            DimensionTarget::PointToSegment { point, segment },
+            DimensionTarget::PointToSegment {
+                point: now,
+                segment: now_segment,
+            },
+        ) => segment == now_segment && follows(point, now),
+        (
+            DimensionTarget::Projected { from, to, axis },
+            DimensionTarget::Projected {
+                from: now_from,
+                to: now_to,
+                axis: now_axis,
+            },
+        ) => axis == now_axis && follows(from, now_from) && follows(to, now_to),
+        _ => false,
+    }
+}
+
+/// The points of the one piece of the drawing that stands wholly at a
+/// piece's places, with one point at every place and no more: a case shrunk
+/// out of the drawing a piece was made green on names none, rather than a
+/// piece it never gave what green takes. Two points laid on top of each other
+/// are told apart by the piece each belongs to.
 fn named_piece(sketch: &Sketch, places: &[[f64; 2]]) -> Option<Vec<PointId>> {
-    let at_a_place = |point: PointId| {
-        let place = sketch.point(point);
-        places.iter().any(|at| {
-            let at = DVec2::from(*at);
-            at.distance(place) <= 1e-9 * (1.0 + at.abs().max_element())
-        })
+    let on = |at: [f64; 2], place: DVec2| {
+        let at = DVec2::from(at);
+        at.distance(place) <= 1e-9 * (1.0 + at.abs().max_element())
     };
-    let named: Vec<PointId> = pieces(sketch)
+    let standing: Vec<Vec<PointId>> = pieces(sketch)
         .into_iter()
-        .filter(|piece| piece.iter().all(|point| at_a_place(*point)))
-        .flatten()
+        .filter(|piece| {
+            piece
+                .iter()
+                .all(|point| places.iter().any(|at| on(*at, sketch.point(*point))))
+        })
         .collect();
-    let every_place = places.iter().all(|at| {
-        let at = DVec2::from(*at);
-        named
-            .iter()
-            .any(|point| sketch.point(*point).distance(at) <= 1e-9 * (1.0 + at.abs().max_element()))
-    });
-    (!named.is_empty() && every_place && named.len() == places.len()).then_some(named)
+    let [piece] = standing.as_slice() else {
+        return None;
+    };
+    let every_place = places
+        .iter()
+        .all(|at| piece.iter().any(|point| on(*at, sketch.point(*point))));
+    (every_place && piece.len() == places.len()).then(|| piece.clone())
 }
 
 /// The points of the pieces the named points belong to, as the drawing now
@@ -255,48 +336,49 @@ fn moved(before: &[DVec2], after: &[DVec2]) -> bool {
             .any(|(from, to)| from.distance(*to) > 1e-9 * (1.0 + from.abs().max_element()))
 }
 
-fn stood(sketch: &Sketch, rule: Constraint) -> Vec<(PointId, DVec2)> {
-    let Constraint::Fixed { element } = rule else {
-        return Vec::new();
-    };
-    let points = match element {
-        Element::Point(point) => vec![point],
-        Element::Segment(side) => {
-            let line = sketch.segments()[side.0];
-            vec![line.start, line.end]
+/// The arm an angle is read on: the shorter of its traits, or an arc's
+/// radius. A turn of so many radians moves its end by that much times the arm.
+fn arm(sketch: &Sketch, target: DimensionTarget) -> Option<f64> {
+    let length = |side: cao_sketch::SegmentId| sketch.segment_length(side);
+    match target {
+        DimensionTarget::Angle { first, second, .. }
+        | DimensionTarget::AngleBetween { first, second, .. } => {
+            Some(length(first).min(length(second)))
         }
-        Element::Circle(circle) => vec![sketch.circle(circle).center],
-        Element::Arc(arc) => {
-            let drawn = sketch.arcs()[arc.0];
-            vec![drawn.center, drawn.start, drawn.end]
-        }
-        Element::Ellipse(ellipse) => sketch.ellipse_points(ellipse).to_vec(),
-    };
-    points
-        .into_iter()
-        .map(|point| (point, sketch.point(point)))
-        .collect()
+        DimensionTarget::AxisAngle { segment, .. } => Some(length(segment)),
+        DimensionTarget::ArcSweep(arc) => Some(sketch.arc_radius(arc)),
+        _ => None,
+    }
 }
 
 /// What a value or a rule kept says of the drawing as it now stands, or
 /// nothing once it is no longer on it.
 fn reread(sketch: &Sketch, kept: &Kept) -> Option<Promise> {
     match kept {
-        Kept::Value { target, near } => {
+        Kept::Value { target, near, .. } => {
             let laid = sketch.dimension_of(*target).filter(|laid| !laid.driven)?;
-            Some(Promise::Measured {
-                near: *near,
-                value: laid.value,
-                measured: measured(sketch, *target)?,
+            let measure = measured(sketch, *target)?;
+            Some(match target.is_angle() {
+                true => Promise::Turned {
+                    near: *near,
+                    degrees: laid.value,
+                    measured: measure,
+                    arm: arm(sketch, *target)?,
+                },
+                false => Promise::Measured {
+                    near: *near,
+                    value: laid.value,
+                    measured: measure,
+                },
             })
         }
-        Kept::Rule { rule, near, stood } => {
+        Kept::Rule { rule, near } => {
             if !sketch.carries(*rule) {
                 return None;
             }
             Some(Promise::Ruled {
                 near: *near,
-                off_by: off_by(sketch, *rule, stood)?,
+                off_by: off_by(sketch, *rule)?,
             })
         }
     }
@@ -317,8 +399,9 @@ fn axis_way(axis: SketchAxis) -> DVec2 {
 }
 
 /// How far the drawing stands from a rule, in its own lengths: nought when it
-/// holds. Nothing for the rules a cut carries, whose places are the cut's own.
-fn off_by(sketch: &Sketch, rule: Constraint, stood: &[(PointId, DVec2)]) -> Option<f64> {
+/// holds. Nothing for the rules a cut carries, whose places are the cut's own,
+/// nor for a fixed element.
+fn off_by(sketch: &Sketch, rule: Constraint) -> Option<f64> {
     let length = |side| sketch.segment_length(side);
     let round = |at: DVec2, centre: DVec2, radius: f64| (at.distance(centre) - radius).abs();
     Some(match rule {
@@ -404,11 +487,8 @@ fn off_by(sketch: &Sketch, rule: Constraint, stood: &[(PointId, DVec2)]) -> Opti
         Constraint::AxisPerpendicular { segment, axis } => {
             axis_way(axis).dot(direction(sketch, segment).1).abs()
         }
-        Constraint::Fixed { .. } => stood
-            .iter()
-            .map(|(point, at)| sketch.point(*point).distance(*at))
-            .fold(0.0, f64::max),
-        Constraint::AtCutPoint { .. }
+        Constraint::Fixed { .. }
+        | Constraint::AtCutPoint { .. }
         | Constraint::OnCut { .. }
         | Constraint::CutTangent { .. } => {
             return None;

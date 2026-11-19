@@ -26,6 +26,14 @@ pub enum Promise {
         value: f64,
         measured: f64,
     },
+    /// An accepted angle laid near `near`: the degrees it was given, what the
+    /// settled drawing measures there, and the arm it is read on.
+    Turned {
+        near: DVec2,
+        degrees: f64,
+        measured: f64,
+        arm: f64,
+    },
     /// An accepted rule laid near `near`, and how far the settled drawing
     /// stands from it: nought when it holds.
     Ruled { near: DVec2, off_by: f64 },
@@ -49,7 +57,8 @@ pub struct Piece {
 }
 
 /// Every accepted dimension measures its value, every accepted rule holds,
-/// and every refused one leaves the drawing as it was.
+/// and every refused one leaves the drawing as it was. An angle may stray by
+/// what moves the end of its arm as far as a length may stray.
 pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
     for promise in promises {
         match promise {
@@ -63,6 +72,21 @@ pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
                     return Err(Flaw::Untrue {
                         near: *near,
                         value: *value,
+                        measured: *measured,
+                    });
+                }
+            }
+            Promise::Turned {
+                near,
+                degrees,
+                measured,
+                arm,
+            } => {
+                let allowed = (HELD * reach(&[*near]) / arm.max(f64::MIN_POSITIVE)).to_degrees();
+                if (measured - degrees).abs() > allowed {
+                    return Err(Flaw::Untrue {
+                        near: *near,
+                        value: *degrees,
                         measured: *measured,
                     });
                 }
