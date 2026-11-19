@@ -637,7 +637,7 @@ fn erasing_a_trait_with_no_twin_reads_as_it_always_has() {
             "Trait supprimé".to_string(),
             "Esquisse 1 · 1 tracé(s), 0 cote(s), 0 contrainte(s)".to_string()
         ),
-        "a trait no mirror speaks of, erased with the rule it held, beside a \
-         mirrored pair left untouched",
+        "a trait no mirror speaks of, holding a rule nobody selected, erased \
+         beside a mirrored pair left untouched",
     );
 }

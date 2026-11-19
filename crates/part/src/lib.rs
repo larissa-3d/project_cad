@@ -16,6 +16,7 @@ pub(crate) mod dimensioning;
 mod document;
 #[cfg(any(test, feature = "test-support"))]
 mod drawn_to_order;
+mod erasing;
 mod errors;
 mod extrusion;
 pub mod feature;
