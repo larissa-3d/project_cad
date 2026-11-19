@@ -64,3 +64,6 @@ fn smoothed(faced: Vec<([DVec3; 3], usize)>) -> Vec<([DVec3; 3], [DVec3; 3])> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests;

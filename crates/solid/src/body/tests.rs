@@ -1648,6 +1648,7 @@ fn a_tool_that_takes_nothing_hands_back_the_part_without_a_note() {
 }
 
 mod chamfer;
+mod corner_normals;
 mod fillet;
 mod planes_of_several_axes;
 mod section;
