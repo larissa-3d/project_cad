@@ -116,8 +116,8 @@ impl Body {
     /// in and closed with them by a hollow piece of sphere, and the round
     /// bottom alone, or at a point with an upright at a shoulder, ends flush on
     /// both end walls as well, each half on its own whichever edge is named
-    /// first — at a stepped end too, whose two walls share no edge, the step
-    /// kept whole (#921). An
+    /// first — at a stepped end too, whose two walls share no edge, where
+    /// both stand square to the edges, the step kept whole (#921). An
     /// edge of a full round meeting any other edge of the list at a corner, a
     /// notch's two where its concave upright is named too (#914), an upright
     /// where a third edge of the list ends but one at its end — the edge
@@ -130,7 +130,9 @@ impl Body {
     /// faces meet outwards — an open slot's end, the
     /// rim above a standing round bottom — is declined `Unsupported`, and so is
     /// a round bottom whose two edges end on two faces where either has air
-    /// past it — a slot widening past the end of one of them (#921). Rounds
+    /// past it — a slot widening past the end of one of them (#921) — or on
+    /// the two walls of a stepped end where either stands at a slant to the
+    /// edges (#1021). Rounds
     /// that would meet only on a curved edge are not measured, and declined
     /// `Unsupported` where they meet. The first edge declined declines the
     /// step.

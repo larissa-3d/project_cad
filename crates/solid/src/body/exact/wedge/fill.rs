@@ -5,8 +5,10 @@
 //! edges either side of the edge's ends made one where they run on along one
 //! curve. The later of two fills meeting at a corner beside a convex edge
 //! takes with it what both prisms hold past that corner (#801), and the two
-//! run on into a mitre. Two fills laid as one, a round bottom, ending on the
-//! two walls of a pointed or a notched end are trimmed flush on both (#921).
+//! run on into a mitre. Two fills laid as one, a round bottom, ending on two
+//! walls at one end — a pointed or a notched end, or a stepped one whose walls
+//! stand square to the edges — are trimmed flush on both, each half on its own
+//! (#921).
 
 mod ball;
 mod round;
@@ -51,10 +53,12 @@ impl Exact {
     /// body holds on the plane of either of the edge's faces: a fill laid
     /// before it, stopped on that plane, runs on into the overlap past it, and
     /// so does the valley it meets a round bottom along (#921); and, of two
-    /// edges laid as one, of each corner on the plane of the face they meet
-    /// across, gone, where the seam between their two walls ended on a face at
-    /// their ends — standing on the plane of a face that does not reach it,
-    /// the step at a stepped end. Declined `Unsupported`: an end where
+    /// edges laid as one, of every corner the body they leave holds on the
+    /// plane of the face they meet across, gone, at either end — among them
+    /// where the seam between their two walls ends, which a face whose plane
+    /// runs through it but which does not reach it, the step at a stepped
+    /// end, would otherwise keep from rejoining. Declined `Unsupported`: an
+    /// end where
     /// no face but the edge's two meets it, or several do, or one the fill
     /// cannot be trimmed flush on, as [`past_the_end`] and [`past_two_faces`]
     /// decline it, and another edge that does not end on the faces the first
@@ -144,13 +148,17 @@ impl Exact {
 /// first: where each corner lies short of the other's plane — a pointed end
 /// — what lies past either plane is cut, where each lies past it — a notched
 /// end, whose air runs on past each plane beside the other — what lies past
-/// both, the same without cutting along that midway plane, through the seam
-/// between the prism's two walls; and where one lies short and the other past
-/// — a stepped end, whose walls share no edge — what lies past each plane on
-/// its own edge's side of it. Declined `Unsupported` where either face is not
-/// flat, or does not face back along the edges, matter past it — a slot
-/// widening past the end of one edge, whose half there would end in the air
-/// while the other runs on; otherwise as the booleans decline.
+/// both, the same without cutting along that midway plane, which runs through
+/// the seam between the prism's two walls where both edges' faces meet the
+/// face between them at one angle; and where one lies short and the other
+/// past — a stepped end, whose walls share no edge — what lies past each
+/// plane on its own edge's side of it. There a wall at a slant to the edges
+/// has its box parted by the box on its side of the midway plane, which the
+/// laying refuses (#1021).
+/// Declined `Unsupported` where either face is not flat, or does not face
+/// back along the edges, matter past it — a slot widening past the end of one
+/// edge, whose half there would end in the air while the other runs on;
+/// otherwise as the booleans decline.
 fn past_two_faces(
     body: &brep::Body,
     ends: [(FaceId, &Wedge, DVec3); 2],
