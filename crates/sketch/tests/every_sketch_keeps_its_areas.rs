@@ -110,7 +110,8 @@
 //!   `a_drawing_settled_on_what_it_was_promised_tells_the_truth`,
 //!   `a_dimension_measuring_other_than_its_value_breaks_the_truth`,
 //!   `an_accepted_rule_that_does_not_hold_breaks_the_truth`,
-//!   `a_refused_dimension_that_moves_the_drawing_breaks_the_truth`; green is
+//!   `a_refused_dimension_that_moves_the_drawing_breaks_the_truth`,
+//!   `a_refused_rule_that_adds_or_takes_away_a_point_breaks_the_truth`; green is
 //!   fixed: `pieces_made_entirely_constrained_and_said_to_be_keep_green_fixed`,
 //!   `a_point_of_a_piece_made_entirely_constrained_not_said_settled_breaks_green`,
 //!   `a_drawing_made_entirely_constrained_not_said_to_be_breaks_green`,
@@ -152,10 +153,10 @@ use std::time::{Duration, Instant, SystemTime};
 
 use glam::DVec2;
 use random_sketches::{
-    Area, Axis, Check, Drawing, Flaw, Gesture, Matter, Piece, Place, Promise, Random, Relaying,
-    Report, Rule, Silence, answer, areas_hold, as_many_as_closed, campaign, drawn, green_is_fixed,
-    laid_alike, matter_is_measure, matter_tiles, nothing_extra, nothing_missing, played, smaller,
-    tells_the_truth, tint_is_measure,
+    Area, Axis, Check, Drawing, Flaw, Gesture, Matter, Mode, Piece, Place, Promise, Random,
+    Relaying, Report, Rule, Silence, answer, areas_hold, as_many_as_closed, campaign, drawn,
+    drawn_in, green_is_fixed, laid_alike, matter_is_measure, matter_tiles, nothing_extra,
+    nothing_missing, played, smaller, tells_the_truth, tint_is_measure,
 };
 
 fn square(low: [f64; 2], high: [f64; 2]) -> Area {
@@ -252,6 +253,170 @@ fn the_same_seed_draws_the_same_drawing() {
     assert!(distinct.len() > 190, "{} distinct drawings", distinct.len());
 }
 
+#[test]
+fn a_mode_is_chosen_at_launch_as_it_is_written() {
+    assert_eq!(Mode::read(None, None), Ok(Mode::Free));
+    assert_eq!(Mode::read(Some("free"), None), Ok(Mode::Free));
+    assert_eq!(Mode::read(Some("mix"), None), Ok(Mode::Mix));
+    assert_eq!(
+        Mode::read(Some("constrained"), None),
+        Ok(Mode::AllConstrained)
+    );
+    assert_eq!(
+        Mode::read(Some("shares"), Some("30,50,20")),
+        Ok(Mode::Shares {
+            dimensions: 30,
+            rules: 50,
+            constrained: 20,
+        })
+    );
+    assert_eq!(
+        Mode::read(Some("shares"), Some("0,100,0")),
+        Ok(Mode::Shares {
+            dimensions: 0,
+            rules: 100,
+            constrained: 0,
+        })
+    );
+    for (mode, shares) in [
+        (Some("everything"), None),
+        (Some("shares"), None),
+        (Some("shares"), Some("30,50")),
+        (Some("shares"), Some("30,50,20,10")),
+        (Some("shares"), Some("30,50,101")),
+        (Some("shares"), Some("30,fifty,20")),
+    ] {
+        assert!(
+            Mode::read(mode, shares).is_err(),
+            "{mode:?} with shares {shares:?} was read as a mode"
+        );
+    }
+}
+
+fn every_mode() -> [Mode; 4] {
+    [
+        Mode::Free,
+        Mode::Mix,
+        Mode::Shares {
+            dimensions: 30,
+            rules: 50,
+            constrained: 20,
+        },
+        Mode::AllConstrained,
+    ]
+}
+
+#[test]
+fn the_same_seed_in_the_same_mode_draws_the_same_case() {
+    for mode in every_mode() {
+        for seed in 0..40 {
+            assert_eq!(
+                drawn_in(seed, &mode),
+                drawn_in(seed, &mode),
+                "seed {seed} in {mode:?}"
+            );
+        }
+    }
+    for seed in 0..200 {
+        assert_eq!(drawn_in(seed, &Mode::Free), drawn(seed), "seed {seed}");
+    }
+    let constrained_otherwise = (0..40)
+        .filter(|seed| drawn_in(*seed, &Mode::AllConstrained) != drawn(*seed))
+        .count();
+    assert!(
+        constrained_otherwise > 30,
+        "only {constrained_otherwise} of 40 seeds draw another case all constrained than free"
+    );
+}
+
+fn holds_a_trait(drawing: &[Gesture]) -> bool {
+    random_sketches::laid(drawing)
+        .live_segments()
+        .next()
+        .is_some()
+}
+
+#[test]
+fn each_mode_gives_its_drawings_what_the_issue_says() {
+    let in_mode =
+        |mode: &Mode| -> Vec<Vec<Gesture>> { (0..60).map(|seed| drawn_in(seed, mode)).collect() };
+    let constraining = |drawing: &[Gesture]| {
+        drawing
+            .iter()
+            .filter(|gesture| gesture.constrains())
+            .count()
+    };
+
+    assert!(
+        in_mode(&Mode::Free)
+            .iter()
+            .flatten()
+            .all(|gesture| !gesture.constrains() && !gesture.drags()),
+        "a free drawing took a dimension, a rule or a drag"
+    );
+
+    let nought = Mode::Shares {
+        dimensions: 0,
+        rules: 0,
+        constrained: 0,
+    };
+    assert!(
+        in_mode(&nought)
+            .iter()
+            .flatten()
+            .all(|gesture| !gesture.constrains()),
+        "shares of nought gave a drawing a dimension or a rule"
+    );
+
+    let full = Mode::Shares {
+        dimensions: 100,
+        rules: 100,
+        constrained: 100,
+    };
+    for drawing in in_mode(&full)
+        .iter()
+        .filter(|drawing| holds_a_trait(drawing))
+    {
+        assert!(
+            constraining(drawing) > 0,
+            "full shares gave nothing to {}",
+            Drawing(drawing)
+        );
+    }
+
+    let mixed: Vec<Vec<Gesture>> = in_mode(&Mode::Mix)
+        .into_iter()
+        .filter(|drawing| holds_a_trait(drawing))
+        .collect();
+    assert!(
+        mixed.iter().any(|drawing| constraining(drawing) == 0),
+        "no mixed drawing drew a share of nought"
+    );
+    assert!(
+        mixed.iter().any(|drawing| constraining(drawing) > 2),
+        "no mixed drawing drew a large share"
+    );
+    assert!(
+        mixed.iter().flatten().any(Gesture::drags),
+        "no mixed drawing was dragged"
+    );
+
+    let sketches: Vec<_> = in_mode(&Mode::AllConstrained)
+        .iter()
+        .map(|drawing| random_sketches::laid(drawing))
+        .filter(|sketch| sketch.holds_a_drawing())
+        .collect();
+    let green = sketches
+        .iter()
+        .filter(|sketch| sketch.is_fully_constrained(1.0))
+        .count();
+    assert!(
+        green * 4 > sketches.len() * 3,
+        "only {green} of {} drawings all constrained are fully constrained",
+        sketches.len()
+    );
+}
+
 fn kind(gesture: &Gesture) -> &'static str {
     match gesture {
         Gesture::Chain { .. } => "a chain of traits",
@@ -269,6 +434,9 @@ fn kind(gesture: &Gesture) -> &'static str {
         Gesture::Divide { .. } => "a division at a crossing",
         Gesture::Trim { .. } => "a trim",
         Gesture::Erase { .. } => "an erasure",
+        Gesture::Dimension { .. } => "a dimension",
+        Gesture::Rule { .. } => "a rule",
+        Gesture::Drag { .. } => "a drag",
     }
 }
 
@@ -326,6 +494,8 @@ fn places(gesture: &Gesture) -> Vec<DVec2> {
             places.push(*centre);
             places
         }
+        Gesture::Dimension { clicks, .. } | Gesture::Rule { clicks, .. } => clicks.clone(),
+        Gesture::Drag { from, to } => vec![*from, *to],
     };
     pairs.into_iter().map(DVec2::from).collect()
 }
@@ -1357,6 +1527,33 @@ fn a_refused_dimension_that_moves_the_drawing_breaks_the_truth() {
     );
 }
 
+#[test]
+fn a_refused_rule_that_adds_or_takes_away_a_point_breaks_the_truth() {
+    let corners = vec![at(0.0, 0.0), at(10.0, 0.0), at(10.0, 5.0)];
+    let mut grown = corners.clone();
+    grown.push(at(5.0, 0.0));
+    assert_eq!(
+        tells_the_truth(&[Promise::Refused {
+            before: corners.clone(),
+            after: grown,
+        }]),
+        Err(Flaw::Recounted {
+            before: 3,
+            after: 4,
+        })
+    );
+    assert_eq!(
+        tells_the_truth(&[Promise::Refused {
+            before: corners.clone(),
+            after: corners[..2].to_vec(),
+        }]),
+        Err(Flaw::Recounted {
+            before: 3,
+            after: 2,
+        })
+    );
+}
+
 fn piece(points: &[([f64; 2], bool)], green_without: &[bool]) -> Piece {
     Piece {
         points: points
@@ -1788,11 +1985,34 @@ fn a_case_is_never_shrunk_into_breaking_another_rule() {
     assert_eq!(finding.shrunk_flaw.rule(), Rule::TintIsMeasure);
 }
 
-/// The drawing a seed stands for, with the seed written where a campaign that
-/// ends the program still leaves it to be read.
+/// The case a seed stands for in the mode chosen at launch, with the seed
+/// written where a campaign that ends the program still leaves it to be read.
 fn drawn_noisily(seed: u64) -> Vec<Gesture> {
     eprint!("\rseed {seed} ");
-    drawn(seed)
+    drawn_in(seed, chosen_mode())
+}
+
+/// The mode `CAO_FUZZ_MODE` and `CAO_FUZZ_SHARES` choose, read once. One
+/// they do not name stops the campaign: a campaign run in a mode nobody asked
+/// for reports on cases nobody meant.
+fn chosen_mode() -> &'static Mode {
+    static CHOSEN: std::sync::OnceLock<Mode> = std::sync::OnceLock::new();
+    CHOSEN.get_or_init(|| {
+        let written = |name: &str| std::env::var(name).ok();
+        match Mode::read(
+            written("CAO_FUZZ_MODE").as_deref(),
+            written("CAO_FUZZ_SHARES").as_deref(),
+        ) {
+            Ok(mode) => {
+                eprintln!("in mode {mode:?}");
+                mode
+            }
+            Err(refused) => {
+                eprintln!("CAO_FUZZ_MODE and CAO_FUZZ_SHARES refused: {refused}");
+                panic!("CAO_FUZZ_MODE and CAO_FUZZ_SHARES refused: {refused}");
+            }
+        }
+    })
 }
 
 fn from_the_environment(name: &str) -> Option<u64> {

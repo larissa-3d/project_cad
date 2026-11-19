@@ -352,6 +352,18 @@ impl Gesture {
             Gesture::Divide { at } => Gesture::Divide { at: pair(at) },
             Gesture::Trim { at } => Gesture::Trim { at: pair(at) },
             Gesture::Erase { at } => Gesture::Erase { at: pair(at) },
+            Gesture::Dimension { clicks, value } => Gesture::Dimension {
+                clicks: rounded_all(clicks, step),
+                value: number(value),
+            },
+            Gesture::Rule { rule, clicks } => Gesture::Rule {
+                rule: *rule,
+                clicks: rounded_all(clicks, step),
+            },
+            Gesture::Drag { from, to } => Gesture::Drag {
+                from: pair(from),
+                to: pair(to),
+            },
         }
     }
 }

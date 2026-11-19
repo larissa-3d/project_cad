@@ -150,6 +150,9 @@ pub enum Flaw {
     /// A refused dimension or rule left the point that stood at `from`
     /// standing at `to`.
     Budged { from: DVec2, to: DVec2 },
+    /// A refused dimension or rule left the drawing with `after` points where
+    /// it had `before`.
+    Recounted { before: usize, after: usize },
     /// A point of a piece made entirely constrained, standing at `at`, is not
     /// said settled; or, `at` being `None`, a drawing whose every piece was
     /// made entirely constrained is not said fully constrained.
@@ -181,7 +184,10 @@ impl Flaw {
             Flaw::Untiled { .. } => Rule::MatterTiles,
             Flaw::Relaid { .. } => Rule::OrderDoesNotMatter,
             Flaw::NoAnswer(_) => Rule::Answers,
-            Flaw::Untrue { .. } | Flaw::Unkept { .. } | Flaw::Budged { .. } => Rule::TellsTheTruth,
+            Flaw::Untrue { .. }
+            | Flaw::Unkept { .. }
+            | Flaw::Budged { .. }
+            | Flaw::Recounted { .. } => Rule::TellsTheTruth,
             Flaw::NotGreen { .. } | Flaw::StillGreen { .. } => Rule::GreenIsFixed,
             Flaw::Moved(_) => Rule::AreasHold,
         }

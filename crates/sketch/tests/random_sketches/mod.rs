@@ -10,11 +10,15 @@
 //! nothing.
 
 pub mod areas;
+mod asking;
 mod campaign;
 pub mod checking;
 mod drawing;
 pub mod enclosing;
+mod greening;
+mod holding;
 mod laying;
+mod modes;
 mod printing;
 mod random;
 mod rules;
@@ -25,6 +29,7 @@ pub use campaign::{Check, Report, answer, apart, campaign, shrink};
 pub use checking::{check, holds, played};
 pub use drawing::drawn;
 pub use laying::laid;
+pub use modes::{Mode, drawn_in};
 pub use printing::Drawing;
 pub use random::Random;
 pub use rules::{
@@ -111,6 +116,16 @@ pub enum Gesture {
     Trim { at: [f64; 2] },
     /// What lies under a place, erased.
     Erase { at: [f64; 2] },
+    /// The dimension tool clicked at each place in turn, the last click
+    /// putting the dimension down, and `value` typed into it.
+    Dimension { clicks: Vec<[f64; 2]>, value: f64 },
+    /// The constraint tool, set to `rule`, clicked at each place in turn.
+    Rule {
+        rule: cao_sketch::Rule,
+        clicks: Vec<[f64; 2]>,
+    },
+    /// A press at `from` dragged to `to` and let go.
+    Drag { from: [f64; 2], to: [f64; 2] },
 }
 
 /// What a copy is laid along or across.
@@ -138,5 +153,16 @@ impl Gesture {
                 | Gesture::HalfEllipse { .. }
                 | Gesture::Point { .. }
         )
+    }
+
+    /// Whether the gesture lays a dimension or a rule.
+    pub fn constrains(&self) -> bool {
+        matches!(self, Gesture::Dimension { .. } | Gesture::Rule { .. })
+    }
+
+    /// Whether the gesture drags what is drawn: a point moved, a side pulled,
+    /// a curve slid or resized, a shape turned.
+    pub fn drags(&self) -> bool {
+        matches!(self, Gesture::Drag { .. })
     }
 }

@@ -76,6 +76,12 @@ pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
                 }
             }
             Promise::Refused { before, after } => {
+                if before.len() != after.len() {
+                    return Err(Flaw::Recounted {
+                        before: before.len(),
+                        after: after.len(),
+                    });
+                }
                 let allowed = HELD * reach(before).max(reach(after));
                 if let Some((from, to)) = before
                     .iter()
