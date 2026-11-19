@@ -185,9 +185,8 @@ impl Sketch {
             // neither a way to stretch nor to turn — a trait whose length is
             // typed and whose direction a rule holds. The shape travels whole
             // with the hand instead, as a selection moved does, and what
-            // cannot travel either is given back (#473) — a fixed point the
-            // hand did not grab among them, which the point stops short of
-            // moving (#1041).
+            // cannot travel either is given back (#473). A shape holding a
+            // pinned point the hand did not grab cannot travel (#1041).
             Give::Stuck => {
                 let pinned = self.pinned_points();
                 if holding
