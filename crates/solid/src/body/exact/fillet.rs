@@ -155,10 +155,10 @@ impl Exact {
     /// bottom, or an upright, a notch's two where the
     /// upright at its bottom is named too and an upright where a third edge
     /// of the list ends but the edge at its end, one of a round bottom meeting
-    /// any but the edge at its end or an upright there — a pit's upright,
-    /// beside a floor edge meeting outwards (#919), the edges of a pointed or
-    /// a notched end (#921) — or that edge where its faces meet
-    /// outwards — an
+    /// any but the edge at its end or an upright there beside a floor edge
+    /// meeting inwards — a pit's upright, beside one meeting outwards (#919),
+    /// the edges of a pointed or a notched end (#921) — or that edge where its
+    /// faces meet outwards — an
     /// open slot's end, the rim above a standing round bottom — refused by
     /// the laying, and a cut that left anything but its round —
     /// a face of the prism, the round in two
