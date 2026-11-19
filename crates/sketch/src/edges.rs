@@ -17,7 +17,7 @@ use glam::DVec2;
 use crate::circle_edges::Round;
 use crate::ellipse_edges::Oval;
 use crate::naming::CurveId;
-use crate::sketch::Sketch;
+use crate::sketch::{PointId, Sketch};
 
 mod border;
 mod curve;
@@ -44,7 +44,8 @@ struct Cut {
 
 /// The drawing as a graph with every crossing standing on a vertex of its own.
 ///
-/// `places` is the drawing's own points, then one more for each crossing.
+/// `places` is the drawing's points still drawn, then one more for each
+/// crossing: an erased point is no place a crossing can stand on.
 /// `ends` pairs every half-edge with its twin next to it, the straight ones
 /// first; `split` is where the curved ones start, and `curves` holds one entry
 /// for each of those. A stretch two curves lie along is in it once, laid by
@@ -238,7 +239,7 @@ impl Sketch {
     /// These are the vertices `crossed` invents, and nothing else: a crossing
     /// a point already occupies is that point, and is not reported twice.
     pub fn crossings(&self) -> Vec<DVec2> {
-        let drawn = self.points().len();
+        let drawn = self.live_points().count();
         self.cut().places.split_off(drawn)
     }
 
@@ -247,9 +248,14 @@ impl Sketch {
     /// to be cut apart.
     fn cut(&self) -> Cut {
         let touch = crate::precision::SAME * crate::precision::drawing_size(self);
-        let drawn = self.points().len();
-        let mut places = self.points().to_vec();
-        let vertex = welded(&places);
+        let live: Vec<PointId> = self.live_points().map(|(point, _)| point).collect();
+        let mut places: Vec<DVec2> = live.iter().map(|point| self.point(*point)).collect();
+        let drawn = places.len();
+        let welds = welded(&places);
+        let mut vertex = vec![None; self.points().len()];
+        for (point, weld) in live.iter().zip(&welds) {
+            vertex[point.0] = Some(*weld);
+        }
         let mut curves: Vec<Curve> = Vec::new();
         let mut names: Vec<CurveId> = Vec::new();
         let pulled = sides_and_cuts(self, &vertex, &mut places, &mut curves, &mut names);
@@ -283,10 +289,7 @@ impl Sketch {
         }
 
         let mut cuts: Vec<Vec<(f64, usize)>> = vec![Vec::new(); curves.len()];
-        let cutting = self
-            .live_points()
-            .map(|(point, _)| vertex[point.0])
-            .chain(drawn..places.len());
+        let cutting = welds.into_iter().chain(drawn..places.len());
         cut_through(cutting, &curves, &places, &mut cuts);
 
         let crossed_from = places.len();
