@@ -18,6 +18,7 @@ mod laying;
 mod printing;
 mod random;
 mod rules;
+mod settling;
 mod smaller;
 
 pub use campaign::{Check, Report, answer, apart, campaign, shrink};
@@ -30,6 +31,7 @@ pub use rules::{
     Area, Flaw, Matter, Place, Relaying, Rule, Silence, as_many_as_closed, holding, laid_alike,
     matter_is_measure, matter_tiles, nothing_extra, nothing_missing, surface, tint_is_measure,
 };
+pub use settling::{Piece, Promise, areas_hold, green_is_fixed, tells_the_truth};
 pub use smaller::smaller;
 
 /// One gesture of the sketch mode.

@@ -101,6 +101,39 @@
 //! - `docs/sketch-soundness.md` lists the rule, and drops one area where two
 //!   are drawn from *What the rules cannot see* — no test: it is prose
 //!
+//! Closes #501.
+//! - the four modes are chosen at launch, and the same seed in the same mode
+//!   gives the same case — `a_mode_is_chosen_at_launch_as_it_is_written`,
+//!   `the_same_seed_in_the_same_mode_draws_the_same_case`,
+//!   `each_mode_gives_its_drawings_what_the_issue_says`
+//! - three rules, each caught out on purpose — a dimension tells the truth:
+//!   `a_drawing_settled_on_what_it_was_promised_tells_the_truth`,
+//!   `a_dimension_measuring_other_than_its_value_breaks_the_truth`,
+//!   `an_accepted_rule_that_does_not_hold_breaks_the_truth`,
+//!   `a_refused_dimension_that_moves_the_drawing_breaks_the_truth`; green is
+//!   fixed: `pieces_made_entirely_constrained_and_said_to_be_keep_green_fixed`,
+//!   `a_point_of_a_piece_made_entirely_constrained_not_said_settled_breaks_green`,
+//!   `a_drawing_made_entirely_constrained_not_said_to_be_breaks_green`,
+//!   `a_piece_still_green_with_one_dimension_taken_away_breaks_green`; the
+//!   areas hold: `areas_keeping_their_rules_once_moved_hold`,
+//!   `a_tint_left_bare_once_the_solver_moved_the_drawing_breaks_the_areas`,
+//!   `a_closed_place_left_out_once_the_solver_moved_the_drawing_breaks_the_areas`,
+//!   `fewer_areas_than_closed_once_the_solver_moved_the_drawing_break_the_areas`
+//! - a broken case shrinks with its dimensions and rules, and is printed as
+//!   Rust that pastes into a named test —
+//!   `a_broken_case_shrinks_keeping_the_dimensions_and_rules_it_breaks_on`,
+//!   `dimensions_and_rules_print_as_the_rust_that_lays_them`,
+//!   `the_printed_rust_lays_the_dimensions_and_rules_it_was_printed_from`
+//! - the campaign is ignored by the gate and bounded by a deadline; the gate
+//!   is no slower — `a_campaign_of_random_drawings_keeps_every_rule`; that the
+//!   gate is no slower is measured on the test run, not asserted
+//! - `docs/sketch-soundness.md` gains the modes and the three rules — no test:
+//!   it is prose, held by `language.rs` and by nothing that asserts
+//! - what the first campaigns find is written down, one issue per distinct
+//!   failure. Nothing is fixed here — no test: the findings live on their
+//!   issues and in `what_random_sketches_found.rs`, each ignored under its
+//!   issue
+//!
 //! The campaign is run by hand:
 //!
 //! ```text
@@ -119,9 +152,10 @@ use std::time::{Duration, Instant, SystemTime};
 
 use glam::DVec2;
 use random_sketches::{
-    Area, Axis, Check, Drawing, Flaw, Gesture, Matter, Place, Random, Relaying, Report, Rule,
-    Silence, answer, as_many_as_closed, campaign, drawn, laid_alike, matter_is_measure,
-    matter_tiles, nothing_extra, nothing_missing, played, smaller, tint_is_measure,
+    Area, Axis, Check, Drawing, Flaw, Gesture, Matter, Piece, Place, Promise, Random, Relaying,
+    Report, Rule, Silence, answer, areas_hold, as_many_as_closed, campaign, drawn, green_is_fixed,
+    laid_alike, matter_is_measure, matter_tiles, nothing_extra, nothing_missing, played, smaller,
+    tells_the_truth, tint_is_measure,
 };
 
 fn square(low: [f64; 2], high: [f64; 2]) -> Area {
@@ -1240,6 +1274,209 @@ fn a_walk_that_never_comes_back_gives_no_answer() {
     assert!(
         matches!(verdict, Err(Flaw::NoAnswer(Silence::Late(_)))),
         "{verdict:?}"
+    );
+}
+
+fn at(x: f64, y: f64) -> DVec2 {
+    DVec2::new(x, y)
+}
+
+fn measured(near: [f64; 2], value: f64, measured: f64) -> Promise {
+    Promise::Measured {
+        near: DVec2::from(near),
+        value,
+        measured,
+    }
+}
+
+fn ruled(near: [f64; 2], off_by: f64) -> Promise {
+    Promise::Ruled {
+        near: DVec2::from(near),
+        off_by,
+    }
+}
+
+#[test]
+fn a_drawing_settled_on_what_it_was_promised_tells_the_truth() {
+    let corners = vec![at(0.0, 0.0), at(10.0, 0.0), at(10.0, 5.0)];
+    assert_eq!(
+        tells_the_truth(&[
+            measured([5.0, 0.0], 10.0, 10.0),
+            ruled([10.0, 2.5], 0.0),
+            Promise::Refused {
+                before: corners.clone(),
+                after: corners,
+            },
+        ]),
+        Ok(())
+    );
+}
+
+#[test]
+fn a_dimension_measuring_other_than_its_value_breaks_the_truth() {
+    let verdict = tells_the_truth(&[
+        measured([5.0, 0.0], 10.0, 10.0),
+        measured([1.0, 2.0], 10.0, 12.0),
+    ]);
+    assert_eq!(
+        verdict,
+        Err(Flaw::Untrue {
+            near: at(1.0, 2.0),
+            value: 10.0,
+            measured: 12.0,
+        })
+    );
+    assert_eq!(
+        verdict.map_err(|flaw| flaw.rule()),
+        Err(Rule::TellsTheTruth)
+    );
+}
+
+#[test]
+fn an_accepted_rule_that_does_not_hold_breaks_the_truth() {
+    assert_eq!(
+        tells_the_truth(&[ruled([10.0, 2.5], 0.0), ruled([3.0, 4.0], 1.5)]),
+        Err(Flaw::Unkept {
+            near: at(3.0, 4.0),
+            off_by: 1.5,
+        })
+    );
+}
+
+#[test]
+fn a_refused_dimension_that_moves_the_drawing_breaks_the_truth() {
+    assert_eq!(
+        tells_the_truth(&[Promise::Refused {
+            before: vec![at(0.0, 0.0), at(10.0, 0.0), at(10.0, 5.0)],
+            after: vec![at(0.0, 0.0), at(12.0, 0.0), at(10.0, 5.0)],
+        }]),
+        Err(Flaw::Budged {
+            from: at(10.0, 0.0),
+            to: at(12.0, 0.0),
+        })
+    );
+}
+
+fn piece(points: &[([f64; 2], bool)], green_without: &[bool]) -> Piece {
+    Piece {
+        points: points
+            .iter()
+            .map(|(place, settled)| (DVec2::from(*place), *settled))
+            .collect(),
+        green_without: green_without.to_vec(),
+    }
+}
+
+fn settled_rectangle(low: [f64; 2], high: [f64; 2]) -> Piece {
+    piece(
+        &[
+            (low, true),
+            ([high[0], low[1]], true),
+            (high, true),
+            ([low[0], high[1]], true),
+        ],
+        &[false, false, false],
+    )
+}
+
+#[test]
+fn pieces_made_entirely_constrained_and_said_to_be_keep_green_fixed() {
+    let pieces = [
+        settled_rectangle([0.0, 0.0], [10.0, 5.0]),
+        settled_rectangle([20.0, 0.0], [24.0, 3.0]),
+    ];
+    assert_eq!(green_is_fixed(&pieces, Some(true)), Ok(()));
+    assert_eq!(green_is_fixed(&pieces, None), Ok(()));
+}
+
+#[test]
+fn a_point_of_a_piece_made_entirely_constrained_not_said_settled_breaks_green() {
+    let mut loose = settled_rectangle([0.0, 0.0], [10.0, 5.0]);
+    loose.points[2].1 = false;
+    let verdict = green_is_fixed(&[settled_rectangle([20.0, 0.0], [24.0, 3.0]), loose], None);
+    assert_eq!(
+        verdict,
+        Err(Flaw::NotGreen {
+            at: Some(at(10.0, 5.0)),
+        })
+    );
+    assert_eq!(verdict.map_err(|flaw| flaw.rule()), Err(Rule::GreenIsFixed));
+}
+
+#[test]
+fn a_drawing_made_entirely_constrained_not_said_to_be_breaks_green() {
+    assert_eq!(
+        green_is_fixed(&[settled_rectangle([0.0, 0.0], [10.0, 5.0])], Some(false)),
+        Err(Flaw::NotGreen { at: None })
+    );
+}
+
+#[test]
+fn a_piece_still_green_with_one_dimension_taken_away_breaks_green() {
+    let mut overheld = settled_rectangle([4.0, 3.0], [10.0, 8.0]);
+    overheld.green_without = vec![false, true, false];
+    assert_eq!(
+        green_is_fixed(
+            &[settled_rectangle([20.0, 0.0], [24.0, 3.0]), overheld],
+            Some(true)
+        ),
+        Err(Flaw::StillGreen {
+            near: at(4.0, 3.0),
+            without: 1,
+        })
+    );
+}
+
+#[test]
+fn areas_keeping_their_rules_once_moved_hold() {
+    assert_eq!(
+        areas_hold(
+            &[square([0.0, 0.0], [2.0, 2.0])],
+            &[closed([1.0, 1.0]), open([5.0, 5.0])],
+            Some(1)
+        ),
+        Ok(())
+    );
+}
+
+#[test]
+fn a_tint_left_bare_once_the_solver_moved_the_drawing_breaks_the_areas() {
+    let mut bare = square([0.0, 0.0], [2.0, 2.0]);
+    bare.triangles.pop();
+    let verdict = areas_hold(&[bare], &[], None);
+    assert_eq!(
+        verdict,
+        Err(Flaw::Moved(Box::new(Flaw::Tint {
+            near: DVec2::ZERO,
+            tinted: 2.0,
+            measured: 4.0,
+        })))
+    );
+    assert_eq!(verdict.map_err(|flaw| flaw.rule()), Err(Rule::AreasHold));
+}
+
+#[test]
+fn a_closed_place_left_out_once_the_solver_moved_the_drawing_breaks_the_areas() {
+    let verdict = areas_hold(
+        &[square([0.0, 0.0], [2.0, 2.0])],
+        &[closed([1.0, 1.0]), closed([5.0, 5.0])],
+        Some(1),
+    );
+    assert!(
+        matches!(&verdict, Err(Flaw::Moved(inner))
+            if matches!(**inner, Flaw::Missing { at } | Flaw::Untiled { at, .. } if at == DVec2::new(5.0, 5.0))),
+        "{verdict:?}"
+    );
+}
+
+#[test]
+fn fewer_areas_than_closed_once_the_solver_moved_the_drawing_break_the_areas() {
+    assert_eq!(
+        areas_hold(&[square([0.0, 0.0], [2.0, 2.0])], &[], Some(2)),
+        Err(Flaw::Moved(Box::new(Flaw::Miscounted {
+            found: 1,
+            closed: 2,
+        })))
     );
 }
 

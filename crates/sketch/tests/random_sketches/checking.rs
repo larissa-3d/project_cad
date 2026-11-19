@@ -72,8 +72,6 @@ pub fn areas_keep_the_rules(sketch: &Sketch, areas: &[Area]) -> Result<(), Flaw>
 }
 
 fn laid_once(areas: &[Area], enclosure: &Enclosure, looked_at: &[DVec2]) -> Result<(), Flaw> {
-    tint_is_measure(areas)?;
-    matter_is_measure(areas)?;
     let places: Vec<Place> = looked_at
         .iter()
         .filter_map(|at| {
@@ -83,10 +81,22 @@ fn laid_once(areas: &[Area], enclosure: &Enclosure, looked_at: &[DVec2]) -> Resu
             })
         })
         .collect();
-    nothing_missing(areas, &places)?;
-    nothing_extra(areas, &places)?;
-    matter_tiles(areas, &places)?;
-    match enclosure.areas_closed() {
+    keeps_every_rule(areas, &places, enclosure.areas_closed())
+}
+
+/// The rules of the areas of a drawing laid once, the places whether each is
+/// enclosed already decided, and the count held only when `closed` is known.
+pub fn keeps_every_rule(
+    areas: &[Area],
+    places: &[Place],
+    closed: Option<usize>,
+) -> Result<(), Flaw> {
+    tint_is_measure(areas)?;
+    matter_is_measure(areas)?;
+    nothing_missing(areas, places)?;
+    nothing_extra(areas, places)?;
+    matter_tiles(areas, places)?;
+    match closed {
         Some(closed) => as_many_as_closed(areas, closed),
         None => Ok(()),
     }

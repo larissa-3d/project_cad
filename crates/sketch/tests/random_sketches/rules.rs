@@ -88,6 +88,9 @@ pub enum Rule {
     MatterTiles,
     OrderDoesNotMatter,
     Answers,
+    TellsTheTruth,
+    GreenIsFixed,
+    AreasHold,
 }
 
 /// A rule a drawing broke, and where — enough for somebody to go and look.
@@ -134,6 +137,28 @@ pub enum Flaw {
     },
     /// Finding the areas gave no answer at all.
     NoAnswer(Silence),
+    /// An accepted dimension laid near `near`, given `value`, measures
+    /// `measured` once the drawing settles.
+    Untrue {
+        near: DVec2,
+        value: f64,
+        measured: f64,
+    },
+    /// An accepted rule laid near `near` stands `off_by` from holding once
+    /// the drawing settles.
+    Unkept { near: DVec2, off_by: f64 },
+    /// A refused dimension or rule left the point that stood at `from`
+    /// standing at `to`.
+    Budged { from: DVec2, to: DVec2 },
+    /// A point of a piece made entirely constrained, standing at `at`, is not
+    /// said settled; or, `at` being `None`, a drawing whose every piece was
+    /// made entirely constrained is not said fully constrained.
+    NotGreen { at: Option<DVec2> },
+    /// The piece whose lowest point is `near` is still said entirely
+    /// constrained with its dimension `without` taken away.
+    StillGreen { near: DVec2, without: usize },
+    /// A rule of the areas, broken once the solver has moved the drawing.
+    Moved(Box<Flaw>),
 }
 
 /// How the drawing failed to answer.
@@ -156,18 +181,23 @@ impl Flaw {
             Flaw::Untiled { .. } => Rule::MatterTiles,
             Flaw::Relaid { .. } => Rule::OrderDoesNotMatter,
             Flaw::NoAnswer(_) => Rule::Answers,
+            Flaw::Untrue { .. } | Flaw::Unkept { .. } | Flaw::Budged { .. } => Rule::TellsTheTruth,
+            Flaw::NotGreen { .. } | Flaw::StillGreen { .. } => Rule::GreenIsFixed,
+            Flaw::Moved(_) => Rule::AreasHold,
         }
     }
 
-    /// Whether two flaws are the same failure: the same rule broken, and for
-    /// a drawing that gave no answer, the same kind of silence. A panic that
-    /// shrinks into a drawing that never comes back is two bugs, and would be
-    /// reported as neither.
+    /// Whether two flaws are the same failure: the same rule broken, for a
+    /// drawing that gave no answer the same kind of silence, and for areas
+    /// broken once moved the same rule of the areas. A panic that shrinks into
+    /// a drawing that never comes back is two bugs, and would be reported as
+    /// neither.
     pub fn is_like(&self, other: &Flaw) -> bool {
         match (self, other) {
             (Flaw::NoAnswer(one), Flaw::NoAnswer(other)) => {
                 std::mem::discriminant(one) == std::mem::discriminant(other)
             }
+            (Flaw::Moved(one), Flaw::Moved(other)) => one.is_like(other),
             _ => self.rule() == other.rule(),
         }
     }
@@ -456,7 +486,7 @@ pub fn reach(places: &[DVec2]) -> f64 {
         .fold(1.0f64, |far, place| far.max(place.abs().max_element()))
 }
 
-fn lowest(places: &[DVec2]) -> DVec2 {
+pub fn lowest(places: &[DVec2]) -> DVec2 {
     places
         .iter()
         .copied()
