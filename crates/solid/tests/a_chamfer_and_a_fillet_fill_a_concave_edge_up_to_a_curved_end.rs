@@ -331,6 +331,63 @@
 //!   this file and `a_chamfer_and_a_fillet_fill_a_concave_edge.rs`, left as
 //!   they were but for the fillet's sphere decline, which this slice turns
 //!   round, and running them is the answer
+//!
+//! Closes #915.
+//! - A chamfer and a fillet at the foot of a wall running into a bored boss,
+//!   whose bore reaches the fill's section at the axis plane, are trimmed
+//!   flush on the boss's outer cylinder. The body is closed, sound and of the
+//!   right volume, and the bore is untouched — a bore that just reaches the
+//!   section, its round touching the fill's side on the wall there,
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_just_reaches_the_fill_s_section_are_trimmed_flush_on_its_outer_cylinder`;
+//!   and one that reaches into it, across the whole of a small fill's
+//!   section and part of a large one's,
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_reaches_into_the_fill_s_section_are_trimmed_flush_on_its_outer_cylinder`.
+//!   Read as: #908's [`wall_into_a_pillar`], its pillar a boss of 3 bored
+//!   right through about its axis, from the plate's floor to the boss's top,
+//!   by a hole of 1 and of 1.5 — the wall's front, along which the fill's
+//!   near long edge runs, stands 1 from the axis, so that at the plane
+//!   through the axis #908 cuts the fill at, its section stands 1 to
+//!   1 + value from it; a chamfer and a fillet of 0.3 and of 1 at the foot
+//!   of the wall's front, each taken whole; the body exact, closed and
+//!   uncrossed, holding the bored part's matter and the fill's prism from the
+//!   wall's left end to the boss's outer cylinder — the matter #908's pillar
+//!   gains, the bore standing wholly inside that cylinder — and its triangles
+//!   enclosing that within the drawing's tolerance; one face more, numbered
+//!   where the steps' numbers ended; flush on the outer cylinder as #908's
+//!   pillar reads it — the fill meeting the plate's top and the wall's front
+//!   along its sides and the wall's left end and the boss's round at its
+//!   ends, by one edge each; the round one face on its cylinder of 3, its
+//!   foot and its edge with the wall's front each run short to the fill, no
+//!   corner left where they ended; the round drawn nowhere under the fill,
+//!   and with a corner where each side of the fill reaches it; the fill
+//!   reaching along X to where its side on the plate meets the round; every
+//!   ray down short of the round meeting the fill's surface; and nothing of
+//!   the fill drawn inside the cylinder; and the bore untouched — one face
+//!   still, answering to its numbers, drawn on its own cylinder alone, from
+//!   the plate's floor to the boss's top, its two circles named as they were
+//!   before the step, every ray from the axis toward the wall's front at the
+//!   fill's heights meeting it at its radius, and a ray down the axis meeting
+//!   nothing. A bore that stops short of the section, of 0.5, builds today,
+//!   the fill's end buried in the boss's matter between the bore and the
+//!   round, and is held to the same reading so that the trim keeps it —
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_stops_short_of_the_fill_s_section_are_trimmed_flush_on_its_outer_cylinder`
+//! - #908's tests still pass: the upright and leaning pillars — no test:
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_round_pillar_are_trimmed_flush_on_the_pillar`
+//!   and
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_leaning_pillar_are_trimmed_flush_on_it`,
+//!   above in this file, are the answer, left as they were
+//! - #788's and #807's declines still pass — no test: #788's,
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_round_end_turns_away_short_of_the_fill_s_reach_are_declined_as_unsupported`,
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_into_its_round_end_are_declined_as_unsupported`,
+//!   `a_chamfer_and_a_fillet_on_both_floor_edges_of_a_slot_whose_back_wall_runs_into_its_round_end_are_declined_as_unsupported`,
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_on_tangentially_into_its_round_end_are_declined_as_unsupported`
+//!   and
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_slot_s_wall_running_into_its_drafted_round_end_are_declined_as_unsupported`,
+//!   and #807's,
+//!   `a_fillet_at_the_foot_of_a_slot_s_drafted_wall_meeting_its_drafted_round_end_at_a_few_degrees_is_declined_as_unsupported`,
+//!   above in this file, are the answer, left as they were. The slot's front
+//!   running into its round end is the one nearest a bore: a round the edge
+//!   runs into with the matter outside it, which stays declined
 
 mod step_reader;
 
@@ -6610,4 +6667,327 @@ fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_leaning_pillar_ar
             );
         }
     }
+}
+
+/// The numbers the [`wall_into_a_bored_boss`]'s faces about its bore answer
+/// to: the plate's floor and the boss's top, which the bore runs between;
+/// the bore's round, past the part's sixteen and the cut's floor and top,
+/// one face answering to both halves of its outline; and where the steps
+/// that built it stopped numbering.
+const FLOOR: usize = 0;
+const BOSS_TOP: usize = 13;
+const BORE_ROUND: usize = 19;
+const BORE_SIDE: [u32; 2] = [18, 19];
+const BORED_STEPS_END: usize = 20;
+
+/// How far the [`wall_into_a_bored_boss`]'s bore runs up: from the plate's
+/// floor to the boss's top.
+const BORE_HEIGHT: f64 = PLATE + 10.0;
+
+/// The values a fill at the foot of the [`wall_into_a_bored_boss`]'s wall is
+/// asked: a small one and one as large as the wall's front stands from the
+/// boss's axis.
+const BORED_VALUES: [f64; 2] = [0.3, 1.0];
+
+/// The [`wall_into_a_pillar`], its pillar a boss bored right through about
+/// its axis by a hole of radius `bore`, cut as a part's next step cuts it:
+/// raised from 1 under the plate's floor to 1 over the boss's top, the cut's
+/// floor and top stand past the part and leave nothing.
+fn wall_into_a_bored_boss(bore: f64) -> Body {
+    cut_from(
+        &wall_into_a_pillar(),
+        Contour::circle(PILLAR.0, bore),
+        -1.0,
+        BORE_HEIGHT + 2.0,
+    )
+}
+
+/// The matter the [`wall_into_a_bored_boss`] holds: the
+/// [`wall_into_a_pillar`]'s, less the bore's disc over the height it runs,
+/// all of it matter of the plate's and the boss's.
+fn bored_boss_volume(bore: f64) -> f64 {
+    wall_into_a_pillar_volume() - PI * bore * bore * BORE_HEIGHT
+}
+
+/// The area of the [`wall_into_a_bored_boss`]'s curved faces: the boss's
+/// round, 10 high, and the bore's, [`BORE_HEIGHT`] high.
+fn bored_boss_area(bore: f64) -> f64 {
+    2.0 * PI * 3.0 * 10.0 + 2.0 * PI * bore * BORE_HEIGHT
+}
+
+/// The edges the bore of a [`wall_into_a_bored_boss`] has, by name,
+/// ascending.
+fn bore_s_edges(body: &Body) -> Vec<EdgeName> {
+    let bore = BORE_SIDE.to_vec();
+    let mut edges: Vec<EdgeName> = body
+        .edge_names()
+        .into_iter()
+        .filter(|name| name.between.contains(&bore))
+        .collect();
+    edges.sort();
+    edges
+}
+
+/// Holds that the bore of radius `bore` is whole: a round drawn on its own
+/// cylinder about the boss's axis alone, from the plate's floor to the
+/// boss's top, and open from end to end, a ray down the axis meeting
+/// nothing.
+fn the_bore_is_whole(body: &Body, bore: f64, what: &str) {
+    drawn_on_the_cylinder(body, BORE_ROUND, (PILLAR.0, bore), what);
+    let (low, high) = body
+        .triangles_of(BORE_ROUND)
+        .flatten()
+        .fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), corner| {
+            (low.min(corner.z), high.max(corner.z))
+        });
+    assert!(
+        low.abs() < PLACE && (high - BORE_HEIGHT).abs() < PLACE,
+        "{what}: the bore is drawn from {low} up to {high}, where it runs from the plate's floor \
+         at 0 to the boss's top at {BORE_HEIGHT}"
+    );
+    let from = PILLAR.0.extend(BORE_HEIGHT + 5.0);
+    let hit = body.ray_hit(from, -DVec3::Z);
+    assert!(
+        hit.is_none(),
+        "{what}: a ray down the boss's axis from {from} meets face {:?}, where the bore is open \
+         from end to end",
+        hit.map(|hit| hit.face)
+    );
+}
+
+/// Holds that the [`wall_into_a_bored_boss`] of radius `bore` is what the
+/// steps are given: its faces numbered up to [`BORED_STEPS_END`]; the
+/// boss's round on its cylinder of 3; the bore whole, meeting the plate's
+/// floor and the boss's top along one circle each; the foot of the wall's
+/// front one edge, from the wall's left end to the boss; and its matter the
+/// plate's, the boss's and the wall's, less the bore's.
+fn the_wall_runs_into_a_bored_boss(part: &Body, bore: f64) {
+    let what = format!("the wall running into a boss bored {bore} through, before any step");
+    assert_eq!(
+        part.faces_end(),
+        BORED_STEPS_END,
+        "{what}: its steps numbered their faces up to {BORED_STEPS_END}"
+    );
+    drawn_on_the_cylinder(part, PILLAR_ROUND, PILLAR, &what);
+    the_bore_is_whole(part, bore, &what);
+    let met: Vec<[Vec<u32>; 2]> = bore_s_edges(part)
+        .into_iter()
+        .map(|name| name.between)
+        .collect();
+    assert_eq!(
+        met,
+        vec![
+            [side(FLOOR), BORE_SIDE.to_vec()],
+            [side(BOSS_TOP), BORE_SIDE.to_vec()],
+        ],
+        "{what}: the bore meets the plate's floor and the boss's top along one circle each"
+    );
+    one_edge_of(
+        part,
+        [side(TOP), side(WALL_FRONT)],
+        [vec![side(WALL_LEFT)], vec![PILLAR_SIDE.to_vec()]],
+        &format!("{what}: the foot of the wall's front"),
+    );
+    sound_drawn_within(
+        part,
+        bored_boss_volume(bore),
+        drawn_within(part, bored_boss_area(bore)),
+        &what,
+    );
+}
+
+/// Holds that a chamfer and a fillet of each of [`BORED_VALUES`] at the foot
+/// of the wall's front of the [`wall_into_a_bored_boss`] of radius `bore`
+/// are built, flush on the boss's outer cylinder as #908's pillar holds
+/// them, and leave the bore untouched.
+fn trimmed_flush_on_the_bored_boss(bore: f64) {
+    let part = wall_into_a_bored_boss(bore);
+    the_wall_runs_into_a_bored_boss(&part, bore);
+    let foot = edge_between(&part, TOP, WALL_FRONT);
+
+    for fill in [Fill::Chamfer, Fill::Fillet] {
+        for value in BORED_VALUES {
+            let what = format!(
+                "the {fill:?} of {value} at the foot of a wall running into a boss bored {bore} \
+                 through"
+            );
+            let laid = match fill {
+                Fill::Chamfer => part
+                    .chamfer(&foot, value)
+                    .map(|chamfered| (chamfered.body, chamfered.asked, chamfered.taken)),
+                Fill::Fillet => part
+                    .fillet(&foot, value)
+                    .map(|filleted| (filleted.body, filleted.asked, filleted.taken)),
+            };
+            let (body, asked, taken) =
+                laid.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+            taken_whole(asked, taken, value, &what);
+            let height = |out: f64| match fill {
+                Fill::Chamfer => chamfer_height(value, out),
+                Fill::Fillet => fillet_height(value, out),
+            };
+            let (matter, laid_area) = match fill {
+                Fill::Chamfer => (chamfer_into_the_pillar(value, 0.0), 0.0),
+                Fill::Fillet => (
+                    fill_matter(value, height, |out, _| along_the_wall(out)),
+                    PI / 2.0 * value * along_the_wall(0.0),
+                ),
+            };
+            sound_drawn_within(
+                &body,
+                bored_boss_volume(bore) + matter,
+                drawn_within(&part, bored_boss_area(bore) + value * value + laid_area),
+                &what,
+            );
+            let made = match fill {
+                Fill::Chamfer => one_flat_face_more(&part, &body, &what),
+                Fill::Fillet => one_round_more(&part, &body, &what),
+            };
+            numbered_after_the_steps_last(&part, &body, made, &what);
+
+            let mut sides = vec![
+                side(TOP),
+                side(WALL_FRONT),
+                side(WALL_LEFT),
+                PILLAR_SIDE.to_vec(),
+            ];
+            sides.sort();
+            assert_eq!(
+                sides_met(&body, made),
+                sides,
+                "{what}: the fill meets the plate's top and the wall's front along its sides, \
+                 and the wall's left end and the boss's round at its ends, by one edge each"
+            );
+            let (front, up) = (12.0 - value, PLATE + value);
+            let (near, far) = (on_the_pillar(12.0), on_the_pillar(front));
+            no_corner_of(
+                &body,
+                vec![side(TOP), PILLAR_SIDE.to_vec()],
+                &format!("{what}: the boss's foot, where the fill's side crosses its line"),
+            );
+            one_edge_of(
+                &body,
+                [side(TOP), PILLAR_SIDE.to_vec()],
+                [vec![side(WALL_BACK)], vec![side(made)]],
+                &format!("{what}: the boss's foot, run short to the fill"),
+            );
+            one_edge_of(
+                &body,
+                [side(WALL_FRONT), PILLAR_SIDE.to_vec()],
+                [vec![side(made)], vec![side(WALL_TOP)]],
+                &format!("{what}: the boss's edge with the wall's front, run short to the fill"),
+            );
+            no_corner_of(
+                &body,
+                vec![side(TOP), side(WALL_FRONT), PILLAR_SIDE.to_vec()],
+                &format!("{what}: the corner the foot of the wall's front ended at"),
+            );
+            corners_are(
+                &body,
+                WALL_FRONT,
+                &[
+                    DVec3::new(5.0, 12.0, up),
+                    DVec3::new(near, 12.0, up),
+                    DVec3::new(near, 12.0, PLATE + 8.0),
+                    DVec3::new(5.0, 12.0, PLATE + 8.0),
+                ],
+                &format!("{what}: what is left of the wall's front"),
+            );
+            drawn_on_the_cylinder(&body, PILLAR_ROUND, PILLAR, &what);
+            let round: Vec<DVec3> = body.triangles_of(PILLAR_ROUND).flatten().collect();
+            for corner in &round {
+                let off_the_wall = 12.0 - corner.y;
+                let under = if corner.x < PILLAR.0.x && (0.0..value).contains(&off_the_wall) {
+                    PLATE + height(off_the_wall)
+                } else {
+                    PLATE
+                };
+                assert!(
+                    corner.z >= under - PLACE,
+                    "{what}: the boss's round is drawn through {corner}, under the fill's \
+                     surface at {under}: it still stands where the fill covers it"
+                );
+            }
+            for corner in [DVec3::new(near, 12.0, up), DVec3::new(far, front, PLATE)] {
+                assert!(
+                    round.iter().any(|drawn| drawn.distance(corner) < PLACE),
+                    "{what}: the boss's round has no corner at {corner}, where a side of the \
+                     fill reaches it"
+                );
+            }
+            let furthest = furthest_along_x(&body, made);
+            assert!(
+                (furthest - far).abs() < PLACE,
+                "{what}: the fill runs on to {furthest}, where its side on the plate meets the \
+                 boss's round at {far}"
+            );
+            for share_out in [0.2, 0.5] {
+                let out = value * share_out;
+                let y = 12.0 - out;
+                let from = DVec3::new(on_the_pillar(y) - SHORT_OF_THE_END, y, PLATE + 10.0);
+                let hit = body.ray_hit(from, -DVec3::Z).unwrap_or_else(|| {
+                    panic!("{what}: a ray down from {from}, short of the boss, meets nothing")
+                });
+                let at = from - DVec3::Z * hit.distance;
+                let off = off_the_surface(height, out, at.z - PLATE);
+                assert!(
+                    hit.face == made && off.abs() <= MET,
+                    "{what}: a ray down from {from}, short of the boss, meets face {} at {at}, \
+                     {off} off the fill's surface",
+                    hit.face
+                );
+            }
+            for corner in body.triangles_of(made).flatten() {
+                assert!(
+                    off_the_pillar_s_axis(corner) >= PILLAR.1 - PLACE,
+                    "{what}: the fill is drawn through {corner}, {} from the boss's axis: inside \
+                     its outer cylinder, whose radius is {}",
+                    off_the_pillar_s_axis(corner),
+                    PILLAR.1
+                );
+            }
+
+            the_bore_is_whole(&body, bore, &what);
+            assert_eq!(
+                bore_s_edges(&body),
+                bore_s_edges(&part),
+                "{what}: the bore's circles are named as they were before the step"
+            );
+            for share_up in [0.25, 0.5] {
+                let from = PILLAR.0.extend(PLATE + value * share_up);
+                let hit = body.ray_hit(from, -DVec3::Y).unwrap_or_else(|| {
+                    panic!(
+                        "{what}: a ray from the boss's axis at {from} toward the wall's front \
+                         meets nothing"
+                    )
+                });
+                assert!(
+                    BORE_SIDE.contains(&(hit.face as u32)) && (hit.distance - bore).abs() <= MET,
+                    "{what}: a ray from the boss's axis at {from} toward the wall's front meets \
+                     face {} {} out, where the bore's round stands {bore} out",
+                    hit.face,
+                    hit.distance
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_stops_short_of_the_fill_s_section_are_trimmed_flush_on_its_outer_cylinder()
+ {
+    trimmed_flush_on_the_bored_boss(0.5);
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_just_reaches_the_fill_s_section_are_trimmed_flush_on_its_outer_cylinder()
+ {
+    trimmed_flush_on_the_bored_boss(1.0);
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_reaches_into_the_fill_s_section_are_trimmed_flush_on_its_outer_cylinder()
+ {
+    trimmed_flush_on_the_bored_boss(1.5);
 }
