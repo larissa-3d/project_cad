@@ -6,11 +6,13 @@ use glam::DVec2;
 use super::Gesture;
 use super::areas::areas_of;
 use super::enclosing::{Curve, Enclosure, curves_of};
+use super::promising::Promises;
 use super::random::Random;
 use super::rules::{
     Area, Flaw, Place, Relaying, as_many_as_closed, laid_alike, matter_is_measure, matter_tiles,
     nothing_extra, nothing_missing, reach, tint_is_measure,
 };
+use super::settling::{Piece, Promise, green_is_fixed, tells_the_truth};
 
 /// Whether a drawing keeps every rule after every one of its gestures.
 pub fn check(gestures: &[Gesture]) -> Result<(), Flaw> {
@@ -21,11 +23,52 @@ pub fn check(gestures: &[Gesture]) -> Result<(), Flaw> {
 /// it broke it.
 pub fn played(gestures: &[Gesture]) -> Result<(), (usize, Flaw)> {
     let mut sketch = Sketch::new(WorkPlane::XY);
+    let mut promises = Promises::default();
     for (index, gesture) in gestures.iter().enumerate() {
-        gesture.lay(&mut sketch);
-        keeps_its_areas(&sketch).map_err(|flaw| (index + 1, flaw))?;
+        let promised = promises.lay(gesture, &mut sketch);
+        keeps_its_promises(&promised, keeps_its_areas(&sketch))
+            .map_err(|flaw| (index + 1, flaw))?;
     }
     Ok(())
+}
+
+/// What a played case asks, after one of its gestures, of the rules that read
+/// its dimensions, its rules and its green.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Promised {
+    /// Every dimension and rule accepted so far, read on the drawing as it
+    /// now stands, and the one this gesture had refused if it refused one.
+    pub promises: Vec<Promise>,
+    /// The pieces made entirely constrained so far, as the sketch now says of
+    /// them.
+    pub pieces: Vec<Piece>,
+    /// What `is_fully_constrained` says once every piece of the drawing has
+    /// been made entirely constrained; `None` while some has not.
+    pub whole: Option<bool>,
+    /// Whether a dimension, a rule or a drag has moved the drawing by now.
+    pub moved: bool,
+}
+
+/// What a case asks of those rules after each of its gestures, one for each.
+pub fn promises_of(gestures: &[Gesture]) -> Vec<Promised> {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let mut promises = Promises::default();
+    gestures
+        .iter()
+        .map(|gesture| promises.lay(gesture, &mut sketch))
+        .collect()
+}
+
+/// Whether what a case promised after a gesture is kept, `areas` being what
+/// the rules of the areas found after it: a flaw of theirs comes back moved
+/// once the drawing has been moved.
+pub fn keeps_its_promises(promised: &Promised, areas: Result<(), Flaw>) -> Result<(), Flaw> {
+    tells_the_truth(&promised.promises)?;
+    green_is_fixed(&promised.pieces, promised.whole)?;
+    areas.map_err(|flaw| match promised.moved {
+        true => Flaw::Moved(Box::new(flaw)),
+        false => flaw,
+    })
 }
 
 /// Plays a drawing and ends the test on the first rule it breaks, saying
@@ -72,8 +115,6 @@ pub fn areas_keep_the_rules(sketch: &Sketch, areas: &[Area]) -> Result<(), Flaw>
 }
 
 fn laid_once(areas: &[Area], enclosure: &Enclosure, looked_at: &[DVec2]) -> Result<(), Flaw> {
-    tint_is_measure(areas)?;
-    matter_is_measure(areas)?;
     let places: Vec<Place> = looked_at
         .iter()
         .filter_map(|at| {
@@ -83,10 +124,22 @@ fn laid_once(areas: &[Area], enclosure: &Enclosure, looked_at: &[DVec2]) -> Resu
             })
         })
         .collect();
-    nothing_missing(areas, &places)?;
-    nothing_extra(areas, &places)?;
-    matter_tiles(areas, &places)?;
-    match enclosure.areas_closed() {
+    keeps_every_rule(areas, &places, enclosure.areas_closed())
+}
+
+/// The rules of the areas of a drawing laid once, the places whether each is
+/// enclosed already decided, and the count held only when `closed` is known.
+pub fn keeps_every_rule(
+    areas: &[Area],
+    places: &[Place],
+    closed: Option<usize>,
+) -> Result<(), Flaw> {
+    tint_is_measure(areas)?;
+    matter_is_measure(areas)?;
+    nothing_missing(areas, places)?;
+    nothing_extra(areas, places)?;
+    matter_tiles(areas, places)?;
+    match closed {
         Some(closed) => as_many_as_closed(areas, closed),
         None => Ok(()),
     }

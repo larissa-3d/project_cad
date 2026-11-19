@@ -10,26 +10,35 @@
 //! nothing.
 
 pub mod areas;
+mod asking;
 mod campaign;
 pub mod checking;
 mod drawing;
 pub mod enclosing;
+mod greening;
+mod holding;
 mod laying;
+mod modes;
 mod printing;
+mod promising;
 mod random;
 mod rules;
+mod settling;
 mod smaller;
 
 pub use campaign::{Check, Report, answer, apart, campaign, shrink};
-pub use checking::{check, holds, played};
+pub use checking::{Promised, check, holds, keeps_its_promises, played, promises_of};
 pub use drawing::drawn;
 pub use laying::laid;
+pub use modes::{Mode, drawn_in};
 pub use printing::Drawing;
+pub use promising::how_far_from;
 pub use random::Random;
 pub use rules::{
     Area, Flaw, Matter, Place, Relaying, Rule, Silence, as_many_as_closed, holding, laid_alike,
     matter_is_measure, matter_tiles, nothing_extra, nothing_missing, surface, tint_is_measure,
 };
+pub use settling::{Piece, Promise, areas_hold, green_is_fixed, tells_the_truth};
 pub use smaller::smaller;
 
 /// One gesture of the sketch mode.
@@ -109,6 +118,24 @@ pub enum Gesture {
     Trim { at: [f64; 2] },
     /// What lies under a place, erased.
     Erase { at: [f64; 2] },
+    /// The dimension tool clicked at each place in turn, the last click
+    /// putting the dimension down, and `value` typed into it.
+    Dimension { clicks: Vec<[f64; 2]>, value: f64 },
+    /// The constraint tool, set to `rule`, clicked at each place in turn.
+    Rule {
+        rule: cao_sketch::Rule,
+        clicks: Vec<[f64; 2]>,
+    },
+    /// A press at `from` dragged to `to` and let go.
+    Drag { from: [f64; 2], to: [f64; 2] },
+    /// A piece made entirely constrained: the points standing at `piece`, and
+    /// the dimensions and rules it was given for it, kept and dropped as one.
+    /// The piece is held to its green only while every one of them is laid
+    /// and taken.
+    Green {
+        piece: Vec<[f64; 2]>,
+        given: Vec<Gesture>,
+    },
 }
 
 /// What a copy is laid along or across.
@@ -136,5 +163,19 @@ impl Gesture {
                 | Gesture::HalfEllipse { .. }
                 | Gesture::Point { .. }
         )
+    }
+
+    /// Whether the gesture lays a dimension or a rule.
+    pub fn constrains(&self) -> bool {
+        matches!(
+            self,
+            Gesture::Dimension { .. } | Gesture::Rule { .. } | Gesture::Green { .. }
+        )
+    }
+
+    /// Whether the gesture drags what is drawn: a point moved, a side pulled,
+    /// a curve slid or resized, a shape turned.
+    pub fn drags(&self) -> bool {
+        matches!(self, Gesture::Drag { .. })
     }
 }

@@ -235,6 +235,35 @@ impl Display for Gesture {
             Gesture::Divide { at } => write!(out, "Gesture::Divide {{ at: {} }}", Pair(*at)),
             Gesture::Trim { at } => write!(out, "Gesture::Trim {{ at: {} }}", Pair(*at)),
             Gesture::Erase { at } => write!(out, "Gesture::Erase {{ at: {} }}", Pair(*at)),
+            Gesture::Dimension { clicks, value } => write!(
+                out,
+                "Gesture::Dimension {{ clicks: {}, value: {} }}",
+                Places(clicks),
+                Number(*value)
+            ),
+            Gesture::Rule { rule, clicks } => write!(
+                out,
+                "Gesture::Rule {{ rule: cao_sketch::Rule::{rule:?}, clicks: {} }}",
+                Places(clicks)
+            ),
+            Gesture::Drag { from, to } => write!(
+                out,
+                "Gesture::Drag {{ from: {}, to: {} }}",
+                Pair(*from),
+                Pair(*to)
+            ),
+            Gesture::Green { piece, given } => {
+                write!(
+                    out,
+                    "Gesture::Green {{ piece: {}, given: vec![",
+                    Places(piece)
+                )?;
+                for (index, gesture) in given.iter().enumerate() {
+                    let separator = if index == 0 { "" } else { ", " };
+                    write!(out, "{separator}{gesture}")?;
+                }
+                write!(out, "] }}")
+            }
         }
     }
 }

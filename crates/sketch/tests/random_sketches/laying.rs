@@ -1,7 +1,7 @@
 //! A drawing's gestures laid on a sketch, each the way its tool lays it
 //! through `cao_part` and the application: what it reuses, what it holds,
-//! what it lays alongside — and nothing solved afterwards, since a value or a
-//! rule moving the drawing is #501's to check.
+//! what it lays alongside — and nothing solved afterwards. A value, a rule or
+//! a drag moves the drawing as the solver moves it, in `holding.rs`.
 
 use cao_sketch::{
     Chamfer, ChosenAxis, Crossing, CutShape, Element, EllipseMode, PointId, Repeats, SegmentId,
@@ -9,18 +9,18 @@ use cao_sketch::{
 };
 use glam::DVec2;
 
-use super::{Axis, Gesture};
+use super::{Axis, Gesture, holding};
 
 /// Nearer than this to a point, a place lands on it, as a click lands on a
 /// point the magnets pulled it onto. Far finer than the application's reach,
 /// which is a click's: a drawing missing a point by a hair is one a campaign
 /// draws on purpose.
-const ON_A_POINT: f64 = 1e-9;
+pub(super) const ON_A_POINT: f64 = 1e-9;
 
 /// Nearer than this to something drawn, a place picks it.
-const UNDER_A_PLACE: f64 = 1e-6;
+pub(super) const UNDER_A_PLACE: f64 = 1e-6;
 
-fn reach(at: DVec2, by: f64) -> f64 {
+pub(super) fn reach(at: DVec2, by: f64) -> f64 {
     by * (1.0 + at.abs().max_element())
 }
 
@@ -294,6 +294,22 @@ impl Gesture {
                 if let Some(element) = picked(sketch, DVec2::from(*at)) {
                     sketch.erase(element);
                 }
+            }
+            Gesture::Dimension { clicks, value } => {
+                if let Some(target) = holding::dimension_aimed(sketch, clicks) {
+                    holding::type_value(sketch, target, *value);
+                }
+            }
+            Gesture::Rule { rule, clicks } => {
+                holding::lay_rule(sketch, *rule, clicks);
+            }
+            Gesture::Green { given, .. } => {
+                for gesture in given {
+                    gesture.lay(sketch);
+                }
+            }
+            Gesture::Drag { from, to } => {
+                holding::drag(sketch, DVec2::from(*from), DVec2::from(*to));
             }
         }
     }

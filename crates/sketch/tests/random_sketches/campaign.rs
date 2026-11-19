@@ -87,9 +87,13 @@ pub fn answer<C: Send + 'static>(
 /// drawn so, or met while shrinking — ends the campaign: its thread is still
 /// running, and every case after it would be timed against a machine it is
 /// slowing down.
-pub fn campaign<C: Clone + PartialEq + Send + 'static>(
+///
+/// A case is drawn apart too, since drawing one may solve: one whose drawing
+/// panics or never comes back is a finding of its own, with no case to
+/// shrink, named by its seed alone.
+pub fn campaign<C: Clone + Default + PartialEq + Send + 'static>(
     seeds: impl IntoIterator<Item = u64>,
-    draw: impl Fn(u64) -> C,
+    draw: impl Fn(u64) -> C + Send + Sync + 'static,
     check: Check<C>,
     smaller: impl Fn(&C) -> Vec<C>,
     patience: Duration,
@@ -100,20 +104,44 @@ pub fn campaign<C: Clone + PartialEq + Send + 'static>(
         broken: Vec::new(),
         findings: Vec::new(),
     };
+    let draw = Arc::new(draw);
     for seed in seeds {
         if !keep_going() {
             break;
         }
-        let drawn = draw(seed);
         report.tried += 1;
+        let drawing = Arc::clone(&draw);
+        let drawn = match apart(move || drawing(seed), patience) {
+            Ok(drawn) => drawn,
+            Err(silence) => {
+                let flaw = Flaw::NoAnswer(silence);
+                let late = matches!(flaw, Flaw::NoAnswer(Silence::Late(_)));
+                let rule = flaw.rule();
+                tally(&mut report, rule);
+                let kept = report
+                    .findings
+                    .iter()
+                    .filter(|finding| finding.flaw.rule() == rule)
+                    .count();
+                if kept < KEPT_PER_RULE {
+                    report.findings.push(Finding {
+                        seed,
+                        flaw: flaw.clone(),
+                        shrunk: C::default(),
+                        shrunk_flaw: flaw,
+                    });
+                }
+                match late {
+                    true => break,
+                    false => continue,
+                }
+            }
+        };
         let Err(flaw) = answer(drawn.clone(), &check, patience) else {
             continue;
         };
         let rule = flaw.rule();
-        match report.broken.iter_mut().find(|(broken, _)| *broken == rule) {
-            Some((_, count)) => *count += 1,
-            None => report.broken.push((rule, 1)),
-        }
+        tally(&mut report, rule);
         let hung = Cell::new(matches!(flaw, Flaw::NoAnswer(Silence::Late(_))));
         let kept = report
             .findings
@@ -161,6 +189,13 @@ pub fn campaign<C: Clone + PartialEq + Send + 'static>(
         }
     }
     report
+}
+
+fn tally<C>(report: &mut Report<C>, rule: Rule) {
+    match report.broken.iter_mut().find(|(broken, _)| *broken == rule) {
+        Some((_, count)) => *count += 1,
+        None => report.broken.push((rule, 1)),
+    }
 }
 
 /// Shrinks `case` for as long as one of the cases `smaller` offers still
