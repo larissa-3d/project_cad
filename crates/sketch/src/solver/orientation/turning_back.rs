@@ -39,7 +39,7 @@ impl Sketch {
                 continue;
             }
             let drift = wrap(span.to_angle() - way.angle);
-            if drift.abs() < 1e-6 {
+            if drift.abs() < SOLVED {
                 continue;
             }
             let settled = *settled

@@ -38,7 +38,7 @@ impl Sketch {
     pub(super) fn orientations(&self, millimeters_per_unit: f64) -> Vec<WayRound> {
         let equations = self.equations(millimeters_per_unit);
         let pinned = self.pinned_points();
-        let joined = self.point_groups();
+        let joined = self.groups_joined(false);
         let groups =
             self.turning_groups(&equations, &pinned, &self.turning_points(&joined), &joined);
         let turning = self.turning_points(&groups);
@@ -132,7 +132,7 @@ impl Sketch {
     /// other. A parallel between two shapes turns both or neither, so the two
     /// keep one way up between them, not none (#471).
     ///
-    /// `about` is indexed as `point_groups` names the groups.
+    /// `about` is indexed as `joined` names the groups.
     fn turning_groups(
         &self,
         equations: &[Equation],
@@ -253,7 +253,7 @@ impl Sketch {
     fn orientation_pair(&self, owner: usize, groups: &[usize]) -> Option<(PointId, PointId)> {
         if let Some((_, segment)) = self
             .live_segments()
-            .find(|(_, segment)| groups[segment.start.0] == owner)
+            .find(|(_, segment)| groups[away_from_the_origin(segment).0] == owner)
         {
             return Some((segment.start, segment.end));
         }
@@ -267,9 +267,9 @@ impl Sketch {
         self.groups_joined(true)
     }
 
-    /// The same, the origin joining shapes drawn from it only if asked: the
-    /// verdict reads each of them keeping its own way round, as two shapes
-    /// meeting there can still turn against each other.
+    /// The same, the origin joining shapes drawn from it only if asked. Two
+    /// shapes meeting only there can still turn against each other, so the
+    /// verdict and the solver each read them keeping their own way round.
     fn groups_joined(&self, through_the_origin: bool) -> Vec<usize> {
         let mut group: Vec<usize> = (0..self.points().len()).collect();
 
