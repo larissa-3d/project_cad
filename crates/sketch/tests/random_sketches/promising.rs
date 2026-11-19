@@ -78,6 +78,30 @@ impl Promises {
                     });
                 }
             }
+            Gesture::Mirror { .. } => {
+                let laid_before = sketch.constraints().len();
+                gesture.lay(sketch);
+                let symmetries: Vec<Constraint> = sketch.constraints()[laid_before..]
+                    .iter()
+                    .copied()
+                    .filter(|rule| {
+                        matches!(
+                            rule,
+                            Constraint::Symmetric(_) | Constraint::SymmetricCircles(_)
+                        )
+                    })
+                    .collect();
+                for rule in symmetries {
+                    let near = match rule {
+                        Constraint::Symmetric(Symmetry { point, .. }) => sketch.point(point),
+                        Constraint::SymmetricCircles(CircleSymmetry { circle, .. }) => {
+                            sketch.point(sketch.circle(circle).center)
+                        }
+                        _ => continue,
+                    };
+                    self.kept.push(Kept::Rule { rule, near });
+                }
+            }
             other => other.lay(sketch),
         }
         if gesture.constrains() || gesture.drags() {
@@ -422,6 +446,12 @@ fn axis_line(sketch: &Sketch, axis: ChosenAxis) -> (DVec2, DVec2) {
             (from, way.normalize_or_zero())
         }
     }
+}
+
+/// How far a sketch stands from a rule, read the way a promise reads it:
+/// nought when it holds, nothing for a rule that makes no promise.
+pub fn how_far_from(sketch: &Sketch, rule: Constraint) -> Option<f64> {
+    off_by(sketch, rule)
 }
 
 /// How far the drawing stands from a rule, in its own lengths: nought when it

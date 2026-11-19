@@ -137,8 +137,9 @@ tool of the sketch mode:
 - **changing** — a fillet, a chamfer, a mirror, a circular and a rectangular
   pattern, a division at a crossing, a trim, an erasure.
 
-In the free mode, that is all: no value, no rule and no dragged point. The
-other modes add them, below.
+In the free mode, that is all: no value, no rule and no dragged point — a
+mirror's own symmetry aside, which it promises in every mode. The other modes
+add them, below.
 
 A gesture acts on what lies **at a place** rather than on an index, the way a
 click does, and `random_sketches/laying.rs` lays it the way its tool does
@@ -253,9 +254,16 @@ stand off by a tenth of a micron on a metre — `HELD`, a hundred times what the
 solver settles to — against how far the drawing reaches; an angle by what
 moves the end of its arm that far, `HELD` times the reach over the arm, in
 radians; an angle whose arm has shrunk under that length may not stray at all,
-since nothing is left to read it on. A value the drawing already measured moves nothing, and a flaw of the
-areas found before anything has moved is still the rule's own; after, it comes
-back as `Moved`.
+since nothing is left to read it on. A value the drawing already measured
+moves nothing, and a flaw of the areas found before anything has moved is
+still the rule's own; after, it comes back as `Moved`.
+
+**A mirror promises its symmetry**, in every mode, the free one included: each
+point and its image held either side of the axis, each circle and its image
+held to one radius. These are rules the sketch must hold like any other, and
+they are kept and read again the same way, so a mirror pulled out of symmetry
+by what comes after it is caught. A mirror moves nothing by itself, and
+promises nothing else.
 
 ## Running a campaign
 

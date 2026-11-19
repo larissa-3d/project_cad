@@ -111,6 +111,7 @@
 //!   `a_dimension_measuring_other_than_its_value_breaks_the_truth`,
 //!   `an_angle_read_on_a_trait_flattened_to_nothing_breaks_the_truth`,
 //!   `an_accepted_rule_that_does_not_hold_breaks_the_truth`,
+//!   `a_mirrored_pair_pulled_out_of_its_symmetry_is_read_off_by_as_far`,
 //!   `a_refused_dimension_that_moves_the_drawing_breaks_the_truth`,
 //!   `a_refused_rule_that_adds_or_takes_away_a_point_breaks_the_truth` — the
 //!   last two catch the rule out on data broken by hand: a value or a rule
@@ -128,6 +129,7 @@
 //!   `a_value_typed_on_a_side_is_promised_and_held_once_settled`,
 //!   `a_value_the_drawing_cannot_take_is_promised_to_leave_it_as_it_was`,
 //!   `a_drag_that_moves_the_drawing_counts_as_moving_it`,
+//!   `a_mirror_s_symmetry_is_promised_and_held`,
 //!   `pieces_an_all_constrained_drawing_makes_green_are_held_to_their_green`,
 //!   `the_check_of_a_played_case_asks_the_three_rules`
 //! - a broken case shrinks with its dimensions and rules, and is printed as
@@ -179,9 +181,9 @@ use glam::DVec2;
 use random_sketches::{
     Area, Axis, Check, Drawing, Flaw, Gesture, Matter, Mode, Piece, Place, Promise, Promised,
     Random, Relaying, Report, Rule, Silence, answer, areas_hold, as_many_as_closed, campaign,
-    drawn, drawn_in, green_is_fixed, keeps_its_promises, laid_alike, matter_is_measure,
-    matter_tiles, nothing_extra, nothing_missing, played, promises_of, smaller, tells_the_truth,
-    tint_is_measure,
+    drawn, drawn_in, green_is_fixed, how_far_from, keeps_its_promises, laid_alike,
+    matter_is_measure, matter_tiles, nothing_extra, nothing_missing, played, promises_of, smaller,
+    tells_the_truth, tint_is_measure,
 };
 
 fn square(low: [f64; 2], high: [f64; 2]) -> Area {
@@ -1864,20 +1866,127 @@ fn pieces_an_all_constrained_drawing_makes_green_are_held_to_their_green() {
         asking_the_whole * 2 >= drawn_with_a_trait,
         "only {asking_the_whole} of {drawn_with_a_trait} drawings all constrained ask the whole drawing"
     );
+    let mut mirrors_promised = 0;
     for seed in 0..10 {
-        for after in promises_of(&drawn(seed)) {
+        let case = drawn(seed);
+        for (index, after) in promises_of(&case).into_iter().enumerate() {
+            let symmetries = symmetries_carried(&random_sketches::laid(&case[..=index]));
+            mirrors_promised += symmetries;
+            assert!(
+                after
+                    .promises
+                    .iter()
+                    .all(|promise| matches!(promise, Promise::Ruled { .. })),
+                "seed {seed}, drawn free, promises other than a mirror's rules: {:?}",
+                after.promises
+            );
             assert_eq!(
-                after,
-                Promised {
-                    promises: Vec::new(),
-                    pieces: Vec::new(),
-                    whole: None,
-                    moved: false,
-                },
+                after.promises.len(),
+                symmetries,
+                "seed {seed}, drawn free, after gesture {}: a promise for each symmetry a mirror laid",
+                index + 1
+            );
+            assert_eq!(tells_the_truth(&after.promises), Ok(()), "seed {seed}");
+            assert_eq!(
+                (after.pieces.is_empty(), after.whole, after.moved),
+                (true, None, false),
                 "seed {seed}, drawn free"
             );
         }
     }
+    assert!(
+        mirrors_promised > 0,
+        "no free drawing of these seeds mirrors anything"
+    );
+}
+
+/// How many symmetries a mirror laid that a sketch carries: of points, and of
+/// circles' sizes.
+fn symmetries_carried(sketch: &cao_sketch::Sketch) -> usize {
+    sketch
+        .constraints()
+        .iter()
+        .filter(|rule| {
+            matches!(
+                rule,
+                cao_sketch::Constraint::Symmetric(_) | cao_sketch::Constraint::SymmetricCircles(_)
+            )
+        })
+        .count()
+}
+
+#[test]
+fn a_mirror_s_symmetry_is_promised_and_held() {
+    let case = [
+        Gesture::Rectangle {
+            corner: [1.0, 1.0],
+            opposite: [3.0, 2.0],
+            construction: false,
+        },
+        Gesture::Circle {
+            centre: [5.0, 1.5],
+            radius: 0.5,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![[2.0, 1.0], [3.0, 1.5], [2.0, 2.0], [1.0, 1.5], [5.5, 1.5]],
+            axis: Axis::V,
+        },
+    ];
+    let symmetries = symmetries_carried(&random_sketches::laid(&case));
+    assert!(symmetries >= 5, "{symmetries} symmetries laid");
+    let promised = promises_of(&case);
+    let last = promised.last().expect("three gestures");
+    assert_eq!(last.promises.len(), symmetries, "{:?}", last.promises);
+    for promise in &last.promises {
+        assert!(
+            matches!(promise, Promise::Ruled { off_by, .. } if off_by.abs() < 1e-9),
+            "{promise:?}"
+        );
+    }
+    assert!(!last.moved);
+}
+
+#[test]
+fn a_mirrored_pair_pulled_out_of_its_symmetry_is_read_off_by_as_far() {
+    let mut sketch = cao_sketch::Sketch::new(cao_sketch::WorkPlane::XY);
+    let point = sketch.add_point(at(2.0, 1.0));
+    let twin = sketch.add_point(at(-3.0, 1.0));
+    let mirrored = sketch.add_point(at(-2.0, 1.0));
+    let across_v = cao_sketch::ChosenAxis::Sketch(cao_sketch::SketchAxis::V);
+    let pair = |twin| {
+        cao_sketch::Constraint::Symmetric(cao_sketch::Symmetry {
+            point,
+            twin,
+            axis: across_v,
+        })
+    };
+    let near =
+        |found: Option<f64>, expected: f64| found.is_some_and(|off| (off - expected).abs() < 1e-12);
+    assert!(near(how_far_from(&sketch, pair(mirrored)), 0.0));
+    let off = how_far_from(&sketch, pair(twin));
+    assert!(
+        near(off, 0.5),
+        "the pair's middle stands 0.5 off the axis: {off:?}"
+    );
+
+    let circle = sketch.add_circle(point, 1.0);
+    let twin_circle = sketch.add_circle(mirrored, 1.5);
+    let sizes = cao_sketch::Constraint::SymmetricCircles(cao_sketch::CircleSymmetry {
+        circle,
+        twin: twin_circle,
+        axis: across_v,
+    });
+    let off = how_far_from(&sketch, sizes);
+    assert!(near(off, 0.5), "twin circles 0.5 apart in size: {off:?}");
+    let off_by = off.unwrap_or_default();
+    assert!(matches!(
+        tells_the_truth(&[Promise::Ruled {
+            near: at(2.0, 1.0),
+            off_by
+        }]),
+        Err(Flaw::Unkept { .. })
+    ));
 }
 
 #[test]

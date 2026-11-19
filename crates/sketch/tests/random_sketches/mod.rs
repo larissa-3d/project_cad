@@ -32,6 +32,7 @@ pub use drawing::drawn;
 pub use laying::laid;
 pub use modes::{Mode, drawn_in};
 pub use printing::Drawing;
+pub use promising::how_far_from;
 pub use random::Random;
 pub use rules::{
     Area, Flaw, Matter, Place, Relaying, Rule, Silence, as_many_as_closed, holding, laid_alike,
