@@ -208,6 +208,15 @@
 //!   `a_green_rectangle_stays_green_when_a_chain_is_joined_at_the_origin`,
 //!   `a_green_square_stays_green_when_a_trait_is_joined_at_the_origin`,
 //!   `a_green_straight_chain_stays_green_when_a_free_trait_is_drawn_from_the_origin`
+//!
+//! Closes #1036.
+//! - That join returns false and the drawing is as it was — no test: not in
+//!   this file; the join is held at the sketch's level in
+//!   `crates/sketch/src/sketch/merging/tests.rs` and the merge step at the
+//!   part's in `crates/part/tests/an_impossible_rule_is_refused.rs`, under the
+//!   same names
+//! - The case above holds in #501's campaign, its `ignore` taken off —
+//!   `a_merge_that_would_leave_a_value_measuring_a_point_against_itself_is_refused`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -901,7 +910,6 @@ fn a_diagonal_ending_a_hair_from_a_rectangle_s_corner_keeps_as_many_areas_as_it_
 }
 
 #[test]
-#[ignore = "#1036"]
 fn a_merge_that_would_leave_a_value_measuring_a_point_against_itself_is_refused() {
     random_sketches::holds(&[
         Gesture::Rectangle {

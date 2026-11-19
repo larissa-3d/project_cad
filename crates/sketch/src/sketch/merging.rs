@@ -132,7 +132,7 @@ impl Sketch {
     /// once they are one. A rule the merge makes always true is simply let go
     /// of; this is about one it makes impossible, which no settling would
     /// report — the solver would meet it by shrinking a trait or a curve to
-    /// nothing.
+    /// nothing, and has no way to hold apart a value's two ends made one.
     fn can_merge(&self, kept: PointId, dropped: PointId) -> bool {
         if !self.has_point(kept) || !self.has_point(dropped) {
             return false;
@@ -151,7 +151,15 @@ impl Sketch {
             .constraints
             .iter()
             .any(|rule| self.impossible(*rule, &same) && !self.impossible(*rule, &|a, b| a == b));
-        !onto_its_centre && !impossible_rule
+        let value_against_itself = self.dimensions().iter().any(|value| {
+            !value.driven
+                && match value.target {
+                    DimensionTarget::Distance { from, to }
+                    | DimensionTarget::Projected { from, to, .. } => from != to && same(from, to),
+                    _ => false,
+                }
+        });
+        !onto_its_centre && !impossible_rule && !value_against_itself
     }
 
     /// Whether a rule could not hold with the points `same` names as one.
