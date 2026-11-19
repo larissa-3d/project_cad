@@ -7,7 +7,9 @@
 //! be raised: what stands outside a cylinder just outside it is cut as a
 //! cylinder's is, and only the stretch between the two is held by a piece
 //! turned about the axis, bounded either side by planes through the axis
-//! and outside by a cylinder about it (#807).
+//! and outside by a cylinder about it (#807). At a cylinder the prism runs
+//! into, its matter inside, what stands inside it is cut, and what stands
+//! past the plane through its axis (#908, #915).
 
 use std::f64::consts::{PI, TAU};
 
@@ -15,8 +17,8 @@ use glam::{DVec2, DVec3};
 
 use super::Prism;
 use crate::body::exact::Exact;
-use crate::body::exact::wedge::end::CLEAR;
-use crate::brep::{Cone, Cylinder, Declined};
+use crate::body::exact::wedge::end::{CLEAR, beyond};
+use crate::brep::{Cone, Cylinder, Declined, Plane};
 use crate::profile::{Contour, Frame, Run};
 use crate::turning::{Axis, ON_THE_AXIS, Straight, Turn};
 
@@ -111,6 +113,47 @@ pub(super) fn outside_cylinder(
         v: aside,
     };
     Exact::raised(&section, &[], frame, axis * (high - low + 2.0 * clear))
+}
+
+/// The solids holding what of the prism stands inside `cylinder`, the edge
+/// running on `past` into its matter — a pillar (#908) — or past the plane
+/// through its axis square to that run: the box [`beyond`] raises past that
+/// plane, where each long edge that meets the cylinder stands midway through
+/// it, and the cylinder's disc, its two halves meeting on that plane, raised
+/// along the axis over what the long edges span along it from the
+/// cylinder's near side to that plane, and the clearance [`long_edges`]
+/// gives. The fill so ends flush on the cylinder and nothing of it enters
+/// the pillar: a bore through a boss stays as it was (#915).
+/// [`outside_cylinder`] would start its cut where the first edge leaves the
+/// pillar, on its far side, and leave a corner on its foot where the fill
+/// crosses it there. Declined as [`beyond`] declines; a disc the kernel
+/// cannot raise, as the raise says.
+pub(super) fn inside_cylinder(
+    prism: &Prism,
+    cylinder: &Cylinder,
+    past: DVec3,
+) -> Result<Vec<Exact>, Declined> {
+    let (origin, axis) = (cylinder.origin, cylinder.axis);
+    let towards = (past - axis * axis.dot(past)).normalize();
+    let (plane, _) = Plane::through(origin, towards);
+    let (edges, clear) = long_edges(prism, past);
+    let (mut low, mut high) = (f64::INFINITY, f64::NEG_INFINITY);
+    for [near, far] in edges {
+        let run = far - near;
+        for off in [-cylinder.radius, 0.0] {
+            let at = near + run * (off - towards.dot(near - origin)) / towards.dot(run);
+            low = low.min(axis.dot(at - origin));
+            high = high.max(axis.dot(at - origin));
+        }
+    }
+    let frame = Frame {
+        origin: origin + axis * (low - clear),
+        u: axis.cross(towards),
+        v: -towards,
+    };
+    let disc = Contour::circle(DVec2::ZERO, cylinder.radius);
+    let raised = Exact::raised(&disc, &[], frame, axis * (high - low + 2.0 * clear))?;
+    Ok(vec![beyond(prism, &plane, towards)?, raised])
 }
 
 /// The convex outline `rim`, turning anticlockwise, less the disc of
