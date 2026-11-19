@@ -90,6 +90,24 @@ impl History {
                     let name = wording::history::label(lang, variables, laid);
                     (name, blended(lang, document, step, size))
                 }
+                Operation::EraseMany {
+                    sketch,
+                    elements,
+                    dimensions,
+                    constraints,
+                } => {
+                    let twins = document
+                        .history
+                        .number_at(step)
+                        .map_or(&[][..], |number| document.twins_erased_at(number));
+                    let erased = Operation::EraseMany {
+                        sketch: *sketch,
+                        elements: elements.iter().chain(twins).copied().collect(),
+                        dimensions: dimensions.clone(),
+                        constraints: constraints.clone(),
+                    };
+                    drawn(lang, document, &erased)
+                }
                 _ => drawn(lang, document, operation),
             };
             let ends = Feature::line_ends(&document.history, step);

@@ -73,6 +73,9 @@ pub struct PartState {
     /// The edges blended at less than they asked, by number.
     #[serde(default)]
     pub(crate) reduced: BTreeMap<u32, crate::blending::Reduced>,
+    /// The mirrored twins each erase took along beyond what it was given, by number.
+    #[serde(default)]
+    pub(crate) twins_erased: BTreeMap<u32, Vec<Element>>,
     /// What the replay noted on the way: what a change to the variables is
     /// held to, and the values it froze.
     #[serde(skip)]
@@ -262,25 +265,7 @@ impl PartState {
                 elements,
                 dimensions,
                 constraints,
-            } => {
-                let scale = self.scale();
-                let sketch = self.sketches.get_mut(*sketch)?;
-                let twins: Vec<Element> =
-                    elements.iter().flat_map(|e| sketch.twins_of(*e)).collect();
-                for rule in constraints {
-                    sketch.erase_constraint(*rule);
-                }
-                for target in dimensions {
-                    sketch.erase_dimension(*target);
-                }
-                for element in elements.iter().chain(&twins) {
-                    sketch.erase(*element);
-                }
-                // What is left may have room to move again, so it settles into
-                // whatever the remaining values still ask of it.
-                sketch.resolve(scale);
-                None
-            }
+            } => self.erase_many(*sketch, elements, dimensions, constraints),
             Operation::Trim {
                 sketch,
                 segment,

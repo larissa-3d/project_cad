@@ -83,8 +83,15 @@
 //!   or « 3 arêtes chanfreinées », then its size or both values as a step of
 //!   one does; a step of one edge reads as before —
 //!   `a_blend_of_several_edges_reads_how_many_edges_it_holds_then_its_size_or_both_values`
+//!
+//! Closes #1034.
+//! - Erasing one trait of a held mirror's pair shows a history line counting
+//!   both traits — `erasing_one_trait_of_a_mirrored_pair_reads_both_traits_erased`
+//! - An erase with no twin reads as it does today —
+//!   `erasing_a_trait_with_no_twin_reads_as_it_always_has`
 
-use cao_part::history::BlendShape;
+use cao_part::history::{BlendShape, MirrorAsked};
+use cao_sketch::ChosenAxis;
 
 use super::*;
 use crate::screens::part_tree::state::History;
@@ -517,4 +524,120 @@ fn a_blend_of_several_edges_reads_how_many_edges_it_holds_then_its_size_or_both_
             "{shape:?} of 50 on the four top edges of a block 10 high",
         );
     }
+}
+
+fn a_trait(document: &mut PartDocument, from: DVec2, to: DVec2) {
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(from),
+        end: PointRef::New(to),
+        construction: false,
+    });
+}
+
+/// A trait east of the V axis, held mirrored across it, then two traits above
+/// it held parallel and mirrored by nothing.
+fn a_sketch_with_a_mirrored_pair_and_a_parallel_pair() -> PartDocument {
+    let mut document = PartDocument::new("Test", at("2026-01-02T09:00:00Z"));
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    a_trait(&mut document, DVec2::new(2.0, 1.0), DVec2::new(6.0, 1.0));
+    document.apply(Operation::HeldMirror(MirrorAsked {
+        sketch: 0,
+        elements: vec![Element::Segment(SegmentId(0))],
+        axis: ChosenAxis::Sketch(SketchAxis::V),
+    }));
+    let alone = document.sketches()[0].segments().len();
+    a_trait(&mut document, DVec2::new(2.0, 5.0), DVec2::new(6.0, 5.0));
+    a_trait(&mut document, DVec2::new(2.0, 8.0), DVec2::new(6.0, 9.0));
+    document.apply(Operation::Constrain {
+        sketch: 0,
+        constraint: Constraint::Parallel {
+            first: SegmentId(alone),
+            second: SegmentId(alone + 1),
+        },
+    });
+    document
+}
+
+fn erased_traits(document: &PartDocument) -> Vec<SegmentId> {
+    let sketch = &document.sketches()[0];
+    (0..sketch.segments().len())
+        .map(SegmentId)
+        .filter(|segment| sketch.is_erased_segment(*segment))
+        .collect()
+}
+
+fn erase_the_traits(document: &mut PartDocument, segments: &[SegmentId]) {
+    document.apply(Operation::EraseMany {
+        sketch: 0,
+        elements: segments.iter().copied().map(Element::Segment).collect(),
+        dimensions: Vec::new(),
+        constraints: Vec::new(),
+    });
+}
+
+fn the_last_line(document: &PartDocument) -> (String, String) {
+    let history = History::of(document, &french());
+    let line = history.lines.last().expect("the erase's line");
+    (line.name.clone(), line.detail.clone())
+}
+
+#[test]
+fn erasing_one_trait_of_a_mirrored_pair_reads_both_traits_erased() {
+    let mut one_selected = a_sketch_with_a_mirrored_pair_and_a_parallel_pair();
+    erase_the_traits(&mut one_selected, &[SegmentId(0)]);
+    let pair = erased_traits(&one_selected);
+    assert_eq!(
+        pair.len(),
+        2,
+        "the twin did not go with its trait: {pair:?}"
+    );
+    let mut both_selected = a_sketch_with_a_mirrored_pair_and_a_parallel_pair();
+    erase_the_traits(&mut both_selected, &pair);
+
+    let (name, detail) = the_last_line(&one_selected);
+
+    assert_eq!(
+        detail, "Esquisse 1 · 2 tracé(s), 0 cote(s), 0 contrainte(s)",
+        "one trait of a mirrored pair erased takes its twin along, and the line \
+         reads only the one selected",
+    );
+    assert_eq!(
+        (name, detail),
+        the_last_line(&both_selected),
+        "one trait of a mirrored pair erased reads otherwise than the pair \
+         selected and erased together",
+    );
+}
+
+#[test]
+fn erasing_a_trait_with_no_twin_reads_as_it_always_has() {
+    let mut document = a_sketch_with_a_mirrored_pair_and_a_parallel_pair();
+    let alone = SegmentId(document.sketches()[0].segments().len() - 2);
+    assert!(
+        document.sketches()[0]
+            .constraints()
+            .iter()
+            .any(|rule| matches!(rule, Constraint::Parallel { .. })),
+        "the trait to erase holds no rule",
+    );
+    erase_the_traits(&mut document, &[alone]);
+    assert_eq!(
+        erased_traits(&document),
+        [alone],
+        "a trait no mirror speaks of took another along"
+    );
+
+    assert_eq!(
+        the_last_line(&document),
+        (
+            "Trait supprimé".to_string(),
+            "Esquisse 1 · 1 tracé(s), 0 cote(s), 0 contrainte(s)".to_string()
+        ),
+        "a trait no mirror speaks of, holding a rule nobody selected, erased \
+         beside a mirrored pair left untouched",
+    );
 }
