@@ -73,8 +73,10 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// against a horizontal or vertical value it carries is refused, where it was
 /// laid and the value driven to nothing (#1042). 26: two points a value holds
 /// apart are not made one, where they were and the value measured nothing
-/// (#1036).
-const REBUILT_BY: u32 = 26;
+/// (#1036). 27: a drag that would carry a shape whole, a fixed point it did not
+/// grab among it, is refused, where the fixed point travelled with the hand
+/// (#1041).
+const REBUILT_BY: u32 = 27;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {
