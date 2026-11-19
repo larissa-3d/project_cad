@@ -111,11 +111,11 @@ impl Body {
     /// notch's two where its concave upright is named too (#914), an upright
     /// where a third edge of the list ends but one at its end — the edge
     /// across it, or a pointed end's (#837, #911) —, or
-    /// one of a round bottom meeting any but the edge at its end or an
-    /// upright there — a pit's upright, beside a floor edge meeting outwards
-    /// (#919), the edges of a pointed or a notched end (#921) — or that edge
-    /// where its faces meet outwards — an open slot's end, the rim above a
-    /// standing round bottom — is declined `Unsupported`. Rounds
+    /// one of a round bottom meeting any but the edge at its end or an upright
+    /// there beside a floor edge meeting inwards — a pit's upright, beside one
+    /// meeting outwards (#919), the edges of a pointed or a notched end (#921)
+    /// — or that edge where its faces meet outwards — an open slot's end, the
+    /// rim above a standing round bottom — is declined `Unsupported`. Rounds
     /// that would meet only on a curved edge are not measured, and declined
     /// `Unsupported` where they meet. The first edge declined declines the
     /// step.
