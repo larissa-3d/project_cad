@@ -52,10 +52,16 @@ use crate::brep::{self, Declined, EdgeId, VertexId};
 /// every edge ending there meets inwards, a pocket's bottom corner, its fill
 /// meeting theirs in a valley — the uprights at a round bottom's end, the two
 /// there and the edge at their end closing both corners on one hollow quarter
-/// of a ball in a pocket as wide as two radii (#919). An upright beside a slope
-/// is built too, convex, its flat mitred against the slope's as two flats
-/// meeting at a convex corner are (#814). A list mixing senses at their end
-/// — a slope or a crease with the tread's end edge, a round bottom with a
+/// of a ball in a pocket as wide as two radii (#919) — and so is each edge
+/// meeting inwards that bounds the face they meet across and reaches both of
+/// the pair, one at such a corner and the other through the end's other edge,
+/// as at a pointed or a notched end — the upright at a point's tip with them,
+/// the three closed there —: each fill meeting theirs in a valley, the two
+/// meeting each other as two fills at a corner do, in a valley at a point, in
+/// a mitre outside a notch's upright left sharp (#921). An upright beside a
+/// slope is built too, convex, its flat mitred against the slope's as two
+/// flats meeting at a convex corner are (#814). A list mixing senses at their
+/// end — a slope or a crease with the tread's end edge, a round bottom with a
 /// convex end edge such as an open slot's end, a standing round bottom with
 /// the rim above it — is let in here and refused by the laying, as
 /// [`Exact::cut_along`] and [`Exact::sloped`] refuse it: a cut and a fill
@@ -68,7 +74,8 @@ use crate::brep::{self, Declined, EdgeId, VertexId};
 /// mixed sense gone round that upright first (#914), a round bottom, a slope
 /// or a crease meeting any other edge — an upright at a round bottom's end
 /// beside an edge left out that meets outwards, a pit's where the floor drops
-/// over it (#919), the edges of a pointed or a notched one (#921).
+/// over it (#919), one edge of a notched end alone, and both with an upright
+/// at a point's shoulder (#921).
 ///
 /// [`Exact::round_the_odd`]: crate::body::exact::Exact::round_the_odd
 /// [`Exact::cut_along`]: crate::body::exact::Exact::cut_along
@@ -117,20 +124,31 @@ pub(in crate::body::exact::wedge) fn at_their_ends(
                 at_the_end(rank)
             }
         };
+        let member = |rank: usize| if meets(one, rank) { one } else { other };
+        let filled = |rank: usize| first.inwards && second.inwards && wedges[rank].inwards;
+        let hollow = |rank: usize| {
+            (beside.iter())
+                .filter(|(_, at)| at.contains(&rank) && at.contains(&member(rank)))
+                .all(|&(corner, _)| filled(rank) && corners::hollow(body, corner))
+        };
+        let pointing = |rank: usize| {
+            filled(rank)
+                && bounding(rank)
+                && reaching(rank, one)
+                && reaching(rank, other)
+                && hollow(rank)
+        };
         let upright = |rank: usize| {
-            let member = if meets(one, rank) { one } else { other };
-            let filled = first.inwards && second.inwards && wedges[rank].inwards;
             meets(one, rank) != meets(other, rank)
-                && (filled || !wedges[rank].inwards)
+                && (filled(rank) || !wedges[rank].inwards)
                 && !across.is_some_and(|face| wedges[rank].faces.contains(face))
                 && (closed.iter())
-                    .filter(|(_, at, _)| at.contains(&rank) && at.contains(&member))
+                    .filter(|(_, at, _)| at.contains(&rank) && at.contains(&member(rank)))
                     .all(|(_, at, _)| {
-                        (at.iter()).all(|&third| [rank, member].contains(&third) || ending(third))
+                        (at.iter())
+                            .all(|&third| [rank, member(rank)].contains(&third) || ending(third))
                     })
-                && (beside.iter())
-                    .filter(|(_, at)| at.contains(&rank) && at.contains(&member))
-                    .all(|&(corner, _)| filled && corners::hollow(body, corner))
+                && hollow(rank)
         };
         let stopping = |rank: usize| {
             let alone = |end: VertexId| {
@@ -149,7 +167,7 @@ pub(in crate::body::exact::wedge) fn at_their_ends(
                     .any(|stop| alone(stop.end))
         };
         for rank in (0..edges.len()).filter(|&rank| meets(one, rank) || meets(other, rank)) {
-            if !ending(rank) && !upright(rank) && !stopping(rank) {
+            if !ending(rank) && !pointing(rank) && !upright(rank) && !stopping(rank) {
                 return Err(Declined::Unsupported);
             }
             ends.insert(rank, value);

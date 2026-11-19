@@ -5,19 +5,20 @@
 //! edges either side of the edge's ends made one where they run on along one
 //! curve. The later of two fills meeting at a corner beside a convex edge
 //! takes with it what both prisms hold past that corner (#801), and the two
-//! run on into a mitre.
+//! run on into a mitre. Two fills laid as one, a round bottom, ending on the
+//! two walls of a pointed or a notched end are trimmed flush on both (#921).
 
 mod ball;
 mod round;
 
 use glam::DVec3;
 
-use super::end::{beyond, end_face};
-use super::flush::{Held, holding};
-use super::overlap::Overlap;
+use super::end::{behind, beyond, end_face};
+use super::flush::{Held, flat, holding};
+use super::overlap::{Overlap, common};
 use super::{Prism, Wedge};
 use crate::body::exact::Exact;
-use crate::brep::{self, Declined, EdgeId, FaceId, Plane, Surface};
+use crate::brep::{self, Declined, EdgeId, FaceId, Plane, Surface, VertexId};
 
 impl Exact {
     /// The body with the corner along each of `edges`, read on `on`, filled in
@@ -25,10 +26,13 @@ impl Exact {
     /// edge, numbered from nought and counted as raised, so that the solids
     /// its ends are trimmed by and the overlaps it takes number their faces
     /// past its own: each end of it trimmed flush on the surface of the face
-    /// the first edge ends on — or, at an end one of `held` holds, on the
-    /// plane it holds it at, in the air, as [`Held::beyond`] trims it, that end
-    /// left standing as a face of its own — joined to each of `overlaps`, what it takes past
-    /// a corner it shares with a fill laid before it beside a convex edge,
+    /// the first edge ends on — or, where another edge ends on another face
+    /// there, on the planes of both, as [`past_two_faces`] trims it, a round
+    /// bottom at a pointed or a notched end (#921), or, at an end one of
+    /// `held` holds, on the plane it holds it at, in the air, as
+    /// [`Held::beyond`] trims it, that end left standing as a face of its own
+    /// — joined to each of `overlaps`, what it takes past a corner it shares
+    /// with a fill laid before it beside a convex edge,
     /// and joined to the body, every face of the prism that merged into one
     /// of the body's answering to the body's numbers alone, so that the face
     /// it merged into stays the face it was: its ends, merged into the faces
@@ -43,10 +47,15 @@ impl Exact {
     /// ending short of its edge, or round its rounded end — the two edges
     /// either side of that corner are made one, since the fill covered what
     /// of the edge's faces reached it, and so are those either side of each
-    /// point an overlap clears. Declined `Unsupported`: an end where
+    /// point an overlap clears and, where it takes one, of each corner this
+    /// body holds on the plane of either of the edge's faces: a fill laid
+    /// before it, stopped on that plane, runs on into the overlap past it, and
+    /// so does the valley it meets a round bottom along (#921). Declined
+    /// `Unsupported`: an end where
     /// no face but the edge's two meets it, or several do, or one the fill
-    /// cannot be trimmed flush on, as [`past_the_end`] declines it, and
-    /// another edge that does not end on the faces the first ends on.
+    /// cannot be trimmed flush on, as [`past_the_end`] and [`past_two_faces`]
+    /// decline it, and another edge that does not end on the faces the first
+    /// ends on or the one other face there.
     pub(super) fn filled(
         &self,
         on: &brep::Body,
@@ -65,9 +74,20 @@ impl Exact {
         for (end, past) in ends.into_iter().zip([-wedge.along, wedge.along]) {
             let face = end_face(on, end, wedge.faces).ok_or(Declined::Unsupported)?;
             let point = on.vertex(end).point;
-            let beyond_the_end = match holding(held, point, eps) {
-                Some((end, number)) => vec![end.beyond(prism, number)?],
-                None => past_the_end(on, face, point, past, prism)?,
+            let elsewhere = (edges[1..].iter()).find_map(|&(edge, wedge)| {
+                let ends = on.edge(edge).ends?;
+                let along = |end: VertexId| past.dot(on.vertex(end).point);
+                let far = ends[usize::from(along(ends[1]) > along(ends[0]))];
+                let theirs = end_face(on, far, wedge.faces)?;
+                (theirs != face).then(|| (theirs, on.vertex(far).point))
+            });
+            let beyond_the_end = match (holding(held, point, eps), elsewhere) {
+                (Some((end, number)), _) => vec![end.beyond(prism, number)?],
+                (None, Some((theirs, at))) => {
+                    end_faces.push(theirs);
+                    past_two_faces(on, [(face, point), (theirs, at)], past, prism)?
+                }
+                (None, None) => past_the_end(on, face, point, past, prism)?,
             };
             for solid in &beyond_the_end {
                 trimmed = trimmed.cut_by(solid)?;
@@ -89,8 +109,42 @@ impl Exact {
             trimmed = trimmed.joined(&overlap.solid)?;
             corners.extend(overlap.cleared.iter().copied());
         }
+        corners.extend(self.seams(wedge, overlaps, eps));
         let next = edges.len() as u32;
         self.joined(&Exact { next, ..trimmed })?.merged_at(&corners)
+    }
+}
+
+/// The solids to cut from the prism of two edges laid as one so that it ends
+/// flush on the planes of the two faces they end on, each at its corner,
+/// running on `past` there: the boxes [`behind`] raises on each plane, on the
+/// side `past` points to, however far along its long edges cross it — a
+/// round bottom carried over the part's box may stop short of a wall leaning
+/// across its end. Where the second corner lies past the first's plane — a
+/// notched end, whose air runs on past each plane beside the other — what
+/// lies past both is cut, and otherwise — a pointed end — what lies past
+/// either. Declined `Unsupported` where either face is not flat or runs along
+/// the edges; otherwise as the booleans decline.
+fn past_two_faces(
+    body: &brep::Body,
+    [(one, at), (other, theirs)]: [(FaceId, DVec3); 2],
+    past: DVec3,
+    prism: &Prism,
+) -> Result<Vec<Exact>, Declined> {
+    let side = |id: FaceId| {
+        let (plane, outward) = flat(body, id).ok_or(Declined::Unsupported)?;
+        let on = outward.dot(past);
+        if on == 0.0 {
+            return Err(Declined::Unsupported);
+        }
+        let away = outward * on.signum();
+        Ok((away, behind(prism, plane, away)?))
+    };
+    let [(away, first), (_, second)] = [side(one)?, side(other)?];
+    if away.dot(theirs - at) > body.scale().eps() {
+        Ok(vec![common(&first, &second)?])
+    } else {
+        Ok(vec![first, second])
     }
 }
 

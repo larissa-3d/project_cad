@@ -9,8 +9,9 @@
 //! them, and any upright meeting one of the pair, at either end, alone or
 //! with the edge at their end (#837) or a point's edge at its shoulder
 //! (#911) — the front's upright at a slope's nose among them (#814); and the
-//! edge at a round bottom's end, which its fill meets in a valley (#838), and
-//! the uprights there, alone or with that edge (#919).
+//! edge at a round bottom's end, which its fill meets in a valley (#838), the
+//! uprights there, alone or with that edge (#919), and the two edges of a
+//! pointed or a notched one (#921).
 
 mod ends;
 

@@ -66,7 +66,17 @@ impl Exact {
     /// sphere where it is named; and with both uprights and that edge, in a
     /// pocket as wide as two radii, the two corners' pieces are one hollow
     /// quarter of a ball, as at a tongue's tip, the two round bottoms stopping
-    /// tangent to it (#919).
+    /// tangent to it (#919). The two floor edges of a pocket's pointed or
+    /// notched end, named with the round bottom along its floor, are filled in
+    /// at its radius too, each meeting it in a valley from its shoulder, where
+    /// every edge ending there meets inwards, down to where the three touch the
+    /// floor's plane, the round bottom ending flush on both end walls, and the
+    /// two meeting each other in a valley at a point's tip, or, at a notch,
+    /// running on past its upright, left sharp, into a mitre outside it; at a
+    /// point, the upright at its tip named too is filled in and closed with
+    /// them by a hollow piece of sphere; and the round bottom alone, or at a
+    /// point with an upright at a shoulder, ends flush on both end walls as
+    /// well (#921).
     /// Where
     /// matter lies past an end of an edge rounded off, behind the one flat face
     /// it runs into there — the inner corner of an L, a pocket's rim, the foot
@@ -155,9 +165,11 @@ impl Exact {
     /// bottom, or an upright, a notch's two where the
     /// upright at its bottom is named too and an upright where a third edge
     /// of the list ends but the edge at its end, one of a round bottom meeting
-    /// any but the edge at its end or an upright there beside a floor edge
-    /// meeting inwards — a pit's upright, beside one meeting outwards (#919),
-    /// the edges of a pointed or a notched end (#921) — or that edge where its
+    /// any but the edge at its end, an upright there beside a floor edge
+    /// meeting inwards or the two edges of a pointed or a notched end — a
+    /// pit's upright, beside one meeting outwards (#919),
+    /// one edge of a notched end alone, and both with an upright at a point's
+    /// shoulder or the one at a notch's tip (#921) — or that edge where its
     /// faces meet outwards — an
     /// open slot's end, the rim above a standing round bottom — refused by
     /// the laying, and a cut that left anything but its round —
