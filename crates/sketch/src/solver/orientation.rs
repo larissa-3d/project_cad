@@ -6,7 +6,7 @@ use glam::DVec2;
 use crate::constraints::Constraint;
 use crate::equation::Equation;
 use crate::independence::turns_nothing;
-use crate::sketch::{PointId, Sketch};
+use crate::sketch::{PointId, Segment, Sketch};
 
 /// The way round a group was sitting before a settle, and what it is turned
 /// back about.
@@ -39,7 +39,8 @@ impl Sketch {
         let equations = self.equations(millimeters_per_unit);
         let pinned = self.pinned_points();
         let joined = self.point_groups();
-        let groups = self.turning_groups(&equations, &pinned, &self.turning_points(&joined));
+        let groups =
+            self.turning_groups(&equations, &pinned, &self.turning_points(&joined), &joined);
         let turning = self.turning_points(&groups);
 
         self.rotation_gauges(&groups, &pinned, &turning)
@@ -82,10 +83,14 @@ impl Sketch {
         anchored: &[bool],
     ) -> Vec<Equation> {
         let about_the_origin = vec![DVec2::ZERO; self.points().len()];
-        let joined = self.point_groups();
-        let groups = self.turning_groups(equations, anchored, &about_the_origin);
+        let joined = self.groups_joined(false);
+        let groups = self.turning_groups(equations, anchored, &about_the_origin, &joined);
         let square = self.traits_lying_square(&joined);
-        let origin = joined[Sketch::ORIGIN.0];
+        let drawn_from_the_origin: Vec<usize> = self
+            .live_segments()
+            .filter(|(_, segment)| self.is_origin(segment.start) != self.is_origin(segment.end))
+            .map(|(_, segment)| joined[away_from_the_origin(&segment).0])
+            .collect();
         self.rotation_gauges(&groups, anchored, &about_the_origin)
             .into_iter()
             // A group already measured against an axis says which way up it
@@ -106,10 +111,9 @@ impl Sketch {
                         .any(|(group, _)| *group == first)
                         .then_some(gauge);
                 }
-                if groups[Sketch::ORIGIN.0] != owner {
-                    return None;
-                }
-                let (_, (start, end)) = square.iter().find(|(group, _)| *group == origin)?;
+                let (_, (start, end)) = square.iter().find(|(group, _)| {
+                    groups[*group] == owner && drawn_from_the_origin.contains(group)
+                })?;
                 let span = self.point(*end) - self.point(*start);
                 let mut row = Equation::new(self.variables());
                 row.add(*end, span.perp());
@@ -134,9 +138,9 @@ impl Sketch {
         equations: &[Equation],
         pinned: &[bool],
         about: &[DVec2],
+        joined: &[usize],
     ) -> Vec<usize> {
-        let joined = self.point_groups();
-        let gauges = self.rotation_gauges(&joined, pinned, about);
+        let gauges = self.rotation_gauges(joined, pinned, about);
         let mut parent: Vec<usize> = (0..joined.len()).collect();
         fn root(parent: &mut [usize], mut group: usize) -> usize {
             while parent[group] != group {
@@ -260,6 +264,13 @@ impl Sketch {
     /// Which group of joined geometry each point belongs to, as the index of a
     /// representative point. Two shapes drawn apart are two groups.
     pub(crate) fn point_groups(&self) -> Vec<usize> {
+        self.groups_joined(true)
+    }
+
+    /// The same, the origin joining shapes drawn from it only if asked: the
+    /// verdict reads each of them keeping its own way round, as two shapes
+    /// meeting there can still turn against each other.
+    fn groups_joined(&self, through_the_origin: bool) -> Vec<usize> {
         let mut group: Vec<usize> = (0..self.points().len()).collect();
 
         fn root(group: &mut [usize], mut point: usize) -> usize {
@@ -270,6 +281,10 @@ impl Sketch {
             point
         }
         for (_, segment) in self.live_segments() {
+            if !through_the_origin && (self.is_origin(segment.start) || self.is_origin(segment.end))
+            {
+                continue;
+            }
             let (a, b) = (
                 root(&mut group, segment.start.0),
                 root(&mut group, segment.end.0),
@@ -339,12 +354,21 @@ impl Sketch {
             if leaning.min(90.0 - leaning) > SQUARE_DEGREES {
                 continue;
             }
-            let owner = groups[segment.start.0];
+            let owner = groups[away_from_the_origin(&segment).0];
             if square.iter().all(|(each, _)| *each != owner) {
                 square.push((owner, (segment.start, segment.end)));
             }
         }
         square
+    }
+}
+
+/// The end of a trait that tells which shape it belongs to: the origin
+/// belongs to none.
+fn away_from_the_origin(segment: &Segment) -> PointId {
+    match segment.start == Sketch::ORIGIN {
+        true => segment.end,
+        false => segment.start,
     }
 }
 
