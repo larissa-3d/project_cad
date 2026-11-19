@@ -67,7 +67,10 @@ impl Promises {
                         (taken, _) => all_taken &= taken,
                     }
                 }
-                if all_taken && let Some(named) = named {
+                if all_taken
+                    && let Some(named) = named
+                    && is_green(sketch, &named)
+                {
                     let green_without = self.green_without(sketch, &named, &values);
                     self.claims.push(Claim {
                         points: named,
@@ -251,9 +254,19 @@ impl Promises {
         let every_piece = pieces(sketch)
             .iter()
             .all(|piece| piece.iter().any(|point| claimed.contains(point)));
-        let whole = every_piece.then(|| sketch.is_fully_constrained(SCALE));
+        let whole =
+            (every_piece && sketch.holds_a_drawing()).then(|| sketch.is_fully_constrained(SCALE));
         (held, whole)
     }
+}
+
+/// Whether a piece is green as the drawing now stands: every point of it
+/// settled, and the size of every circle of it held. A piece whose values
+/// lean on a value of the case that is gone, shrunk away, is not.
+fn is_green(sketch: &Sketch, named: &[PointId]) -> bool {
+    let points = grouped(sketch, named);
+    let settled = sketch.settled_points(SCALE);
+    points.iter().all(|point| settled[point.0]) && !radius_free(sketch, &points)
 }
 
 /// Whether `laid` is `kept` with some of its points, gone since, replaced by

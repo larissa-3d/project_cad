@@ -58,7 +58,8 @@ pub struct Piece {
 
 /// Every accepted dimension measures its value, every accepted rule holds,
 /// and every refused one leaves the drawing as it was. An angle may stray by
-/// what moves the end of its arm as far as a length may stray.
+/// what moves the end of its arm as far as a length may stray; one whose arm
+/// is shorter than that may not stray at all.
 pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
     for promise in promises {
         match promise {
@@ -82,7 +83,11 @@ pub fn tells_the_truth(promises: &[Promise]) -> Result<(), Flaw> {
                 measured,
                 arm,
             } => {
-                let allowed = (HELD * reach(&[*near]) / arm.max(f64::MIN_POSITIVE)).to_degrees();
+                let length = HELD * reach(&[*near]);
+                let allowed = match *arm > length {
+                    true => (length / arm).to_degrees(),
+                    false => 0.0,
+                };
                 if (measured - degrees).abs() > allowed {
                     return Err(Flaw::Untrue {
                         near: *near,

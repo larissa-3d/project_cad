@@ -99,9 +99,8 @@ pub(super) fn asked(random: &mut Random, drawing: &[Gesture], shares: Shares) ->
     for index in (1..asks.len()).rev() {
         asks.swap(index, asker.random.below(index + 1));
     }
-    // Which pieces are made green is drawn before the asks, where it always
-    // was, so that a seed keeps its case; the choices fall on the pieces as
-    // the asks leave them, a rule having perhaps joined two.
+    // Drawn before the asks so that a seed keeps its case; the choices fall
+    // on the pieces as the asks leave them, a rule having perhaps joined two.
     let chosen: Vec<bool> = pieces(&asker.sketch)
         .iter()
         .map(|_| asker.random.chance(shares.constrained))

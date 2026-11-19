@@ -202,10 +202,14 @@ the origin, its shape values, which way round it lies — in that order, each
 kept only when it takes some freedom away (`random_sketches/greening.rs`). The
 values are what it measures, so it turns green where it stands. It is written
 as one gesture, the piece's places and what it was given, which a case shrinks
-whole or not at all, and it is held to its green only while every one of them
-is still laid and taken and the places still name one piece of the drawing.
-A piece whose points the sketch does not all call settled, or one of whose
-circles can still change size, claims nothing.
+whole or not at all. A piece whose points the sketch does not all call
+settled, or one of whose circles can still change size, claims nothing — when
+it is drawn, and again when the case is played: a case shrunk out of a value
+the piece leaned on, the angle that said which way a rectangle lies, makes no
+claim. Played, it claims green only while every one of what it was given is
+still laid and taken and its places still name one piece of the drawing. The
+whole drawing is asked whether it is fully constrained once every piece of it
+claims green, and never while it holds nothing but its origin.
 
 **A drag** is a press at one place let go at another, with nothing selected:
 a point is moved, the centre of an arc or an ellipse carries its curve, and a
@@ -236,6 +240,11 @@ played by `random_sketches/promising.rs`.
 | Green is fixed | `green_is_fixed` | a point of a piece made entirely constrained is not said settled; the whole drawing, every piece of it made so, is not said fully constrained; or a piece is still green with one of its values taken away |
 | The areas hold | `areas_hold` | any rule of the areas breaks once a value, a rule or a drag has moved the drawing |
 
+The half of *tells the truth* that holds a refusal cannot fail in a campaign
+on a value or a rule: one the drawing refuses is put back by construction, in
+`cao_part` as in `holding.rs`. Only a refused merge of two points can break
+it there; the rest of that half is caught out on data broken by hand.
+
 A value and a rule are read again on the drawing as it stands after each
 gesture, followed onto the point that stays when two are joined, and dropped
 once they are off it. How far a rule stands from holding is worked out in the
@@ -243,7 +252,8 @@ harness from the drawing's places, never asked of the sketch. A length may
 stand off by a tenth of a micron on a metre — `HELD`, a hundred times what the
 solver settles to — against how far the drawing reaches; an angle by what
 moves the end of its arm that far, `HELD` times the reach over the arm, in
-radians. A value the drawing already measured moves nothing, and a flaw of the
+radians; an angle whose arm has shrunk under that length may not stray at all,
+since nothing is left to read it on. A value the drawing already measured moves nothing, and a flaw of the
 areas found before anything has moved is still the rule's own; after, it comes
 back as `Moved`.
 
@@ -259,16 +269,20 @@ CAO_FUZZ_SECONDS=300 cargo test --release -p cao_sketch \
 
 `CAO_FUZZ_SEED` starts from a given seed rather than from the clock;
 `CAO_FUZZ_PATIENCE` is how many seconds a single drawing may take before it
-counts as no answer. `CAO_FUZZ_MODE` and `CAO_FUZZ_SHARES` choose
-the mode, as above:
+counts as no answer. They mean what they mean for the solids. `--release` is
+worth it: the same minutes try several times more drawings.
+
+`CAO_FUZZ_MODE` and `CAO_FUZZ_SHARES` choose the mode, as above:
 
 ```sh
 CAO_FUZZ_MODE=shares CAO_FUZZ_SHARES=30,50,20 CAO_FUZZ_SECONDS=300 \
     cargo test --release -p cao_sketch \
     --test every_sketch_keeps_its_areas -- --ignored --nocapture
 ```
- They mean what they mean for the solids. `--release` is
-worth it: the same minutes try several times more drawings.
+
+A case is drawn apart, as it is checked: drawing one lays its values and its
+rules through the solver, and a seed whose drawing panics or never comes back
+is reported under *answers* by its seed alone, with no case to shrink.
 
 The deadline is checked between drawings, so a run can overshoot it by one
 patience. The seed being tried is written on the standard error as it goes:
@@ -384,8 +398,10 @@ the touches #419 already had there; the reckoning's own misreading is held in
 `what_closes_around_a_place.rs`.
 
 The first campaigns with values, rules and drags, in every mode, found what
-the areas alone could not, each now an issue of its own and kept under it in
-`what_random_sketches_found.rs`:
+the areas alone could not, each now an issue of its own. Every cause with an
+issue of its own is kept under it in `what_random_sketches_found.rs`; what is
+not sorted by cause yet is listed by seed in #1047, and pinned once its cause
+has an issue:
 
 | Cause | Issue |
 | --- | --- |

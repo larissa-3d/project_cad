@@ -109,9 +109,13 @@
 //! - three rules, each caught out on purpose — a dimension tells the truth:
 //!   `a_drawing_settled_on_what_it_was_promised_tells_the_truth`,
 //!   `a_dimension_measuring_other_than_its_value_breaks_the_truth`,
+//!   `an_angle_read_on_a_trait_flattened_to_nothing_breaks_the_truth`,
 //!   `an_accepted_rule_that_does_not_hold_breaks_the_truth`,
 //!   `a_refused_dimension_that_moves_the_drawing_breaks_the_truth`,
-//!   `a_refused_rule_that_adds_or_takes_away_a_point_breaks_the_truth`; green is
+//!   `a_refused_rule_that_adds_or_takes_away_a_point_breaks_the_truth` — the
+//!   last two catch the rule out on data broken by hand: a value or a rule
+//!   refused is restored by construction, by `cao_part` as by `holding.rs`,
+//!   so in a campaign only a refused merge can break that half; green is
 //!   fixed: `pieces_made_entirely_constrained_and_said_to_be_keep_green_fixed`,
 //!   `a_point_of_a_piece_made_entirely_constrained_not_said_settled_breaks_green`,
 //!   `a_drawing_made_entirely_constrained_not_said_to_be_breaks_green`,
@@ -133,14 +137,22 @@
 //!   `the_printed_rust_lays_the_dimensions_and_rules_it_was_printed_from`,
 //!   `a_case_shrunk_never_claims_a_piece_it_no_longer_made_green`
 //! - the campaign is ignored by the gate and bounded by a deadline; the gate
-//!   is no slower — `a_campaign_of_random_drawings_keeps_every_rule`; that the
-//!   gate is no slower is measured on the test run, not asserted
+//!   is no slower — `a_campaign_of_random_drawings_keeps_every_rule`. Not
+//!   quite no slower, measured rather than asserted: this file's tests take
+//!   about a tenth of a second more than before #501, out of a few tenths. A
+//!   mode is only seen by drawing in it, which lays dimensions and rules
+//!   through the solver, so the tests of the modes, the wiring and the
+//!   shrinking draw the fewest cases that still catch a generator broken on
+//!   purpose
 //! - `docs/sketch-soundness.md` gains the modes and the three rules — no test:
 //!   it is prose, held by `language.rs` and by nothing that asserts
 //! - what the first campaigns find is written down, one issue per distinct
 //!   failure. Nothing is fixed here — no test: not in this file.
 //!   `what_random_sketches_found.rs` keeps each case ignored under its issue,
-//!   and its own `Closes #501` block names the tests
+//!   and its own `Closes #501` block names the tests. Not every failure has
+//!   its issue yet: the bulk not sorted by cause — area-walk failures on the
+//!   exact contacts the rules create, a few `Untrue` and `Fixed` cases — is
+//!   deferred to #1047, which lists their seeds
 //!
 //! The campaign is run by hand:
 //!
@@ -322,7 +334,7 @@ fn every_mode() -> [Mode; 4] {
 #[test]
 fn the_same_seed_in_the_same_mode_draws_the_same_case() {
     for mode in every_mode() {
-        for seed in 0..40 {
+        for seed in 0..3 {
             assert_eq!(
                 drawn_in(seed, &mode),
                 drawn_in(seed, &mode),
@@ -333,12 +345,12 @@ fn the_same_seed_in_the_same_mode_draws_the_same_case() {
     for seed in 0..200 {
         assert_eq!(drawn_in(seed, &Mode::Free), drawn(seed), "seed {seed}");
     }
-    let constrained_otherwise = (0..40)
+    let constrained_otherwise = (0..8)
         .filter(|seed| drawn_in(*seed, &Mode::AllConstrained) != drawn(*seed))
         .count();
     assert!(
-        constrained_otherwise > 30,
-        "only {constrained_otherwise} of 40 seeds draw another case all constrained than free"
+        constrained_otherwise > 6,
+        "only {constrained_otherwise} of 8 seeds draw another case all constrained than free"
     );
 }
 
@@ -351,8 +363,9 @@ fn holds_a_trait(drawing: &[Gesture]) -> bool {
 
 #[test]
 fn each_mode_gives_its_drawings_what_the_issue_says() {
-    let in_mode =
-        |mode: &Mode| -> Vec<Vec<Gesture>> { (0..60).map(|seed| drawn_in(seed, mode)).collect() };
+    let in_mode = |mode: &Mode, seeds: std::ops::Range<u64>| -> Vec<Vec<Gesture>> {
+        seeds.map(|seed| drawn_in(seed, mode)).collect()
+    };
     let constraining = |drawing: &[Gesture]| {
         drawing
             .iter()
@@ -361,7 +374,7 @@ fn each_mode_gives_its_drawings_what_the_issue_says() {
     };
 
     assert!(
-        in_mode(&Mode::Free)
+        in_mode(&Mode::Free, 0..12)
             .iter()
             .flatten()
             .all(|gesture| !gesture.constrains() && !gesture.drags()),
@@ -374,7 +387,7 @@ fn each_mode_gives_its_drawings_what_the_issue_says() {
         constrained: 0,
     };
     assert!(
-        in_mode(&nought)
+        in_mode(&nought, 0..12)
             .iter()
             .flatten()
             .all(|gesture| !gesture.constrains()),
@@ -386,7 +399,7 @@ fn each_mode_gives_its_drawings_what_the_issue_says() {
         rules: 100,
         constrained: 100,
     };
-    for drawing in in_mode(&full)
+    for drawing in in_mode(&full, 2..6)
         .iter()
         .filter(|drawing| holds_a_trait(drawing))
     {
@@ -397,7 +410,7 @@ fn each_mode_gives_its_drawings_what_the_issue_says() {
         );
     }
 
-    let mixed: Vec<Vec<Gesture>> = in_mode(&Mode::Mix)
+    let mixed: Vec<Vec<Gesture>> = in_mode(&Mode::Mix, 0..8)
         .into_iter()
         .filter(|drawing| holds_a_trait(drawing))
         .collect();
@@ -414,7 +427,7 @@ fn each_mode_gives_its_drawings_what_the_issue_says() {
         "no mixed drawing was dragged"
     );
 
-    let sketches: Vec<_> = in_mode(&Mode::AllConstrained)
+    let sketches: Vec<_> = in_mode(&Mode::AllConstrained, 0..8)
         .iter()
         .map(|drawing| random_sketches::laid(drawing))
         .filter(|sketch| sketch.holds_a_drawing())
@@ -1535,6 +1548,26 @@ fn an_accepted_rule_that_does_not_hold_breaks_the_truth() {
 }
 
 #[test]
+fn an_angle_read_on_a_trait_flattened_to_nothing_breaks_the_truth() {
+    for arm in [1e-12, 0.0] {
+        assert_eq!(
+            tells_the_truth(&[Promise::Turned {
+                near: at(1.0, -0.7675),
+                degrees: 81.258,
+                measured: 173.657,
+                arm,
+            }]),
+            Err(Flaw::Untrue {
+                near: at(1.0, -0.7675),
+                value: 81.258,
+                measured: 173.657,
+            }),
+            "an arm {arm} long"
+        );
+    }
+}
+
+#[test]
 fn a_refused_dimension_that_moves_the_drawing_breaks_the_truth() {
     assert_eq!(
         tells_the_truth(&[Promise::Refused {
@@ -2238,7 +2271,7 @@ fn the_printed_rust_lays_the_dimensions_and_rules_it_was_printed_from() {
 
     let mut nested = 0;
     for mode in [Mode::Mix, Mode::AllConstrained] {
-        for seed in 0..60 {
+        for seed in 0..8 {
             for gesture in drawn_in(seed, &mode) {
                 let values = values_within(&gesture);
                 if matches!(gesture, Gesture::Green { .. }) {
@@ -2354,26 +2387,55 @@ fn a_broken_case_shrinks_keeping_the_dimensions_and_rules_it_breaks_on() {
     }
 }
 
+/// Whether, after some gesture of a case, a piece it claims green is not said
+/// to be.
+fn says_a_claimed_piece_is_not_green(case: &[Gesture]) -> bool {
+    promises_of(case).iter().any(|after| {
+        matches!(
+            green_is_fixed(&after.pieces, after.whole),
+            Err(Flaw::NotGreen { .. })
+        )
+    })
+}
+
 #[test]
 fn a_case_shrunk_never_claims_a_piece_it_no_longer_made_green() {
     for seed in 0..3 {
         let case = drawn_in(seed, &Mode::AllConstrained);
-        let green = |case: &[Gesture]| {
-            promises_of(case)
-                .last()
-                .is_none_or(|last| green_is_fixed(&last.pieces, last.whole).is_ok())
-        };
-        if !holds_a_trait(&case) || !green(&case) {
+        if !holds_a_trait(&case) || says_a_claimed_piece_is_not_green(&case) {
             continue;
         }
         for candidate in smaller(&case) {
             assert!(
-                promises_of(&candidate).last().is_none_or(|last| !matches!(
-                    green_is_fixed(&last.pieces, last.whole),
-                    Err(Flaw::NotGreen { .. })
-                )),
+                !says_a_claimed_piece_is_not_green(&candidate),
                 "seed {seed}: shrunk into a piece claimed green that was not given what green takes: {}",
                 Drawing(&candidate)
+            );
+        }
+    }
+    let halves = Mode::Shares {
+        dimensions: 50,
+        rules: 50,
+        constrained: 50,
+    };
+    for (mode, seed) in [(Mode::Mix, 45), (halves.clone(), 39), (halves, 58)] {
+        let case = drawn_in(seed, &mode);
+        assert!(
+            !says_a_claimed_piece_is_not_green(&case),
+            "seed {seed} in {mode:?}"
+        );
+        let last_green = case
+            .iter()
+            .rposition(|gesture| matches!(gesture, Gesture::Green { .. }))
+            .unwrap_or_else(|| panic!("seed {seed} in {mode:?} makes no piece green"));
+        for dropped in 0..last_green {
+            let mut fewer = case.clone();
+            fewer.remove(dropped);
+            assert!(
+                !says_a_claimed_piece_is_not_green(&fewer),
+                "seed {seed} in {mode:?}, gesture {dropped} dropped: a piece is claimed green that \
+                 lost what made it green: {}",
+                Drawing(&fewer)
             );
         }
     }
@@ -2417,7 +2479,8 @@ fn drawn_noisily(seed: u64) -> Vec<Gesture> {
 
 /// The mode `CAO_FUZZ_MODE` and `CAO_FUZZ_SHARES` choose, read once. One
 /// they do not name stops the campaign: a campaign run in a mode nobody asked
-/// for reports on cases nobody meant.
+/// for reports on cases nobody meant. It exits rather than panics, since a
+/// case is drawn on a thread whose panic is a finding.
 fn chosen_mode() -> &'static Mode {
     static CHOSEN: std::sync::OnceLock<Mode> = std::sync::OnceLock::new();
     CHOSEN.get_or_init(|| {
@@ -2432,7 +2495,7 @@ fn chosen_mode() -> &'static Mode {
             }
             Err(refused) => {
                 eprintln!("CAO_FUZZ_MODE and CAO_FUZZ_SHARES refused: {refused}");
-                panic!("CAO_FUZZ_MODE and CAO_FUZZ_SHARES refused: {refused}");
+                std::process::exit(2);
             }
         }
     })
@@ -2485,6 +2548,16 @@ fn print_report(report: &Report<Vec<Gesture>>, patience: Duration) {
         println!("  {rule:?}: broken by {count}");
     }
     for finding in &report.findings {
+        if finding.shrunk.is_empty() {
+            println!(
+                "\n── {:?}, seed {} ──\ndrawing the case itself: {:?}; draw it again with `drawn_in({}, &mode)`",
+                finding.flaw.rule(),
+                finding.seed,
+                finding.flaw,
+                finding.seed,
+            );
+            continue;
+        }
         let shrunk = finding.shrunk.clone();
         let after = match random_sketches::apart(move || played(&shrunk), patience) {
             Ok(Err((after, _))) => format!("after gesture {after} of {}", finding.shrunk.len()),

@@ -132,6 +132,10 @@
 //!   `collinear_between_two_equal_sides_an_angle_holds_apart_is_refused`,
 //!   `a_point_erased_where_two_curves_cross_leaves_them_their_areas`,
 //!   `an_arc_whose_two_ends_are_brought_onto_one_place_keeps_the_rules_of_its_areas`
+//! - what is not sorted by cause yet — the bulk of the area-walk failures on
+//!   the exact contacts the rules create, a few `Untrue` and `Fixed` cases —
+//!   is deferred, not claimed — no test: #1047 lists their seeds, and a case
+//!   is pinned here once its cause has an issue
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
