@@ -16,13 +16,13 @@ use crate::sketch::{PointId, Sketch};
 /// outline. A cut that does not fit, or one in construction, leaves its corner
 /// sharp: its sides are laid whole for it.
 ///
-/// `vertex` is where each of the drawing's own points stands. An end a cut
-/// pulled back stands on a place of its own, found or added in `places`.
+/// `vertex` is where each of the drawing's points still drawn stands. An end a
+/// cut pulled back stands on a place of its own, found or added in `places`.
 /// Hands back where the cuts pull the ends of each side to, which the
 /// stretches of ellipses are laid from in their turn.
 pub(super) fn sides_and_cuts(
     sketch: &Sketch,
-    vertex: &[usize],
+    vertex: &[Option<usize>],
     places: &mut Vec<DVec2>,
     curves: &mut Vec<Curve>,
     names: &mut Vec<CurveId>,
@@ -35,6 +35,10 @@ pub(super) fn sides_and_cuts(
         };
         let from = end_at(vertex, places, segment.start, ends[0]);
         let to = end_at(vertex, places, segment.end, ends[1]);
+        debug_assert!(from.is_some() && to.is_some());
+        let (Some(from), Some(to)) = (from, to) else {
+            continue;
+        };
         curves.push(Curve::Straight { from, to });
         names.push(CurveId::Segment(id));
     }
@@ -59,6 +63,10 @@ pub(super) fn sides_and_cuts(
         let ends = pulled.of(id.into());
         let from = end_at(vertex, places, arc.start, ends[0]);
         let to = end_at(vertex, places, arc.end, ends[1]);
+        debug_assert!(from.is_some() && to.is_some());
+        let (Some(from), Some(to)) = (from, to) else {
+            continue;
+        };
         curves.push(Curve::Bent {
             centre: sketch.point(arc.center),
             from,
@@ -70,16 +78,16 @@ pub(super) fn sides_and_cuts(
 }
 
 /// The vertex an end of a side stands on: its own point's, or the place a cut
-/// pulled it back to.
+/// pulled it back to — and none on a point erased.
 fn end_at(
-    vertex: &[usize],
+    vertex: &[Option<usize>],
     places: &mut Vec<DVec2>,
     point: PointId,
     pulled: Option<DVec2>,
-) -> usize {
+) -> Option<usize> {
     match pulled {
-        Some(place) => vertex_for(places, place),
-        None => vertex[point.0],
+        Some(place) => Some(vertex_for(places, place)),
+        None => vertex.get(point.0).copied().flatten(),
     }
 }
 

@@ -145,6 +145,19 @@
 //!   — `a_circle_s_centre_put_on_its_own_circle_is_refused`,
 //!   `an_arc_s_centre_put_on_its_own_arc_is_refused`,
 //!   `half_an_ellipse_s_centre_put_on_its_own_curve_is_refused`
+//!
+//! Closes #1045.
+//! - adding then erasing a point leaves the areas unchanged, on a crossing and
+//!   a hair off it — no test: not in this file; `erased_points.rs` holds it at
+//!   the sketch's level, the areas before the point against the areas after
+//! - the cases above hold in #501's campaign: the drawing pinned under #1045
+//!   with its `ignore` taken off, its twin a hair off the crossing, and the
+//!   issue's two seeds, which reach it through a merge leaving the dropped
+//!   point standing —
+//!   `a_point_erased_where_two_curves_cross_leaves_them_their_areas`,
+//!   `a_point_erased_a_hair_off_where_two_curves_cross_leaves_them_their_areas`,
+//!   `a_circle_s_centre_made_one_with_a_corner_leaves_its_old_place_out_of_the_areas`,
+//!   `a_place_on_a_circle_made_one_with_the_origin_leaves_its_old_place_out_of_the_areas`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1239,7 +1252,6 @@ fn collinear_between_two_equal_sides_an_angle_holds_apart_is_refused() {
 }
 
 #[test]
-#[ignore = "#1045"]
 fn a_point_erased_where_two_curves_cross_leaves_them_their_areas() {
     random_sketches::holds(&[
         Gesture::Circle {
@@ -1254,6 +1266,88 @@ fn a_point_erased_where_two_curves_cross_leaves_them_their_areas() {
         },
         Gesture::Point { at: [2.0, 5.0] },
         Gesture::Erase { at: [2.0, 5.0] },
+    ]);
+}
+
+#[test]
+fn a_point_erased_a_hair_off_where_two_curves_cross_leaves_them_their_areas() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [5.0, 5.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[1.0, 5.0], [10.0, 5.0], [5.5, 12.0]],
+            closed: true,
+            construction: false,
+        },
+        Gesture::Point {
+            at: [2.000_000_03, 5.0],
+        },
+        Gesture::Erase {
+            at: [2.000_000_03, 5.0],
+        },
+    ]);
+}
+
+#[test]
+fn a_circle_s_centre_made_one_with_a_corner_leaves_its_old_place_out_of_the_areas() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [0.0, 2.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [5.0, 5.0],
+            opposite: [10.0, 1.0],
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[0.0, 5.0], [0.0, -2.0], [11.0, 2.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[5.0, 5.0], [0.0, 2.0]],
+        },
+    ]);
+}
+
+#[test]
+fn a_place_on_a_circle_made_one_with_the_origin_leaves_its_old_place_out_of_the_areas() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [10.0, 5.0],
+            opposite: [8.0, 8.0],
+            construction: false,
+        },
+        Gesture::Circle {
+            centre: [8.0, 0.0],
+            radius: 4.5,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Equal,
+            clicks: vec![[10.0, 7.0], [9.0, 8.0]],
+        },
+        Gesture::Drag {
+            from: [8.75, 5.0],
+            to: [11.472877613848995, 7.722877613848995],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[12.5, 0.0], [0.0, 0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Collinear,
+            clicks: vec![
+                [-10.044679889994793, 0.0],
+                [10.239575754363916, 9.214033028722536],
+            ],
+        },
     ]);
 }
 
