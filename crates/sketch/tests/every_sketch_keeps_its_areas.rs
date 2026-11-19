@@ -2230,34 +2230,65 @@ fn the_printed_rust_lays_the_dimensions_and_rules_it_was_printed_from() {
     ];
     assert_eq!(pasted, a_constrained_case().as_slice());
 
+    let mut nested = 0;
     for mode in [Mode::Mix, Mode::AllConstrained] {
         for seed in 0..60 {
             for gesture in drawn_in(seed, &mode) {
-                let Gesture::Dimension { value, .. } = gesture else {
-                    continue;
-                };
+                let values = values_within(&gesture);
+                if matches!(gesture, Gesture::Green { .. }) {
+                    nested += values.len();
+                }
                 let printed = gesture.to_string();
-                let written = printed
+                let read_back: Vec<Option<u64>> = printed
                     .split("value: ")
-                    .nth(1)
-                    .and_then(|rest| rest.strip_suffix(" }"))
-                    .unwrap_or_else(|| panic!("no value in {printed}"));
-                let read_back = match written.strip_prefix("f64::from_bits(") {
-                    Some(bits) => {
-                        u64::from_str_radix(bits.trim_end_matches(')').trim_start_matches("0x"), 16)
-                            .map(f64::from_bits)
-                            .ok()
-                    }
-                    None => written.parse::<f64>().ok(),
-                };
+                    .skip(1)
+                    .map(|rest| rest.split(" }").next().unwrap_or(rest))
+                    .map(|written| match written.strip_prefix("f64::from_bits(") {
+                        Some(bits) => u64::from_str_radix(
+                            bits.trim_end_matches(')').trim_start_matches("0x"),
+                            16,
+                        )
+                        .ok(),
+                        None => written.parse::<f64>().ok().map(f64::to_bits),
+                    })
+                    .collect();
                 assert_eq!(
-                    read_back.map(f64::to_bits),
-                    Some(value.to_bits()),
-                    "seed {seed} in {mode:?}: {value:?} printed as {written}"
+                    read_back,
+                    values
+                        .iter()
+                        .map(|value| Some(value.to_bits()))
+                        .collect::<Vec<_>>(),
+                    "seed {seed} in {mode:?}: {values:?} printed as {printed}"
                 );
             }
         }
     }
+    assert!(
+        nested > 0,
+        "no value given to a piece made green was printed"
+    );
+}
+
+/// The values a gesture types, those it gives a piece made green included, in
+/// the order it types them.
+fn values_within(gesture: &Gesture) -> Vec<f64> {
+    match gesture {
+        Gesture::Dimension { value, .. } => vec![*value],
+        Gesture::Green { given, .. } => given.iter().flat_map(values_within).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// How many gestures of a kind a case holds, those given to a piece made green
+/// included.
+fn holding_within(gestures: &[Gesture], kind: fn(&Gesture) -> bool) -> usize {
+    gestures
+        .iter()
+        .map(|gesture| match gesture {
+            Gesture::Green { given, .. } => holding_within(given, kind),
+            _ => usize::from(kind(gesture)),
+        })
+        .sum()
 }
 
 /// Whether a drawing, laid, carries a value that drives it and a rule laid
@@ -2291,16 +2322,17 @@ fn a_broken_case_shrinks_keeping_the_dimensions_and_rules_it_breaks_on() {
         || true,
     );
 
-    let count = |kind: fn(&Gesture) -> bool| shrunk.iter().filter(|gesture| kind(gesture)).count();
-    assert_eq!(
-        count(|gesture| matches!(gesture, Gesture::Dimension { .. })),
-        1,
+    assert!(driven_and_ruled(&shrunk), "{}", Drawing(&shrunk));
+    assert!(
+        holding_within(&shrunk, |gesture| matches!(
+            gesture,
+            Gesture::Dimension { .. }
+        )) >= 1,
         "{}",
         Drawing(&shrunk)
     );
-    assert_eq!(
-        count(|gesture| matches!(gesture, Gesture::Rule { .. })),
-        1,
+    assert!(
+        holding_within(&shrunk, |gesture| matches!(gesture, Gesture::Rule { .. })) >= 1,
         "{}",
         Drawing(&shrunk)
     );
