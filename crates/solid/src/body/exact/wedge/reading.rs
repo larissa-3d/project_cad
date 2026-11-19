@@ -80,6 +80,7 @@ impl Wedge {
             reach: f64::INFINITY,
             dip: 0.0,
             inwards: towards > 0.0,
+            crossed: Vec::new(),
         })
     }
 }

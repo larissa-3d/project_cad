@@ -221,7 +221,8 @@ It can:
   one whose cut, carried along the edge's line, would take matter beyond
   the faces it meets at its ends. That last one checks what the cut left:
   no face of the prism but its chamfer, the chamfer in one piece, each of
-  its corners on one of the edge's faces, and every face the body held
+  its corners on one of the edge's faces, or on an edge ending at a convex
+  corner the edge ends at alone (below), and every face the body held
   still there but the edge's two, which the chamfer may consume, and a
   piece an earlier cut parted from either of them, which may go too. An edge
   ending where matter lies past it, behind the one flat face it runs into
@@ -231,7 +232,8 @@ It can:
   on that face's plane as a fill's is, and that face grows by the cut's end
   section and keeps its number. Where the face it runs into is curved, or
   is not one face, the cut is carried along the line and the check
-  declines what it takes. Two such edges of one step meeting at a corner
+  declines what it takes, but at a convex corner the edge ends at alone
+  (below). Two such edges of one step meeting at a corner
   whose third edge is concave and left out of the list — the L's two top
   edges at its inner corner, two edges of a pocket's rim — each stop flush
   there, and the later takes with it what both prisms, carried past the
@@ -253,7 +255,17 @@ It can:
   just past √2/2 — the rounds the step leaves fail the check that each
   stands as a face of its own (`Exact::filleted`), and the step is declined
   `Distance` in the two orders that name the short edge between the other
-  two; 0.70711 and 0.7075 are laid. A round leaving
+  two; 0.70711 and 0.7075 are laid. An end the edge runs into several
+  faces at is carried past where it is a convex corner the edge ends at
+  alone — no other edge of the step ending there, and every edge that
+  does straight between two flat faces meeting outwards: a hip's foot on
+  a box, or a pyramid's apex, where four edges end (#943,
+  `corners::crossed` in `body/exact/wedge/corners.rs`). There, as at a
+  corner of three, the prism takes what of it lies inside the corner and
+  nothing beyond: each of its lines stops on the last face round the
+  corner it meets, so the flat or the round ends across those faces, its
+  end kinked where it crosses from one to the next, a corner on the edge
+  between them, which the check takes as on a side. A round leaving
   the edge's end at a few degrees inwards trims the chamfer like any other
   end face; one leaving it outwards dips outside the edge's face past the
   end corner, by `r·(1 − cos θ)` for a round of radius `r` leaving at `θ`.
@@ -521,7 +533,8 @@ Left, in the order #497 set:
   angle (#577);
 - an exact STEP;
 - a chamfer and a fillet on a curved edge: on straight edges both are done
-  — one edge (#696, #697), several at once (#698), edges meeting at a convex
+  — one edge (#696, #697), one ending alone at a convex corner of four or
+  more edges (#943), several at once (#698), edges meeting at a convex
   corner (#699), and stopping at the wall of a concave corner (#801);
 - draft, shell, loft.
 
