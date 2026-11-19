@@ -388,7 +388,13 @@ It can:
   so trimmed: a rib's round end bulging out of the matter, or
   drawn in by draft, and a slot's round end that turns in toward the slot off
   its wall at a few degrees, which the fill runs on into. The round stays one
-  face and takes in the fill's section. A sphere end the edge runs out of
+  face and takes in the fill's section. A round the edge runs into, its
+  matter inside — a pillar at the end of a wall (#908) — trims the prism by
+  the box past the plane through its axis and by its own disc, raised along
+  the axis over what the long edges span between its near side and that
+  plane: the fill ends flush on the round and nothing of it enters the
+  pillar, so a bore through a boss, inside its outer cylinder, stays one
+  whole face (#915, `fill/round.rs`). A sphere end the edge runs out of
   trims a chamfer's prism by the box past where its long edges leave the
   sphere, raised as a plane's end is, less the piece of the ball that box
   takes in, turned about the sphere's own axis, so that the fill's end lies
@@ -428,8 +434,12 @@ It can:
   lies on the face, and the join swallows it, the face giving up the fill's
   section and keeping its number. Declined `Unsupported`: an end where no
   face but the edge's two meets the edge, or several do; a flat one lying
-  along the edge; a round the edge runs into at its end rather than out of,
-  or one that turns away short of the fill's reach, or a cone a long edge of
+  along the edge; a round the edge runs into at its end, its matter outside
+  — a slot's round end — or a cone or a sphere it runs into, or a round
+  that turns away short of the fill's reach; a bore breaking out of a
+  boss's round where the fill meets it, or into the wall, the fill ending on
+  the bore or the boss's disc leaving a face of its own on it (#915); or a
+  cone a long edge of
   the prism misses — a drafted slot's round end, the margin sunk into its
   wall passing outside the cone (#807); and one leaning so far that its
   plane misses the prism's long edges between the prism's two ends. And a
