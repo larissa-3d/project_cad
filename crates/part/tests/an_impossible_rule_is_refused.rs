@@ -59,7 +59,9 @@
 //!   `a_trait_with_no_value_is_turned_vertical`,
 //!   `a_trait_given_a_vertical_value_is_still_made_vertical`,
 //!   `an_ellipse_with_no_value_is_turned`,
-//!   `a_trait_with_no_value_is_turned_square_to_a_vertical_one`
+//!   `a_trait_with_no_value_is_turned_square_to_a_vertical_one`;
+//!   and two points a horizontal value holds apart are not made one —
+//!   `two_points_a_horizontal_value_holds_apart_are_not_made_one`
 //! - The cases above hold in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the trait, the half-ellipse and the perpendicular
 //!   drawings it found are held to its rules there, in
@@ -362,27 +364,40 @@ fn tangency_through_the_centre_is_refused(document: PartDocument, curve: Element
 /// `rule` refused, and nothing of the drawing touched: its rules, its values,
 /// its points, the size of `curve` when one is named, and the history.
 fn refused_with_the_drawing_unchanged(
-    mut document: PartDocument,
+    document: PartDocument,
     rule: Constraint,
     curve: Option<Element>,
 ) {
+    let constrain = Operation::Constrain {
+        sketch: 0,
+        constraint: rule,
+    };
+    let document = step_refused_with_the_drawing_unchanged(document, constrain, curve);
+    assert!(
+        !document.sketches()[0].carries(rule),
+        "the rule is not kept"
+    );
+}
+
+fn step_refused_with_the_drawing_unchanged(
+    mut document: PartDocument,
+    step: Operation,
+    curve: Option<Element>,
+) -> PartDocument {
     let before = document.sketches()[0].clone();
     let size = curve.map(|curve| size_of(&document, curve));
     let recorded = steps(&document);
+    let tried = format!("{step:?}");
 
-    let outcome = document.apply(Operation::Constrain {
-        sketch: 0,
-        constraint: rule,
-    });
+    let outcome = document.apply(step);
 
     assert_eq!(
         outcome,
         Some(Outcome::RuleRefused),
-        "{rule:?} was laid, the curve's size now {:?}",
+        "{tried} was laid, the curve's size now {:?}",
         curve.map(|curve| size_of(&document, curve))
     );
     let sketch = &document.sketches()[0];
-    assert!(!sketch.carries(rule), "the rule is not kept");
     assert_eq!(
         sketch.constraints(),
         before.constraints(),
@@ -416,6 +431,7 @@ fn refused_with_the_drawing_unchanged(
         );
     }
     assert_eq!(steps(&document), recorded, "the history has no new step");
+    document
 }
 
 #[test]
@@ -923,5 +939,48 @@ fn a_trait_with_no_value_is_turned_square_to_a_vertical_one() {
     assert!(
         (start.y - end.y).abs() < 1e-6,
         "the slanted trait lies horizontal: {start} to {end}"
+    );
+}
+
+#[test]
+fn two_points_a_horizontal_value_holds_apart_are_not_made_one() {
+    let mut document = a_blank_sketch();
+    for position in [DVec2::new(10.0, 10.0), DVec2::new(30.0, 25.0)] {
+        document.apply(Operation::AddPoint {
+            sketch: 0,
+            position,
+            on: Vec::new(),
+        });
+    }
+    let count = document.sketches()[0].points().len();
+    let (first, second) = (PointId(count - 2), PointId(count - 1));
+    document.apply(Operation::SetDimension {
+        sketch: 0,
+        target: DimensionTarget::Projected {
+            from: first,
+            to: second,
+            axis: SketchAxis::U,
+        },
+        value: 20.0.into(),
+        placement: None,
+    });
+    let picks = [
+        RulePick::Element(Element::Point(first)),
+        RulePick::Element(Element::Point(second)),
+    ];
+    let Some(RuleIntent::Merge { kept, dropped }) =
+        rule_intent(Rule::Coincident, &picks, &document.sketches()[0])
+    else {
+        panic!("the tool does not make two points one");
+    };
+
+    step_refused_with_the_drawing_unchanged(
+        document,
+        Operation::MergePoints {
+            sketch: 0,
+            kept,
+            dropped,
+        },
+        None,
     );
 }
