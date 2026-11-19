@@ -15,7 +15,8 @@
 //! corner and the upright below it, the other top edge left sharp (#846). Any
 //! other corner is declined. Four or more convex edges at a corner, every
 //! edge ending there named — a pyramid's apex — are closed as three are
-//! (#804).
+//! (#804). An edge ending alone at a convex corner, of three edges or more,
+//! is carried past it, its face ending across the faces round it (#943).
 
 use std::collections::BTreeMap;
 
@@ -164,6 +165,36 @@ fn ranked(body: &brep::Body, edges: &[EdgeId]) -> BTreeMap<VertexId, Vec<usize>>
         }
     }
     at
+}
+
+/// The straight edges, each by its two ends, ending at an end of the edge of
+/// rank `rank` in `edges` where no other of them ends and every edge ending
+/// there is straight between two flat faces meeting outwards: a convex
+/// corner, where the edge's cut, carried past it alone, keeps each line of
+/// its prism up to the last face round the corner it meets, so that the
+/// cut's face ends across those faces, crossing from one to the next on the
+/// edge between them — at a hip's foot on a box, or at a pyramid's apex,
+/// where four edges end (#943). At a corner of three the other two lie on
+/// the edge's own faces.
+pub(super) fn crossed(body: &brep::Body, edges: &[EdgeId], rank: usize) -> Vec<[DVec3; 2]> {
+    let edge = edges[rank];
+    let ranks = ranked(body, edges);
+    let convex = |other| Wedge::faced(body, other).is_ok_and(|wedge| !wedge.inwards);
+    (body.edge(edge).ends.into_iter().flatten())
+        .filter(|end| ranks.get(end).is_some_and(|at| at.len() == 1))
+        .filter(|&end| ending(body, end).all(convex))
+        .flat_map(|end| ending(body, end).filter(move |&other| other != edge))
+        .filter_map(|other| body.edge(other).ends)
+        .map(|ends| ends.map(|end| body.vertex(end).point))
+        .collect()
+}
+
+/// Whether `point` lies on the straight edge from `ends[0]` to `ends[1]`,
+/// within `eps`.
+pub(super) fn lies_on([from, to]: [DVec3; 2], point: DVec3, eps: f64) -> bool {
+    let run = to - from;
+    let share = ((point - from).dot(run) / run.length_squared()).clamp(0.0, 1.0);
+    (from + run * share).distance(point) <= eps
 }
 
 /// The edges that end at a corner.

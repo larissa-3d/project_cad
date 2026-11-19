@@ -59,7 +59,13 @@ impl Exact {
     /// it runs into there — the inner corner of an L, a pocket's rim, the foot
     /// of a block standing on another — its round stops flush on that face,
     /// which grows by the round's end and keeps its number, as
-    /// [`Exact::laid_flush`] stops it. Two edges meeting at a convex corner are
+    /// [`Exact::laid_flush`] stops it. An edge ending alone at a convex corner
+    /// where four or more edges end — a hip's foot on a box, a pyramid's apex
+    /// — is carried past it as past a corner of three: each line of its prism
+    /// stops on the last face round the corner it meets, so its round ends
+    /// across those faces along the curves they cut from its cylinder, a
+    /// corner on each edge between two of them (#943). Two edges meeting at a
+    /// convex corner are
     /// mitred there, on the ellipse where their rounds cross, from where they
     /// leave the face the edges share down to the corner's third edge, left
     /// sharp. Two rounded off where they meet beside a concave edge left sharp
@@ -147,8 +153,9 @@ impl Exact {
     /// open slot's end, the rim above a standing round bottom — refused by
     /// the laying, and a cut that left anything but its round —
     /// a face of the prism, the round in two
-    /// pieces or with a corner on neither of the edge's faces, a face the body
-    /// held, but the edge's two, taken away whole — as where a round leaving
+    /// pieces or with a corner on neither of the edge's faces nor on an edge
+    /// ending at a convex corner it ends at alone, a face the body held, but
+    /// the edge's two, taken away whole — as where a round leaving
     /// the edge's end outwards bulges past the edge's face, and the prism's
     /// wall square to that face cuts the bulge off, or two rounds meet where
     /// the radius was not measured for them.
