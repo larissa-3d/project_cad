@@ -147,23 +147,31 @@ impl Sketch {
         let onto_its_centre = self.live_arcs().any(|(id, arc)| {
             (same(arc.center, arc.start) || same(arc.center, arc.end)) && radius_typed(id)
         });
-        let impossible_rule = self.constraints.iter().any(|rule| {
-            self.on_its_own_centre(*rule, same)
-                || match *rule {
-                    Constraint::Midpoint { point, segment } => {
-                        let side = self.segments[segment.0];
-                        !same(side.start, side.end)
-                            && (same(point, side.start) || same(point, side.end))
-                    }
-                    Constraint::AtCutPoint { point, cut, .. }
-                    | Constraint::OnCut { point, cut } => self
-                        .cut_stands_on(cut)
-                        .into_iter()
-                        .any(|stand| same(point, stand)),
-                    _ => false,
-                }
-        });
+        let impossible_rule = self
+            .constraints
+            .iter()
+            .any(|rule| self.impossible(*rule, &same) && !self.impossible(*rule, &|a, b| a == b));
         !onto_its_centre && !impossible_rule
+    }
+
+    /// Whether a rule could not hold with the points `same` names as one.
+    /// Asked of the drawing as it is too: a rule already untrue is no reason
+    /// to refuse a merge that leaves it as it was.
+    fn impossible(&self, rule: Constraint, same: &impl Fn(PointId, PointId) -> bool) -> bool {
+        self.on_its_own_centre(rule, same)
+            || match rule {
+                Constraint::Midpoint { point, segment } => {
+                    let side = self.segments[segment.0];
+                    !same(side.start, side.end)
+                        && (same(point, side.start) || same(point, side.end))
+                }
+                Constraint::AtCutPoint { point, cut, .. } | Constraint::OnCut { point, cut } => {
+                    self.cut_stands_on(cut)
+                        .into_iter()
+                        .any(|stand| same(point, stand))
+                }
+                _ => false,
+            }
     }
 
     /// Moves every curve turning about `centre` by `step`, with the points it

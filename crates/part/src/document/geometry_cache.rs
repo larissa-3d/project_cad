@@ -66,8 +66,11 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// where the step was declined as undrawn (#707). 23: a face along a meet
 /// curve is boxed by the curve's true extremes, and a wall touching a shaft
 /// exactly and a bore beside it only within the tolerance is cut where the
-/// three meet, where the step was refused as unverified (#775, #776).
-const REBUILT_BY: u32 = 23;
+/// three meet, where the step was refused as unverified (#775, #776). 24: a
+/// curve's centre laid on the curve, or a tangency with a trait running
+/// through the centre, is refused where it was laid untrue or shrank the
+/// curve to nothing (#1037, #1038).
+const REBUILT_BY: u32 = 24;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {
