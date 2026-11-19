@@ -173,6 +173,23 @@
 //!   top, the side walls and the round bottom, one edge each; one vertex at
 //!   the foot of each upright at the step; no two faces meeting by more than
 //!   one edge; and both orders laying one body
+//! - Decided on the way, after the second review (2026-11-19): a stepped end
+//!   whose end walls are not square to the floor's edges stays declined
+//!   `Unsupported` in both orders in this pull request — consistent, so no
+//!   break of #822, and building it is #1021. The `behind` boxes that trim
+//!   each half of the round bottom's prism on its end wall's plane have their
+//!   faces split by the midway half-box `overlap::common` cuts them with,
+//!   which `cut_along` then reads as `parted`. Held on three outlines, the
+//!   step on y = 5 each time: (5, 2), (24, 2), (25, 5), (22, 5), (23, 8),
+//!   (5, 8), both end walls leaning; (5, 2), (26, 2), (25, 5), (22, 5),
+//!   (22, 8), (5, 8), the front half's end leaning; and (5, 2), (25, 2),
+//!   (25, 5), (22, 5), (21, 8), (5, 8), the back half's —
+//!   `a_fillet_on_the_round_bottom_of_a_pocket_whose_floor_edges_end_on_the_two_walls_of_a_stepped_end_at_a_slant_stays_declined_as_unsupported_whatever_the_order`.
+//!   Read as: on each part, its walls numbered as [`Stepped`]'s — the front
+//!   wall facing along Y, the step and the back wall back along it, the left
+//!   wall along X, an end wall leaning; each floor edge laid alone; and the
+//!   fillet at 3 on the two, in both orders, a broken step and its reason,
+//!   `Unsupported`
 //! - Decided after the review (2026-11-19): what the change builds beside the
 //!   criteria, each declined on the base, held so that none changes unseen,
 //!   each built in every order, the value taken whole, exact, closed,
@@ -3123,4 +3140,110 @@ fn a_fillet_on_the_round_bottom_of_a_pocket_whose_floor_edges_end_on_the_two_wal
         }
         the_same_body_in_every_order(start, &built);
     }
+}
+
+/// Stepped ends whose end walls are not square to the floor's edges, each
+/// outline seen from above and what it is called: both end walls leaning, the
+/// step on y = 5; the front half's end leaning, the back half's square; the
+/// back half's end leaning, the front half's square. Cut as [`Stepped`] is,
+/// its walls front, the front half's end, the step, the back half's end, back
+/// and left, eight to thirteen.
+fn stepped_ends_at_a_slant() -> [(&'static str, [DVec2; 6]); 3] {
+    let corner = DVec2::new;
+    [
+        (
+            "the pocket 6 wide stepped at y = 5, both its end walls leaning",
+            [
+                corner(5.0, 2.0),
+                corner(24.0, 2.0),
+                corner(25.0, 5.0),
+                corner(22.0, 5.0),
+                corner(23.0, 8.0),
+                corner(5.0, 8.0),
+            ],
+        ),
+        (
+            "the pocket 6 wide stepped at y = 5, its front half's end wall leaning",
+            [
+                corner(5.0, 2.0),
+                corner(26.0, 2.0),
+                corner(25.0, 5.0),
+                corner(22.0, 5.0),
+                corner(22.0, 8.0),
+                corner(5.0, 8.0),
+            ],
+        ),
+        (
+            "the pocket 6 wide stepped at y = 5, its back half's end wall leaning",
+            [
+                corner(5.0, 2.0),
+                corner(25.0, 2.0),
+                corner(25.0, 5.0),
+                corner(22.0, 5.0),
+                corner(21.0, 8.0),
+                corner(5.0, 8.0),
+            ],
+        ),
+    ]
+}
+
+#[test]
+fn a_fillet_on_the_round_bottom_of_a_pocket_whose_floor_edges_end_on_the_two_walls_of_a_stepped_end_at_a_slant_stays_declined_as_unsupported_whatever_the_order()
+ {
+    let listed: Listed = vec![
+        (
+            [POCKET_FLOOR, POCKET_FRONT],
+            "the floor's edge on the front wall",
+        ),
+        (
+            [POCKET_FLOOR, STEPPED_BACK],
+            "the floor's edge on the back wall",
+        ),
+    ];
+    let mut not_declined = Vec::new();
+    for (on, outline) in stepped_ends_at_a_slant() {
+        let block = block();
+        let part = block
+            .difference(&raised_on(
+                &block,
+                Contour::straight(outline.to_vec()),
+                FLOOR_AT,
+                HEIGHT - FLOOR_AT + 1.0,
+            ))
+            .expect("the pocket is cut");
+        for (face, facing, which) in [
+            (POCKET_FRONT, DVec3::Y, "the front wall"),
+            (STEP, DVec3::NEG_Y, "the step"),
+            (STEPPED_BACK, DVec3::NEG_Y, "the back wall"),
+            (STEPPED_LEFT, DVec3::X, "the left wall"),
+        ] {
+            faces_toward(&part, face, facing, &format!("{on}: {which}"));
+        }
+        let leaning = [STEPPED_FRONT_END, STEPPED_BACK_END]
+            .iter()
+            .filter(|&&wall| plane(&part, wall, on).normal.y.abs() > PLACE)
+            .count();
+        assert!(
+            leaning > 0,
+            "{on}: an end wall leans, not square to the floor's edges"
+        );
+        for &(edge, which) in &listed {
+            let alone = [edge_between(&part, edge[0], edge[1])];
+            if let Err(declined) = part.fillet_edges(&alone, RADIUS) {
+                panic!("{on}: {which} alone is laid; declined, {declined:?}");
+            }
+        }
+        not_declined.extend(not_declined_in_every_order(
+            &part,
+            on,
+            std::slice::from_ref(&listed),
+        ));
+    }
+    assert!(
+        not_declined.is_empty(),
+        "the round bottom of a pocket whose floor edges end on the two walls of a stepped end, \
+         one of them or both leaning, is a broken step and its reason, Unsupported, whatever the \
+         order, each edge laid alone, until it is built; not so:\n{}",
+        not_declined.join("\n")
+    );
 }
