@@ -203,10 +203,9 @@ fn a_line_through(app: &mut driver::App, ends: [DVec2; 2]) {
 /// part on disk once it was put away.
 fn the_lines_laid(app: &mut driver::App, test: &str) -> Vec<(DVec2, DVec2)> {
     driver::click(app, "Accueil");
-    let path = std::env::temp_dir()
-        .join("cao-driver")
-        .join(test)
-        .join("documents")
+    let path = driver::locations_of(test)
+        .documents
+        .expect("the driver keeps a documents folder")
         .join("CAO")
         .join(format!("{THE_PART}.caopart"));
     let part = PartDocument::load(&cao_app::adapters::files::DiskFiles, &path)

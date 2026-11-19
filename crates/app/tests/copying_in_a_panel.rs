@@ -45,7 +45,7 @@
 
 mod driver;
 
-use cao_prefs::{Locations, Profiles};
+use cao_prefs::Profiles;
 use egui_kittest::kittest::{NodeT, Queryable};
 use glam::DVec2;
 
@@ -464,12 +464,7 @@ fn a_panel_let_go_somewhere_is_saved_there() {
         "the panel follows its title to {:?}, and stands at {now:?}",
         title.min + moved
     );
-    let root = std::env::temp_dir().join("cao-driver").join(test);
-    let at = Locations {
-        config: root.join("config"),
-        data: root.join("data"),
-        documents: Some(root.join("documents")),
-    };
+    let at = driver::locations_of(test);
     let saved = Profiles::load(&cao_app::adapters::files::DiskFiles, &at)
         .active()
         .copy_panel_at
@@ -512,12 +507,7 @@ fn the_circular_pattern_s_panel_follows_its_title_and_reopens_where_it_was_let_g
 
 /// The setting as the disk holds it, for the app opened under this test's name.
 fn saved_place(test: &str) -> Option<[f32; 2]> {
-    let root = std::env::temp_dir().join("cao-driver").join(test);
-    let at = Locations {
-        config: root.join("config"),
-        data: root.join("data"),
-        documents: Some(root.join("documents")),
-    };
+    let at = driver::locations_of(test);
     Profiles::load(&cao_app::adapters::files::DiskFiles, &at)
         .active()
         .copy_panel_at
@@ -575,9 +565,9 @@ fn undoing_past_the_sketch_keeps_the_place_the_panel_was_left_at() {
 
 #[test]
 fn a_panel_let_go_with_nowhere_to_keep_settings_says_nothing() {
-    let root = std::env::temp_dir()
-        .join("cao-driver")
-        .join("a_panel_let_go_with_nowhere_to_keep");
+    let root = driver::locations_of("a_panel_let_go_with_nowhere_to_keep")
+        .documents
+        .expect("the driver keeps a documents folder");
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(&root).expect("a place for the part");
     let (_, part) = cao_part::PartDocument::create_in(

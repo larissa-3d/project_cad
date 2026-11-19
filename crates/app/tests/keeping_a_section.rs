@@ -214,10 +214,9 @@ fn a_sketch_on_the_cut(app: &mut driver::App) {
 /// The part as the application left it on disk, once it was put away.
 fn the_part_file(app: &mut driver::App, test: &str) -> PartDocument {
     driver::click(app, "Accueil");
-    let path = std::env::temp_dir()
-        .join("cao-driver")
-        .join(test)
-        .join("documents")
+    let path = driver::locations_of(test)
+        .documents
+        .expect("the driver keeps a documents folder")
         .join("CAO")
         .join("Bloc.caopart");
     PartDocument::load(&cao_app::adapters::files::DiskFiles, &path)
