@@ -26,7 +26,10 @@
 //!   what the decision must not break: a value typed between two shapes that
 //!   meet only at the origin moves no point but the one it measures to —
 //!   `a_distance_typed_between_two_chains_from_the_origin_moves_only_the_far_end`,
-//!   `a_distance_typed_between_traits_hung_on_two_arcs_about_the_origin_moves_only_the_far_end`
+//!   `a_distance_typed_between_traits_hung_on_two_arcs_about_the_origin_moves_only_the_far_end`;
+//!   and a shape drawn apart that the value reaches travels whole, though
+//!   another beside it is drawn from the origin —
+//!   `a_distance_typed_to_a_shape_drawn_apart_carries_it_whole_beside_one_drawn_from_the_origin`
 //! - The cases above hold in #501's campaign — no test: held by
 //!   `crates/sketch/tests/what_random_sketches_found.rs`, under the same issue
 
@@ -506,5 +509,28 @@ fn a_distance_typed_between_traits_hung_on_two_arcs_about_the_origin_moves_only_
                 "{case}: an arc of radius {radius} reads {found}",
             );
         }
+    }
+}
+
+#[test]
+fn a_distance_typed_to_a_shape_drawn_apart_carries_it_whole_beside_one_drawn_from_the_origin() {
+    for by in [2.0, -1.5] {
+        let case = format!("the distance moved by {by}");
+        let mut sketch = Sketch::new(WorkPlane::XY);
+        let (bend, _) = trait_from(&mut sketch, Sketch::ORIGIN, [3.0, 1.0]);
+        let (near, _) = trait_from(&mut sketch, bend, [6.0, 0.0]);
+        let far = sketch.add_point(DVec2::new(10.0, 5.0));
+        let (tail, _) = trait_from(&mut sketch, far, [14.0, 7.0]);
+        let far_stood = sketch.point(far);
+        let tail_stood = sketch.point(tail);
+
+        assert_only_the_far_end_moves(&mut sketch, near, far, by, &[bend, near], &case);
+
+        let shift = sketch.point(far) - far_stood;
+        let tail_found = sketch.point(tail);
+        assert!(
+            tail_found.distance(tail_stood + shift) < LANDED,
+            "{case}: the far point went by {shift}, and the end of its trait from {tail_stood} to {tail_found}",
+        );
     }
 }
