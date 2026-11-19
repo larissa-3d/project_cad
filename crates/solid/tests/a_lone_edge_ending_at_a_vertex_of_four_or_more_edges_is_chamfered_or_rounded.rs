@@ -20,7 +20,9 @@
 //!   body exact, closed, uncrossed, holding 666.2069507719303 filleted and
 //!   662.9932132211286 chamfered, the arithmetic below, the issue's
 //!   662.9932132211239 a rounding of its Python away; its triangles enclosing
-//!   that within the drawing's tolerance; one face laid, numbered where the
+//!   that within the drawing's tolerance at the body's own reach, at which it
+//!   is drawn since #824 whatever its slabs reached, over the round's area;
+//!   one face laid, numbered where the
 //!   steps' numbers ended, the step ending past it, every face of the pyramid
 //!   kept. The round curved, drawn on its cylinder of radius 1 about the line
 //!   one radius in from its two slopes, met first from outside; its end at
@@ -83,6 +85,49 @@
 //!   `a_chamfer_on_a_lone_hip_of_a_pyramid_on_a_box_lays_a_hexagon_ending_on_the_box_s_two_walls_and_on_the_two_other_slopes_at_the_apex`,
 //!   `a_chamfer_on_a_lone_hip_of_a_pyramid_on_its_own_base_lays_a_pentagon_ending_on_the_base_and_on_the_two_other_slopes_at_the_apex`,
 //!   `a_chamfer_on_a_lone_upright_of_the_box_under_a_pyramid_lays_a_pentagon_ending_on_the_two_slopes_over_it`
+//! - Decided on the way, after the review (2026-11-19): a lone edge is
+//!   carried past a vertex of four edges only where every edge ending there
+//!   meets outwards. On the pyramid on its own base standing on a plate 20 by
+//!   20 by 2, flush with the plate's front and left walls, the front left
+//!   hip's foot is such a vertex, as on `pyramid()`'s box, and the hip alone
+//!   is built; the front right hip's foot is a vertex of four where the right
+//!   slope meets the plate's top inwards, and the hip ending there alone is
+//!   declined `Unsupported`, and so is the front eave, which ends there too,
+//!   with their mirrors across the diagonal, the back left hip and the left
+//!   eave, until #1025 —
+//!   `a_lone_hip_or_eave_of_a_pyramid_on_a_plate_is_declined_as_unsupported_where_its_vertex_of_four_edges_has_a_concave_one_and_cut_where_it_has_none`.
+//!   Read as: the front left hip alone, chamfered and filleted at 1, as on
+//!   the box: the booleans before the step, the value taken whole, the body
+//!   exact, closed, uncrossed, holding the plate's 800 with the pyramid's
+//!   figures, 962.9932132211286 and 966.2069507719303, its flat or round
+//!   laid as on the box, ending on the plate's front and left walls; the back
+//!   right hip alone, its foot a corner of three with the two feet beside it
+//!   meeting inwards, stopped flush on the plate's top as #801 stops an edge
+//!   running into a face, built at 963.14630633005257 and
+//!   966.21230204348723, one face laid; then the four others declined
+//!   `Unsupported` for the chamfer and the fillet. A pin of the guard, green
+//!   on the branch, as the reviewer measured it
+//! - Decided on the way, after the review (2026-11-19): two edges of one step
+//!   ending at one vertex of four edges are not carried past it as one alone
+//!   is. On `pyramid()`, at each of the four hips' feet, every two of the
+//!   four edges ending there — the hip, the two eaves and the upright — named
+//!   in one step, in either order, are declined `Unsupported` for the
+//!   chamfer and the fillet at 1: some of a vertex's edges named and not all,
+//!   #942's case —
+//!   `a_chamfer_and_a_fillet_on_two_edges_ending_at_one_hip_s_foot_on_a_box_are_declined_as_unsupported_in_either_order`.
+//!   Pinned as found, green on the branch
+//! - Decided on the way, after the review (2026-11-19): two edges in one
+//!   step, each ending alone at its vertices of four, are each laid as alone,
+//!   which `main` declined. On `pyramid()`, the front and back eaves, and the
+//!   right and left ones, named in one step in either order, chamfered and
+//!   filleted at 1 —
+//!   `a_chamfer_and_a_fillet_on_two_eaves_of_a_pyramid_on_a_box_sharing_no_vertex_lay_each_as_alone_in_one_step_whatever_the_order`.
+//!   Read as: the value taken whole; the body exact, closed, uncrossed,
+//!   holding the pyramid less two lone cuts, 659.7336700422588 chamfered and
+//!   666.2392269180529 filleted, its triangles enclosing that within the
+//!   drawing's tolerance over both rounds; one face for each eave, numbered by
+//!   its rank in the list, each holding what that eave alone lays; no face
+//!   left with a corner where either eave ended
 //!
 //! A lone cut on an edge of a convex body takes the edge's prism where it
 //! lies inside the body: each line of the prism along the edge keeps the
@@ -299,20 +344,27 @@ fn pyramid_on_its_base() -> Body {
     cut_down_to(block_under(), ON_ITS_BASE)
 }
 
-/// The largest coordinate a body reaches, on either side of the origin.
+/// The largest coordinate a body reaches, on either side of the origin: the
+/// reach it is drawn at, its own since #824, whatever the slabs that cut it
+/// reached.
 fn reach_of(body: &Body) -> f64 {
     let (low, high) = body.bounds().expect("a part has a box");
     low.abs().max(high.abs()).max_element()
 }
 
-/// The reach a pyramid cut from `block` is drawn at: a cut keeps the larger
-/// reach of the part and of the slab cut from it, and the slabs reach far
-/// past the block.
-fn reach_cut_down_to(block: &Body, apex: DVec3) -> f64 {
-    SLOPES
+/// How far the triangles of `body` may enclose apart from its matter, its
+/// rounds `rounds`: the drawing's tolerance at the body's own reach, over
+/// each round's area, carried a radius past both ends of its edge.
+fn drawn_within(body: &Body, rounds: &[Round]) -> f64 {
+    let area: f64 = rounds
         .iter()
-        .map(|&face| reach_of(&beyond(block, apex, slope_facing(face), 50.0)))
-        .fold(reach_of(block), f64::max)
+        .map(|round| {
+            round
+                .part(-round.radius, round.length + round.radius)
+                .area()
+        })
+        .sum();
+    DRAWN * reach_of(body) * area
 }
 
 /// A point turned a quarter about the pyramids' axis, anticlockwise seen
@@ -1068,23 +1120,34 @@ fn kept_by_the_booleans(part: &Body, edges: &[Lone], cut: Cut, promised: f64) {
     }
 }
 
+/// What a step of `cut` at [`VALUE`] on the edges `names` finds leaves on
+/// `part`: the value asked, the value taken and the body, or why it declined.
+fn laid(part: &Body, names: &[EdgeName], cut: Cut) -> Result<(f64, f64, Body), Declined> {
+    match cut {
+        Cut::Flat => part
+            .chamfer_edges(names, VALUE)
+            .map(|chamfered| (chamfered.asked, chamfered.taken, chamfered.body)),
+        Cut::Round => part
+            .fillet_edges(names, VALUE)
+            .map(|filleted| (filleted.asked, filleted.taken, filleted.body)),
+    }
+}
+
+/// Holds that a step reports the value it was asked, and took it whole.
+fn taken_whole(asked: f64, taken: f64, what: &str) {
+    assert!(
+        (asked - VALUE).abs() < PLACE && (taken - VALUE).abs() < PLACE,
+        "{what}: asked {asked} and took {taken}, where {VALUE} fits"
+    );
+}
+
 /// What a step of `cut` at [`VALUE`] on each of `edges`, each alone in its
 /// list, leaves on `part`: held laid on every one of them, the value taken
 /// whole, and the bodies handed back.
 fn laid_on_each_alone(part: &Body, edges: &[Lone], cut: Cut) -> Vec<Body> {
     let laid: Vec<Result<(f64, f64, Body), Declined>> = edges
         .iter()
-        .map(|edge| {
-            let names = [edge.name(part)];
-            match cut {
-                Cut::Flat => part
-                    .chamfer_edges(&names, VALUE)
-                    .map(|chamfered| (chamfered.asked, chamfered.taken, chamfered.body)),
-                Cut::Round => part
-                    .fillet_edges(&names, VALUE)
-                    .map(|filleted| (filleted.asked, filleted.taken, filleted.body)),
-            }
-        })
+        .map(|edge| laid(part, &[edge.name(part)], cut))
         .collect();
     let declined: Vec<String> = edges
         .iter()
@@ -1107,39 +1170,38 @@ fn laid_on_each_alone(part: &Body, edges: &[Lone], cut: Cut) -> Vec<Body> {
         .zip(laid)
         .map(|(edge, laid)| {
             let (asked, taken, body) = laid.expect("declines are held above");
-            assert!(
-                (asked - VALUE).abs() < PLACE && (taken - VALUE).abs() < PLACE,
-                "{} on {} alone: asked {asked} and took {taken}, where {VALUE} fits",
-                cut.called(),
-                edge.called
+            taken_whole(
+                asked,
+                taken,
+                &format!("{} on {} alone", cut.called(), edge.called),
             );
             body
         })
         .collect()
 }
 
-/// Holds that the step laid one face, numbered where the part's numbers
-/// ended, the next step numbering past it, and kept every face of the part;
-/// hands back that face's number.
-fn one_face_laid(part: &Body, body: &Body, what: &str) -> usize {
-    let face = part.faces_end();
+/// Holds that the step laid `count` faces, numbered from where the part's
+/// numbers ended, the next step numbering past them, and kept every face of
+/// the part; hands back the first one's number.
+fn faces_laid(part: &Body, body: &Body, count: usize, what: &str) -> usize {
+    let first = part.faces_end();
     assert_eq!(
         faces_made(part, body),
-        vec![face],
-        "{what}: one face laid, numbered where the steps' numbers ended: {:?}",
+        (first..first + count).collect::<Vec<_>>(),
+        "{what}: one face laid for each edge, numbered from where the steps' numbers ended: {:?}",
         numbers(body)
     );
     assert_eq!(
         body.faces_end(),
-        face + 1,
-        "{what}: the next step numbers its own faces past the one laid"
+        first + count,
+        "{what}: the next step numbers its own faces past those laid"
     );
     assert!(
         numbers(part).is_subset(&numbers(body)),
         "{what}: a face of the part went: {:?}",
         numbers(body)
     );
-    face
+    first
 }
 
 /// Holds that face `face` of the body is the round a fillet of [`VALUE`]
@@ -1235,26 +1297,40 @@ fn holds_the_flat(body: &Body, face: usize, edge: &Lone, what: &str) {
     );
 }
 
+/// Holds that the body a fillet of [`VALUE`] on `edge` alone left on `part`
+/// holds `promised` and lays the round of `edge`, numbered where the part's
+/// numbers ended, no corner left where the edge ended.
+fn holds_a_lone_round(part: &Body, body: &Body, edge: &Lone, promised: f64, what: &str) {
+    sound_drawn_within(
+        body,
+        promised,
+        drawn_within(body, &[edge.round(VALUE)]),
+        what,
+    );
+    let face = faces_laid(part, body, 1, what);
+    holds_the_round(body, face, edge, what);
+    no_corner_left_at(body, &[edge.start, edge.end], what);
+}
+
+/// Holds that the body a chamfer of [`VALUE`] on `edge` alone left on
+/// `part` holds `promised` and lays the flat of `edge`, numbered where the
+/// part's numbers ended, no corner left where the edge ended.
+fn holds_a_lone_flat(part: &Body, body: &Body, edge: &Lone, promised: f64, what: &str) {
+    sound_drawn_within(body, promised, EXACT * promised, what);
+    let face = faces_laid(part, body, 1, what);
+    holds_the_flat(body, face, edge, what);
+    no_corner_left_at(body, &[edge.start, edge.end], what);
+}
+
 /// Holds that a fillet of [`VALUE`] on each of the four edges `first` and its
 /// quarter turns, each alone, lays its round, the part keeping `promised`.
-fn lays_each_round_alone(
-    part: &Body,
-    reach: f64,
-    first: Lone,
-    called: [&'static str; 4],
-    promised: f64,
-) {
+fn lays_each_round_alone(part: &Body, first: Lone, called: [&'static str; 4], promised: f64) {
     let edges = four_of(first, called);
     kept_by_the_booleans(part, &edges, Cut::Round, promised);
     let bodies = laid_on_each_alone(part, &edges, Cut::Round);
     for (edge, body) in edges.iter().zip(&bodies) {
         let what = format!("the fillet at {VALUE} on {} alone", edge.called);
-        let round = edge.round(VALUE);
-        let drawn = DRAWN * reach * round.part(-VALUE, round.length + VALUE).area();
-        sound_drawn_within(body, promised, drawn, &what);
-        let face = one_face_laid(part, body, &what);
-        holds_the_round(body, face, edge, &what);
-        no_corner_left_at(body, &[edge.start, edge.end], &what);
+        holds_a_lone_round(part, body, edge, promised, &what);
     }
 }
 
@@ -1281,10 +1357,7 @@ fn lays_each_flat_alone(
     let bodies = laid_on_each_alone(part, &edges, Cut::Flat);
     for (edge, body) in edges.iter().zip(&bodies) {
         let what = format!("the chamfer at {VALUE} on {} alone", edge.called);
-        sound_drawn_within(body, promised, EXACT * promised, &what);
-        let face = one_face_laid(part, body, &what);
-        holds_the_flat(body, face, edge, &what);
-        no_corner_left_at(body, &[edge.start, edge.end], &what);
+        holds_a_lone_flat(part, body, edge, promised, &what);
     }
 }
 
@@ -1293,7 +1366,6 @@ fn a_fillet_on_a_lone_hip_of_a_pyramid_on_a_box_ends_on_the_box_s_two_walls_and_
  {
     lays_each_round_alone(
         &pyramid(),
-        reach_cut_down_to(&cube(), ON_A_BOX),
         hip_on_a_box(),
         HIPS,
         ON_A_BOX_VOLUME - taken_on_a_hip_on_a_box(hip_round_section(VALUE)),
@@ -1316,7 +1388,6 @@ fn a_chamfer_on_a_lone_hip_of_a_pyramid_on_a_box_lays_a_hexagon_ending_on_the_bo
 fn a_fillet_on_a_lone_upright_of_the_box_under_a_pyramid_ends_on_the_two_slopes_over_it() {
     lays_each_round_alone(
         &pyramid(),
-        reach_cut_down_to(&cube(), ON_A_BOX),
         upright(),
         UPRIGHTS,
         ON_A_BOX_VOLUME - taken_by_an_upright_s_round(VALUE),
@@ -1340,7 +1411,6 @@ fn a_fillet_on_a_lone_eave_of_a_pyramid_on_a_box_ends_on_the_wall_and_the_slope_
 {
     lays_each_round_alone(
         &pyramid(),
-        reach_cut_down_to(&cube(), ON_A_BOX),
         eave(),
         EAVES,
         ON_A_BOX_VOLUME - taken_by_an_eave_s_round(VALUE),
@@ -1364,7 +1434,6 @@ fn a_fillet_on_a_lone_hip_of_a_pyramid_on_its_own_base_ends_on_the_base_and_on_t
  {
     lays_each_round_alone(
         &pyramid_on_its_base(),
-        reach_cut_down_to(&block_under(), ON_ITS_BASE),
         hip_on_its_base(),
         HIPS,
         ON_ITS_BASE_VOLUME - taken_on_a_hip_on_its_base(hip_round_section(VALUE)),
@@ -1381,4 +1450,224 @@ fn a_chamfer_on_a_lone_hip_of_a_pyramid_on_its_own_base_lays_a_pentagon_ending_o
         ON_ITS_BASE_VOLUME - taken_on_a_hip_on_its_base(hip_flat_section(VALUE)),
         5,
     );
+}
+
+/// The numbers of the plate's walls the pyramid on its own base stands flush
+/// with, the plate raised past the pyramid's numbers: its floor thirty, its
+/// top thirty-one, then its walls from the front round to the left.
+const PLATE_FRONT: usize = 32;
+const PLATE_LEFT: usize = 35;
+
+/// What the plate holds: 20 by 20 by 2.
+const PLATE_VOLUME: f64 = 800.0;
+
+/// The pyramid on its own base standing on a plate 20 by 20 by 2 under its
+/// base, flush with the plate's front and left walls. The front left hip's
+/// foot is a vertex of four edges all meeting outwards, as on `pyramid()`'s
+/// box; the front right hip's and the back left hip's are vertices of four
+/// where a slope meets the plate's top inwards; the back right hip's is a
+/// corner of three, the hip and two feet meeting inwards.
+fn pyramid_on_a_plate() -> Body {
+    let pyramid = pyramid_on_its_base();
+    let plate = pyramid
+        .tool_raised(
+            &profile(Contour::rectangle(DVec2::ZERO, DVec2::splat(2.0 * SIDE))),
+            Frame {
+                origin: -DVec3::Z * 2.0,
+                ..ground()
+            },
+            DVec3::Z * 2.0,
+        )
+        .expect("the plate raises");
+    pyramid
+        .union(&plate)
+        .expect("the pyramid stands on the plate")
+}
+
+/// The front left hip of [`pyramid_on_a_plate`], from the plate's corner up
+/// to the apex: its fill ends at the foot on the plate's front and left walls,
+/// and at the apex on the right and back slopes.
+fn hip_on_a_plate() -> Lone {
+    Lone {
+        called: HIPS[0],
+        faces: [FRONT_SLOPE, LEFT_SLOPE],
+        outward: [slope_facing(FRONT_SLOPE), slope_facing(LEFT_SLOPE)],
+        start: DVec3::ZERO,
+        end: ON_ITS_BASE,
+        ends: [
+            vec![
+                Bound {
+                    face: PLATE_FRONT,
+                    through: DVec3::ZERO,
+                    outward: -DVec3::Y,
+                },
+                Bound {
+                    face: PLATE_LEFT,
+                    through: DVec3::ZERO,
+                    outward: -DVec3::X,
+                },
+            ],
+            vec![
+                slope(RIGHT_SLOPE, ON_ITS_BASE),
+                slope(BACK_SLOPE, ON_ITS_BASE),
+            ],
+        ],
+    }
+}
+
+#[test]
+fn a_lone_hip_or_eave_of_a_pyramid_on_a_plate_is_declined_as_unsupported_where_its_vertex_of_four_edges_has_a_concave_one_and_cut_where_it_has_none()
+ {
+    let part = pyramid_on_a_plate();
+    let convex = hip_on_a_plate();
+    for (cut, alone) in [
+        (Cut::Flat, taken_on_a_hip_on_a_box(hip_flat_section(VALUE))),
+        (
+            Cut::Round,
+            taken_on_a_hip_on_a_box(hip_round_section(VALUE)),
+        ),
+    ] {
+        let promised = PLATE_VOLUME + ON_ITS_BASE_VOLUME - alone;
+        let what = format!(
+            "{} at {VALUE} on the front left hip alone, its foot on the plate's corner, a vertex \
+             of four edges meeting outwards",
+            cut.called()
+        );
+        let edges = [convex.clone()];
+        kept_by_the_booleans(&part, &edges, cut, promised);
+        let body = laid_on_each_alone(&part, &edges, cut).remove(0);
+        match cut {
+            Cut::Flat => holds_a_lone_flat(&part, &body, &convex, promised, &what),
+            Cut::Round => holds_a_lone_round(&part, &body, &convex, promised, &what),
+        }
+    }
+
+    let of_three = four_of(hip_on_its_base(), HIPS).remove(2);
+    for (cut, alone) in [
+        (
+            Cut::Flat,
+            taken_on_a_hip_on_its_base(hip_flat_section(VALUE)),
+        ),
+        (
+            Cut::Round,
+            taken_on_a_hip_on_its_base(hip_round_section(VALUE)),
+        ),
+    ] {
+        let promised = PLATE_VOLUME + ON_ITS_BASE_VOLUME - alone;
+        let what = format!(
+            "{} at {VALUE} on the back right hip alone, its foot a corner of three with the two \
+             feet beside it, which meet inwards",
+            cut.called()
+        );
+        let (asked, taken, body) = laid(&part, &[of_three.name(&part)], cut)
+            .unwrap_or_else(|declined| panic!("{what}: declined {declined:?}"));
+        taken_whole(asked, taken, &what);
+        let drawn = match cut {
+            Cut::Flat => EXACT * promised,
+            Cut::Round => drawn_within(&body, &[of_three.round(VALUE)]),
+        };
+        sound_drawn_within(&body, promised, drawn, &what);
+        faces_laid(&part, &body, 1, &what);
+    }
+
+    for (called, [one, other]) in [
+        ("the front right hip", [FRONT_SLOPE, RIGHT_SLOPE]),
+        ("the back left hip", [BACK_SLOPE, LEFT_SLOPE]),
+        ("the front eave", [FRONT_SLOPE, PLATE_FRONT]),
+        ("the left eave", [LEFT_SLOPE, PLATE_LEFT]),
+    ] {
+        for cut in [Cut::Flat, Cut::Round] {
+            assert_eq!(
+                laid(&part, &[edge_between(&part, one, other)], cut).err(),
+                Some(Declined::Unsupported),
+                "{} at {VALUE} on {called} alone, ending at a vertex of four edges where a slope \
+                 meets the plate inwards: a broken step and its reason, and no body, until #1025",
+                cut.called()
+            );
+        }
+    }
+}
+
+/// The four edges ending at the front left hip's foot on `pyramid()`, each
+/// by the faces it lies between: the hip, the front eave, the left eave and
+/// the box's upright.
+const AT_THE_FOOT: [[usize; 2]; 4] = [
+    [FRONT_SLOPE, LEFT_SLOPE],
+    [FRONT, FRONT_SLOPE],
+    [LEFT, LEFT_SLOPE],
+    [FRONT, LEFT],
+];
+
+#[test]
+fn a_chamfer_and_a_fillet_on_two_edges_ending_at_one_hip_s_foot_on_a_box_are_declined_as_unsupported_in_either_order()
+ {
+    let part = pyramid();
+    for (quarters, hip) in HIPS.iter().enumerate() {
+        let edges = AT_THE_FOOT
+            .map(|faces| faces.map(|face| (0..quarters).fold(face, |face, _| turned_face(face))));
+        for first in 0..4 {
+            for second in 0..4 {
+                if first == second {
+                    continue;
+                }
+                let named = [edges[first], edges[second]];
+                let names = named.map(|[one, other]| edge_between(&part, one, other));
+                for cut in [Cut::Flat, Cut::Round] {
+                    assert_eq!(
+                        laid(&part, &names, cut).err(),
+                        Some(Declined::Unsupported),
+                        "{} at {VALUE} on the edges between {:?} then between {:?}, both \
+                         ending at the foot of {hip}, a vertex of four edges some of which are \
+                         named and not all: a broken step and its reason, until #942",
+                        cut.called(),
+                        named[0],
+                        named[1]
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_on_two_eaves_of_a_pyramid_on_a_box_sharing_no_vertex_lay_each_as_alone_in_one_step_whatever_the_order()
+ {
+    let part = pyramid();
+    let eaves = four_of(eave(), EAVES);
+    for [one, other] in [[0, 2], [1, 3]] {
+        for order in [[one, other], [other, one]] {
+            for (cut, alone) in [
+                (Cut::Flat, taken_by_an_eave_s_flat(VALUE)),
+                (Cut::Round, taken_by_an_eave_s_round(VALUE)),
+            ] {
+                let edges = order.map(|index| &eaves[index]);
+                let what = format!(
+                    "{} at {VALUE} on {}, then {}, in one step",
+                    cut.called(),
+                    edges[0].called,
+                    edges[1].called
+                );
+                let promised = ON_A_BOX_VOLUME - 2.0 * alone;
+                let names = edges.map(|edge| edge.name(&part));
+                let (asked, taken, body) = laid(&part, &names, cut).unwrap_or_else(|declined| {
+                    panic!("{what}: declined {declined:?}, where each eave alone is built")
+                });
+                taken_whole(asked, taken, &what);
+                let drawn = match cut {
+                    Cut::Flat => EXACT * promised,
+                    Cut::Round => drawn_within(&body, &edges.map(|edge| edge.round(VALUE))),
+                };
+                sound_drawn_within(&body, promised, drawn, &what);
+                let first = faces_laid(&part, &body, 2, &what);
+                for (rank, edge) in edges.iter().enumerate() {
+                    let which = format!("{what}: {}, laid as alone", edge.called);
+                    match cut {
+                        Cut::Flat => holds_the_flat(&body, first + rank, edge, &which),
+                        Cut::Round => holds_the_round(&body, first + rank, edge, &which),
+                    }
+                    no_corner_left_at(&body, &[edge.start, edge.end], &which);
+                }
+            }
+        }
+    }
 }
