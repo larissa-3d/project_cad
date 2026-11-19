@@ -128,6 +128,29 @@
 //!   drawing's tolerance over both rounds; one face for each eave, numbered by
 //!   its rank in the list, each holding what that eave alone lays; no face
 //!   left with a corner where either eave ended
+//! - Decided on the way, after cargo-mutants (2026-11-19): a corner the face
+//!   of a lone cut takes on an edge ending at the vertex it is carried past
+//!   lies on that edge, between its two ends, or the step is declined. On
+//!   `pyramid()`'s box cut down to a slab 0.1 high, `pyramid_on_a_slab`, a
+//!   hip cut alone at 1 would cross the line of the slab's upright below the
+//!   slab's floor, the flat's plane 0.612 under the foot and the round 0.189,
+//!   so that its face would end across the floor, its corners there on the
+//!   floor's front and left edges, which do not end at the foot: declined
+//!   `Unsupported`, chamfer and fillet, on each of the four hips —
+//!   `a_chamfer_and_a_fillet_on_a_lone_hip_whose_face_would_end_past_the_foot_of_the_slab_s_upright_are_declined_as_unsupported`.
+//!   Read as: before the step, that crossing below the floor, read from the
+//!   fixture, and the booleans cutting the hip's prism from the slab; then
+//!   the decline. Found by the mutants on 6dca11c2, where `lies_on` returning
+//!   `true`, and its `<=` turned `>`, which with three edges crossed at a foot
+//!   accepts any corner, both lived. Each, applied by hand in a scratch copy,
+//!   builds all four hips here exact, closed and uncrossed, the body the
+//!   booleans cut, its face meeting what theirs meets, corner for corner on
+//!   the flat: the decline keeps out no wrong body but one the kernel has not
+//!   been shown to build, its face ending on a face that does not meet the
+//!   vertex; building that case is #1029's. Both mutants lay every pair of
+//!   the test above at a hip's foot as
+//!   well, in either order, each the body the booleans cut from both prisms,
+//!   so that test, written after the campaign, kills them too
 //!
 //! A lone cut on an edge of a convex body takes the edge's prism where it
 //! lies inside the body: each line of the prism along the edge keeps the
@@ -1668,6 +1691,87 @@ fn a_chamfer_and_a_fillet_on_two_eaves_of_a_pyramid_on_a_box_sharing_no_vertex_l
                     no_corner_left_at(&body, &[edge.start, edge.end], &which);
                 }
             }
+        }
+    }
+}
+
+/// How high the slab [`pyramid_on_a_slab`] stands on is: under a fifth of
+/// how far below a hip's foot the face a cut of [`VALUE`] on it alone would
+/// cross the box's upright, the round's sooner than the flat's.
+const SLAB: f64 = 0.1;
+
+/// `pyramid()` with its box cut down to a slab [`SLAB`] high: the square
+/// pyramid 5 high standing on a slab 10 by 10, flush with its four walls,
+/// numbered as `pyramid()`'s faces are. Each hip's foot is a vertex of four
+/// edges meeting outwards, the slab's upright there [`SLAB`] long.
+fn pyramid_on_a_slab() -> Body {
+    cut_down_to(
+        raised(
+            Contour::rectangle(DVec2::ZERO, DVec2::splat(SIDE)),
+            SLAB + 5.0,
+        ),
+        DVec3::new(5.0, 5.0, SLAB + 5.0),
+    )
+}
+
+/// The front left hip of [`pyramid_on_a_slab`], from its foot on the slab's
+/// corner up to the apex, its fill read as on `pyramid()`'s box: ending at the
+/// foot on the slab's front and left walls, and at the apex on the right and
+/// back slopes.
+fn hip_on_a_slab() -> Lone {
+    let apex = DVec3::new(5.0, 5.0, SLAB + 5.0);
+    Lone {
+        called: HIPS[0],
+        faces: [FRONT_SLOPE, LEFT_SLOPE],
+        outward: [slope_facing(FRONT_SLOPE), slope_facing(LEFT_SLOPE)],
+        start: DVec3::new(0.0, 0.0, SLAB),
+        end: apex,
+        ends: [
+            vec![wall(FRONT), wall(LEFT)],
+            vec![slope(RIGHT_SLOPE, apex), slope(BACK_SLOPE, apex)],
+        ],
+    }
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_on_a_lone_hip_whose_face_would_end_past_the_foot_of_the_slab_s_upright_are_declined_as_unsupported()
+ {
+    let part = pyramid_on_a_slab();
+    for edge in four_of(hip_on_a_slab(), HIPS) {
+        let round = edge.round(VALUE);
+        let [one, other] = edge.ways_in().map(|into| edge.start + into * VALUE);
+        let across = [
+            (Cut::Flat, edge.kink(0, |share: f64| one.lerp(other, share))),
+            (
+                Cut::Round,
+                edge.kink(0, |share: f64| round.start + round.facing_at(share) * VALUE),
+            ),
+        ];
+        for (cut, on_the_upright) in across {
+            let crossing = on_the_upright.expect("two walls round the foot");
+            assert!(
+                crossing.z < -PLACE,
+                "the fixture: {} at {VALUE} on {} alone, carried past its foot as on the box, \
+                 would cross the line of the slab's upright at {crossing}, below the slab's \
+                 floor, its face ending across the floor on edges that do not end at the foot",
+                cut.called(),
+                edge.called
+            );
+            assert!(
+                part.difference(&edge.tool(&part, cut, VALUE)).is_ok(),
+                "the fixture: the booleans cut the prism of {} on {} from the slab",
+                cut.called(),
+                edge.called
+            );
+            assert_eq!(
+                laid(&part, &[edge.name(&part)], cut).err(),
+                Some(Declined::Unsupported),
+                "{} at {VALUE} on {} alone, its face ending past the foot of the slab's upright, \
+                 a corner of it on no face of the hip and on no edge ending at the foot: a \
+                 broken step and its reason, and no body",
+                cut.called(),
+                edge.called
+            );
         }
     }
 }
