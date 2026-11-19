@@ -16,6 +16,7 @@ mod kept_solver;
 mod orientation;
 mod polish;
 mod stall;
+mod symmetry_solver;
 mod tangent_solver;
 
 /// How the solve went.
@@ -541,6 +542,7 @@ impl Sketch {
             // Held in place by the pins rather than by an equation: a fixed
             // point simply has nowhere to go.
             Constraint::Fixed { .. } => {}
+            Constraint::Symmetric(pair) => self.symmetric_equations(pair, into),
         }
 
         for equation in &mut into[written..] {

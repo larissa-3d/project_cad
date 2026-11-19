@@ -1,7 +1,7 @@
 use glam::DVec2;
 
 use super::*;
-use crate::constraints::{Constraint, SketchAxis};
+use crate::constraints::SketchAxis;
 use crate::plane::WorkPlane;
 
 const TOLERANCE: f64 = 1e-9;
@@ -96,27 +96,6 @@ fn the_original_is_left_exactly_as_it_was() {
         sketch.live_segments().count(),
         6,
         "three sides, and three more"
-    );
-}
-
-#[test]
-fn the_copy_comes_out_bare_of_the_rules_the_original_carried() {
-    let (mut sketch, held) = a_triangle_east_of_the_axis();
-    let [first, second] = [held[0], held[1]].map(|element| match element {
-        Element::Segment(id) => id,
-        _ => unreachable!(),
-    });
-    sketch.add_constraint(Constraint::Perpendicular { first, second });
-    let rules = sketch.constraints().len();
-
-    sketch
-        .mirror(&held, ChosenAxis::Sketch(SketchAxis::V))
-        .expect("an axis to mirror across");
-
-    assert_eq!(
-        sketch.constraints().len(),
-        rules,
-        "the copy is geometry and nothing else"
     );
 }
 

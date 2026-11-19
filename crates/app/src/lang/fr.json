@@ -208,6 +208,7 @@
   "constraints.label.tangent": "Tangence",
   "constraints.label.midpoint": "Milieu",
   "constraints.label.fixed": "Fixe",
+  "constraints.label.symmetric": "Symétrie",
 
   "constraints.erased.perpendicular": "Perpendiculaire supprimée",
   "constraints.erased.parallel": "Parallèle supprimée",
@@ -217,6 +218,7 @@
   "constraints.erased.tangent": "Tangence supprimée",
   "constraints.erased.midpoint": "Milieu supprimé",
   "constraints.erased.fixed": "Fixe supprimée",
+  "constraints.erased.symmetric": "Symétrie supprimée",
 
   "constraints.already_there.perpendicular": "Perpendiculaire : déjà posée",
   "constraints.already_there.parallel": "Parallèle : déjà posée",

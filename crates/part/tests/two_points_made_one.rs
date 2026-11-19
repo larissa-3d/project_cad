@@ -527,6 +527,7 @@ fn named_by(rule: Constraint) -> Vec<PointId> {
         | Constraint::Fixed {
             element: Element::Point(point),
         } => vec![point],
+        Constraint::Symmetric(pair) => vec![pair.point, pair.twin],
         Constraint::Tangent { at, .. }
         | Constraint::ArcTangent { at, .. }
         | Constraint::EllipseTangent { at, .. } => at.into_iter().collect(),

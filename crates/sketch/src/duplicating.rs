@@ -43,6 +43,19 @@ impl Sketch {
     /// An axis of an ellipse stands for its ellipse, which lays its own axes:
     /// copied as a trait of its own as well, it would be laid twice.
     pub fn duplicate(&mut self, of: &[Element], by: impl Fn(DVec2) -> DVec2) -> Duplicated {
+        self.duplicate_paired(of, by, false).0
+    }
+
+    /// The copy, and each point copied beside the copy it was given.
+    ///
+    /// With `sharing`, a point `by` leaves where it stands is not copied: the
+    /// copy ends on the original's own point, paired with itself.
+    pub(crate) fn duplicate_paired(
+        &mut self,
+        of: &[Element],
+        by: impl Fn(DVec2) -> DVec2,
+        sharing: bool,
+    ) -> (Duplicated, Vec<(PointId, PointId)>) {
         let mut laid: Vec<Element> = Vec::new();
         for held in of.iter().copied().map(|held| self.standing_for(held)) {
             if !laid.contains(&held) && !self.lands_on_its_original(held, &by) {
@@ -57,7 +70,12 @@ impl Sketch {
                 if copied.iter().any(|(was, _)| *was == point) {
                     continue;
                 }
-                let now = self.add_point(by(self.point(point)));
+                let place = by(self.point(point));
+                if sharing && place.distance(self.point(point)) <= SAME_PLACE {
+                    copied.push((point, point));
+                    continue;
+                }
+                let now = self.add_point(place);
                 copied.push((point, now));
                 made.points.push(now);
             }
@@ -167,7 +185,7 @@ impl Sketch {
             }
         }
         made.cuts = self.cut_the_copies(&sides, &copied);
-        made
+        (made, copied)
     }
 
     /// Cuts every corner whose two sides were copied the same way on the copy,

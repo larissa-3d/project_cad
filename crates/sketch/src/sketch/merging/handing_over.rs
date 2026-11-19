@@ -2,6 +2,7 @@
 
 use crate::constraints::Constraint;
 use crate::sketch::{Element, PointId};
+use crate::symmetry::Symmetry;
 
 /// The same rule, every point it names handed over. Every kind is named, so
 /// that a kind added later is not forgotten here.
@@ -56,6 +57,11 @@ pub(super) fn handed_over(rule: Constraint, one: impl Fn(PointId) -> PointId) ->
             point: one(point),
             segment,
         },
+        Constraint::Symmetric(pair) => Constraint::Symmetric(Symmetry {
+            point: one(pair.point),
+            twin: one(pair.twin),
+            axis: pair.axis,
+        }),
         Constraint::Fixed {
             element: Element::Point(point),
         } => Constraint::Fixed {

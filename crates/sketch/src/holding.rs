@@ -312,6 +312,7 @@ impl Sketch {
             Constraint::Tangent { at, .. }
             | Constraint::ArcTangent { at, .. }
             | Constraint::EllipseTangent { at, .. } => at == Some(point),
+            Constraint::Symmetric(pair) => pair.point == point || pair.twin == point,
             rule => Support::held_by(rule).is_some_and(|(held, _)| held == point),
         };
         !self.anything_stands_on(point) && !self.constraints().iter().any(names)

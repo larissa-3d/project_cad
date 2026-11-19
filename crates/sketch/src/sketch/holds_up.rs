@@ -6,6 +6,7 @@
 //! question — is what it names still there — asked of the kinds it names.
 
 use super::{CircleId, Constraint, Element, PointId, SegmentId, Sketch};
+use crate::axis::ChosenAxis;
 use crate::corner_cut::CutPoint;
 
 impl Sketch {
@@ -59,6 +60,14 @@ impl Sketch {
             Constraint::AxisCollinear { segment: on, .. }
             | Constraint::AxisParallel { segment: on, .. }
             | Constraint::AxisPerpendicular { segment: on, .. } => segment(on),
+            Constraint::Symmetric(pair) => {
+                point(pair.point)
+                    && point(pair.twin)
+                    && match pair.axis {
+                        ChosenAxis::Trait(axis) => segment(axis),
+                        ChosenAxis::Sketch(_) => true,
+                    }
+            }
             Constraint::Fixed { element } => match element {
                 Element::Point(held) => point(held),
                 Element::Segment(held) => segment(held),
