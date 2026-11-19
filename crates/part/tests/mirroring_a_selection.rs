@@ -1,5 +1,14 @@
 //! What a part does with a mirror: a second copy appears the other side of the
 //! axis, the original stays, and a replay rebuilds the same thing.
+//!
+//! Closes #320.
+//! - Erasing a trait erases its twin, from either side —
+//!   `erasing_a_trait_of_the_original_erases_its_twin`,
+//!   `erasing_a_trait_of_the_copy_erases_its_twin`
+//! - A mirror is still one step in the history, undone in one go —
+//!   `undoing_a_mirror_takes_back_its_copy_and_its_symmetry`
+//! - Compacting the history (#191) carries the symmetry along —
+//!   `a_compacted_mirror_keeps_its_copy_symmetric`
 
 use cao_part::PartState;
 use cao_part::history::{Operation, PointRef};
@@ -143,4 +152,100 @@ fn a_mirror_across_a_trait_the_drawing_does_not_have_does_nothing() {
 
     assert_eq!(said, None);
     assert_eq!(state.sketches[0].live_segments().count(), 1);
+}
+
+fn a_corner_mirrored_across_the_v_axis() -> PartState {
+    replay(&[
+        Operation::CreateSketch {
+            plane: WorkPlane::XY,
+            on: None,
+        },
+        Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::New(DVec2::new(2.0, 1.0)),
+            end: PointRef::New(DVec2::new(6.0, 1.0)),
+            construction: false,
+        },
+        Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::Existing(PointId(2)),
+            end: PointRef::New(DVec2::new(6.0, 4.0)),
+            construction: false,
+        },
+        Operation::Mirror {
+            sketch: 0,
+            elements: vec![
+                Element::Segment(SegmentId(0)),
+                Element::Segment(SegmentId(1)),
+            ],
+            axis: ChosenAxis::Sketch(SketchAxis::V),
+        },
+    ])
+}
+
+fn trait_between(state: &PartState, from: DVec2, to: DVec2) -> SegmentId {
+    let sketch = &state.sketches[0];
+    (0..sketch.segments().len())
+        .map(SegmentId)
+        .find(|id| {
+            let (a, b) = sketch.endpoints(*id);
+            (a.distance(from) < TOLERANCE && b.distance(to) < TOLERANCE)
+                || (a.distance(to) < TOLERANCE && b.distance(from) < TOLERANCE)
+        })
+        .unwrap_or_else(|| panic!("a trait from {from} to {to}"))
+}
+
+fn erased(state: &mut PartState, segment: SegmentId) {
+    state.apply(&Operation::EraseMany {
+        sketch: 0,
+        elements: vec![Element::Segment(segment)],
+        dimensions: Vec::new(),
+        constraints: Vec::new(),
+    });
+}
+
+#[test]
+fn erasing_a_trait_of_the_original_erases_its_twin() {
+    let mut state = a_corner_mirrored_across_the_v_axis();
+    let at = |x: f64, y: f64| DVec2::new(x, y);
+    let base = trait_between(&state, at(2.0, 1.0), at(6.0, 1.0));
+    let its_twin = trait_between(&state, at(-2.0, 1.0), at(-6.0, 1.0));
+    let side = trait_between(&state, at(6.0, 1.0), at(6.0, 4.0));
+    let its_copy = trait_between(&state, at(-6.0, 1.0), at(-6.0, 4.0));
+
+    erased(&mut state, base);
+
+    let sketch = &state.sketches[0];
+    assert!(sketch.is_erased_segment(base));
+    assert!(
+        sketch.is_erased_segment(its_twin),
+        "the copy of the erased trait is still drawn"
+    );
+    assert!(
+        !sketch.is_erased_segment(side) && !sketch.is_erased_segment(its_copy),
+        "erasing one trait took a pair nobody touched with it"
+    );
+}
+
+#[test]
+fn erasing_a_trait_of_the_copy_erases_its_twin() {
+    let mut state = a_corner_mirrored_across_the_v_axis();
+    let at = |x: f64, y: f64| DVec2::new(x, y);
+    let base = trait_between(&state, at(2.0, 1.0), at(6.0, 1.0));
+    let its_copy = trait_between(&state, at(-2.0, 1.0), at(-6.0, 1.0));
+    let side = trait_between(&state, at(6.0, 1.0), at(6.0, 4.0));
+    let copied_side = trait_between(&state, at(-6.0, 1.0), at(-6.0, 4.0));
+
+    erased(&mut state, copied_side);
+
+    let sketch = &state.sketches[0];
+    assert!(sketch.is_erased_segment(copied_side));
+    assert!(
+        sketch.is_erased_segment(side),
+        "the original of the erased copy is still drawn"
+    );
+    assert!(
+        !sketch.is_erased_segment(base) && !sketch.is_erased_segment(its_copy),
+        "erasing one trait took a pair nobody touched with it"
+    );
 }

@@ -27,11 +27,11 @@
 //!   `a_rule_to_the_sketch_s_own_axes_is_not_carried_across_a_trait`,
 //!   `a_rule_to_a_trait_lying_on_the_axis_is_carried_with_that_trait_as_its_own_image`
 //! - Erasing a trait erases its twin, from either side; while one of them is
-//!   selected, its twin is highlighted with it —
-//!   `erasing_a_trait_of_the_original_erases_its_twin`,
-//!   `erasing_a_trait_of_the_copy_erases_its_twin`; the highlight is drawn by
-//!   `cao_app`, and the app test that draws it carries a `Closes #320` block of
-//!   its own for that half
+//!   selected, its twin is highlighted with it — no test: the user erases
+//!   through the part's `EraseMany`, not `Sketch::erase`, which trimming and
+//!   merging call too; answered under a `Closes #320` block of its own in
+//!   `crates/part/tests/mirroring_a_selection.rs`, and the highlight in
+//!   `crates/app/src/screens/viewport/render/emphasis/tests.rs`
 //! - Erasing the axis frees the copy. Both drawings stay where they are; the
 //!   symmetry goes with the axis. The carried-over rules stay —
 //!   `erasing_the_axis_frees_the_copy_where_it_stands`,
@@ -691,4 +691,125 @@ fn a_rule_to_a_trait_lying_on_the_axis_is_carried_with_that_trait_as_its_own_ima
         LengthOutcome::Exact,
         "the copy carrying its rules beside the symmetry refuses a drag"
     );
+}
+
+struct AcrossATrait {
+    sketch: Sketch,
+    axis: SegmentId,
+    twins: Vec<(PointId, PointId)>,
+}
+
+fn a_triangle_mirrored_across_a_trait() -> AcrossATrait {
+    let mut triangle = a_triangle_east_of_the_v_axis();
+    let low = triangle.sketch.add_point(DVec2::new(0.0, -5.0));
+    let high = triangle.sketch.add_point(DVec2::new(0.0, 5.0));
+    let axis = triangle.sketch.add_segment(low, high);
+    let held = the_sides(&triangle);
+    let made = triangle
+        .sketch
+        .mirror(&held, ChosenAxis::Trait(axis))
+        .expect("a trait to mirror across");
+    let twins = twins(
+        &triangle.sketch,
+        &triangle.corners,
+        &made,
+        V_THROUGH,
+        V_TOWARDS,
+    );
+    AcrossATrait {
+        sketch: triangle.sketch,
+        axis,
+        twins,
+    }
+}
+
+#[test]
+fn erasing_the_axis_frees_the_copy_where_it_stands() {
+    let AcrossATrait {
+        mut sketch,
+        axis,
+        twins,
+    } = a_triangle_mirrored_across_a_trait();
+    let before: Vec<(PointId, DVec2)> = sketch.live_points().collect();
+
+    sketch.erase(Element::Segment(axis));
+    sketch.resolve(1.0);
+
+    for (point, was) in &before {
+        assert!(
+            sketch.point(*point).distance(*was) < AFTER_THE_SOLVER,
+            "erasing the axis moved the point at {was} to {}",
+            sketch.point(*point)
+        );
+    }
+    let (original, copy) = twins[1];
+    let copy_was = sketch.point(copy);
+    let to = sketch.point(original) + DVec2::new(1.0, 2.0);
+    assert_eq!(
+        drag(&mut sketch, original, DVec2::new(1.0, 2.0)),
+        LengthOutcome::Exact
+    );
+    assert!(
+        sketch.point(original).distance(to) < 1e-3,
+        "the dragged corner is at {}, not where the hand took it, {to}",
+        sketch.point(original)
+    );
+    assert!(
+        sketch.point(copy).distance(copy_was) < AFTER_THE_SOLVER,
+        "with the axis gone the copy still followed its original, from {copy_was} to {}",
+        sketch.point(copy)
+    );
+}
+
+#[test]
+fn the_rules_carried_over_stay_when_the_axis_goes() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let corners = [
+        DVec2::new(2.0, 1.0),
+        DVec2::new(6.0, 1.0),
+        DVec2::new(6.0, 4.0),
+        DVec2::new(2.0, 4.0),
+    ]
+    .map(|at| sketch.add_point(at));
+    let sides: [SegmentId; 4] =
+        std::array::from_fn(|side| sketch.add_segment(corners[side], corners[(side + 1) % 4]));
+    for pair in 0..3 {
+        sketch.add_constraint(perpendicular(sides[pair], sides[pair + 1]));
+    }
+    let low = sketch.add_point(DVec2::new(0.0, -5.0));
+    let high = sketch.add_point(DVec2::new(0.0, 5.0));
+    let axis = sketch.add_segment(low, high);
+    let made = sketch
+        .mirror(&sides.map(Element::Segment), ChosenAxis::Trait(axis))
+        .expect("a trait to mirror across");
+    let copies = sides.map(|side| image_of(&sketch, &made, side, V_THROUGH, V_TOWARDS));
+    let originals_before: Vec<DVec2> = corners.iter().map(|at| sketch.point(*at)).collect();
+
+    sketch.erase(Element::Segment(axis));
+    sketch.resolve(1.0);
+
+    for pair in 0..3 {
+        assert!(
+            sketch.carries(perpendicular(copies[pair], copies[pair + 1])),
+            "the copy lost a right angle with the axis: {:?}",
+            sketch.constraints()
+        );
+    }
+    let corner = sketch.segments()[copies[1].0].end;
+    assert_eq!(
+        drag(&mut sketch, corner, DVec2::new(-1.0, 1.0)),
+        LengthOutcome::Exact
+    );
+    let off_square = square_corners(&sketch, &copies);
+    assert!(
+        off_square < AFTER_THE_SOLVER,
+        "the freed copy is no longer a rectangle: {off_square}"
+    );
+    for (corner, was) in corners.iter().zip(&originals_before) {
+        assert!(
+            sketch.point(*corner).distance(*was) < AFTER_THE_SOLVER,
+            "the freed copy pulled the original's corner from {was} to {}",
+            sketch.point(*corner)
+        );
+    }
 }

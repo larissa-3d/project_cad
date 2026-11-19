@@ -1,7 +1,22 @@
 //! What app · screens/viewport/render/emphasis.rs is held to.
+//!
+//! Closes #320.
+//! - While one of them is selected, its twin is highlighted with it, so what
+//!   will go is seen before it goes —
+//!   `a_trait_held_by_the_selection_lights_its_mirrored_twin`
+//!
+//! The issue's other criteria are held under their own `Closes #320` blocks, in
+//! `crates/sketch/tests/a_mirrored_copy_stays_symmetric_to_its_original.rs` and
+//! `crates/part/tests/mirroring_a_selection.rs`.
 
 use super::*;
-use cao_sketch::{Element, SegmentId, SketchAxis, WorkPlane};
+use cao_part::history::PointRef;
+use cao_part::{Operation, PartDocument};
+use cao_sketch::{ChosenAxis, Element, SegmentId, SketchAxis, ToolState, WorkPlane};
+
+use crate::lang::Catalogue;
+use crate::screens::extrusion::ExtrusionState;
+use crate::screens::sketch::{SketchEditor, SketchPhase, Tool};
 
 #[test]
 fn a_piece_the_click_has_not_laid_yet_is_drawn_faint_rather_than_as_itself() {
@@ -95,5 +110,85 @@ fn a_rule_shown_no_axis_draws_none() {
     assert!(
         a_trait.is_empty(),
         "a trait shown to the rule brought an axis along with it",
+    );
+}
+
+fn a_trait_mirrored_across_the_v_axis() -> (PartDocument, SegmentId, SegmentId) {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(2.0, 1.0)),
+        end: PointRef::New(DVec2::new(6.0, 1.0)),
+        construction: false,
+    });
+    document.apply(Operation::Mirror {
+        sketch: 0,
+        elements: vec![Element::Segment(SegmentId(0))],
+        axis: ChosenAxis::Sketch(SketchAxis::V),
+    });
+    let copy = document.sketches()[0]
+        .live_segments()
+        .map(|(id, _)| id)
+        .find(|id| *id != SegmentId(0))
+        .expect("the mirror laid a copy");
+    (document, SegmentId(0), copy)
+}
+
+fn colour_of(document: &mut PartDocument, held: Element, drawn: Element) -> [f32; 4] {
+    let mut editor = SketchEditor {
+        phase: SketchPhase::Editing(0),
+        tool: Tool::Select,
+        tool_state: ToolState::Select(Box::new(cao_sketch::SelectState {
+            held: vec![Selection::Element(held)],
+            ..Default::default()
+        })),
+        ..Default::default()
+    };
+    let (mut extrusion, lang) = (ExtrusionState::default(), Catalogue::french());
+    let context = SketchContext {
+        document,
+        editor: &mut editor,
+        extrusion: &mut extrusion,
+        lang: &lang,
+    };
+    let theme = Theme::default();
+    mark(&context, &theme, Selection::Element(drawn), &[], PLAIN, 1.0).0
+}
+
+#[test]
+fn a_trait_held_by_the_selection_lights_its_mirrored_twin() {
+    let (mut document, original, copy) = a_trait_mirrored_across_the_v_axis();
+    let lit = tint_at(Theme::default().highlight, 1.0);
+    assert_eq!(
+        colour_of(
+            &mut document,
+            Element::Segment(original),
+            Element::Segment(original)
+        ),
+        lit,
+        "the trait held is not lit itself, so nothing here can say anything of its twin"
+    );
+
+    assert_eq!(
+        colour_of(
+            &mut document,
+            Element::Segment(original),
+            Element::Segment(copy)
+        ),
+        lit,
+        "the original is held and its copy, which erasing it would take too, is not lit"
+    );
+    assert_eq!(
+        colour_of(
+            &mut document,
+            Element::Segment(copy),
+            Element::Segment(original)
+        ),
+        lit,
+        "the copy is held and its original, which erasing it would take too, is not lit"
     );
 }
