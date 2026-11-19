@@ -26,6 +26,14 @@ pub struct Duplicated {
     pub cuts: Vec<CornerCutId>,
 }
 
+/// Each point and each element of a copy beside what it was copied from. A
+/// point or an element left where it stands is paired with itself.
+#[derive(Default)]
+pub(crate) struct Pairing {
+    pub points: Vec<(PointId, PointId)>,
+    pub elements: Vec<(Element, Element)>,
+}
+
 /// Two places nearer than this are the one place, and a copy laid at the second
 /// is a copy laid on the first.
 const SAME_PLACE: f64 = 1e-9;
@@ -46,20 +54,27 @@ impl Sketch {
         self.duplicate_paired(of, by, false).0
     }
 
-    /// The copy, and each point copied beside the copy it was given.
+    /// The copy, and what each piece of it was copied from.
     ///
     /// With `sharing`, a point `by` leaves where it stands is not copied: the
-    /// copy ends on the original's own point, paired with itself.
+    /// copy ends on the original's own point, paired with itself, as is an
+    /// element that would land on its original.
     pub(crate) fn duplicate_paired(
         &mut self,
         of: &[Element],
         by: impl Fn(DVec2) -> DVec2,
         sharing: bool,
-    ) -> (Duplicated, Vec<(PointId, PointId)>) {
+    ) -> (Duplicated, Pairing) {
         let mut laid: Vec<Element> = Vec::new();
+        let mut images: Vec<(Element, Element)> = Vec::new();
         for held in of.iter().copied().map(|held| self.standing_for(held)) {
-            if !laid.contains(&held) && !self.lands_on_its_original(held, &by) {
-                laid.push(held);
+            if laid.contains(&held) {
+                continue;
+            }
+            match self.lands_on_its_original(held, &by) {
+                true if sharing => images.push((held, held)),
+                true => {}
+                false => laid.push(held),
             }
         }
 
@@ -103,6 +118,7 @@ impl Sketch {
                         false => self.add_segment(start, end),
                     };
                     sides.push((id.into(), copy.into()));
+                    images.push((*held, Element::Segment(copy)));
                     made.segments.push(copy);
                 }
                 Element::Circle(id) => {
@@ -112,10 +128,12 @@ impl Sketch {
                     let Some(centre) = copy_of(round.center) else {
                         continue;
                     };
-                    made.circles.push(match round.construction {
+                    let copy = match round.construction {
                         true => self.add_construction_circle(centre, round.radius),
                         false => self.add_circle(centre, round.radius),
-                    });
+                    };
+                    images.push((*held, Element::Circle(copy)));
+                    made.circles.push(copy);
                 }
                 Element::Arc(id) => {
                     let Some(curve) = self.arcs().get(id.0).copied() else {
@@ -141,6 +159,7 @@ impl Sketch {
                         false => self.add_arc(centre, start, end),
                     };
                     sides.push((id.into(), copy.into()));
+                    images.push((*held, Element::Arc(copy)));
                     made.arcs.push(copy);
                 }
                 Element::Ellipse(id) => {
@@ -179,13 +198,22 @@ impl Sketch {
                     // part of what the copy left behind.
                     let axes = self.ellipses()[copy.0];
                     made.segments.extend([axes.first, axes.second]);
+                    images.extend([
+                        (*held, Element::Ellipse(copy)),
+                        (Element::Segment(oval.first), Element::Segment(axes.first)),
+                        (Element::Segment(oval.second), Element::Segment(axes.second)),
+                    ]);
                     sides.push((id.into(), copy.into()));
                     made.ellipses.push(copy);
                 }
             }
         }
         made.cuts = self.cut_the_copies(&sides, &copied);
-        (made, copied)
+        let pairing = Pairing {
+            points: copied,
+            elements: images,
+        };
+        (made, pairing)
     }
 
     /// Cuts every corner whose two sides were copied the same way on the copy,

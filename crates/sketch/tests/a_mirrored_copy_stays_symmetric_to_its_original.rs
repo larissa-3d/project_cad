@@ -23,7 +23,9 @@
 //!   duplicated where the symmetry already holds the value —
 //!   `a_mirrored_rectangle_stays_a_rectangle`,
 //!   `a_rule_to_something_left_out_of_the_copy_is_not_carried_over`,
-//!   `a_length_the_symmetry_already_holds_is_not_typed_again_on_the_copy`
+//!   `a_length_the_symmetry_already_holds_is_not_typed_again_on_the_copy`,
+//!   `a_rule_to_the_sketch_s_own_axes_is_not_carried_across_a_trait`,
+//!   `a_rule_to_a_trait_lying_on_the_axis_is_carried_with_that_trait_as_its_own_image`
 //! - Erasing a trait erases its twin, from either side; while one of them is
 //!   selected, its twin is highlighted with it —
 //!   `erasing_a_trait_of_the_original_erases_its_twin`,
@@ -55,8 +57,8 @@
 //!   `crates/app/src/screens/viewport/input/copying/tests/panel.rs`
 
 use cao_sketch::{
-    ChosenAxis, DimensionTarget, Duplicated, Element, LengthOutcome, PointId, SegmentId, Sketch,
-    SketchAxis, WorkPlane,
+    ChosenAxis, Constraint, DimensionTarget, Duplicated, Element, LaidFrom, LengthOutcome, PointId,
+    SegmentId, Sketch, SketchAxis, WorkPlane,
 };
 use glam::DVec2;
 
@@ -430,5 +432,263 @@ fn a_half_profile_closed_by_a_mirror_stays_closed_when_dragged() {
         half.sketch.regions().len(),
         1,
         "the profile came open where it crosses the axis"
+    );
+}
+
+fn image_of(
+    sketch: &Sketch,
+    made: &Duplicated,
+    side: SegmentId,
+    through: DVec2,
+    towards: DVec2,
+) -> SegmentId {
+    let (from, to) = sketch.endpoints(side);
+    let wanted = [from, to].map(|end| mirrored_about(end, through, towards));
+    made.segments
+        .iter()
+        .copied()
+        .find(|copy| {
+            let (a, b) = sketch.endpoints(*copy);
+            (a.distance(wanted[0]) < 1e-9 && b.distance(wanted[1]) < 1e-9)
+                || (a.distance(wanted[1]) < 1e-9 && b.distance(wanted[0]) < 1e-9)
+        })
+        .expect("a copy of the side laid at its mirror image")
+}
+
+fn square_corners(sketch: &Sketch, sides: &[SegmentId]) -> f64 {
+    sides
+        .windows(2)
+        .map(|pair| {
+            let (a, b) = sketch.endpoints(pair[0]);
+            let (c, d) = sketch.endpoints(pair[1]);
+            (b - a).normalize().dot((d - c).normalize()).abs()
+        })
+        .fold(0.0, f64::max)
+}
+
+fn perpendicular(first: SegmentId, second: SegmentId) -> Constraint {
+    Constraint::Perpendicular { first, second }
+}
+
+#[test]
+fn a_mirrored_rectangle_stays_a_rectangle() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let corners = [
+        DVec2::new(2.0, 1.0),
+        DVec2::new(6.0, 1.0),
+        DVec2::new(6.0, 4.0),
+        DVec2::new(2.0, 4.0),
+    ]
+    .map(|at| sketch.add_point(at));
+    let sides: [SegmentId; 4] =
+        std::array::from_fn(|side| sketch.add_segment(corners[side], corners[(side + 1) % 4]));
+    for pair in 0..3 {
+        sketch.add_constraint(perpendicular(sides[pair], sides[pair + 1]));
+    }
+    sketch.add_constraint(Constraint::AxisParallel {
+        segment: sides[0],
+        axis: SketchAxis::U,
+    });
+
+    let made = sketch
+        .mirror(
+            &sides.map(Element::Segment),
+            ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+
+    let copies = sides.map(|side| image_of(&sketch, &made, side, V_THROUGH, V_TOWARDS));
+    for pair in 0..3 {
+        assert!(
+            sketch.carries(perpendicular(copies[pair], copies[pair + 1])),
+            "the copy of side {pair} and the next one are not held square: {:?}",
+            sketch.constraints()
+        );
+    }
+    assert!(
+        sketch.carries(Constraint::AxisParallel {
+            segment: copies[0],
+            axis: SketchAxis::U,
+        }),
+        "the copy of the base is not held horizontal, as its original is: {:?}",
+        sketch.constraints()
+    );
+    let corner = sketch.segments()[copies[1].0].end;
+    assert_eq!(
+        drag(&mut sketch, corner, DVec2::new(-1.0, 1.0)),
+        LengthOutcome::Exact,
+        "the copy carrying its rules beside the symmetry refuses a drag"
+    );
+    let off_square = square_corners(&sketch, &copies);
+    assert!(
+        off_square < AFTER_THE_SOLVER,
+        "the copy is no longer a rectangle: {off_square}"
+    );
+}
+
+#[test]
+fn a_rule_to_something_left_out_of_the_copy_is_not_carried_over() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let corner = sketch.add_point(DVec2::new(2.0, 1.0));
+    let east = sketch.add_point(DVec2::new(8.0, 1.0));
+    let north = sketch.add_point(DVec2::new(2.0, 4.0));
+    let base = sketch.add_segment(corner, east);
+    let up = sketch.add_segment(corner, north);
+    sketch.add_constraint(perpendicular(base, up));
+    let centre = sketch.add_point(DVec2::new(5.0, -1.0));
+    let circle = sketch.add_circle(centre, 2.0);
+    sketch.add_constraint(Constraint::Tangent {
+        circle,
+        segment: base,
+        at: None,
+        from: LaidFrom::Nowhere,
+    });
+
+    let made = sketch
+        .mirror(
+            &[Element::Segment(base), Element::Segment(up)],
+            ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+
+    let (copied_base, copied_up) = (
+        image_of(&sketch, &made, base, V_THROUGH, V_TOWARDS),
+        image_of(&sketch, &made, up, V_THROUGH, V_TOWARDS),
+    );
+    assert!(
+        sketch.carries(perpendicular(copied_base, copied_up)),
+        "the rule between two copied traits did not come along: {:?}",
+        sketch.constraints()
+    );
+    let tangent_to_the_copy = sketch
+        .constraints()
+        .iter()
+        .any(|rule| matches!(rule, Constraint::Tangent { segment, .. } if *segment == copied_base));
+    assert!(
+        !tangent_to_the_copy,
+        "the copy was held tangent to a circle the mirror left out: {:?}",
+        sketch.constraints()
+    );
+}
+
+#[test]
+fn a_length_the_symmetry_already_holds_is_not_typed_again_on_the_copy() {
+    let mut triangle = a_triangle_east_of_the_v_axis();
+    let base = DimensionTarget::Length(triangle.sides[0]);
+    triangle.sketch.set_dimension(base, 4.0, false);
+    let values = triangle.sketch.dimensions().len();
+    let held = the_sides(&triangle);
+
+    let made = triangle
+        .sketch
+        .mirror(&held, ChosenAxis::Sketch(SketchAxis::V))
+        .expect("an axis to mirror across");
+
+    let copied_base = image_of(
+        &triangle.sketch,
+        &made,
+        triangle.sides[0],
+        V_THROUGH,
+        V_TOWARDS,
+    );
+    assert_eq!(
+        triangle.sketch.dimensions().len(),
+        values,
+        "a value was laid again on the copy"
+    );
+    assert!(
+        triangle
+            .sketch
+            .would_be_redundant(DimensionTarget::Length(copied_base), 1.0),
+        "the copy's base is not held by the symmetry, so its length is free"
+    );
+}
+
+#[test]
+fn a_rule_to_the_sketch_s_own_axes_is_not_carried_across_a_trait() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let low = sketch.add_point(DVec2::new(-2.0, -6.0));
+    let high = sketch.add_point(DVec2::new(2.0, 6.0));
+    let axis = sketch.add_segment(low, high);
+    let corner = sketch.add_point(DVec2::new(4.0, 0.0));
+    let east = sketch.add_point(DVec2::new(8.0, 0.0));
+    let north = sketch.add_point(DVec2::new(4.0, 3.0));
+    let base = sketch.add_segment(corner, east);
+    let up = sketch.add_segment(corner, north);
+    sketch.add_constraint(perpendicular(base, up));
+    sketch.add_constraint(Constraint::AxisParallel {
+        segment: base,
+        axis: SketchAxis::U,
+    });
+    let (through, towards) = (sketch.point(low), sketch.point(high));
+
+    let made = sketch
+        .mirror(
+            &[Element::Segment(base), Element::Segment(up)],
+            ChosenAxis::Trait(axis),
+        )
+        .expect("a trait to mirror across");
+
+    let (copied_base, copied_up) = (
+        image_of(&sketch, &made, base, through, towards),
+        image_of(&sketch, &made, up, through, towards),
+    );
+    assert!(
+        sketch.carries(perpendicular(copied_base, copied_up)),
+        "the rule between two copied traits did not come along: {:?}",
+        sketch.constraints()
+    );
+    let held_to_an_axis = sketch.constraints().iter().any(|rule| {
+        matches!(
+            rule,
+            Constraint::AxisParallel { segment, .. }
+                | Constraint::AxisPerpendicular { segment, .. }
+                | Constraint::AxisCollinear { segment, .. }
+                if *segment == copied_base
+        )
+    });
+    assert!(
+        !held_to_an_axis,
+        "across a slanted trait the image of a horizontal is not horizontal, and the copy \
+         was held to the sketch's axes all the same: {:?}",
+        sketch.constraints()
+    );
+}
+
+#[test]
+fn a_rule_to_a_trait_lying_on_the_axis_is_carried_with_that_trait_as_its_own_image() {
+    let mut half = half_a_profile_standing_on_the_v_axis();
+    let [foot, head] = half.on_the_axis;
+    let closing = half.sketch.add_segment(head, foot);
+    let [base, right, top] = half.sides;
+    for (first, second) in [(base, right), (base, closing), (top, closing)] {
+        half.sketch.add_constraint(perpendicular(first, second));
+    }
+    let held = [base, right, top, closing].map(Element::Segment);
+
+    let made = half
+        .sketch
+        .mirror(&held, ChosenAxis::Sketch(SketchAxis::V))
+        .expect("an axis to mirror across");
+
+    let [copied_base, copied_right, copied_top] = half
+        .sides
+        .map(|side| image_of(&half.sketch, &made, side, V_THROUGH, V_TOWARDS));
+    for (first, second) in [
+        (copied_base, copied_right),
+        (copied_base, closing),
+        (copied_top, closing),
+    ] {
+        assert!(
+            half.sketch.carries(perpendicular(first, second)),
+            "{first:?} and {second:?} are not held square on the copy's side: {:?}",
+            half.sketch.constraints()
+        );
+    }
+    let corner = half.sketch.segments()[copied_right.0].end;
+    assert_eq!(
+        drag(&mut half.sketch, corner, DVec2::new(-1.0, 1.0)),
+        LengthOutcome::Exact,
+        "the copy carrying its rules beside the symmetry refuses a drag"
     );
 }
