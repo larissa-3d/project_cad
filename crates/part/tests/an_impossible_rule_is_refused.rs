@@ -34,6 +34,12 @@
 //!   `a_tangency_between_a_circle_of_free_radius_and_a_trait_its_centre_is_the_middle_of_is_refused`,
 //!   `a_tangency_between_an_arc_of_free_radius_and_a_trait_its_centre_is_held_on_is_refused`,
 //!   `a_tangency_between_an_arc_of_free_radius_and_a_trait_its_centre_is_the_middle_of_is_refused`;
+//!   and a centre held on a trait its curve was made tangent to first is
+//!   refused alike —
+//!   `a_circle_s_centre_held_on_a_trait_it_is_tangent_to_is_refused`,
+//!   `a_circle_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused`,
+//!   `an_arc_s_centre_held_on_a_trait_it_is_tangent_to_is_refused`,
+//!   `an_arc_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused`;
 //!   half an ellipse is refused alike —
 //!   `a_tangency_between_half_an_ellipse_and_a_trait_through_its_centre_is_refused`;
 //!   and a trait merely crossing the centre, nothing holding the centre on it,
@@ -327,7 +333,7 @@ fn size_of(document: &PartDocument, curve: Element) -> f64 {
     }
 }
 
-fn tangency_through_the_centre_is_refused(mut document: PartDocument, curve: Element) {
+fn tangency_through_the_centre_is_refused(document: PartDocument, curve: Element) {
     let sketch = &document.sketches()[0];
     let picks = [
         RulePick::Element(Element::Segment(last_trait(sketch))),
@@ -336,7 +342,15 @@ fn tangency_through_the_centre_is_refused(mut document: PartDocument, curve: Ele
     let Some(RuleIntent::Constrain(rule)) = rule_intent(Rule::Tangent, &picks, sketch) else {
         panic!("the tool offers no tangency for a trait and a curve");
     };
-    let before = sketch.clone();
+    refused_leaving_the_curve_as_it_was(document, rule, curve);
+}
+
+fn refused_leaving_the_curve_as_it_was(
+    mut document: PartDocument,
+    rule: Constraint,
+    curve: Element,
+) {
+    let before = document.sketches()[0].clone();
     let radius = size_of(&document, curve);
     let recorded = steps(&document);
 
@@ -536,7 +550,7 @@ fn a_tangency_between_an_arc_of_free_radius_and_a_trait_its_centre_is_the_middle
 fn a_tangency_with_a_trait_merely_crossing_the_centre_lands(
     mut document: PartDocument,
     curve: Element,
-) {
+) -> PartDocument {
     document.apply(Operation::AddSegment {
         sketch: 0,
         start: PointRef::New(DVec2::new(0.0, 0.0)),
@@ -588,6 +602,7 @@ fn a_tangency_with_a_trait_merely_crossing_the_centre_lands(
         "the curve keeps a size: radius {radius} became {}",
         size_of(&document, curve)
     );
+    document
 }
 
 #[test]
@@ -603,5 +618,64 @@ fn a_tangency_between_an_arc_and_a_trait_merely_crossing_its_centre_lands() {
     a_tangency_with_a_trait_merely_crossing_the_centre_lands(
         a_free_arc(),
         Element::Arc(cao_sketch::ArcId(0)),
+    );
+}
+
+fn the_centre_then_held_on_the_tangent_trait_is_refused(
+    curve: Element,
+    drawn: PartDocument,
+    rule: Rule,
+) {
+    let document = a_tangency_with_a_trait_merely_crossing_the_centre_lands(drawn, curve);
+    let sketch = &document.sketches()[0];
+    let centre = match curve {
+        Element::Circle(circle) => sketch.circles()[circle.0].center,
+        Element::Arc(arc) => sketch.arcs()[arc.0].center,
+        other => panic!("not a round curve: {other:?}"),
+    };
+    let picks = [
+        RulePick::Element(Element::Point(centre)),
+        RulePick::Element(Element::Segment(last_trait(sketch))),
+    ];
+    let Some(RuleIntent::Constrain(held)) = rule_intent(rule, &picks, sketch) else {
+        panic!("the tool offers no {rule:?} for a centre and a trait");
+    };
+
+    refused_leaving_the_curve_as_it_was(document, held, curve);
+}
+
+#[test]
+fn a_circle_s_centre_held_on_a_trait_it_is_tangent_to_is_refused() {
+    the_centre_then_held_on_the_tangent_trait_is_refused(
+        Element::Circle(cao_sketch::CircleId(0)),
+        a_free_circle(),
+        Rule::Coincident,
+    );
+}
+
+#[test]
+fn a_circle_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused() {
+    the_centre_then_held_on_the_tangent_trait_is_refused(
+        Element::Circle(cao_sketch::CircleId(0)),
+        a_free_circle(),
+        Rule::Midpoint,
+    );
+}
+
+#[test]
+fn an_arc_s_centre_held_on_a_trait_it_is_tangent_to_is_refused() {
+    the_centre_then_held_on_the_tangent_trait_is_refused(
+        Element::Arc(cao_sketch::ArcId(0)),
+        a_free_arc(),
+        Rule::Coincident,
+    );
+}
+
+#[test]
+fn an_arc_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused() {
+    the_centre_then_held_on_the_tangent_trait_is_refused(
+        Element::Arc(cao_sketch::ArcId(0)),
+        a_free_arc(),
+        Rule::Midpoint,
     );
 }

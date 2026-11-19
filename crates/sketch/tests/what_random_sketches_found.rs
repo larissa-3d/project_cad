@@ -174,6 +174,12 @@
 //!   `a_tangency_between_a_circle_of_free_radius_and_a_trait_its_centre_is_the_middle_of_is_refused`,
 //!   `a_tangency_between_an_arc_of_free_radius_and_a_trait_its_centre_is_held_on_is_refused`,
 //!   `a_tangency_between_an_arc_of_free_radius_and_a_trait_its_centre_is_the_middle_of_is_refused`;
+//!   and a centre held on a trait its curve was made tangent to first is
+//!   refused alike —
+//!   `a_circle_s_centre_held_on_a_trait_it_is_tangent_to_is_refused`,
+//!   `a_circle_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused`,
+//!   `an_arc_s_centre_held_on_a_trait_it_is_tangent_to_is_refused`,
+//!   `an_arc_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused`;
 //!   half an ellipse is refused alike —
 //!   `a_tangency_between_half_an_ellipse_and_a_trait_through_its_centre_is_refused`;
 //!   and a trait merely crossing the centre, nothing holding the centre on it,
@@ -1153,6 +1159,128 @@ fn a_tangency_between_half_an_ellipse_and_a_trait_through_its_centre_is_refused(
         Gesture::Rule {
             rule: cao_sketch::Rule::Tangent,
             clicks: vec![[30.0, 15.0], [2.6794919243112254, 7.499999999999999]],
+        },
+    ]);
+}
+
+#[test]
+fn a_circle_s_centre_held_on_a_trait_it_is_tangent_to_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [4.0, 8.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![
+                [-5.5899968200095405, 5.543994912015265],
+                [10.41000317999046, 15.543994912015265],
+            ],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![
+                [8.41000317999046, 14.293994912015265],
+                [5.5899968200095405, 5.456005087984735],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[8.41000317999046, 14.293994912015265], [4.0, 8.0]],
+        },
+    ]);
+}
+
+#[test]
+fn a_circle_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [4.0, 8.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![
+                [-5.5899968200095405, 5.543994912015265],
+                [10.41000317999046, 15.543994912015265],
+            ],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![
+                [8.41000317999046, 14.293994912015265],
+                [5.5899968200095405, 5.456005087984735],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Midpoint,
+            clicks: vec![[8.41000317999046, 14.293994912015265], [4.0, 8.0]],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_centre_held_on_a_trait_it_is_tangent_to_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [4.0, 8.0],
+            start: [4.0, 5.0],
+            degrees: 300.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![
+                [-5.5899968200095405, 5.543994912015265],
+                [10.41000317999046, 15.543994912015265],
+            ],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![
+                [8.41000317999046, 14.293994912015265],
+                [5.5899968200095405, 5.456005087984735],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[8.41000317999046, 14.293994912015265], [4.0, 8.0]],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [4.0, 8.0],
+            start: [4.0, 5.0],
+            degrees: 300.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![
+                [-5.5899968200095405, 5.543994912015265],
+                [10.41000317999046, 15.543994912015265],
+            ],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![
+                [8.41000317999046, 14.293994912015265],
+                [5.5899968200095405, 5.456005087984735],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Midpoint,
+            clicks: vec![[8.41000317999046, 14.293994912015265], [4.0, 8.0]],
         },
     ]);
 }

@@ -6,10 +6,8 @@
 //! question — is what it names still there — asked of the kinds it names.
 
 use super::{CircleId, Constraint, Element, PointId, SegmentId, Sketch};
-use crate::arc::ArcId;
 use crate::axis::ChosenAxis;
 use crate::corner_cut::CutPoint;
-use crate::ellipse::EllipseId;
 
 impl Sketch {
     /// Whether everything a rule speaks of is still drawn.
@@ -85,58 +83,73 @@ impl Sketch {
         }
     }
 
-    /// Whether a rule puts a curve's own centre on the curve, or has the curve
+    /// Whether a rule puts a curve's own centre on the curve, has the curve
     /// touch something there or touch a trait running through it — one that
-    /// ends there, or that the centre is held on or in the middle of: it could
-    /// only hold with the curve shrunk to nothing, and the solver writes no row
-    /// for it. `same` says which points are one, so that a merge can ask it of
-    /// the drawing it would leave.
+    /// ends there, or that the centre is held on or in the middle of — or
+    /// holds the centre on a trait the curve touches: it could only hold with
+    /// the curve shrunk to nothing, and the solver writes no row for it.
+    /// `same` says which points are one, so that a merge can ask it of the
+    /// drawing it would leave.
     pub(super) fn on_its_own_centre(
         &self,
         rule: Constraint,
         same: impl Fn(PointId, PointId) -> bool,
     ) -> bool {
-        let circle = |id: CircleId| self.circles.get(id.0).map(|circle| circle.center);
-        let arc = |id: ArcId| self.arcs.get(id.0).copied();
-        let ellipse = |id: EllipseId| self.ellipses.get(id.0).map(|ellipse| ellipse.center);
-        let (point, centre, segment) = match rule {
-            Constraint::OnCircle {
-                point, circle: on, ..
-            } => (Some(point), circle(on), None),
-            Constraint::OnArc { point, arc: on, .. } => match arc(on) {
+        let (point, centre) = match rule {
+            Constraint::OnCircle { point, circle, .. } => (
+                point,
+                self.circles.get(circle.0).map(|circle| circle.center),
+            ),
+            Constraint::OnArc { point, arc, .. } => match self.arcs.get(arc.0) {
                 Some(curve) if same(curve.center, curve.start) || same(curve.center, curve.end) => {
                     return false;
                 }
-                curve => (Some(point), curve.map(|curve| curve.center), None),
+                curve => (point, curve.map(|curve| curve.center)),
             },
-            Constraint::OnEllipse {
-                point, ellipse: on, ..
-            } => (Some(point), ellipse(on), None),
+            Constraint::OnEllipse { point, ellipse, .. } => (
+                point,
+                self.ellipses.get(ellipse.0).map(|ellipse| ellipse.center),
+            ),
+            Constraint::OnSegment { point, segment, .. }
+            | Constraint::Midpoint { point, segment } => {
+                return self
+                    .constraints
+                    .iter()
+                    .filter_map(|tangency| self.touching(*tangency))
+                    .any(|(on, _, centre)| on == segment && same(point, centre));
+            }
+            _ => {
+                return self.touching(rule).is_some_and(|(segment, at, centre)| {
+                    at.is_some_and(|at| same(at, centre))
+                        || self.held_through(segment, centre, &same)
+                });
+            }
+        };
+        centre.is_some_and(|centre| same(point, centre))
+    }
+
+    /// The trait a tangency joins to a curve, where the two touch when a point
+    /// is kept there, and the curve's centre.
+    fn touching(&self, rule: Constraint) -> Option<(SegmentId, Option<PointId>, PointId)> {
+        let (segment, at, centre) = match rule {
             Constraint::Tangent {
-                circle: on,
+                circle,
                 segment,
                 at,
                 ..
-            } => (at, circle(on), Some(segment)),
+            } => (segment, at, self.circles.get(circle.0)?.center),
             Constraint::ArcTangent {
-                arc: on,
-                segment,
-                at,
-                ..
-            } => (at, arc(on).map(|curve| curve.center), Some(segment)),
+                arc, segment, at, ..
+            } => (segment, at, self.arcs.get(arc.0)?.center),
             Constraint::EllipseTangent {
-                ellipse: on,
+                ellipse,
                 segment,
                 at,
                 ..
-            } => (at, ellipse(on), Some(segment)),
-            _ => return false,
+            } => (segment, at, self.ellipses.get(ellipse.0)?.center),
+            _ => return None,
         };
-        let Some(centre) = centre else {
-            return false;
-        };
-        point.is_some_and(|point| same(point, centre))
-            || segment.is_some_and(|segment| self.held_through(segment, centre, &same))
+        Some((segment, at, centre))
     }
 
     /// Whether a trait runs through a point: ends there, or holds it on itself
