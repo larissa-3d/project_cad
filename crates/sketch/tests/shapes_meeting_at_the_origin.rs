@@ -22,7 +22,11 @@
 //!   `a_chain_through_the_origin_along_an_axis_is_settled_by_its_two_lengths`,
 //!   `a_free_square_trait_from_the_origin_beside_a_settled_rectangle_leaves_only_its_length_free`;
 //!   and a value landed in one shape carries no other shape met only at the
-//!   origin — `a_free_trait_from_the_origin_stays_put_when_a_rectangle_beside_it_is_retyped`
+//!   origin — `a_free_trait_from_the_origin_stays_put_when_a_rectangle_beside_it_is_retyped`;
+//!   what the decision must not break: a value typed between two shapes that
+//!   meet only at the origin moves no point but the one it measures to —
+//!   `a_distance_typed_between_two_chains_from_the_origin_moves_only_the_far_end`,
+//!   `a_distance_typed_between_traits_hung_on_two_arcs_about_the_origin_moves_only_the_far_end`
 //! - The cases above hold in #501's campaign — no test: held by
 //!   `crates/sketch/tests/what_random_sketches_found.rs`, under the same issue
 
@@ -411,6 +415,95 @@ fn a_free_trait_from_the_origin_stays_put_when_a_rectangle_beside_it_is_retyped(
             assert!(
                 found.distance(*place) < LANDED,
                 "{case}: the rectangle's corner meant for {place} is at {found}",
+            );
+        }
+    }
+}
+
+/// Types `value` on the distance between `from` and `to` and lands it, then
+/// holds every point of `stays` where it stood and the distance to its value.
+fn assert_only_the_far_end_moves(
+    sketch: &mut Sketch,
+    from: PointId,
+    to: PointId,
+    by: f64,
+    stays: &[PointId],
+    case: &str,
+) {
+    let stood: Vec<DVec2> = stays.iter().map(|point| sketch.point(*point)).collect();
+    let target = DimensionTarget::Distance { from, to };
+    let value = sketch.point(from).distance(sketch.point(to)) + by;
+    sketch.set_dimension(target, value, false);
+    sketch.land_value(target, SCALE);
+
+    let reached = sketch.point(from).distance(sketch.point(to));
+    assert!(
+        (reached - value).abs() < LANDED,
+        "{case}: the distance reads {reached} where {value} was typed",
+    );
+    for (point, place) in stays.iter().zip(&stood) {
+        let found = sketch.point(*point);
+        assert!(
+            found.distance(*place) < LANDED,
+            "{case}: a point nobody asked to move went from {place} to {found}",
+        );
+    }
+}
+
+#[test]
+fn a_distance_typed_between_two_chains_from_the_origin_moves_only_the_far_end() {
+    for by in [2.0, -1.5] {
+        let mut sketch = Sketch::new(WorkPlane::XY);
+        let (bend, _) = trait_from(&mut sketch, Sketch::ORIGIN, [3.0, 1.0]);
+        let (first_end, _) = trait_from(&mut sketch, bend, [6.0, 0.0]);
+        let (held, measured) = trait_from(&mut sketch, Sketch::ORIGIN, [4.0, -3.0]);
+        sketch.set_dimension(DimensionTarget::Length(measured), 5.0, false);
+        let (second_end, _) = trait_from(&mut sketch, held, [9.0, -3.0]);
+
+        assert_only_the_far_end_moves(
+            &mut sketch,
+            first_end,
+            second_end,
+            by,
+            &[bend, first_end, held],
+            &format!("the distance moved by {by}"),
+        );
+    }
+}
+
+#[test]
+fn a_distance_typed_between_traits_hung_on_two_arcs_about_the_origin_moves_only_the_far_end() {
+    for by in [2.0, -1.5] {
+        let mut sketch = Sketch::new(WorkPlane::XY);
+        let first_start = sketch.add_point(DVec2::new(4.0, 0.0));
+        let first_stop = sketch.add_point(DVec2::new(0.0, 4.0));
+        let first = sketch.add_arc(Sketch::ORIGIN, first_start, first_stop);
+        let (first_end, _) = trait_from(&mut sketch, first_stop, [-3.0, 6.0]);
+        let second_start = sketch.add_point(DVec2::new(0.0, -5.0));
+        let second_stop = sketch.add_point(DVec2::new(5.0, 0.0));
+        let second = sketch.add_arc(Sketch::ORIGIN, second_start, second_stop);
+        let (second_end, _) = trait_from(&mut sketch, second_start, [-3.0, -8.0]);
+        let case = format!("the distance moved by {by}");
+
+        assert_only_the_far_end_moves(
+            &mut sketch,
+            first_end,
+            second_end,
+            by,
+            &[
+                first_start,
+                first_stop,
+                first_end,
+                second_start,
+                second_stop,
+            ],
+            &case,
+        );
+        for (arc, radius) in [(first, 4.0), (second, 5.0)] {
+            let found = sketch.arc_radius(arc);
+            assert!(
+                (found - radius).abs() < LANDED,
+                "{case}: an arc of radius {radius} reads {found}",
             );
         }
     }
