@@ -5,6 +5,7 @@ pub(crate) mod chamfer;
 mod drawn;
 mod exact;
 pub(crate) mod fillet;
+mod flats;
 pub(crate) mod names;
 mod section;
 mod turned;
@@ -20,6 +21,7 @@ use crate::profile::{Frame, Profile};
 use crate::sweep;
 use crate::turning::{Lie, Straight, Turn};
 use exact::Exact;
+use flats::Flats;
 use turned::{numbers_turned_whole, turned_flats};
 
 /// A solid: one closed surface, its faces numbered.
@@ -42,15 +44,6 @@ pub struct Body {
 enum Matter {
     Exact(Box<Exact>),
     Flats(Flats),
-}
-
-/// Flat pieces, and the number the next face made is given: every number a
-/// step named stands below it, kept or not, as in an exact body, so that a
-/// part going to the flats never gives a number twice.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct Flats {
-    mesh: Mesh,
-    next: usize,
 }
 
 impl Default for Body {
@@ -362,7 +355,7 @@ impl Body {
 
     fn of_flats(mesh: Mesh, next: usize) -> Body {
         Body {
-            matter: Matter::Flats(Flats { mesh, next }),
+            matter: Matter::Flats(Flats::new(mesh, next)),
         }
     }
 

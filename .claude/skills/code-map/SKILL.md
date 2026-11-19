@@ -56,6 +56,7 @@ there. See the `architecture-rust` skill.
 | What one is after | File | Way in |
 | --- | --- | --- |
 | The matter as every crate above sees it, and the only thing that leaves `cao_solid` | `solid/src/body.rs` | `Body`, `Body::tool_raised`, `tool_turned`, `union`, `difference`, `ray_hit`, `plane_of` |
+| The part's triangles beside the normal at each corner, averaged within a face, which is what the view lights them by | `solid/src/body/drawn/corner_normals.rs` | `Body::triangles_with_normals` |
 | What a body is made of inside the crate: the mesh, the faces, the ray cast | `solid/src/mesh.rs` | `Mesh`, `Polygon`, `ray_hit`, `bounds` |
 | Extruding an area into a prism on the flats | `solid/src/sweep.rs` | `prism(...)`, reached as `Body::tool_raised` |
 | Turning an area around an axis: read once for both kernels, then the exact kernel for straight runs, the flats otherwise | `solid/src/turning.rs`, `turning/straight.rs`, `brep/turned.rs`, `sweep.rs` | `Turn::lie`, `Straight::of`, `brep::Body::turned`, `revolution(...)`, all reached as `Body::tool_turned` |
@@ -96,7 +97,7 @@ there. See the `architecture-rust` skill.
 | The wgpu pipelines, the render pass | `render/src/renderer.rs` | `SceneRenderer::prepare`, `paint`, `SceneFrame` |
 | Orbit camera, view transitions | `render/src/camera.rs` | `OrbitCamera`, `ViewTransition`, `view_angles_towards` |
 | The orientation cube, faces/edges/corners | `render/src/cube.rs` | `push_faces`, `zone_at`, `is_visible` |
-| Axes, adaptive grid, background, solids | `render/src/geometry.rs` | `push_axes`, `push_grid`, `push_background`, `push_solid`, `adaptive_step` |
+| Axes, adaptive grid, background, solids lit from a normal at each corner | `render/src/geometry.rs` | `push_axes`, `push_grid`, `push_background`, `push_smooth_solid`, `adaptive_step` |
 | Offscreen rendering, visual check | `render/examples/offscreen.rs` | `cargo run -p cao_render --example offscreen -- /tmp` |
 
 ### Interface — `cao_app`

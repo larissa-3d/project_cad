@@ -158,7 +158,9 @@ pub fn push_background(
     }
 }
 
-/// Emits a solid's triangles, each shaded from the way it faces.
+/// Emits a solid's triangles, each corner shaded from the way the solid faces
+/// there, as the normal beside it says: a curved face is lit smooth across its
+/// facets, a flat face in one shade.
 ///
 /// The shade is worked out here and baked into the colour, which saves
 /// carrying a normal all the way through the vertex format.
@@ -166,19 +168,6 @@ pub fn push_background(
 /// The light follows the camera rather than sitting in the world: a face turned
 /// towards the viewer is always the bright one, so turning the part never
 /// leaves it staring at an unlit side.
-pub fn push_solid(out: &mut Vec<Vertex>, triangles: &[[Vec3; 3]], color: [f32; 4], towards: Vec3) {
-    let light = light_from(towards);
-    for [a, b, c] in triangles {
-        let shaded = shaded(color, (*b - *a).cross(*c - *a), light);
-        for corner in [a, b, c] {
-            out.push(Vertex::solid(*corner, shaded));
-        }
-    }
-}
-
-/// Emits a solid's triangles as [`push_solid`] does, each corner shaded from
-/// the way the solid faces there rather than from the triangle: a curved face
-/// is lit smooth across its facets.
 pub fn push_smooth_solid(
     out: &mut Vec<Vertex>,
     triangles: &[([Vec3; 3], [Vec3; 3])],
