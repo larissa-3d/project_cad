@@ -438,6 +438,40 @@
 //! boss, and by #908's leaning pillar, both declined. Reading the axis plane
 //! alone: killed by the leaning bored boss alone, every fill on it declined;
 //! #908's leaning pillar buries what the disc misses in its own matter.
+//!
+//! The disc is raised over only what the long edges span along the axis
+//! because a cut's result carries the larger reach of its operands, and a
+//! disc reaching past the part would coarsen what every later step decides.
+//! The parts above cannot show it: at the origin the fill's own prism,
+//! raised along the wall over the part's box and a margin past it (#778),
+//! reaches past the plate's end and sets the reach the body carries, as it
+//! does for a wall with flat ends, while the disc reaches some 28. The same
+//! pillars and bored bosses, upright and leaning, on a plate ended 2 past
+//! the boss and placed 100 along the wall and 200 up or down, hold it — the
+//! part's top or floor then setting the reach — chamfer and fillet, each
+//! built whole at the matter arithmetic gives, one face more, and the
+//! tolerance as it was to the bit —
+//! `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_placed_far_from_the_origin_leave_the_part_s_tolerance_as_it_was`.
+//! That is the kernel's answer for the disc, not a criterion of #915.
+//!
+//! The mutants of the disc's height the campaign let live, applied by hand,
+//! one line each. The run between a long edge's ends, `far - near` turned
+//! `/`; `axis * (high - low + 2.0 * clear)`'s `-` turned `+`, its `+` turned
+//! `*`, and its `* clear` turned `/ clear`: killed by the placed parts, the
+//! disc then raised past the part's top. Where an edge crosses a plane, `/`
+//! turned `%`: killed by the placed leaning pillar, whose disc then misses
+//! the fill and the step is declined. Each height read off `at + origin`
+//! rather than `at - origin`, for the lowest and for the highest:
+//! equivalent, a cylinder's origin is its axis's point nearest the world's,
+//! so `axis · origin` is nought. The frame's `v: -towards` turned `towards`:
+//! equivalent, the same disc, its two halves still meeting on the plane
+//! through the axis, raised along the axis as given. `2.0 * clear` turned
+//! `2.0 + clear`: left alive, the disc standing 2 past the fill rather than
+//! its clearance, which covers the prism and stays inside the box of every
+//! part here, the boss standing some 9 over the fill; only a part whose
+//! top stood within 2 of the fill's and set its reach would show it. The
+//! pillar arm's `normal · past < 0` turned `<=` is #908's guard, equivalent
+//! as #908's mutants above say.
 
 mod step_reader;
 
@@ -7666,6 +7700,187 @@ fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_boss_whose_bore_b
                     "{what}: the bore's edges are named as they were before the step, but for \
                      the fill at the hole's corner"
                 );
+            }
+        }
+    }
+}
+
+/// Holds that a step left the body deciding at the tolerance the part
+/// decided at before it, to the bit: a billionth of the reach the body
+/// carries, which a cut's result takes the larger of from its operands. A
+/// tool of the step reaching further than the part would coarsen what every
+/// later step decides and draws (#915).
+fn leaves_the_part_s_tolerance(part: &Body, body: &Body, what: &str) {
+    let (before, after) = (part.on_a_plane(0.0), body.on_a_plane(0.0));
+    assert_eq!(
+        after, before,
+        "{what}: the body decides at a tolerance of {after}, where before the step the part \
+         decided at {before}: a tool of the step reached further than the part"
+    );
+}
+
+/// Where the pillars and bored bosses of #908 and #915 are built again for
+/// the reach their fill carries to be read: 100 along the wall's run, and
+/// 200 up the ground's normal or 200 down it. At the origin the fill's own
+/// prism, raised along the wall over the part's box and a margin past it
+/// (#778), reaches past the plate's end and sets what the body carries, as
+/// it does for a wall with flat ends. Placed so, the part's top or its floor
+/// sets the reach instead, far past the prism's, and a disc raised along the
+/// boss's axis past the part, up or down, shows in it; so does one moved
+/// along the axis off the fill, by what the fill's matter becomes.
+const PLACED: [DVec3; 2] = [
+    DVec3::new(100.0, 0.0, 200.0),
+    DVec3::new(100.0, 0.0, -200.0),
+];
+
+/// How long the plate of a [`placed_boss`] runs along the wall: 30, 2 past
+/// the upright boss. On the plate of 40 the box #908 cuts a leaning pillar's
+/// fill by, on the plane through its axis, falls past the plate's floor on
+/// its way to the prism's far end, and there sets the reach of a part placed
+/// down; ended there, the box stays over the floor.
+const PLACED_PLATE: f64 = 30.0;
+
+/// The part of [`wall_into_a_pillar`], of [`wall_into_a_leaning_pillar`],
+/// of [`wall_into_a_bored_boss`] or of [`wall_into_a_bored_leaning_boss`],
+/// built in the same steps moved by `at`, on a plate [`PLACED_PLATE`] long:
+/// the plate and the wall on its top;
+/// the pillar about the line through the wall's end, upright and raised 10
+/// off the plate's top or leaning `lean` and raised 14 from 3 under it; and
+/// where `bore` says, its bore along that line through the plate and past
+/// the pillar's top, as those parts cut it.
+fn placed_boss(at: DVec3, lean: f64, bore: Option<f64>) -> Body {
+    let raised = |part: &Body, frame: Frame, outline: Contour, lift: DVec3| {
+        part.tool_raised(&profile(outline), frame, lift)
+            .expect("the placed tool raises")
+    };
+    let flat = |origin: DVec3| Frame {
+        origin: origin + at,
+        ..ground()
+    };
+    let (lean_sin, lean_cos) = lean.sin_cos();
+    let along = DVec3::new(lean_sin, 0.0, lean_cos);
+    let tilted = |below: f64| Frame {
+        origin: LEAN_FOOT + at - along * below,
+        u: DVec3::new(lean_cos, 0.0, -lean_sin),
+        v: DVec3::Y,
+    };
+    let nothing = Body::default();
+    let plate = (nothing.union(&raised(
+        &nothing,
+        flat(DVec3::ZERO),
+        Contour::rectangle(DVec2::ZERO, DVec2::new(PLACED_PLATE, 30.0)),
+        DVec3::Z * PLATE,
+    )))
+    .expect("the placed plate is built");
+    let wall = raised(
+        &plate,
+        flat(DVec3::Z * PLATE),
+        Contour::rectangle(DVec2::new(5.0, 12.0), DVec2::new(25.0, 14.0)),
+        DVec3::Z * 8.0,
+    );
+    let walled = plate.union(&wall).expect("the placed wall is joined");
+    let (below, length) = if lean == 0.0 {
+        (0.0, 10.0)
+    } else {
+        (3.0, 14.0)
+    };
+    let pillar = raised(
+        &walled,
+        tilted(below),
+        disc_about(DVec2::ZERO),
+        along * length,
+    );
+    let part = walled.union(&pillar).expect("the placed pillar is joined");
+    let Some(bore) = bore else {
+        return part;
+    };
+    let (below, length) = if lean == 0.0 {
+        (5.0, 16.0)
+    } else {
+        (6.0, 19.0)
+    };
+    let tool = raised(
+        &part,
+        tilted(below),
+        Contour::circle(DVec2::ZERO, bore),
+        along * length,
+    );
+    part.difference(&tool).expect("the placed bore is cut")
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_placed_far_from_the_origin_leave_the_part_s_tolerance_as_it_was()
+ {
+    let shorter = (40.0 - PLACED_PLATE) * 30.0 * PLATE;
+    let cases = [
+        (0.0, None, wall_into_a_pillar_volume() - shorter),
+        (LEAN, None, leaning_pillar_volume() - shorter),
+        (0.0, Some(1.5), bored_boss_volume(1.5) - shorter),
+        (
+            LEAN,
+            Some(LEANING_BORE),
+            bored_leaning_boss_volume() - shorter,
+        ),
+    ];
+    for (at, (lean, bore, volume)) in PLACED
+        .into_iter()
+        .flat_map(|at| cases.map(|case| (at, case)))
+    {
+        let part = placed_boss(at, lean, bore);
+        let before = format!(
+            "the wall running into a pillar leaning {lean}, bored {bore:?}, moved by {at}, \
+             before any step"
+        );
+        let (round, bored) = match (lean == 0.0, bore) {
+            (true, Some(bore)) => (10.0, 2.0 * PI * bore * BORE_HEIGHT),
+            (false, Some(bore)) => (14.0, 2.0 * PI * bore * leaning_bore_length()),
+            (upright, None) => (if upright { 10.0 } else { 14.0 }, 0.0),
+        };
+        let area = 2.0 * PI * 3.0 * round + bored;
+        sound_drawn_within(&part, volume, drawn_within(&part, area), &before);
+        let foot = edge_between(&part, TOP, WALL_FRONT);
+
+        for fill in [Fill::Chamfer, Fill::Fillet] {
+            for value in BORED_VALUES {
+                let what = format!(
+                    "the {fill:?} of {value} at the foot of a wall running into a pillar \
+                     leaning {lean}, bored {bore:?}, moved by {at}"
+                );
+                let laid = match fill {
+                    Fill::Chamfer => part
+                        .chamfer(&foot, value)
+                        .map(|chamfered| (chamfered.body, chamfered.asked, chamfered.taken)),
+                    Fill::Fillet => part
+                        .fillet(&foot, value)
+                        .map(|filleted| (filleted.body, filleted.asked, filleted.taken)),
+                };
+                let (body, asked, taken) =
+                    laid.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+                taken_whole(asked, taken, value, &what);
+                let height = |out: f64| match fill {
+                    Fill::Chamfer => chamfer_height(value, out),
+                    Fill::Fillet => fillet_height(value, out),
+                };
+                let (matter, laid_area) = match fill {
+                    Fill::Chamfer => (chamfer_into_the_pillar(value, lean), 0.0),
+                    Fill::Fillet => (
+                        fill_matter(value, height, |out, up| along_the_wall_under(lean, out, up)),
+                        PI / 2.0 * value * along_the_wall_under(lean, 0.0, value),
+                    ),
+                };
+                sound_drawn_within(
+                    &body,
+                    volume + matter,
+                    drawn_within(&part, area + value * value + laid_area),
+                    &what,
+                );
+                let made = match fill {
+                    Fill::Chamfer => one_flat_face_more(&part, &body, &what),
+                    Fill::Fillet => one_round_more(&part, &body, &what),
+                };
+                numbered_after_the_steps_last(&part, &body, made, &what);
+                leaves_the_part_s_tolerance(&part, &body, &what);
             }
         }
     }
