@@ -398,3 +398,25 @@ fn a_point_held_at_the_middle_counts_as_held_on_the_trait() {
     assert!(sketch.held_on_trait(elsewhere, side));
     assert!(!sketch.held_on_trait(off, side));
 }
+
+#[test]
+fn a_point_named_by_a_symmetry_does_not_stand_alone() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let point = sketch.add_point(DVec2::new(4.0, 2.0));
+    let made = sketch
+        .mirror(
+            &[crate::Element::Point(point)],
+            crate::ChosenAxis::Sketch(SketchAxis::V),
+        )
+        .expect("an axis to mirror across");
+    let copy = made.points[0];
+
+    assert!(
+        !sketch.stands_alone(point),
+        "the original point is held to its copy, and was taken for a point on its own"
+    );
+    assert!(
+        !sketch.stands_alone(copy),
+        "the copied point is held to its original, and was taken for a point on its own"
+    );
+}

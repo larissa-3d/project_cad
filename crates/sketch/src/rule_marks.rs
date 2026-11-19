@@ -125,7 +125,9 @@ impl Sketch {
             | Constraint::OnCut { point: held, .. } => point(held).into_iter().collect(),
             // The point is the cut's own: it shows as one of them, and a mark
             // beside it would say it was held to something else.
-            Constraint::AtCutPoint { .. } => Vec::new(),
+            Constraint::AtCutPoint { .. }
+            | Constraint::Symmetric(_)
+            | Constraint::SymmetricCircles(_) => Vec::new(),
             Constraint::Fixed { element } => match element {
                 Element::Point(held) => point(held).into_iter().collect(),
                 Element::Segment(held) => middle(held).into_iter().collect(),

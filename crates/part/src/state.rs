@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
-use cao_sketch::{LengthOutcome, Sketch, Support};
+use cao_sketch::{Element, LengthOutcome, Sketch, Support};
 use cao_solid::{Body, Declined, Unstable};
 use serde::{Deserialize, Serialize};
 
@@ -265,13 +265,15 @@ impl PartState {
             } => {
                 let scale = self.scale();
                 let sketch = self.sketches.get_mut(*sketch)?;
+                let twins: Vec<Element> =
+                    elements.iter().flat_map(|e| sketch.twins_of(*e)).collect();
                 for rule in constraints {
                     sketch.erase_constraint(*rule);
                 }
                 for target in dimensions {
                     sketch.erase_dimension(*target);
                 }
-                for element in elements {
+                for element in elements.iter().chain(&twins) {
                     sketch.erase(*element);
                 }
                 // What is left may have room to move again, so it settles into
@@ -329,7 +331,10 @@ impl PartState {
                 sketch,
                 elements,
                 axis,
-            } => self.mirror(*sketch, elements, *axis),
+            } => self.mirror(*sketch, elements, *axis, false),
+            Operation::HeldMirror(asked) => {
+                self.mirror(asked.sketch, &asked.elements, asked.axis, true)
+            }
             Operation::CircularPattern {
                 sketch,
                 elements,

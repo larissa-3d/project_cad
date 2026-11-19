@@ -231,6 +231,22 @@ fn shapes(sketch: &Sketch) -> Vec<usize> {
             | Constraint::AxisParallel { segment, .. }
             | Constraint::AxisPerpendicular { segment, .. } => vec![Element::Segment(segment)],
             Constraint::Fixed { element } => vec![element],
+            Constraint::SymmetricCircles(pair) => {
+                [Element::Circle(pair.circle), Element::Circle(pair.twin)]
+                    .into_iter()
+                    .chain(match pair.axis {
+                        cao_sketch::ChosenAxis::Trait(segment) => Some(Element::Segment(segment)),
+                        cao_sketch::ChosenAxis::Sketch(_) => None,
+                    })
+                    .collect()
+            }
+            Constraint::Symmetric(pair) => [Element::Point(pair.point), Element::Point(pair.twin)]
+                .into_iter()
+                .chain(match pair.axis {
+                    cao_sketch::ChosenAxis::Trait(segment) => Some(Element::Segment(segment)),
+                    cao_sketch::ChosenAxis::Sketch(_) => None,
+                })
+                .collect(),
         };
         ties.push(elements.into_iter().flat_map(&of).collect());
     }

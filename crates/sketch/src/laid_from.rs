@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::constraints::{Constraint, DimensionTarget};
 use crate::corner_cut::CornerCutId;
 use crate::sketch::{Element, PointId, Sketch};
+use crate::symmetry::{CircleSymmetry, Symmetry};
 
 /// Which of the two things a tangency, or a point laid on a trait or a curve,
 /// was laid between was clicked first.
@@ -101,7 +102,9 @@ impl Constraint {
             | Self::AxisCollinear { .. }
             | Self::AxisParallel { .. }
             | Self::AxisPerpendicular { .. }
-            | Self::Fixed { .. } => None,
+            | Self::Fixed { .. }
+            | Self::Symmetric(_)
+            | Self::SymmetricCircles(_) => None,
         }
     }
 
@@ -203,6 +206,18 @@ impl Constraint {
                 segment,
                 from: LaidFrom::Nowhere,
             },
+            Self::SymmetricCircles(pair) if pair.twin.0 < pair.circle.0 => {
+                Self::SymmetricCircles(CircleSymmetry {
+                    circle: pair.twin,
+                    twin: pair.circle,
+                    axis: pair.axis,
+                })
+            }
+            Self::Symmetric(pair) if pair.twin.0 < pair.point.0 => Self::Symmetric(Symmetry {
+                point: pair.twin,
+                twin: pair.point,
+                axis: pair.axis,
+            }),
             other @ (Self::Perpendicular { .. }
             | Self::Parallel { .. }
             | Self::Equal { .. }
@@ -217,7 +232,9 @@ impl Constraint {
             | Self::AxisCollinear { .. }
             | Self::AxisParallel { .. }
             | Self::AxisPerpendicular { .. }
-            | Self::Fixed { .. }) => other,
+            | Self::Fixed { .. }
+            | Self::Symmetric(_)
+            | Self::SymmetricCircles(_)) => other,
         }
     }
 

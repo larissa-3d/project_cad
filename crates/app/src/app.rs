@@ -195,6 +195,7 @@ impl CaoApp {
         viewport.theme = settings.theme.clone();
         viewport.let_go = settings.shortcuts.let_go;
         editor.sketching = settings.sketching;
+        editor.lit_twins.forget();
         viewport.copy_panel_at = settings.copy_panel_at;
 
         // An error raised on this screen goes to the title bar's pill, which

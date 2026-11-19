@@ -43,7 +43,9 @@ pub(super) fn mark(
             .contains(&RulePick::CutCurve(cut)),
         _ => false,
     };
-    let held = context.editor.is_selected(what) || context.editor.hovered == Some(what);
+    let held = context.editor.is_selected(what)
+        || context.editor.hovered == Some(what)
+        || twin_selected(context, what);
     let only_shown = matches!(what, Selection::Element(element) if laid.contains(&element));
     // The circular pattern's copies are drawn in its amber. What its panel
     // holds is lit as any held element is: amber on the yellow of a free
@@ -68,6 +70,28 @@ fn corner_taken(context: &SketchContext<'_>, point: PointId) -> bool {
         return false;
     };
     corners_taken(sketch, &context.editor.tool_state).contains(&point)
+}
+
+/// Whether the mirror image of this piece is held: erasing it would take this
+/// one too, and what will go is seen before it goes.
+fn twin_selected(context: &SketchContext<'_>, what: Selection) -> bool {
+    let (Selection::Element(element), selection) = (what, context.editor.selection()) else {
+        return false;
+    };
+    if selection.is_empty() {
+        return false;
+    }
+    let Some(index) = context.editor.active_sketch() else {
+        return false;
+    };
+    context
+        .document
+        .sketches()
+        .get(index)
+        .is_some_and(|sketch| {
+            let twins = &context.editor.lit_twins;
+            twins.lights(index, sketch, selection, element)
+        })
 }
 
 /// What a rule has already been shown comes first, and in a colour of its own:

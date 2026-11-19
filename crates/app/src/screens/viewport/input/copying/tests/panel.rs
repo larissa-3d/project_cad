@@ -88,14 +88,22 @@
 //! - must not break: a mirror, a circular pattern or a rectangular pattern is
 //!   still one step in the history, undone in one go, and laid by the same
 //!   operations as today — `enter_on_validate_lays_the_mirror_as_one_step`,
+//!   whose mirror is `HeldMirror` since #320, by decision of that issue: the
+//!   panel lays the held mirror, a `Mirror` being what a file saved before it
+//!   replays as a bare copy;
 //!   `a_circular_pattern_laid_from_the_panel_is_one_step`,
 //!   `a_rectangular_pattern_laid_from_the_panel_is_one_step`
 //! - must not break: a mirrored arc comes back as an arc (#317), the mirror
 //!   image of the original — `an_arc_mirrored_from_the_panel_comes_back_an_arc`
 //! - the panel keeps the width of its widest row as the rows change — no test:
 //!   a look, checked on rendered frames
+//!
+//! Closes #320.
+//! - found in review: a mirror laid from the panel today is the held one, its
+//!   copy following its original, whatever form a mirror saved before #320
+//!   keeps — `a_mirror_laid_from_the_panel_holds_its_copy_to_its_original`
 
-use cao_part::history::RepeatsAsked;
+use cao_part::history::{MirrorAsked, RepeatsAsked};
 use cao_part::{Formula, Operation, PointRef};
 use cao_prefs::Command;
 use cao_sketch::{ArcId, ChosenAxis, Element, SegmentId, Selection, WorkPlane};
@@ -221,11 +229,11 @@ fn an_ordinary_trait_clicked_in_the_target_slot_is_the_mirror_s_axis() {
 
     assert_eq!(
         bench.last_laid(),
-        Some(&Operation::Mirror {
+        Some(&Operation::HeldMirror(MirrorAsked {
             sketch: 0,
             elements: bench.a_trait_and_its_ends(TRAIT_TO_COPY),
             axis: ChosenAxis::Trait(ORDINARY_TRAIT),
-        }),
+        })),
         "the axis is the trait clicked while its slot was active, picked before \
          the elements and kept, whatever the cursor is over when the copy is laid"
     );
@@ -445,11 +453,11 @@ fn an_axis_already_picked_is_changed_by_clicking_its_slot_again() {
 
     assert_eq!(
         bench.last_laid(),
-        Some(&Operation::Mirror {
+        Some(&Operation::HeldMirror(MirrorAsked {
             sketch: 0,
             elements: bench.a_trait_and_its_ends(TRAIT_TO_COPY),
             axis: ChosenAxis::Trait(CONSTRUCTION_TRAIT),
-        }),
+        })),
         "the second axis picked replaces the first"
     );
 }
@@ -545,8 +553,11 @@ fn enter_on_validate_lays_the_mirror_as_one_step() {
 
     assert_eq!(bench.laid(), laid_before + 1, "one step in the history");
     assert!(
-        matches!(bench.last_laid(), Some(Operation::Mirror { .. })),
-        "laid by the same operation as before the panel: {:?}",
+        matches!(
+            bench.last_laid(),
+            Some(Operation::HeldMirror(MirrorAsked { .. }))
+        ),
+        "laid as the held mirror #320 decided on: {:?}",
         bench.last_laid()
     );
     assert_eq!(traits(&bench), traits_before + 1);
@@ -988,4 +999,41 @@ fn a_box_drawn_in_the_drawing_adds_what_it_takes() {
         );
     }
     assert_eq!(bench.active(), CopySlot::Elements);
+}
+
+#[test]
+fn a_mirror_laid_from_the_panel_holds_its_copy_to_its_original() {
+    let mut bench = three_traits();
+    bench.take(Command::ToolMirror);
+    bench.click(ON_THE_TRAIT_TO_COPY);
+    bench.click_the_slot(CopySlot::Target);
+    bench.click(ON_THE_ORDINARY_TRAIT);
+    bench.editor.cursor = Some(FAR_FROM_EVERYTHING);
+    bench.enter();
+
+    let mut sketch = bench.document.sketches()[0].clone();
+    let foot = sketch.segments()[TRAIT_TO_COPY.0].start;
+    let image_of = |sketch: &cao_sketch::Sketch, place: DVec2| {
+        let (through, towards) = sketch.endpoints(ORDINARY_TRAIT);
+        let along = (towards - through).normalize();
+        let offset = place - through;
+        through + along * 2.0 * offset.dot(along) - offset
+    };
+    let wanted = image_of(&sketch, sketch.point(foot));
+    let copied_foot = sketch
+        .live_points()
+        .find(|(_, at)| at.distance(wanted) < 1e-9)
+        .map(|(id, _)| id)
+        .expect("the mirror laid a copy of the foot");
+    let pull = sketch.pull(foot, 1.0);
+    let landing = sketch.slide(foot, sketch.point(foot) + DVec2::new(-1.0, -2.0));
+    sketch.settle_pulled(&pull, landing, 1.0);
+
+    let wanted = image_of(&sketch, sketch.point(foot));
+    assert!(
+        sketch.point(copied_foot).distance(wanted) < 1e-6,
+        "the copy laid from the panel did not follow its original: its foot stands at {}, \
+         not at the image {wanted}",
+        sketch.point(copied_foot)
+    );
 }

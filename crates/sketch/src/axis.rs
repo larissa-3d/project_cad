@@ -12,7 +12,7 @@ use crate::sketch::{SegmentId, Sketch};
 const NO_DIRECTION: f64 = 1e-9;
 
 /// A straight line of the drawing, named by a click.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChosenAxis {
     /// A trait of the drawing, which follows it when it moves.
     Trait(SegmentId),

@@ -7,13 +7,19 @@ use crate::arc::ArcId;
 use crate::constraints::{Constraint, Dimension, DimensionTarget};
 use crate::equation::Equation;
 use crate::sketch::{CircleId, PointId, SegmentId, Sketch};
+use crate::symmetry::CircleSymmetry;
 
 impl Sketch {
     /// Two circles, an arc and a circle, or two arcs, held to the same
     /// radius — whichever pair a circle's own `EqualRadius` now reaches.
     pub(super) fn equal_radius_equations(&self, constraint: Constraint) -> Vec<Equation> {
         match constraint {
-            Constraint::EqualRadius { first, second } => self
+            Constraint::EqualRadius { first, second }
+            | Constraint::SymmetricCircles(CircleSymmetry {
+                circle: first,
+                twin: second,
+                ..
+            }) => self
                 .equal_radius_circles(first, second)
                 .into_iter()
                 .collect(),

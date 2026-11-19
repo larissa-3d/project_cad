@@ -1,7 +1,7 @@
 use glam::DVec2;
 
 use super::*;
-use crate::constraints::{Constraint, SketchAxis};
+use crate::constraints::SketchAxis;
 use crate::plane::WorkPlane;
 
 const TOLERANCE: f64 = 1e-9;
@@ -96,27 +96,6 @@ fn the_original_is_left_exactly_as_it_was() {
         sketch.live_segments().count(),
         6,
         "three sides, and three more"
-    );
-}
-
-#[test]
-fn the_copy_comes_out_bare_of_the_rules_the_original_carried() {
-    let (mut sketch, held) = a_triangle_east_of_the_axis();
-    let [first, second] = [held[0], held[1]].map(|element| match element {
-        Element::Segment(id) => id,
-        _ => unreachable!(),
-    });
-    sketch.add_constraint(Constraint::Perpendicular { first, second });
-    let rules = sketch.constraints().len();
-
-    sketch
-        .mirror(&held, ChosenAxis::Sketch(SketchAxis::V))
-        .expect("an axis to mirror across");
-
-    assert_eq!(
-        sketch.constraints().len(),
-        rules,
-        "the copy is geometry and nothing else"
     );
 }
 
@@ -270,5 +249,36 @@ fn an_arc_symmetric_about_the_axis_is_not_copied_onto_itself() {
     assert!(
         made.arcs.is_empty(),
         "the curve reads the same either side of the axis, so its copy covers it"
+    );
+}
+
+#[test]
+fn a_bare_mirror_copies_every_point_those_on_the_axis_too_and_lays_no_rule() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let foot = sketch.add_point(DVec2::new(0.0, 1.0));
+    let corner = sketch.add_point(DVec2::new(3.0, 1.0));
+    let side = Element::Segment(sketch.add_segment(foot, corner));
+
+    let made = sketch
+        .mirror_bare(&[side], ChosenAxis::Sketch(SketchAxis::V))
+        .expect("an axis to mirror across");
+
+    let mut got = places(&sketch, &made);
+    got.sort_by(|a, b| a.x.total_cmp(&b.x));
+    assert_eq!(made.points.len(), 2, "the foot on the axis is copied too");
+    assert!(
+        got[0].distance(DVec2::new(-3.0, 1.0)) <= TOLERANCE,
+        "{got:?}"
+    );
+    assert!(
+        got[1].distance(DVec2::new(0.0, 1.0)) <= TOLERANCE,
+        "{got:?}"
+    );
+    assert!(!made.points.contains(&foot));
+    assert_eq!(made.segments.len(), 1);
+    assert!(
+        sketch.constraints().is_empty(),
+        "a bare mirror laid {:?}",
+        sketch.constraints()
     );
 }
