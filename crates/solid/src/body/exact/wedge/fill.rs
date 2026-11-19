@@ -50,8 +50,11 @@ impl Exact {
     /// point an overlap clears and, where it takes one, of each corner this
     /// body holds on the plane of either of the edge's faces: a fill laid
     /// before it, stopped on that plane, runs on into the overlap past it, and
-    /// so does the valley it meets a round bottom along (#921). Declined
-    /// `Unsupported`: an end where
+    /// so does the valley it meets a round bottom along (#921); and, of two
+    /// edges laid as one, of each corner on the plane of the face they meet
+    /// across, gone, where the seam between their two walls ended on a face at
+    /// their ends — standing on the plane of a face that does not reach it,
+    /// the step at a stepped end. Declined `Unsupported`: an end where
     /// no face but the edge's two meets it, or several do, or one the fill
     /// cannot be trimmed flush on, as [`past_the_end`] and [`past_two_faces`]
     /// decline it, and another edge that does not end on the faces the first
@@ -74,18 +77,18 @@ impl Exact {
         for (end, past) in ends.into_iter().zip([-wedge.along, wedge.along]) {
             let face = end_face(on, end, wedge.faces).ok_or(Declined::Unsupported)?;
             let point = on.vertex(end).point;
-            let elsewhere = (edges[1..].iter()).find_map(|&(edge, wedge)| {
+            let elsewhere = (edges[1..].iter()).find_map(|&(edge, other)| {
                 let ends = on.edge(edge).ends?;
                 let along = |end: VertexId| past.dot(on.vertex(end).point);
                 let far = ends[usize::from(along(ends[1]) > along(ends[0]))];
-                let theirs = end_face(on, far, wedge.faces)?;
-                (theirs != face).then(|| (theirs, on.vertex(far).point))
+                let theirs = end_face(on, far, other.faces)?;
+                (theirs != face).then(|| (theirs, other, on.vertex(far).point))
             });
             let beyond_the_end = match (holding(held, point, eps), elsewhere) {
                 (Some((end, number)), _) => vec![end.beyond(prism, number)?],
-                (None, Some((theirs, at))) => {
+                (None, Some((theirs, other, at))) => {
                     end_faces.push(theirs);
-                    past_two_faces(on, [(face, point), (theirs, at)], past, prism)?
+                    past_two_faces(on, [(face, wedge, point), (theirs, other, at)], past, prism)?
                 }
                 (None, None) => past_the_end(on, face, point, past, prism)?,
             };
@@ -111,40 +114,71 @@ impl Exact {
         }
         corners.extend(self.seams(wedge, overlaps, eps));
         let next = edges.len() as u32;
-        self.joined(&Exact { next, ..trimmed })?.merged_at(&corners)
+        let joined = self.joined(&Exact { next, ..trimmed })?;
+        let across = (edges.get(1))
+            .and_then(|&(_, other)| {
+                wedge
+                    .faces
+                    .into_iter()
+                    .find(|face| other.faces.contains(face))
+            })
+            .and_then(|face| flat(on, face));
+        if let Some((plane, _)) = across {
+            let brep = &joined.brep;
+            let seam = (brep.vertex_ids())
+                .map(|vertex| brep.vertex(vertex).point)
+                .filter(|&point| plane.distance(point).abs() <= eps);
+            corners.extend(seam);
+        }
+        joined.merged_at(&corners)
     }
 }
 
 /// The solids to cut from the prism of two edges laid as one so that it ends
 /// flush on the planes of the two faces they end on, each at its corner,
-/// running on `past` there: the boxes [`behind`] raises on each plane, on the
-/// side `past` points to, however far along its long edges cross it — a
+/// running on `past` there: the boxes [`behind`] raises on each plane, into
+/// the matter past it, however far along its long edges cross it — a
 /// round bottom carried over the part's box may stop short of a wall leaning
-/// across its end. Where the second corner lies past the first's plane — a
-/// notched end, whose air runs on past each plane beside the other — what
-/// lies past both is cut, and otherwise — a pointed end — what lies past
-/// either. Declined `Unsupported` where either face is not flat or runs along
-/// the edges; otherwise as the booleans decline.
+/// across its end. Each half of the prism, either side of the plane midway
+/// between the two edges, ends on its own edge's wall, whichever edge comes
+/// first: where each corner lies short of the other's plane — a pointed end
+/// — what lies past either plane is cut, where each lies past it — a notched
+/// end, whose air runs on past each plane beside the other — what lies past
+/// both, the same without cutting along that midway plane, through the seam
+/// between the prism's two walls; and where one lies short and the other past
+/// — a stepped end, whose walls share no edge — what lies past each plane on
+/// its own edge's side of it. Declined `Unsupported` where either face is not
+/// flat, or does not face back along the edges, matter past it — a slot
+/// widening past the end of one edge, whose half there would end in the air
+/// while the other runs on; otherwise as the booleans decline.
 fn past_two_faces(
     body: &brep::Body,
-    [(one, at), (other, theirs)]: [(FaceId, DVec3); 2],
+    ends: [(FaceId, &Wedge, DVec3); 2],
     past: DVec3,
     prism: &Prism,
 ) -> Result<Vec<Exact>, Declined> {
-    let side = |id: FaceId| {
+    let wall = |(id, _, at): (FaceId, &Wedge, DVec3)| {
         let (plane, outward) = flat(body, id).ok_or(Declined::Unsupported)?;
-        let on = outward.dot(past);
-        if on == 0.0 {
+        if outward.dot(past) >= 0.0 {
             return Err(Declined::Unsupported);
         }
-        let away = outward * on.signum();
-        Ok((away, behind(prism, plane, away)?))
+        Ok((behind(prism, plane, -outward)?, -outward, at))
     };
-    let [(away, first), (_, second)] = [side(one)?, side(other)?];
-    if away.dot(theirs - at) > body.scale().eps() {
-        Ok(vec![common(&first, &second)?])
-    } else {
-        Ok(vec![first, second])
+    let [(mine, away, here), (theirs, beyond, there)] = [wall(ends[0])?, wall(ends[1])?];
+    let eps = body.scale().eps();
+    match [away.dot(there - here) > eps, beyond.dot(here - there) > eps] {
+        [false, false] => Ok(vec![mine, theirs]),
+        [true, true] => Ok(vec![common(&mine, &theirs)?]),
+        _ => {
+            let [(_, first, _), (_, second, _)] = ends;
+            let apart = second.point - first.point;
+            let across = (apart - first.along * first.along.dot(apart)).normalize();
+            let (middle, _) = Plane::through((first.point + second.point) / 2.0, across);
+            Ok(vec![
+                common(&mine, &behind(prism, &middle, -across)?)?,
+                common(&theirs, &behind(prism, &middle, across)?)?,
+            ])
+        }
     }
 }
 

@@ -76,7 +76,9 @@ impl Exact {
     /// point, the upright at its tip named too is filled in and closed with
     /// them by a hollow piece of sphere; and the round bottom alone, or at a
     /// point with an upright at a shoulder, ends flush on both end walls as
-    /// well (#921).
+    /// well, each half on its own whichever edge is named first — at a
+    /// stepped end too, whose two walls share no edge, the step kept whole
+    /// (#921).
     /// Where
     /// matter lies past an end of an edge rounded off, behind the one flat face
     /// it runs into there — the inner corner of an L, a pocket's rim, the foot
@@ -168,8 +170,10 @@ impl Exact {
     /// any but the edge at its end, an upright there beside a floor edge
     /// meeting inwards or the two edges of a pointed or a notched end — a
     /// pit's upright, beside one meeting outwards (#919),
-    /// one edge of a notched end alone, and both with an upright at a point's
-    /// shoulder or the one at a notch's tip (#921) — or that edge where its
+    /// one edge of a notched end alone, both with an upright at a point's
+    /// shoulder or the one at a notch's tip, and a round bottom ending on two
+    /// faces where either has air past it, a slot widening past the end of
+    /// one edge (#921) — or that edge where its
     /// faces meet outwards — an
     /// open slot's end, the rim above a standing round bottom — refused by
     /// the laying, and a cut that left anything but its round —
