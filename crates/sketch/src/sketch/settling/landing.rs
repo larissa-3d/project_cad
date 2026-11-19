@@ -16,6 +16,9 @@ impl Sketch {
     /// Lays a rule down and settles the drawing into it, the thing it was laid
     /// from held where it is.
     pub fn lay_rule(&mut self, rule: Constraint, millimeters_per_unit: f64) -> LengthOutcome {
+        if self.on_its_own_centre(rule, |a, b| a == b) {
+            return LengthOutcome::BestEffort;
+        }
         if !self.carries(rule) && self.holds_up(rule) {
             self.bring_alongside(rule);
             self.turn_onto_the_axis(rule);

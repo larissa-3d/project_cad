@@ -147,41 +147,21 @@ impl Sketch {
         let onto_its_centre = self.live_arcs().any(|(id, arc)| {
             (same(arc.center, arc.start) || same(arc.center, arc.end)) && radius_typed(id)
         });
-        let impossible_rule = self.constraints.iter().any(|rule| match *rule {
-            Constraint::Midpoint { point, segment } => {
-                let side = self.segments[segment.0];
-                !same(side.start, side.end) && (same(point, side.start) || same(point, side.end))
-            }
-            Constraint::OnCircle { point, circle, .. } => {
-                same(point, self.circles[circle.0].center)
-            }
-            Constraint::OnArc { point, arc, .. } => {
-                let curve = self.arcs[arc.0];
-                same(point, curve.center)
-                    && !same(curve.center, curve.start)
-                    && !same(curve.center, curve.end)
-            }
-            Constraint::OnEllipse { point, ellipse, .. } => {
-                same(point, self.ellipses[ellipse.0].center)
-            }
-            Constraint::Tangent {
-                circle,
-                at: Some(at),
-                ..
-            } => same(at, self.circles[circle.0].center),
-            Constraint::ArcTangent {
-                arc, at: Some(at), ..
-            } => same(at, self.arcs[arc.0].center),
-            Constraint::EllipseTangent {
-                ellipse,
-                at: Some(at),
-                ..
-            } => same(at, self.ellipses[ellipse.0].center),
-            Constraint::AtCutPoint { point, cut, .. } | Constraint::OnCut { point, cut } => self
-                .cut_stands_on(cut)
-                .into_iter()
-                .any(|stand| same(point, stand)),
-            _ => false,
+        let impossible_rule = self.constraints.iter().any(|rule| {
+            self.on_its_own_centre(*rule, same)
+                || match *rule {
+                    Constraint::Midpoint { point, segment } => {
+                        let side = self.segments[segment.0];
+                        !same(side.start, side.end)
+                            && (same(point, side.start) || same(point, side.end))
+                    }
+                    Constraint::AtCutPoint { point, cut, .. }
+                    | Constraint::OnCut { point, cut } => self
+                        .cut_stands_on(cut)
+                        .into_iter()
+                        .any(|stand| same(point, stand)),
+                    _ => false,
+                }
         });
         !onto_its_centre && !impossible_rule
     }

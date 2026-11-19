@@ -136,6 +136,15 @@
 //!   the exact contacts the rules create, a few `Untrue` and `Fixed` cases —
 //!   is deferred, not claimed — no test: #1047 lists their seeds, and a case
 //!   is pinned here once its cause has an issue
+//!
+//! Closes #1038.
+//! - The circle, arc and half-ellipse cases are refused with the drawing
+//!   unchanged — no test: the refusal is `cao_part`'s, held under the same
+//!   names in `crates/part/tests/an_impossible_rule_is_refused.rs`
+//! - The cases above hold in #501's campaign, the circle's `ignore` taken off
+//!   — `a_circle_s_centre_put_on_its_own_circle_is_refused`,
+//!   `an_arc_s_centre_put_on_its_own_arc_is_refused`,
+//!   `half_an_ellipse_s_centre_put_on_its_own_curve_is_refused`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -885,7 +894,6 @@ fn a_tangency_between_an_arc_and_a_trait_through_its_centre_is_refused() {
 }
 
 #[test]
-#[ignore = "#1038"]
 fn a_circle_s_centre_put_on_its_own_circle_is_refused() {
     random_sketches::holds(&[
         Gesture::Circle {
@@ -896,6 +904,38 @@ fn a_circle_s_centre_put_on_its_own_circle_is_refused() {
         Gesture::Rule {
             rule: cao_sketch::Rule::Coincident,
             clicks: vec![[20.0, 15.0], [44.0, 22.0]],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_centre_put_on_its_own_arc_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [20.0, 15.0],
+            start: [45.0, 15.0],
+            degrees: 120.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[20.0, 15.0], [35.0, 35.0]],
+        },
+    ]);
+}
+
+#[test]
+fn half_an_ellipse_s_centre_put_on_its_own_curve_is_refused() {
+    random_sketches::holds(&[
+        Gesture::HalfEllipse {
+            from: [0.0, 0.0],
+            to: [40.0, 0.0],
+            rise: 15.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[20.0, 0.0], [32.0, 12.0]],
         },
     ]);
 }

@@ -12,9 +12,21 @@
 //!   `a_rule_only_fixed_points_stand_in_the_way_of_still_lands`
 //! - a rule the drawing can take still lands, and is recorded —
 //!   `a_rule_the_drawing_can_take_lands_and_is_recorded`
+//!
+//! Closes #1038.
+//! - The circle, arc and half-ellipse cases are refused with the drawing
+//!   unchanged — `a_circle_s_centre_put_on_its_own_circle_is_refused`,
+//!   `an_arc_s_centre_put_on_its_own_arc_is_refused`,
+//!   `half_an_ellipse_s_centre_put_on_its_own_curve_is_refused`
+//! - The cases above hold in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the three drawings are held to its rules there, under
+//!   the same names, in `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
-use cao_sketch::{Constraint, DimensionTarget, Element, SegmentId, SketchAxis, WorkPlane};
+use cao_sketch::{
+    Constraint, DimensionTarget, Element, PointId, Rule, RuleIntent, RulePick, SegmentId,
+    SketchAxis, WorkPlane, rule_intent,
+};
 use glam::DVec2;
 
 /// Two traits apart, 50 and 80 long, both typed.
@@ -125,4 +137,99 @@ fn a_rule_the_drawing_can_take_lands_and_is_recorded() {
     assert_eq!(outcome, None);
     assert!(document.sketches()[0].carries(parallel));
     assert_eq!(steps(&document), recorded + 1, "the rule is a step");
+}
+
+fn a_blank_sketch() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document
+}
+
+fn centre_put_on_its_own_curve_is_refused(mut document: PartDocument, curve: Element) {
+    let sketch = &document.sketches()[0];
+    let centre: PointId = match curve {
+        Element::Circle(circle) => sketch.circles()[circle.0].center,
+        Element::Arc(arc) => sketch.arcs()[arc.0].center,
+        Element::Ellipse(ellipse) => sketch.ellipses()[ellipse.0].center,
+        other => panic!("not a curve: {other:?}"),
+    };
+    let picks = [
+        RulePick::Element(Element::Point(centre)),
+        RulePick::Element(curve),
+    ];
+    let Some(RuleIntent::Constrain(rule)) = rule_intent(Rule::Coincident, &picks, sketch) else {
+        panic!("the tool offers no rule for a centre and its own curve");
+    };
+    let before = sketch.clone();
+    let recorded = steps(&document);
+
+    let outcome = document.apply(Operation::Constrain {
+        sketch: 0,
+        constraint: rule,
+    });
+
+    assert_eq!(outcome, Some(Outcome::RuleRefused), "{rule:?} was laid");
+    let sketch = &document.sketches()[0];
+    assert!(!sketch.carries(rule), "the rule is not kept");
+    assert_eq!(sketch.points().len(), before.points().len());
+    assert!(
+        sketch
+            .points()
+            .iter()
+            .zip(before.points())
+            .all(|(now, was)| now.distance(*was) < 1e-9),
+        "nothing about the drawing moved"
+    );
+    assert_eq!(steps(&document), recorded, "the history has no new step");
+}
+
+#[test]
+fn a_circle_s_centre_put_on_its_own_circle_is_refused() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        radius: 25.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+
+    centre_put_on_its_own_curve_is_refused(document, Element::Circle(cao_sketch::CircleId(0)));
+}
+
+#[test]
+fn an_arc_s_centre_put_on_its_own_arc_is_refused() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddArc {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        start: PointRef::New(DVec2::new(45.0, 15.0)),
+        end: PointRef::New(DVec2::new(20.0, 40.0)),
+        construction: false,
+    });
+
+    centre_put_on_its_own_curve_is_refused(document, Element::Arc(cao_sketch::ArcId(0)));
+}
+
+#[test]
+fn half_an_ellipse_s_centre_put_on_its_own_curve_is_refused() {
+    let mut document = a_blank_sketch();
+    let centre = PointRef::New(DVec2::new(20.0, 0.0));
+    let (left, right) = (
+        PointRef::New(DVec2::new(0.0, 0.0)),
+        PointRef::New(DVec2::new(40.0, 0.0)),
+    );
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: centre.clone(),
+        first: [left.clone(), right.clone()],
+        second: [centre, PointRef::New(DVec2::new(20.0, 15.0))],
+        construction: false,
+        drawn: Some([right, left]),
+    });
+
+    centre_put_on_its_own_curve_is_refused(document, Element::Ellipse(cao_sketch::EllipseId(0)));
 }
