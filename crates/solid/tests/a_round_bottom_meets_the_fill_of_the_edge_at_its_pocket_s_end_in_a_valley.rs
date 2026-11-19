@@ -409,6 +409,41 @@
 //!   the arithmetic gives, so the decline is a limitation, not a protection:
 //!   building that list is a follow-up's —
 //!   `a_chamfer_on_the_three_edges_at_a_bottom_corner_of_a_pocket_as_wide_as_the_distance_closes_it_a_tenth_short_and_is_declined_where_the_end_edge_s_flat_closes_to_nothing_on_the_far_wall_whatever_the_order`
+//! - Decided on the way, after the mutants on the narrowed guard
+//!   (2026-11-19): an upright meeting inwards is let in at a pair's end only
+//!   where the pair and the upright all meet inwards. #791's stair between
+//!   two walls, its slope — the tread's nose and foot chamfered at 5, a cut
+//!   and a fill — and the riser's concave upright on the right wall, which
+//!   meets the foot where the tread's edge on that wall, left out, meets
+//!   inwards too: declined `Unsupported` in every order, each part laid
+//!   alone. Reading the guard's `&&` as `||`, either way round, lets that
+//!   upright in, and two of the six orders build 13083.33 —
+//!   `a_chamfer_on_a_stair_s_slope_and_the_riser_s_concave_upright_on_the_wall_beside_it_stays_declined_as_unsupported_whatever_the_order`.
+//!   A full round meeting a concave upright at one of its edges' ends, the
+//!   case the first of the two mutants is named for, is no list to hold:
+//!   such an upright meets a full round's edge only at an L's inner corner,
+//!   where the top runs on past that edge's end, and there the full round is
+//!   declined alone
+//! - Decided on the way, after the mutants on the narrowed guard
+//!   (2026-11-19): what an upright and the edge of a pair it meets are held
+//!   to is the corner they share, not every corner either of them ends at. A
+//!   plate 6 wide and 10 high standing flush on a base 11 wide and 10 high
+//!   that runs 5 out in front of it, raised 30 along X from its section: the
+//!   fillet at 3 on the plate's full round, its front right upright and the
+//!   base's top edge at that end, the upright and that edge meeting at
+//!   (30, 0, 10) beside the plate's front foot, which meets inwards and is
+//!   left out. Built in every order, exact, closed and uncrossed, the same
+//!   body whatever the order, holding the volume the arithmetic gives, which
+//!   the booleans give too. Reading the corners the upright is held to as
+//!   those it or its member ends at declines it in every order —
+//!   `a_fillet_on_a_plate_s_full_round_its_upright_at_one_end_and_the_top_edge_of_the_base_it_stands_flush_on_there_is_built_whatever_the_order`.
+//!   Read as: the block of 3300 and the plate of 1800 lose the full round's
+//!   `2r²(1 − π/4)` along 30, the upright's `r²(1 − π/4)` along 10 and the
+//!   base edge's along 5; the upright's round mitred against the full round
+//!   gives back `r³(5/3 − π/2)`, and what the upright's and the base edge's
+//!   prisms both hold past the faces they stop on, cut as #843 cuts it,
+//!   takes as much again: `5100 − 75r²(1 − π/4)`, that is `4425 + 675π/4`,
+//!   4955.1438
 //!
 //! The arithmetic is #838's and #801's, [`kept`]'s. With the pair, the right
 //! end's floor edge and both uprights, each of the two bottom corners at
@@ -2956,6 +2991,302 @@ fn a_fillet_on_a_pit_s_upright_beside_a_floor_that_drops_over_a_convex_edge_with
          edge ending there is concave, so the list is a broken step and its reason, \
          Unsupported, whatever the order, its parts laid alone; not so:\n{}",
         not_declined.join("\n")
+    );
+}
+
+/// The face of [`stair_between_two_walls`]'s right wall against the stair:
+/// the tread's edge on it and the riser's both meet inwards.
+const STAIR_S_RIGHT_WALL: usize = 17;
+
+#[test]
+fn a_chamfer_on_a_stair_s_slope_and_the_riser_s_concave_upright_on_the_wall_beside_it_stays_declined_as_unsupported_whatever_the_order()
+ {
+    let part = stair_between_two_walls();
+    let [tread, nose, riser] = [7, 8, 2];
+    let slope = vec![
+        edge_touching(&part, tread, nose),
+        edge_touching(&part, riser, tread),
+    ];
+    let upright = vec![edge_touching(&part, riser, STAIR_S_RIGHT_WALL)];
+    let value = 5.0;
+    for (alone, which) in [(&slope, "the slope"), (&upright, "the riser's upright")] {
+        if let Err(declined) = Cut::Chamfer.laid_on(&part, alone, value) {
+            panic!("{which} alone is laid; declined, {declined:?}");
+        }
+    }
+
+    let list: Vec<EdgeName> = slope.iter().chain(&upright).cloned().collect();
+    let mut not_declined = Vec::new();
+    for order in every_order(list.len()) {
+        let names: Vec<EdgeName> = order.iter().map(|&edge| list[edge].clone()).collect();
+        let what = format!(
+            "the chamfer at {value} on the stair's slope and the riser's upright on the right \
+             wall, named in the order {order:?}"
+        );
+        match Cut::Chamfer.laid_on(&part, &names, value) {
+            Err(Declined::Unsupported) => {}
+            Err(declined) => not_declined.push(format!("{what}: declined, {declined:?}")),
+            Ok(laid) => not_declined.push(format!("{what}: a body of {}", laid.body.volume())),
+        }
+    }
+    assert!(
+        not_declined.is_empty(),
+        "a slope's cut and fill are no pair laid inwards: the riser's concave upright, meeting \
+         the slope's foot where the tread's edge on the wall meets inwards too, is let in at a \
+         round bottom's end only, so the list is a broken step and its reason, Unsupported, \
+         whatever the order, its parts laid alone; not so:\n{}",
+        not_declined.join("\n")
+    );
+}
+
+/// The faces of [`plate_on_a_base`], raised along X from its section: the
+/// end the plate and the base share at x = 30, the plate's back, top and
+/// front, and the base's top.
+const SHARED_END: usize = 1;
+const PLATE_BACK: usize = 3;
+const PLATE_TOP: usize = 4;
+const PLATE_FRONT: usize = 5;
+const BASE_TOP: usize = 6;
+
+/// A plate 6 wide and 10 high standing on a base 11 wide and 10 high that
+/// runs 5 out in front of it, flush with it at the back and at both ends, as
+/// a user draws it: its section on the plane x = 0, from y = −5 to 6 up to
+/// z = 10 and from y = 0 to 6 on up to z = 20, raised 30 along X — its left
+/// end nought, its right end, which the plate and the base share, one, then
+/// its floor, back, top, front, the base's top and the base's front, two to
+/// seven. The plate's top's front and back edges, filleted at half its
+/// width, meet across it in a full round; its front right upright and the
+/// base's top edge at that end, both on the end the two share, meet at
+/// (30, 0, 10) beside the plate's front foot, which meets inwards.
+fn plate_on_a_base() -> Body {
+    let section = Contour::straight(vec![
+        DVec2::new(-5.0, 0.0),
+        DVec2::new(WIDTH, 0.0),
+        DVec2::new(WIDTH, HEIGHT),
+        DVec2::new(0.0, HEIGHT),
+        DVec2::new(0.0, 10.0),
+        DVec2::new(-5.0, 10.0),
+    ]);
+    let raised = Body::default()
+        .tool_raised(
+            &profile(section),
+            Frame {
+                origin: DVec3::ZERO,
+                u: DVec3::Y,
+                v: DVec3::Z,
+            },
+            DVec3::X * LENGTH,
+        )
+        .expect("the section raises");
+    Body::default()
+        .union(&raised)
+        .expect("the plate on its base is raised")
+}
+
+/// The prism a quarter round at [`RADIUS`] about the line through `axis`
+/// along the normal of `frame` takes off, raised from `frame` by `travel`:
+/// what lies outside the quarter circle and inside the square of side the
+/// radius on the side of the axis `corner` points to, spread a unit past the
+/// two faces into the air.
+fn quarter_round_tool(
+    part: &Body,
+    frame: Frame,
+    [axis, corner]: [DVec2; 2],
+    travel: DVec3,
+) -> Body {
+    let r = RADIUS;
+    let out = DVec2::new((corner.x - axis.x).signum(), (corner.y - axis.y).signum());
+    let far = axis + out * (r + 1.0);
+    let mut corners = vec![
+        DVec2::new(axis.x + out.x * r, axis.y),
+        DVec2::new(far.x, axis.y),
+        far,
+        DVec2::new(axis.x, far.y),
+        DVec2::new(axis.x, axis.y + out.y * r),
+    ];
+    if out.x * out.y < 0.0 {
+        corners.reverse();
+    }
+    let mut runs = vec![Run::Straight; corners.len()];
+    runs[4] = Run::Round {
+        center: axis,
+        turn: -PI / 2.0,
+    };
+    part.tool_raised(&profile(Contour { corners, runs }), frame, travel)
+        .expect("the tool raises")
+}
+
+/// What [`plate_on_a_base`] keeps once its full round, its front right upright
+/// and the base's top edge at that end are filleted at [`RADIUS`], computed
+/// apart from the step: the full round's prism and the upright's, raised from
+/// the base's top, and the base edge's, raised up to the plate's front, cut
+/// away by the booleans; then what both of the last two hold carried past the
+/// faces they stop on — the upright's under the base's top, the base edge's
+/// behind the plate's front — cut away too, as #843 takes it.
+fn plate_on_a_base_by_booleans(part: &Body) -> f64 {
+    let r = RADIUS;
+    let full_round = {
+        let [near, far] = [0.0, WIDTH];
+        let corners = vec![
+            DVec2::new(near - 1.0, HEIGHT - r),
+            DVec2::new(near, HEIGHT - r),
+            DVec2::new(far, HEIGHT - r),
+            DVec2::new(far + 1.0, HEIGHT - r),
+            DVec2::new(far + 1.0, HEIGHT + 1.0),
+            DVec2::new(near - 1.0, HEIGHT + 1.0),
+        ];
+        let mut runs = vec![Run::Straight; corners.len()];
+        runs[1] = Run::Round {
+            center: DVec2::new(near + r, HEIGHT - r),
+            turn: -PI,
+        };
+        part.tool_raised(
+            &profile(Contour { corners, runs }),
+            Frame {
+                origin: DVec3::X * -1.0,
+                u: DVec3::Y,
+                v: DVec3::Z,
+            },
+            DVec3::X * (LENGTH + 2.0),
+        )
+        .expect("the tool raises")
+    };
+    let upright = |from: f64, to: f64| {
+        quarter_round_tool(
+            part,
+            Frame {
+                origin: DVec3::Z * from,
+                ..ground()
+            },
+            [DVec2::new(LENGTH - r, r), DVec2::new(LENGTH, 0.0)],
+            DVec3::Z * (to - from),
+        )
+    };
+    let base_edge = |from: f64, to: f64| {
+        quarter_round_tool(
+            part,
+            Frame {
+                origin: DVec3::Y * from,
+                u: DVec3::X,
+                v: DVec3::Z,
+            },
+            [DVec2::new(LENGTH - r, 10.0 - r), DVec2::new(LENGTH, 10.0)],
+            DVec3::Y * (to - from),
+        )
+    };
+    let rounded = [
+        full_round,
+        upright(10.0, HEIGHT + 1.0),
+        base_edge(0.0, -6.0),
+    ]
+    .iter()
+    .fold(part.clone(), |left, tool| {
+        left.difference(tool)
+            .expect("a round's prism cuts the part")
+    });
+    let carried = upright(10.0 - r, 10.0);
+    let both = carried
+        .difference(
+            &carried
+                .difference(&base_edge(r, 0.0))
+                .expect("the base edge's prism is taken from the upright's"),
+        )
+        .expect("what both prisms hold is kept");
+    rounded
+        .difference(&both)
+        .expect("what both hold past the corner is cut")
+        .volume()
+}
+
+#[test]
+fn a_fillet_on_a_plate_s_full_round_its_upright_at_one_end_and_the_top_edge_of_the_base_it_stands_flush_on_there_is_built_whatever_the_order()
+ {
+    let r = RADIUS;
+    let part = plate_on_a_base();
+    let section = r * r * (1.0 - PI / 4.0);
+    let mitre = r.powi(3) * (5.0 / 3.0 - PI / 2.0);
+    let promised = LENGTH * 11.0 * 10.0 + LENGTH * WIDTH * 10.0
+        - (2.0 * LENGTH + 10.0 + 5.0) * section
+        + mitre
+        - mitre;
+    let written = 4425.0 + 675.0 * PI / 4.0;
+    assert!(
+        (promised - written).abs() <= EXACT * written,
+        "the arithmetic gives {promised}, where the documentation writes 4425 + 675π/4"
+    );
+    let by_booleans = plate_on_a_base_by_booleans(&part);
+    assert!(
+        (by_booleans - promised).abs() <= EXACT * promised,
+        "the rounds' prisms and what the upright's and the base edge's hold past their corner, \
+         cut from the part by the booleans, leave {by_booleans}, where arithmetic promises \
+         {promised}"
+    );
+    let named = [
+        edge_touching(&part, PLATE_TOP, PLATE_FRONT),
+        edge_touching(&part, PLATE_TOP, PLATE_BACK),
+        edge_touching(&part, PLATE_FRONT, SHARED_END),
+        edge_touching(&part, BASE_TOP, SHARED_END),
+    ];
+    let start = part.faces_end();
+    let listed_order: Vec<usize> = (0..named.len()).collect();
+    let laid: Vec<(Vec<usize>, Result<Laid, Declined>)> = every_order(named.len())
+        .into_iter()
+        .map(|order| {
+            let names: Vec<EdgeName> = order.iter().map(|&edge| named[edge].clone()).collect();
+            let laid = Cut::Fillet.laid_on(&part, &names, r);
+            (order, laid)
+        })
+        .collect();
+    let reference = laid
+        .iter()
+        .find(|(order, _)| *order == listed_order)
+        .and_then(|(_, laid)| laid.as_ref().ok());
+    let mut not_so = Vec::new();
+    for (order, laid) in &laid {
+        let what = format!(
+            "the fillet at {r} on the plate's full round, its front right upright and the base's \
+             top edge at that end, named in the order {order:?}"
+        );
+        let laid = match laid {
+            Ok(laid) => laid,
+            Err(declined) => {
+                not_so.push(format!("{what}: declined, {declined:?}"));
+                continue;
+            }
+        };
+        let triangles = laid.body.triangles();
+        if (laid.taken - r).abs() >= PLACE
+            || !laid.body.is_exact()
+            || closed(&triangles).is_err()
+            || uncrossed(&triangles).is_err()
+            || (laid.body.volume() - promised).abs() > EXACT * promised
+        {
+            not_so.push(format!(
+                "{what}: took {}, holds {}, exact {}, closed {:?}, uncrossed {:?}",
+                laid.taken,
+                laid.body.volume(),
+                laid.body.is_exact(),
+                closed(&triangles),
+                uncrossed(&triangles)
+            ));
+        } else if let Some(reference) = reference {
+            let otherwise = met_otherwise(start, order, &laid.body, &reference.body, &[]);
+            if !otherwise.is_empty() {
+                not_so.push(format!(
+                    "{what}: not the body the listed order lays:\n{}",
+                    otherwise.join("\n")
+                ));
+            }
+        }
+    }
+    assert!(
+        not_so.is_empty(),
+        "the upright's and the base edge's corner, beside the plate's front foot, is the \
+         upright's own: what the full round's member meets elsewhere is not read there, and the \
+         list is laid in every order, the value taken whole, exact, closed and uncrossed, \
+         holding what the arithmetic and the booleans give, the body the listed order lays; \
+         not so:\n{}",
+        not_so.join("\n")
     );
 }
 
