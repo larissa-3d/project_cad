@@ -192,7 +192,9 @@ fn opened(test: &str, size: egui::Vec2, settings: cao_prefs::Settings) -> App {
 /// A fresh place for `test` to keep what it writes, these settings already
 /// saved in it.
 fn laid_out(test: &str, settings: cao_prefs::Settings) -> Locations {
-    let root = std::env::temp_dir().join("cao-driver").join(test);
+    static OLD_RUNS_SWEPT: std::sync::Once = std::sync::Once::new();
+    OLD_RUNS_SWEPT.call_once(sweep_runs_older_than_a_day);
+    let root = root_of(test);
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join("documents")).expect("a place to keep the parts");
     let at = locations_of(test);
@@ -273,12 +275,40 @@ pub fn how_many_minimums_asked(app: &App) -> usize {
 }
 
 /// Where the application opened for `test` keeps what it writes.
-fn locations_of(test: &str) -> Locations {
-    let root = std::env::temp_dir().join("cao-driver").join(test);
+pub fn locations_of(test: &str) -> Locations {
+    let root = root_of(test);
     Locations {
         config: root.join("config"),
         data: root.join("data"),
         documents: Some(root.join("documents")),
+    }
+}
+
+/// The place of `test` in this run's own directory: another process driving
+/// the same test, as a second checkout does, never reads nor clears it.
+fn root_of(test: &str) -> PathBuf {
+    every_run().join(std::process::id().to_string()).join(test)
+}
+
+fn every_run() -> PathBuf {
+    std::env::temp_dir().join("cao-driver")
+}
+
+/// What runs left behind a day ago or more; no run still going is that old.
+fn sweep_runs_older_than_a_day() {
+    let Ok(runs) = std::fs::read_dir(every_run()) else {
+        return;
+    };
+    for run in runs.flatten() {
+        let old = run
+            .metadata()
+            .and_then(|meta| meta.modified())
+            .ok()
+            .and_then(|at| at.elapsed().ok())
+            .is_some_and(|age| age > std::time::Duration::from_secs(24 * 60 * 60));
+        if old {
+            let _ = std::fs::remove_dir_all(run.path());
+        }
     }
 }
 

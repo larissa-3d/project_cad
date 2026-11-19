@@ -325,12 +325,7 @@ fn home_in_the_title_bar_goes_back_to_the_home_screen() {
 fn the_part_s_name_shows_its_file_path_on_hover() {
     let test = "the_part_s_name_shows_its_file_path_on_hover";
     let mut app = a_part(test);
-    let path = std::env::temp_dir()
-        .join("cao-driver")
-        .join(test)
-        .join("documents")
-        .join("CAO")
-        .join("Platine.caopart")
+    let path = driver::the_part_s_file(test, "Platine")
         .display()
         .to_string();
 
@@ -771,11 +766,7 @@ const AT_THE_BOTTOM: f32 = 40.0;
 
 /// The folder the driver's application keeps its parts in.
 fn the_folder(test: &str) -> std::path::PathBuf {
-    std::env::temp_dir()
-        .join("cao-driver")
-        .join(test)
-        .join("documents")
-        .join("CAO")
+    cao_prefs::locations::default_projects_dir(&driver::locations_of(test))
 }
 
 /// The pointer left over a point of the world, as a hand resting there.
@@ -790,10 +781,7 @@ const CHOOSING_A_PLANE: &str = "Choisissez un plan d'esquisse";
 
 /// The folder the driver's application keeps its settings in.
 fn the_settings_folder(test: &str) -> std::path::PathBuf {
-    std::env::temp_dir()
-        .join("cao-driver")
-        .join(test)
-        .join("config")
+    driver::locations_of(test).config
 }
 
 /// Where each text that says the settings could not be written stands: a
