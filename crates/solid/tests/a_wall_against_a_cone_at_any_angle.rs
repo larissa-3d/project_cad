@@ -54,7 +54,8 @@
 //!   wall grazing closer than a chord's sag,
 //!   `a_cylinder_closer_to_a_cone_than_a_chord_s_sag_but_apart_grazes_it` in
 //!   `relation/tests/conical.rs`, of the relation alone since a boolean
-//!   whose faces stand clear builds the pair anyway.
+//!   whose faces stand clear builds the pair anyway, and on bodies since
+//!   #907, below.
 //! - #448's harness draws walls at any angle before the kernel code.
 //!   Campaigns end under one failure in a thousand on fresh seeds, with no
 //!   regression. A family that does not move in two rounds is reported and
@@ -73,6 +74,38 @@
 //!   everything #526 to #571 deliver — `the_cones_built_before_keep_their_bits`
 //!   for cones; the walls' bits held by `perpendicular_and_parallel_pairs_keep_their_bits`
 //!   in `two_walls_at_any_angle.rs`, and the rest by the gate as it stands
+//!
+//! The grazing decline on bodies, from #907's review. A cone and a wall that
+//! come within a chord's sag of each other without meeting are declined
+//! where their faces may meet, which a body shows only where the two also
+//! cross where both faces reach: else their faces stand clear, and the
+//! boolean builds them whatever grazing says. A rod of radius 2 along X
+//! inside the [`FRUSTUM`]'s shadow on YZ, [`GRAZING`] in from the line its
+//! ruling at −Y draws there, is such a pair: that ruling passes the rod
+//! without meeting it, the rulings either side cross it. Joined to the
+//! frustum or cut from it, the frustum first or the rod, it is declined
+//! `Unsupported`, and the same rod [`CLEARING`] in holds its volume —
+//! `a_frustum_joined_to_or_cut_by_a_rod_grazing_its_wall_inside_its_face_is_declined_as_unsupported`
+//! and
+//! `a_rod_joined_to_a_frustum_whose_wall_grazes_it_inside_its_face_is_declined_as_unsupported`.
+//! Since #907 the place is read on the faces: the pair declines only where
+//! it stands within a sag of a face of each operand. A quarter of the
+//! frustum whose side stands ten degrees round from the grazed ruling, past
+//! where the rod crosses its wall at some 4.3, leaves it far outside its
+//! face, and holds its volume —
+//! `a_frustum_s_wedge_whose_side_stands_past_where_a_rod_grazing_its_wall_crosses_it_holds_its_volume`.
+//! One whose side stands two degrees round, short of that crossing, leaves
+//! it outside too, nine sags off, but its face's edge along the side lies in
+//! the sliver where the walls stand within a sag of each other without
+//! meeting, and the tessellation does not sample the two in common there.
+//! It builds sound today all the same, at gaps of 0.01 and of [`GRAZING`],
+//! on `main`'s rule, which read the place in the faces' boxes, and on
+//! #907's alike: exact as every body of the kernel's is, listed, holding its
+//! volume, and closed and uncrossed drawn at the coarsest tolerance, a
+//! thousandth of the reach, at [`MESH`] and at a tenth of the coarsest —
+//! `a_frustum_s_wedge_whose_side_stands_where_a_rod_grazes_its_wall_short_of_their_crossing_is_built_sound_at_the_coarsest_drawing_and_finer`.
+//! Telling such an edge apart needs the boolean to read the faces it keeps,
+//! which is #1026; a crossed triangle there turns this test red.
 
 use std::f64::consts::{PI, TAU};
 
@@ -140,6 +173,20 @@ impl Cone {
         leave - enter
     }
 
+    /// The piece of the cone's solid turned `angle` about Z from the half
+    /// plane through Z `start` radians round from X, anticlockwise seen
+    /// from above for a positive angle.
+    fn wedge(self, start: f64, angle: f64) -> Body {
+        let top = self.foot - self.slope * HEIGHT;
+        turned_by(
+            &[[0.0, 0.0], [HEIGHT, 0.0], [HEIGHT, top], [0.0, self.foot]],
+            DVec3::ZERO,
+            DVec3::Z,
+            DVec3::new(start.cos(), start.sin(), 0.0),
+            angle,
+        )
+    }
+
     /// The cone about Z from its foot on XY to `HEIGHT`, turned whole.
     fn body(self) -> Body {
         let top = self.foot - self.slope * HEIGHT;
@@ -155,6 +202,12 @@ impl Cone {
 /// A profile of straight runs drawn `(along, away)` from `origin`, along
 /// `along` and away towards `away`, its first run on the axis, turned whole.
 fn turned(corners: &[[f64; 2]], origin: DVec3, along: DVec3, away: DVec3) -> Body {
+    turned_by(corners, origin, along, away, TAU)
+}
+
+/// The same profile turned `angle` about `along` from `away`, anticlockwise
+/// seen from where `along` points for a positive angle.
+fn turned_by(corners: &[[f64; 2]], origin: DVec3, along: DVec3, away: DVec3, angle: f64) -> Body {
     let corners: Vec<Corner> = corners
         .iter()
         .enumerate()
@@ -176,7 +229,7 @@ fn turned(corners: &[[f64; 2]], origin: DVec3, along: DVec3, away: DVec3) -> Bod
             origin: DVec2::ZERO,
             direction: DVec2::X,
         },
-        angle: TAU,
+        angle,
         resolution: 0.0,
         on_the_axis: 0.0,
     };
@@ -598,6 +651,152 @@ fn a_bore_leaning_in_the_band_off_parallel_to_a_cone_s_axis_is_noted_unstable() 
         ((unstable.degrees - lean) / lean).abs() <= 1e-6,
         "noted {} degrees off, drawn {lean}",
         unstable.degrees
+    );
+}
+
+/// How far the [`grazing_rod`] stands in from the [`FRUSTUM`]'s ruling at
+/// −Y where it grazes it: two thirds of a chord's sag there at the coarsest
+/// drawing, some 0.029 — the wall, of radius 7.7 where the rod comes
+/// nearest, cut into 36 steps at a thousandth of the reach of 30 the rod
+/// gives the boolean — and far over the tolerance.
+const GRAZING: f64 = 0.02;
+
+/// How far the [`grazing_rod`] stands in from that ruling where it clears
+/// the frustum's wall by more than three sags.
+const CLEARING: f64 = 0.1;
+
+/// The rod of radius 2 along X at height 10, from x = −30 to 30, standing
+/// inside the [`FRUSTUM`]'s shadow on YZ, `gap` in from the line its ruling
+/// at −Y draws there: that ruling, the one of the cone's rulings coming
+/// nearest the rod, passes `gap` from it without meeting it, while the
+/// rulings either side, nearer the rod's middle, cross it — from some 4.3
+/// degrees round from it at the [`GRAZING`] gap. Its centre comes with it.
+fn grazing_rod(gap: f64) -> (Body, DVec3) {
+    let (radius, height) = (2.0, 10.0);
+    let wall = FRUSTUM.foot - FRUSTUM.slope * height;
+    let square = (1.0 + FRUSTUM.slope * FRUSTUM.slope).sqrt();
+    let center = DVec3::new(0.0, square * (radius + gap) - wall, height);
+    (cylinder(center, DVec3::X, radius, 30.0), center)
+}
+
+/// What the frustum and the [`grazing_rod`] through `center` hold together:
+/// each whole, less what they share.
+fn frustum_and_rod(center: DVec3) -> f64 {
+    FRUSTUM.volume() + PI * 2.0 * 2.0 * 60.0
+        - shared_with_a_cylinder(FRUSTUM, center, DVec3::X, 2.0, 32)
+}
+
+#[test]
+fn a_frustum_joined_to_or_cut_by_a_rod_grazing_its_wall_inside_its_face_is_declined_as_unsupported()
+{
+    let frustum = FRUSTUM.body();
+    let (grazing, _) = grazing_rod(GRAZING);
+    assert_eq!(
+        frustum.joined(&grazing).err(),
+        Some(Declined::Unsupported),
+        "the frustum joined to a rod grazing its wall {GRAZING} off, inside its face"
+    );
+    assert_eq!(
+        frustum.cut_by(&grazing).err(),
+        Some(Declined::Unsupported),
+        "the frustum cut by a rod grazing its wall {GRAZING} off, inside its face"
+    );
+    let (clearing, center) = grazing_rod(CLEARING);
+    holds(frustum.joined(&clearing), frustum_and_rod(center));
+}
+
+#[test]
+fn a_rod_joined_to_a_frustum_whose_wall_grazes_it_inside_its_face_is_declined_as_unsupported() {
+    let (grazing, _) = grazing_rod(GRAZING);
+    assert_eq!(
+        grazing.joined(&FRUSTUM.body()).err(),
+        Some(Declined::Unsupported),
+        "a rod joined to the frustum whose wall grazes it {GRAZING} off, inside its face"
+    );
+    let (clearing, center) = grazing_rod(CLEARING);
+    holds(clearing.joined(&FRUSTUM.body()), frustum_and_rod(center));
+}
+
+/// The [`FRUSTUM`]'s quarter turn from the half plane through its axis
+/// `past` degrees round from −Y towards X: its side along the ruling there.
+fn wedge_past(past: f64) -> Body {
+    FRUSTUM.wedge((past - 90.0).to_radians(), PI / 2.0)
+}
+
+/// What the [`grazing_rod`] through `center` shares with the
+/// [`wedge_past`] `past` degrees: each of the rod's lines along X, all at
+/// y < 0, inside the wedge from its side, `|y| tan past` along X, out to the
+/// wall, `√(r² − y²)`. A line further from the axis than the side's ruling,
+/// `|y| > r cos past`, misses the wedge, so the rod's section is read on the
+/// axis's side of the line that ruling draws on YZ alone, swept from that
+/// line across, Gauss each way: the integrand is smooth there. A side short
+/// of where the two cross leaves the whole section on that side.
+fn shared_with_the_wedge(center: DVec3, past: f64) -> f64 {
+    let (radius, (sin, cos)) = (2.0, past.to_radians().sin_cos());
+    let across = DVec2::new(1.0, -cos * FRUSTUM.slope).normalize();
+    let along = across.perp();
+    let off = (center.y + cos * (FRUSTUM.foot - FRUSTUM.slope * center.z))
+        / DVec2::new(1.0, -cos * FRUSTUM.slope).length();
+    let widest = (-off / radius).clamp(-1.0, 1.0).acos();
+    let middle = DVec2::new(center.y, center.z);
+    let nodes = gauss(32);
+    nodes
+        .iter()
+        .map(|&(share, weight)| {
+            let turn = share * widest;
+            let half = radius * turn.sin();
+            let row: f64 = nodes
+                .iter()
+                .map(|&(spread, weight)| {
+                    let [y, z] = (middle
+                        + across * (radius * turn.cos())
+                        + along * (half * (2.0 * spread - 1.0)))
+                        .to_array();
+                    let wall = FRUSTUM.foot - FRUSTUM.slope * z;
+                    weight * ((wall * wall - y * y).sqrt() - y.abs() * sin / cos)
+                })
+                .sum();
+            weight * widest * radius * turn.sin() * 2.0 * half * row
+        })
+        .sum()
+}
+
+/// The share of the reach the kernel's coarsest drawing is cut at, its
+/// `COARSEST_DRAWN`: what a consumer is expected to draw a body at, at the
+/// coarsest.
+const COARSEST: f64 = 1e-3;
+
+#[test]
+fn a_frustum_s_wedge_whose_side_stands_where_a_rod_grazes_its_wall_short_of_their_crossing_is_built_sound_at_the_coarsest_drawing_and_finer()
+ {
+    let past = 2.0;
+    for gap in [0.01, GRAZING] {
+        let (grazing, center) = grazing_rod(gap);
+        let body = holds(
+            wedge_past(past).joined(&grazing),
+            FRUSTUM.volume() / 4.0 + PI * 2.0 * 2.0 * 60.0 - shared_with_the_wedge(center, past),
+        );
+        let reach = body.scale().reach();
+        for tolerance in [COARSEST * reach, MESH, COARSEST / 10.0 * reach] {
+            let what = format!(
+                "the frustum's wedge whose side stands {past} degrees past the ruling a rod \
+                 grazes {gap} off, short of where the two cross, drawn at {tolerance}"
+            );
+            let triangles = body.triangles(tolerance);
+            assert_eq!(closed(&triangles), Ok(()), "{what}");
+            assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
+        }
+    }
+}
+
+#[test]
+fn a_frustum_s_wedge_whose_side_stands_past_where_a_rod_grazing_its_wall_crosses_it_holds_its_volume()
+ {
+    let past = 10.0;
+    let (grazing, center) = grazing_rod(GRAZING);
+    holds(
+        wedge_past(past).joined(&grazing),
+        FRUSTUM.volume() / 4.0 + PI * 2.0 * 2.0 * 60.0 - shared_with_the_wedge(center, past),
     );
 }
 
