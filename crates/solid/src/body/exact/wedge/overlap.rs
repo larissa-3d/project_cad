@@ -106,6 +106,6 @@ impl Exact {
 }
 
 /// What two solids both hold: the first less what of it the second does not.
-fn common(one: &Exact, other: &Exact) -> Result<Exact, Declined> {
+pub(super) fn common(one: &Exact, other: &Exact) -> Result<Exact, Declined> {
     one.cut_by(&one.cut_by(other)?)
 }
