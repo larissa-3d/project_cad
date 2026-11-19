@@ -186,6 +186,17 @@
 //!   still takes the tangency —
 //!   `a_tangency_between_a_circle_and_a_trait_merely_crossing_its_centre_lands`,
 //!   `a_tangency_between_an_arc_and_a_trait_merely_crossing_its_centre_lands`
+//!
+//! Closes #1042.
+//! - The three cases are refused with the drawing unchanged — no test: the
+//!   refusal is `cao_part`'s, held in
+//!   `crates/part/tests/an_impossible_rule_is_refused.rs`
+//! - The cases above hold in #501's campaign, the trait's `ignore` taken off,
+//!   with the half-ellipse of seed 30000105 and the perpendicular of seed
+//!   20003072, mode `mix`, as the campaign shrank them —
+//!   `a_trait_given_a_horizontal_value_is_not_turned_vertical`,
+//!   `half_an_ellipse_given_a_horizontal_value_across_its_axis_is_not_turned`,
+//!   `a_trait_given_a_value_along_an_axis_is_not_turned_square_to_a_side_against_it`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1547,7 +1558,6 @@ fn a_drag_never_moves_a_fixed_point_it_did_not_grab() {
 }
 
 #[test]
-#[ignore = "#1042"]
 fn a_trait_given_a_horizontal_value_is_not_turned_vertical() {
     random_sketches::holds(&[
         Gesture::Chain {
@@ -1562,6 +1572,94 @@ fn a_trait_given_a_horizontal_value_is_not_turned_vertical() {
         Gesture::Rule {
             rule: cao_sketch::Rule::Parallel,
             clicks: vec![[5.0, 2.5], [0.0, 20.0]],
+        },
+    ]);
+}
+
+#[test]
+fn half_an_ellipse_given_a_horizontal_value_across_its_axis_is_not_turned() {
+    random_sketches::holds(&[
+        Gesture::HalfEllipse {
+            from: [90.0, 285.0],
+            to: [111.21320343559643, 306.2132034355964],
+            rise: 90.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[120.0, 180.0], [120.0, 30.0], [255.0, -105.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Drag {
+            from: [255.0, -105.0],
+            to: [273.1731453597358, -86.82685464026417],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[36.966991411008884, 359.24621202458735], [120.0, 180.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![
+                [196.5865726798679, -28.413427320132087],
+                [0.0, -339.7706031132992],
+            ],
+        },
+        Gesture::Dimension {
+            clicks: vec![
+                [225.71791125776616, 162.8461907668595],
+                [-253.88269705564855, 0.0],
+                [239.7483982163787, 168.7781855085551],
+            ],
+            value: 38.616,
+        },
+        Gesture::Dimension {
+            clicks: vec![
+                [350.9255707019138, 158.68860638923226],
+                [364.3388543168321, 164.35965174263143],
+            ],
+            value: 1123.725120328554,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![
+                [-848.7917100641204, 0.0],
+                [904.1953030066924, 439.9731851010184],
+            ],
+        },
+    ]);
+}
+
+#[test]
+fn a_trait_given_a_value_along_an_axis_is_not_turned_square_to_a_side_against_it() {
+    random_sketches::holds(&[
+        Gesture::Chain {
+            through: vec![[10.0, 2.0], [0.0, 0.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[8.0, 3.0], [9.5, 0.5]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [3.0, 8.0],
+            opposite: [1.0, 7.0],
+            construction: false,
+        },
+        Gesture::Divide { at: [8.75, 1.75] },
+        Gesture::Dimension {
+            clicks: vec![[9.125, 1.125], [9.556622979794078, 1.3074872689084946]],
+            value: 1.875,
+        },
+        Gesture::Dimension {
+            clicks: vec![[4.375, 0.875], [4.820027433087742, 1.0631545808619483]],
+            value: 13.385,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Perpendicular,
+            clicks: vec![[3.0, 7.25], [11.351973915491572, 1.256579915742154]],
         },
     ]);
 }

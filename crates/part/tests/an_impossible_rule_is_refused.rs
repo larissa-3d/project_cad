@@ -49,11 +49,26 @@
 //! - The cases above hold in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawings are held to its rules there, under the
 //!   same names, in `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1042.
+//! - The three cases are refused with the drawing unchanged —
+//!   `a_trait_given_a_horizontal_value_is_not_turned_vertical`,
+//!   `an_ellipse_given_a_horizontal_value_across_its_axis_is_not_turned`,
+//!   `a_trait_given_a_vertical_value_is_not_turned_square_to_a_vertical_one`;
+//!   the same rules with no value against them still land —
+//!   `a_trait_with_no_value_is_turned_vertical`,
+//!   `a_trait_given_a_vertical_value_is_still_made_vertical`,
+//!   `an_ellipse_with_no_value_is_turned`,
+//!   `a_trait_with_no_value_is_turned_square_to_a_vertical_one`
+//! - The cases above hold in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the trait, the half-ellipse and the perpendicular
+//!   drawings it found are held to its rules there, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
-    Constraint, DimensionTarget, Element, PointId, Rule, RuleIntent, RulePick, SegmentId,
-    SketchAxis, WorkPlane, rule_intent,
+    Constraint, DimensionTarget, Element, EllipseId, PointId, Rule, RuleIntent, RulePick,
+    SegmentId, SketchAxis, WorkPlane, rule_intent,
 };
 use glam::DVec2;
 
@@ -176,7 +191,7 @@ fn a_blank_sketch() -> PartDocument {
     document
 }
 
-fn centre_put_on_its_own_curve_is_refused(mut document: PartDocument, curve: Element) {
+fn centre_put_on_its_own_curve_is_refused(document: PartDocument, curve: Element) {
     let sketch = &document.sketches()[0];
     let centre: PointId = match curve {
         Element::Circle(circle) => sketch.circles()[circle.0].center,
@@ -188,30 +203,29 @@ fn centre_put_on_its_own_curve_is_refused(mut document: PartDocument, curve: Ele
         RulePick::Element(Element::Point(centre)),
         RulePick::Element(curve),
     ];
-    let Some(RuleIntent::Constrain(rule)) = rule_intent(Rule::Coincident, &picks, sketch) else {
-        panic!("the tool offers no rule for a centre and its own curve");
-    };
-    let before = sketch.clone();
-    let recorded = steps(&document);
+    let rule = the_rule(&document, Rule::Coincident, &picks);
+    refused_with_the_drawing_unchanged(document, rule, Some(curve));
+}
+
+fn the_rule(document: &PartDocument, rule: Rule, picks: &[RulePick]) -> Constraint {
+    match rule_intent(rule, picks, &document.sketches()[0]) {
+        Some(RuleIntent::Constrain(rule)) => rule,
+        other => panic!("the tool offers no rule for {picks:?}: {other:?}"),
+    }
+}
+
+fn landed(document: &mut PartDocument, rule: Rule, picks: &[RulePick]) {
+    let rule = the_rule(document, rule, picks);
+    let recorded = steps(document);
 
     let outcome = document.apply(Operation::Constrain {
         sketch: 0,
         constraint: rule,
     });
 
-    assert_eq!(outcome, Some(Outcome::RuleRefused), "{rule:?} was laid");
-    let sketch = &document.sketches()[0];
-    assert!(!sketch.carries(rule), "the rule is not kept");
-    assert_eq!(sketch.points().len(), before.points().len());
-    assert!(
-        sketch
-            .points()
-            .iter()
-            .zip(before.points())
-            .all(|(now, was)| now.distance(*was) < 1e-9),
-        "nothing about the drawing moved"
-    );
-    assert_eq!(steps(&document), recorded, "the history has no new step");
+    assert_eq!(outcome, None, "{rule:?} was refused");
+    assert!(document.sketches()[0].carries(rule), "the rule is kept");
+    assert_eq!(steps(document), recorded + 1, "the rule is a step");
 }
 
 #[test]
@@ -342,16 +356,18 @@ fn tangency_through_the_centre_is_refused(document: PartDocument, curve: Element
     let Some(RuleIntent::Constrain(rule)) = rule_intent(Rule::Tangent, &picks, sketch) else {
         panic!("the tool offers no tangency for a trait and a curve");
     };
-    refused_leaving_the_curve_as_it_was(document, rule, curve);
+    refused_with_the_drawing_unchanged(document, rule, Some(curve));
 }
 
-fn refused_leaving_the_curve_as_it_was(
+/// `rule` refused, and nothing of the drawing touched: its rules, its values,
+/// its points, the size of `curve` when one is named, and the history.
+fn refused_with_the_drawing_unchanged(
     mut document: PartDocument,
     rule: Constraint,
-    curve: Element,
+    curve: Option<Element>,
 ) {
     let before = document.sketches()[0].clone();
-    let radius = size_of(&document, curve);
+    let size = curve.map(|curve| size_of(&document, curve));
     let recorded = steps(&document);
 
     let outcome = document.apply(Operation::Constrain {
@@ -362,14 +378,26 @@ fn refused_leaving_the_curve_as_it_was(
     assert_eq!(
         outcome,
         Some(Outcome::RuleRefused),
-        "{rule:?} was laid, the curve's size now {}",
-        size_of(&document, curve)
+        "{rule:?} was laid, the curve's size now {:?}",
+        curve.map(|curve| size_of(&document, curve))
     );
     let sketch = &document.sketches()[0];
+    assert!(!sketch.carries(rule), "the rule is not kept");
     assert_eq!(
         sketch.constraints(),
         before.constraints(),
-        "the rule is not kept"
+        "the rules are as they were"
+    );
+    assert!(
+        sketch
+            .dimensions()
+            .iter()
+            .map(|dimension| (dimension.target, dimension.value))
+            .eq(before
+                .dimensions()
+                .iter()
+                .map(|dimension| (dimension.target, dimension.value))),
+        "the values are as they were"
     );
     assert_eq!(sketch.points().len(), before.points().len());
     assert!(
@@ -380,11 +408,13 @@ fn refused_leaving_the_curve_as_it_was(
             .all(|(now, was)| now.distance(*was) < 1e-9),
         "nothing about the drawing moved"
     );
-    assert!(
-        (size_of(&document, curve) - radius).abs() < 1e-9,
-        "the curve's size stays {radius}, got {}",
-        size_of(&document, curve)
-    );
+    if let (Some(curve), Some(size)) = (curve, size) {
+        assert!(
+            (size_of(&document, curve) - size).abs() < 1e-9,
+            "the curve's size stays {size}, got {}",
+            size_of(&document, curve)
+        );
+    }
     assert_eq!(steps(&document), recorded, "the history has no new step");
 }
 
@@ -641,7 +671,7 @@ fn the_centre_then_held_on_the_tangent_trait_is_refused(
         panic!("the tool offers no {rule:?} for a centre and a trait");
     };
 
-    refused_leaving_the_curve_as_it_was(document, held, curve);
+    refused_with_the_drawing_unchanged(document, held, Some(curve));
 }
 
 #[test]
@@ -677,5 +707,221 @@ fn an_arc_s_centre_made_the_middle_of_a_trait_it_is_tangent_to_is_refused() {
         Element::Arc(cao_sketch::ArcId(0)),
         a_free_arc(),
         Rule::Midpoint,
+    );
+}
+
+/// A slanted trait from (10, 10) to (30, 25): 20 across and 15 up, given the
+/// values named.
+fn a_slanted_trait_given(values: &[(SketchAxis, f64)]) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(10.0, 10.0)),
+        end: PointRef::New(DVec2::new(30.0, 25.0)),
+        construction: false,
+    });
+    let trait_ = document.sketches()[0].segments()[0];
+    for &(axis, value) in values {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target: DimensionTarget::Projected {
+                from: trait_.start,
+                to: trait_.end,
+                axis,
+            },
+            value: value.into(),
+            placement: None,
+        });
+    }
+    document
+}
+
+fn the_trait_and_the_axis(axis: SketchAxis) -> [RulePick; 2] {
+    [
+        RulePick::Element(Element::Segment(SegmentId(0))),
+        RulePick::Axis(axis),
+    ]
+}
+
+#[test]
+fn a_trait_given_a_horizontal_value_is_not_turned_vertical() {
+    let document = a_slanted_trait_given(&[(SketchAxis::U, 20.0)]);
+
+    let rule = the_rule(
+        &document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::V),
+    );
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn a_trait_with_no_value_is_turned_vertical() {
+    let mut document = a_slanted_trait_given(&[]);
+
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::V),
+    );
+
+    let (start, end) = document.sketches()[0].endpoints(SegmentId(0));
+    assert!(
+        (start.x - end.x).abs() < 1e-6,
+        "the trait stands vertical: {start} to {end}"
+    );
+}
+
+#[test]
+fn a_trait_given_a_vertical_value_is_still_made_vertical() {
+    let mut document = a_slanted_trait_given(&[(SketchAxis::V, 15.0)]);
+
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::V),
+    );
+
+    let (start, end) = document.sketches()[0].endpoints(SegmentId(0));
+    assert!(
+        (start.x - end.x).abs() < 1e-6 && ((end.y - start.y).abs() - 15.0).abs() < 1e-6,
+        "the trait stands vertical, 15 up: {start} to {end}"
+    );
+}
+
+/// An ellipse about (50, 50), its first axis 20 across along U, its second 10
+/// up along V, given the values named across its first axis.
+fn an_ellipse_given(values: &[(SketchAxis, f64)]) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(50.0, 50.0)),
+        first: [
+            PointRef::New(DVec2::new(40.0, 50.0)),
+            PointRef::New(DVec2::new(60.0, 50.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(50.0, 45.0)),
+            PointRef::New(DVec2::new(50.0, 55.0)),
+        ],
+        construction: false,
+        drawn: None,
+    });
+    let sketch = &document.sketches()[0];
+    let first = sketch.segments()[sketch.ellipses()[0].first.0];
+    for &(axis, value) in values {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target: DimensionTarget::Projected {
+                from: first.start,
+                to: first.end,
+                axis,
+            },
+            value: value.into(),
+            placement: None,
+        });
+    }
+    document
+}
+
+fn the_second_axis_and_u(document: &PartDocument) -> [RulePick; 2] {
+    let second = document.sketches()[0].ellipses()[EllipseId(0).0].second;
+    [
+        RulePick::Element(Element::Segment(second)),
+        RulePick::Axis(SketchAxis::U),
+    ]
+}
+
+#[test]
+fn an_ellipse_given_a_horizontal_value_across_its_axis_is_not_turned() {
+    let document = an_ellipse_given(&[(SketchAxis::U, 20.0)]);
+    let picks = the_second_axis_and_u(&document);
+
+    let rule = the_rule(&document, Rule::Parallel, &picks);
+    refused_with_the_drawing_unchanged(document, rule, Some(Element::Ellipse(EllipseId(0))));
+}
+
+#[test]
+fn an_ellipse_with_no_value_is_turned() {
+    let mut document = an_ellipse_given(&[]);
+    let picks = the_second_axis_and_u(&document);
+
+    landed(&mut document, Rule::Parallel, &picks);
+
+    let sketch = &document.sketches()[0];
+    let ellipse = sketch.ellipses()[0];
+    let (start, end) = sketch.endpoints(ellipse.second);
+    assert!(
+        (start.y - end.y).abs() < 1e-6,
+        "the second axis lies along U: {start} to {end}"
+    );
+    let (start, end) = sketch.endpoints(ellipse.first);
+    assert!(
+        (start.x - end.x).abs() < 1e-6,
+        "the first axis turned with it, along V: {start} to {end}"
+    );
+}
+
+/// A trait held vertical from (10, 10) to (10, 40), and a slanted one from
+/// (30, 10) to (50, 25) given the values named.
+fn a_vertical_trait_and_a_slanted_one_given(values: &[(SketchAxis, f64)]) -> PartDocument {
+    let mut document = a_blank_sketch();
+    for (start, end) in [
+        (DVec2::new(10.0, 10.0), DVec2::new(10.0, 40.0)),
+        (DVec2::new(30.0, 10.0), DVec2::new(50.0, 25.0)),
+    ] {
+        document.apply(Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::New(start),
+            end: PointRef::New(end),
+            construction: false,
+        });
+    }
+    document.apply(Operation::Constrain {
+        sketch: 0,
+        constraint: Constraint::AxisParallel {
+            segment: SegmentId(0),
+            axis: SketchAxis::V,
+        },
+    });
+    let slanted = document.sketches()[0].segments()[1];
+    for &(axis, value) in values {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target: DimensionTarget::Projected {
+                from: slanted.start,
+                to: slanted.end,
+                axis,
+            },
+            value: value.into(),
+            placement: None,
+        });
+    }
+    document
+}
+
+const THE_TWO_TRAITS: [RulePick; 2] = [
+    RulePick::Element(Element::Segment(SegmentId(0))),
+    RulePick::Element(Element::Segment(SegmentId(1))),
+];
+
+#[test]
+fn a_trait_given_a_vertical_value_is_not_turned_square_to_a_vertical_one() {
+    let document = a_vertical_trait_and_a_slanted_one_given(&[(SketchAxis::V, 15.0)]);
+
+    let rule = the_rule(&document, Rule::Perpendicular, &THE_TWO_TRAITS);
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn a_trait_with_no_value_is_turned_square_to_a_vertical_one() {
+    let mut document = a_vertical_trait_and_a_slanted_one_given(&[]);
+
+    landed(&mut document, Rule::Perpendicular, &THE_TWO_TRAITS);
+
+    let (start, end) = document.sketches()[0].endpoints(SegmentId(1));
+    assert!(
+        (start.y - end.y).abs() < 1e-6,
+        "the slanted trait lies horizontal: {start} to {end}"
     );
 }
