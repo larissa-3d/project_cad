@@ -83,6 +83,7 @@ impl Wedge {
             reach: self.reach,
             dip: self.dip,
             inwards: self.inwards,
+            crossed: self.crossed.clone(),
         };
         let (across, facing) = straight.square();
         let margin = straight.margin(across, facing, scale);
