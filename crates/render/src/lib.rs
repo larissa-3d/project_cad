@@ -13,7 +13,7 @@ mod renderer;
 pub use camera::{CubeFace, CubeZone, OrbitCamera, ViewTransition};
 pub use geometry::{
     AxisStyle, BackgroundShape, Vertex, push_axes, push_background, push_plane_axes,
-    push_plane_outline, push_plane_quad, push_solid, srgb,
+    push_plane_outline, push_plane_quad, push_smooth_solid, srgb,
 };
 pub use grid::{GridPlane, GridStyle, adaptive_step, push_grid};
 pub use matter::MatterInFront;

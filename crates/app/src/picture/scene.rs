@@ -1,7 +1,7 @@
 use cao_part::PartDocument;
 use cao_render::{OrbitCamera, SceneFrame, Vertex, ViewportRect};
 use cao_sketch::{CutCurve, Sketch, Stretches, sweep_of};
-use glam::{DVec2, Vec3};
+use glam::{DVec2, DVec3, Vec3};
 
 /// What a picture of a part is made of: its matter and its drawings, and
 /// nothing else.
@@ -10,11 +10,11 @@ use glam::{DVec2, Vec3};
 /// of the one thing the picture exists to show, and a folder of them would
 /// read as a folder of grids.
 pub fn of(document: &PartDocument, side: u32) -> SceneFrame {
-    let matter: Vec<[Vec3; 3]> = document
+    let matter: Vec<([Vec3; 3], [Vec3; 3])> = document
         .body()
-        .triangles()
+        .triangles_with_normals()
         .iter()
-        .map(|corners| corners.map(|corner| corner.as_vec3()))
+        .map(|(corners, normals)| (corners.map(DVec3::as_vec3), normals.map(DVec3::as_vec3)))
         .collect();
 
     let mut lines = Vec::new();
@@ -28,7 +28,7 @@ pub fn of(document: &PartDocument, side: u32) -> SceneFrame {
     // a box it never filled.
     let camera = looking_at(extent(&lines, &matter));
     let mut solids = Vec::new();
-    cao_render::push_solid(&mut solids, &matter, MATTER, camera.forward());
+    cao_render::push_smooth_solid(&mut solids, &matter, MATTER, camera.forward());
 
     let whole = ViewportRect {
         x: 0.0,
@@ -73,7 +73,7 @@ fn looking_at((centre, radius): (Vec3, f32)) -> OrbitCamera {
 }
 
 /// The middle of what is drawn and how far it reaches, in world units.
-fn extent(lines: &[Vertex], matter: &[[Vec3; 3]]) -> (Vec3, f32) {
+fn extent(lines: &[Vertex], matter: &[([Vec3; 3], [Vec3; 3])]) -> (Vec3, f32) {
     let mut low = Vec3::splat(f32::INFINITY);
     let mut high = Vec3::splat(f32::NEG_INFINITY);
     let mut seen = |point: Vec3| {
@@ -84,7 +84,7 @@ fn extent(lines: &[Vertex], matter: &[[Vec3; 3]]) -> (Vec3, f32) {
     for vertex in lines {
         seen(Vec3::from(vertex.position));
     }
-    for corners in matter {
+    for (corners, _) in matter {
         for corner in corners {
             seen(*corner);
         }

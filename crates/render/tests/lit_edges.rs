@@ -13,7 +13,7 @@
 //! machine without a GPU and without the variable still skips.
 
 use cao_render::{
-    OrbitCamera, SceneFrame, SceneRenderer, Size, Vertex, ViewportRect, push_solid, srgb,
+    OrbitCamera, SceneFrame, SceneRenderer, Size, Vertex, ViewportRect, push_smooth_solid, srgb,
 };
 use glam::{Vec2, Vec3};
 
@@ -155,10 +155,14 @@ fn a_frame(
     lit: [Vec3; 2],
     pulled_by: f32,
 ) -> SceneFrame {
+    let faced: Vec<([Vec3; 3], [Vec3; 3])> = matter
+        .iter()
+        .map(|&[a, b, c]| ([a, b, c], [(b - a).cross(c - a); 3]))
+        .collect();
     let mut solids = Vec::new();
-    push_solid(
+    push_smooth_solid(
         &mut solids,
-        matter,
+        &faced,
         srgb(0.62, 0.64, 0.68, 1.0),
         camera.forward(),
     );

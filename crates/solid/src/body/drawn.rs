@@ -2,11 +2,14 @@
 //! from: what the view draws, lights and picks in, and what the body becomes
 //! when it has to be joined to flats.
 
+pub(super) mod corner_normals;
+
 use glam::DVec3;
 
 use super::FaceHit;
 use crate::brep::{self, FaceId, Scale};
 use crate::mesh::{Mesh, ray_triangle};
+use corner_normals::CornerNormals;
 
 /// How far the triangles may stand from the exact surfaces, as a share of the
 /// body's reach.
@@ -43,6 +46,7 @@ pub(super) struct Drawn {
     pub triangles: Vec<[DVec3; 3]>,
     faces: Vec<FaceId>,
     whole: bool,
+    normals: CornerNormals,
 }
 
 impl Drawn {
@@ -53,6 +57,7 @@ impl Drawn {
             triangles: cut.triangles,
             faces: cut.faces,
             whole: cut.uncut.is_empty(),
+            normals: CornerNormals::default(),
         }
     }
 

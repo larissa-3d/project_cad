@@ -27,7 +27,12 @@ pub(super) fn push_matter(
         return;
     };
     let solid = tint(theme.solid);
-    push_body(solids, drawn.opaque.triangles(), solid, camera.forward());
+    push_body(
+        solids,
+        drawn.opaque.triangles_with_normals(),
+        solid,
+        camera.forward(),
+    );
     for veiled in drawn.see_through.iter().chain(&drawn.ghosts) {
         let color = tint_at(theme.solid, SEE_THROUGH_OPACITY);
         push_facing(surfaces, veiled, color, state);
@@ -84,22 +89,25 @@ fn push_facing(
 
 /// The triangles of `body` turned towards the eye. The surface pass culls
 /// nothing: a far side left in would be stacked behind the near one.
-fn facing(body: &Body, eye: DVec3) -> Vec<[DVec3; 3]> {
-    body.triangles()
+fn facing(body: &Body, eye: DVec3) -> Vec<([DVec3; 3], [DVec3; 3])> {
+    body.triangles_with_normals()
         .into_iter()
-        .filter(|[a, b, c]| (*b - *a).cross(*c - *a).dot(eye - *a) > 0.0)
+        .filter(|([a, b, c], _)| (*b - *a).cross(*c - *a).dot(eye - *a) > 0.0)
         .collect()
 }
 
 fn push_body(
     out: &mut Vec<cao_render::Vertex>,
-    triangles: Vec<[DVec3; 3]>,
+    triangles: Vec<([DVec3; 3], [DVec3; 3])>,
     color: [f32; 4],
     towards: Vec3,
 ) {
     let triangles: Vec<_> = triangles
         .iter()
-        .map(|corners| corners.map(|corner| corner.as_vec3()))
+        .map(|(corners, normals)| (corners.map(DVec3::as_vec3), normals.map(DVec3::as_vec3)))
         .collect();
-    cao_render::push_solid(out, &triangles, color, towards);
+    cao_render::push_smooth_solid(out, &triangles, color, towards);
 }
+
+#[cfg(test)]
+mod tests;
