@@ -101,7 +101,8 @@ impl Body {
     /// round bottom meeting the edge at its foot. An upright at a pocket's
     /// end named with the round bottom along its floor is filled in at that
     /// radius too, meeting the round bottom in a valley where the floor's edge
-    /// beside it is left sharp, and closed with it and that edge, named too,
+    /// beside it, meeting inwards, is left sharp, and closed with it and that
+    /// edge, named too,
     /// by a hollow piece of sphere; with both uprights and that edge, in a
     /// pocket as wide as two radii, the two round bottoms stop tangent to one
     /// hollow quarter of a ball, that edge's fill closing to nothing between
@@ -111,7 +112,8 @@ impl Body {
     /// where a third edge of the list ends but one at its end — the edge
     /// across it, or a pointed end's (#837, #911) —, or
     /// one of a round bottom meeting any but the edge at its end or an
-    /// upright there — the edges of a pointed or a notched end (#921) — or that edge
+    /// upright there — a pit's upright, beside a floor edge meeting outwards
+    /// (#919), the edges of a pointed or a notched end (#921) — or that edge
     /// where its faces meet outwards — an open slot's end, the rim above a
     /// standing round bottom — is declined `Unsupported`. Rounds
     /// that would meet only on a curved edge are not measured, and declined

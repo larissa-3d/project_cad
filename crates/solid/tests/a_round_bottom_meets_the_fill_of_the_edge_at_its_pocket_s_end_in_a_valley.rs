@@ -381,6 +381,34 @@
 //!   this file. The decline of the fillet and the chamfer on the pair, the
 //!   end's floor edge and both uprights at 6 wide goes, the lists it declined
 //!   built by the first two tests
+//! - Decided on the way, after the review (2026-11-17): what lets the
+//!   uprights at a round bottom's end in lets in nothing where an edge ending
+//!   there is convex. `narrow_pocket` with a pit cut at its right end, from
+//!   x = 25 to 28 across the pocket and down to z = 8, its floor dropping at
+//!   x = 25 over a convex edge left out of the list, its side walls running on
+//!   down into the pit: the round bottom's pair and the pit's concave front
+//!   upright, filleted at 3, stay declined `Unsupported` in every order, each
+//!   laid alone, as on #917's branch, so that whoever loosens that rule sees
+//!   it go red, #822's rule —
+//!   `a_fillet_on_a_pit_s_upright_beside_a_floor_that_drops_over_a_convex_edge_with_the_round_bottom_s_pair_stays_declined_as_unsupported_whatever_the_order`.
+//!   Read as: the pit's left wall facing along x and its front wall one face
+//!   with the pocket's, the pocket's right wall gone; the pair alone and the
+//!   upright alone each laid; and the three named in each of the six orders,
+//!   each a broken step and its reason, `Unsupported`
+//! - Decided on the way, after the mutants (2026-11-17): a concave corner's
+//!   prism fills whole only the flat of an edge running to a second corner
+//!   the step closes. The pocket 3 wide, as wide as the distance, its floor's
+//!   front and right edges and the upright between its front and right walls
+//!   chamfered: a tenth short, at 2.9, the corner closed in every order,
+//!   `5640 + 29d²/2 − 2d³/3`, 5745.685667, which the booleans give too; at 3
+//!   the right edge's flat closes to nothing on the back wall, where no
+//!   corner is closed, and the list stays declined `Unsupported` in every
+//!   order. Turning `&&` into `||` in `joined_across`'s filter, which hands
+//!   such a flat to `cut_along` as filled whole, builds it, so that the
+//!   mutant no other test kills goes red. The body it builds, 5752.5, is what
+//!   the arithmetic gives, so the decline is a limitation, not a protection:
+//!   building that list is a follow-up's —
+//!   `a_chamfer_on_the_three_edges_at_a_bottom_corner_of_a_pocket_as_wide_as_the_distance_closes_it_a_tenth_short_and_is_declined_where_the_end_edge_s_flat_closes_to_nothing_on_the_far_wall_whatever_the_order`
 //!
 //! The arithmetic is #838's and #801's, [`kept`]'s. With the pair, the right
 //! end's floor edge and both uprights, each of the two bottom corners at
@@ -421,6 +449,55 @@
 //! `(y − 5)² + (z − 17)² = r²`, and the upright's, `(x − 8)² + (y − 5)² = r²`,
 //! meet where `17 − z = 8 − x`. At 6.5 wide the pocket holds 5220 and its
 //! end's floor edge is 6.5 long: 5314.2910 and 5313.6339.
+//!
+//! The change that built these lists lets in others beside them, each
+//! declined on #917's branch, 43b56810. They are not the issue's criteria:
+//! they are held here so that none of them changes unseen, each on
+//! `narrow_pocket` at 3, built in every order as one body, exact, closed and
+//! uncrossed, holding the volume [`kept`] gives, which the booleans give too,
+//! and the same body whatever the order.
+//!
+//! The pair and both uprights at the right end, the end's floor edge left
+//! out, are mitred: the two round bottoms meet on the plane through their
+//! crossing, x + z = 39, along the half ellipse from (22, 2, 17) through
+//! (25, 5, 14) to (22, 8, 17), as #837's first slice mitres two full rounds.
+//! It is the shape the correction set aside for the list with the end's
+//! floor edge, which closes on the ball instead. Each corner at x = 25 is a
+//! valley, `r³(5/3 − π/2)`, and the body is the two round bottoms' prisms
+//! joined: `5280 + 52r²(1 − π/4) − 2r³(5/3 − π/2)`, that is `5658 − 90π`,
+//! 5375.2567 —
+//! `a_fillet_on_a_pocket_s_round_bottom_and_both_uprights_at_its_end_mitres_the_two_round_bottoms_on_the_plane_through_their_crossing_whatever_the_order`.
+//!
+//! The others are held together, volumes only, by
+//! `the_lists_the_change_that_built_919_s_lists_lets_in_beside_them_are_built_in_every_order_as_the_arithmetic_and_the_booleans_give`:
+//! the pair and one upright, any of the four, one valley,
+//! `5280 + 46r²(1 − π/4) − r³(5/3 − π/2)`, `5649 − 90π`, 5366.2567; the pair
+//! and an upright at each end, in each of the four pairings, two valleys,
+//! `5658 − 90π`, 5375.2567; the pair, the left end's floor edge and either
+//! upright at the right end, three valleys, the mirror image across x = 15 of
+//! the list above with an upright at the left end, `5613 − 153π/2`, 5372.6682;
+//! one floor edge along the pocket, either, with the right end's floor edge
+//! and both uprights there, the corner the three share closed by an eighth of
+//! the ball and the other a valley,
+//! `5280 + 38r²(1 − π/4) − r³(2 − 7π/12) − r³(5/3 − π/2)`, `5523 − 225π/4`,
+//! 5346.2854; and the pair, both ends' floor edges and both uprights at the
+//! right end, its right end as above and its left end's floor edge in
+//! #838's valley, filleted,
+//! `5280 + 64r²(1 − π/4) − 2r³(2 − 7π/12) − 2r³(5/3 − π/2)`, `5658 − 171π/2`,
+//! 5389.3938, and chamfered, `5280 + 32d² − 4d³/3 − 2d³/3`, 5514. The booleans
+//! join the pocket to the fills' prisms and, where a corner is closed, to its
+//! cell, the ball's part there then taken off; chamfered, they cut the
+//! pocket's air back to the flats' and the triangles' planes. That last list
+//! has six edges: the gate lays it in 48 of its 720 orders — every order of
+//! four blocks, each edge of the pair, the right end's three and the left
+//! end's floor edge, the right end's three in their listed order and then
+//! reversed — and a campaign run by hand, compiled only under the
+//! `campaigns` feature, in all of them —
+//!
+//! ```text
+//! cargo test -p cao_solid --features campaigns \
+//!     --test a_round_bottom_meets_the_fill_of_the_edge_at_its_pocket_s_end_in_a_valley -- --ignored
+//! ```
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::PI;
@@ -2803,6 +2880,85 @@ fn a_cut_and_a_fill_that_meet_where_a_slope_or_a_round_bottom_ends_are_declined_
     );
 }
 
+/// The faces of [`pocket_with_a_pit`]'s pit that the list beside the pit's
+/// upright names: its front wall, merged with the pocket's front wall on the
+/// plane y = 2, and its left wall, at x = 25 under the pocket's floor.
+const PIT_FRONT: usize = 14;
+const PIT_LEFT: usize = 17;
+
+/// [`narrow_pocket`] with a pit cut at its right end, from x = 25 to 28 across
+/// the pocket's width and down to z = 8, numbered after the pocket's faces:
+/// its floor twelve, its top, above the block, thirteen and gone, its walls,
+/// front, right, back and left, fourteen to seventeen. The pocket's right wall
+/// is gone; its floor drops at x = 25 over a convex edge onto the pit's left
+/// wall, and its front and back walls run on down into the pit, so that the
+/// pit's uprights at x = 25 are concave and end where the pocket's floor
+/// edges and that convex edge do.
+fn pocket_with_a_pit() -> Body {
+    let pocketed = narrow_pocket();
+    pocketed
+        .difference(&raised_on(
+            &pocketed,
+            Contour::rectangle(
+                DVec2::new(RIGHT_WALL_AT, FRONT_WALL_AT),
+                DVec2::new(RIGHT_WALL_AT + RADIUS, FRONT_WALL_AT + WIDTH),
+            ),
+            8.0,
+            HEIGHT - 8.0 + 1.0,
+        ))
+        .expect("the pit is cut")
+}
+
+#[test]
+fn a_fillet_on_a_pit_s_upright_beside_a_floor_that_drops_over_a_convex_edge_with_the_round_bottom_s_pair_stays_declined_as_unsupported_whatever_the_order()
+ {
+    let part = pocket_with_a_pit();
+    faces_toward(&part, PIT_LEFT, DVec3::X, "the pit's left wall");
+    faces_toward(&part, PIT_FRONT, DVec3::Y, "the pit's front wall");
+    let front: Vec<[DVec3; 3]> = part.triangles_of(POCKET_FRONT).collect();
+    assert!(
+        !front.is_empty() && part.triangles_of(PIT_FRONT).collect::<Vec<_>>() == front,
+        "the pit's front wall and the pocket's are one face, on the plane y = 2"
+    );
+    assert!(
+        !part.has_face(POCKET_RIGHT),
+        "the pocket's right wall is gone, the pit opening under it"
+    );
+    let pair = vec![
+        edge_touching(&part, POCKET_FLOOR, POCKET_FRONT),
+        edge_touching(&part, POCKET_FLOOR, POCKET_BACK),
+    ];
+    let upright = vec![edge_touching(&part, PIT_FRONT, PIT_LEFT)];
+    for (alone, which) in [(&pair, "the pair"), (&upright, "the pit's front upright")] {
+        if let Err(declined) = Cut::Fillet.laid_on(&part, alone, RADIUS) {
+            panic!("{which} alone is laid; declined, {declined:?}");
+        }
+    }
+
+    let list: Vec<EdgeName> = pair.iter().chain(&upright).cloned().collect();
+    let mut not_declined = Vec::new();
+    for order in every_order(list.len()) {
+        let names: Vec<EdgeName> = order.iter().map(|&edge| list[edge].clone()).collect();
+        let what = format!(
+            "the fillet at {RADIUS} on the pair and the pit's front upright, named in the order \
+             {order:?}"
+        );
+        match Cut::Fillet.laid_on(&part, &names, RADIUS) {
+            Err(Declined::Unsupported) => {}
+            Err(declined) => not_declined.push(format!("{what}: declined, {declined:?}")),
+            Ok(laid) => not_declined.push(format!("{what}: a body of {}", laid.body.volume())),
+        }
+    }
+    assert!(
+        not_declined.is_empty(),
+        "the pit's concave upright meets the pair where the floor drops over a convex edge, \
+         left out of the list: the uprights at a round bottom's end are let in only where every \
+         edge ending there is concave, so the list is a broken step and its reason, \
+         Unsupported, whatever the order, its parts laid alone; not so:\n{}",
+        not_declined.join("\n")
+    );
+}
+
 /// Where the axes of the round bottom, of the right end's floor edge's fill
 /// and of the standing round bottom cross: one radius from the floor, from the
 /// right wall and from the front and back walls alike — the centre #801 gives
@@ -3372,28 +3528,21 @@ fn a_fillet_on_a_pocket_s_round_bottom_the_floor_edge_at_its_end_and_both_uprigh
 
 /// What [`narrow_pocket`] keeps once [`all_round`]'s edges are chamfered at
 /// [`RADIUS`] and the right end's two bottom corners closed by their
-/// triangles, computed apart from the step: the air the chamfered pocket
-/// leaves being convex, the meet of the half-spaces over the five flats'
-/// planes and the two triangles' within the pocket — the pocket's box, the
-/// slab beyond each plane on the matter's side cut away by the booleans —
-/// taken from the block.
+/// triangles, computed apart from the step as [`chamfered_by_booleans`]
+/// computes it, over [`all_round_s_planes`].
 fn all_round_chamfered_by_booleans() -> f64 {
+    chamfered_by_booleans(&all_round_s_planes())
+}
+
+/// The planes the chamfer at [`RADIUS`] on [`all_round`]'s edges lays its
+/// flats on, and the two triangles' at the right end's bottom corners, each
+/// as a point it passes through and the way it faces the matter.
+fn all_round_s_planes() -> Vec<(DVec3, DVec3)> {
     let d = RADIUS;
     let near = FRONT_WALL_AT;
     let far = FRONT_WALL_AT + WIDTH;
     let deepest = DVec3::new(RIGHT_WALL_AT - d, near + d, FLOOR_AT);
-    let pocket_s_air = Body::default()
-        .union(&raised_on(
-            &Body::default(),
-            Contour::rectangle(
-                DVec2::new(LEFT_WALL_AT, near),
-                DVec2::new(RIGHT_WALL_AT, far),
-            ),
-            FLOOR_AT,
-            DEPTH,
-        ))
-        .expect("the pocket's air is raised");
-    let air = [
+    vec![
         (
             DVec3::new(0.0, near, FLOOR_AT + d),
             DVec3::new(0.0, -1.0, -1.0),
@@ -3417,12 +3566,149 @@ fn all_round_chamfered_by_booleans() -> f64 {
         (deepest, DVec3::new(1.0, -1.0, -1.0)),
         (deepest, DVec3::new(1.0, 1.0, -1.0)),
     ]
-    .into_iter()
-    .fold(pocket_s_air, |left, (through, away)| {
+}
+
+/// What [`narrow_pocket`] keeps once chamfered on flats and triangles lying
+/// on `planes`, as [`chamfered_within`] computes it.
+fn chamfered_by_booleans(planes: &[(DVec3, DVec3)]) -> f64 {
+    chamfered_within(WIDTH, planes)
+}
+
+/// What the pocket `width` wide keeps once chamfered on flats and triangles
+/// lying on `planes`, each given as a point it passes through and the way it
+/// faces the matter, computed apart from the step: the air the chamfered
+/// pocket leaves being convex, the meet of the half-spaces over the planes
+/// within the pocket — the pocket's box, the slab beyond each plane on the
+/// matter's side cut away by the booleans — taken from the block.
+fn chamfered_within(width: f64, planes: &[(DVec3, DVec3)]) -> f64 {
+    let pocket_s_air = Body::default()
+        .union(&raised_on(
+            &Body::default(),
+            Contour::rectangle(
+                DVec2::new(LEFT_WALL_AT, FRONT_WALL_AT),
+                DVec2::new(RIGHT_WALL_AT, FRONT_WALL_AT + width),
+            ),
+            FLOOR_AT,
+            DEPTH,
+        ))
+        .expect("the pocket's air is raised");
+    let air = planes.iter().fold(pocket_s_air, |left, &(through, away)| {
         left.difference(&beyond(&left, through, away, 100.0))
             .expect("a flat's plane cuts the pocket's air")
     });
     LENGTH * BREADTH * HEIGHT - air.volume()
+}
+
+/// The three edges at the front right bottom corner of a pocket: its floor's
+/// edges on the front and the right walls, and the upright where the two
+/// walls meet.
+const BOTTOM_CORNER: [([usize; 2], &str); 3] = [
+    (FLOOR_FRONT, "the floor's edge on the front wall"),
+    (FLOOR_RIGHT, "the floor's edge on the right wall"),
+    FRONT_UPRIGHT,
+];
+
+/// What the pocket [`RADIUS`] wide keeps once [`BOTTOM_CORNER`]'s edges are
+/// chamfered at `d` and the corner closed by its triangle, as #801 reckons a
+/// closed corner: each flat's triangle `d²/2` along its edge, 20, 3 and 6
+/// long, less `2d³/3` at the corner.
+fn bottom_corner_chamfered(d: f64) -> f64 {
+    LENGTH * BREADTH * HEIGHT - POCKET_LENGTH * RADIUS * DEPTH
+        + (POCKET_LENGTH + RADIUS + DEPTH) * d * d / 2.0
+        - 2.0 * d.powi(3) / 3.0
+}
+
+/// The planes the chamfer at `d` on [`BOTTOM_CORNER`]'s edges lays its three
+/// flats and the corner's triangle on, each as a point it passes through and
+/// the way it faces the matter.
+fn bottom_corner_s_planes(d: f64) -> Vec<(DVec3, DVec3)> {
+    vec![
+        (
+            DVec3::new(0.0, FRONT_WALL_AT, FLOOR_AT + d),
+            DVec3::new(0.0, -1.0, -1.0),
+        ),
+        (
+            DVec3::new(RIGHT_WALL_AT, 0.0, FLOOR_AT + d),
+            DVec3::new(1.0, 0.0, -1.0),
+        ),
+        (
+            DVec3::new(RIGHT_WALL_AT, FRONT_WALL_AT + d, 0.0),
+            DVec3::new(1.0, -1.0, 0.0),
+        ),
+        (
+            DVec3::new(RIGHT_WALL_AT - d, FRONT_WALL_AT + d, FLOOR_AT),
+            DVec3::new(1.0, -1.0, -1.0),
+        ),
+    ]
+}
+
+#[test]
+fn a_chamfer_on_the_three_edges_at_a_bottom_corner_of_a_pocket_as_wide_as_the_distance_closes_it_a_tenth_short_and_is_declined_where_the_end_edge_s_flat_closes_to_nothing_on_the_far_wall_whatever_the_order()
+ {
+    let part = pocket(RADIUS);
+    let named: Vec<EdgeName> = BOTTOM_CORNER
+        .iter()
+        .map(|&([one, other], _)| edge_between(&part, one, other))
+        .collect();
+    let short = RADIUS - 0.1;
+    let promised = bottom_corner_chamfered(short);
+    let by_booleans = chamfered_within(RADIUS, &bottom_corner_s_planes(short));
+    assert!(
+        (by_booleans - promised).abs() <= EXACT * promised,
+        "the pocket's air cut back to the three flats' planes and the triangle's at {short}, \
+         taken from the block by the booleans, leaves {by_booleans}, where arithmetic promises \
+         {promised}"
+    );
+
+    let mut not_so = Vec::new();
+    for order in every_order(named.len()) {
+        let names: Vec<EdgeName> = order.iter().map(|&edge| named[edge].clone()).collect();
+        let called: Vec<&str> = order.iter().map(|&edge| BOTTOM_CORNER[edge].1).collect();
+        let what = |value: f64| {
+            format!(
+                "the chamfer at {value} on {}, on the pocket {RADIUS} wide",
+                called.join(", then ")
+            )
+        };
+        match Cut::Chamfer.laid_on(&part, &names, short) {
+            Err(declined) => not_so.push(format!("{}: declined, {declined:?}", what(short))),
+            Ok(laid) => {
+                let triangles = laid.body.triangles();
+                let sound = laid.body.is_exact()
+                    && closed(&triangles).is_ok()
+                    && uncrossed(&triangles).is_ok();
+                if (laid.taken - short).abs() >= PLACE
+                    || !sound
+                    || (laid.body.volume() - promised).abs() > EXACT * promised
+                {
+                    not_so.push(format!(
+                        "{}: took {}, sound {sound}, holds {}, where arithmetic gives {promised}",
+                        what(short),
+                        laid.taken,
+                        laid.body.volume()
+                    ));
+                }
+            }
+        }
+        match Cut::Chamfer.laid_on(&part, &names, RADIUS) {
+            Err(Declined::Unsupported) => {}
+            Err(declined) => not_so.push(format!("{}: declined, {declined:?}", what(RADIUS))),
+            Ok(laid) => not_so.push(format!(
+                "{}: a body of {}",
+                what(RADIUS),
+                laid.body.volume()
+            )),
+        }
+    }
+    assert!(
+        not_so.is_empty(),
+        "the three edges at the pocket's bottom corner, chamfered a tenth short of its width, \
+         close it in every order, exact, closed and uncrossed, holding what the arithmetic and \
+         the booleans give; at its width the end edge's flat closes to nothing on the far wall, \
+         not between two corners the step closes, and each order is a broken step and its \
+         reason, Unsupported; not so:\n{}",
+        not_so.join("\n")
+    );
 }
 
 /// Holds that the chamfer at [`RADIUS`] on [`all_round`]'s edges, named in
@@ -4700,6 +4986,560 @@ fn a_fillet_on_a_pocket_s_round_bottom_the_floor_edge_at_its_right_end_and_one_u
                     &part, side, order, filleted, promised, what,
                 );
             },
+        );
+    }
+}
+
+/// How far a point stands past the mitre the two round bottoms meet on when
+/// the end's floor edge is not named, on the side of the standing one: how
+/// far it stands out along X past [`crossing`], less how far under it. Nought
+/// on the plane x + z = 39.
+fn past_the_mitre(point: DVec3) -> f64 {
+    let centre = crossing();
+    (point.x - centre.x) - (centre.z - point.z)
+}
+
+/// Holds that the fillet at [`RADIUS`] on the round bottom's pair and both
+/// uprights at the right end, listed in that order, named in `order` and laid
+/// as `filleted`, takes the value whole and mitres the two round bottoms on
+/// the plane through their crossing, x + z = 39: the body exact, closed,
+/// uncrossed and drawn, holding `promised`; the floor and the right wall
+/// gone, the lying round bottom one face answering to the pair's ranks and
+/// the standing one to the uprights', nothing laid at a corner; each drawn on
+/// its own half cylinder and on its own side of the mitre, met there from its
+/// axis; the two sharing points on the mitre only, along the half ellipse
+/// from (22, 2, 17) through (25, 5, 14) to (22, 8, 17), one vertex at each end
+/// of it where the side wall there meets both; the side walls kept from x = 5
+/// to 22 above z = 17; and each round bottom meeting its walls and the other
+/// round bottom, and nothing else.
+fn mitres_the_two_round_bottoms(
+    part: &Body,
+    order: &[usize],
+    filleted: &Laid,
+    promised: f64,
+    what: &str,
+) {
+    let r = RADIUS;
+    let centre = crossing();
+    let start = part.faces_end();
+    let count = order.len();
+    taken_as_asked(filleted.asked, filleted.taken, RADIUS, what);
+    let body = &filleted.body;
+    let lying = ranks_of(start, order, &[0, 1]);
+    let standing = ranks_of(start, order, &[2, 3]);
+    let lying_halves = round_bottom_along(POCKET_LENGTH);
+    let standing_halves = standing_round_bottom();
+    let area = lying_halves
+        .iter()
+        .chain(&standing_halves)
+        .map(Hollow::area)
+        .sum::<f64>();
+    sound_drawn_within(body, promised, DRAWN * reach_of(part) * area, what);
+
+    let mut kept_and_laid = numbers(part);
+    kept_and_laid.remove(&POCKET_FLOOR);
+    kept_and_laid.remove(&POCKET_RIGHT);
+    kept_and_laid.extend(start..start + count);
+    assert_eq!(
+        numbers(body),
+        kept_and_laid,
+        "{what}: every face of the pocketed block but its floor and its right wall, the lying \
+         round bottom answering to {lying:?} and the standing one to {standing:?}, and no face \
+         laid at a corner"
+    );
+    assert_eq!(
+        body.faces_end(),
+        start + count,
+        "{what}: the next step numbers its faces past the {count} the list gave its edges"
+    );
+    one_curved_face_answers_to(body, &lying, &format!("{what}: the lying round bottom"));
+    one_curved_face_answers_to(
+        body,
+        &standing,
+        &format!("{what}: the standing round bottom"),
+    );
+
+    let lying_drawn: Vec<DVec3> = body.triangles_of(lying[0]).flatten().collect();
+    for &point in &lying_drawn {
+        assert!(
+            lying_halves.iter().any(|half| half.holds(point)) && past_the_mitre(point) <= PLACE,
+            "{what}: the lying round bottom is drawn through {point}, off its half cylinder or \
+             past the mitre x + z = 39"
+        );
+    }
+    let standing_drawn: Vec<DVec3> = body.triangles_of(standing[0]).flatten().collect();
+    for &point in &standing_drawn {
+        assert!(
+            standing_halves.iter().any(|half| half.holds(point)) && past_the_mitre(point) >= -PLACE,
+            "{what}: the standing round bottom is drawn through {point}, off its half cylinder or \
+             short of the mitre x + z = 39"
+        );
+    }
+    for half in &lying_halves {
+        met_from_its_axis_where(
+            body,
+            lying[0],
+            half,
+            |aim| past_the_mitre(aim) < -CLEAR_OF_THE_VALLEY,
+            &format!("{what}: the lying round bottom, short of the mitre"),
+        );
+    }
+    for half in &standing_halves {
+        met_from_its_axis_where(
+            body,
+            standing[0],
+            half,
+            |aim| past_the_mitre(aim) > CLEAR_OF_THE_VALLEY,
+            &format!("{what}: the standing round bottom, past the mitre"),
+        );
+    }
+    let [front_end, back_end] =
+        [Side::Front, Side::Back].map(|side| DVec3::new(centre.x, side.wall_at(), centre.z));
+    let deepest = DVec3::new(RIGHT_WALL_AT, centre.y, FLOOR_AT);
+    let seam = shared_points(&lying_drawn, &standing_drawn);
+    for &point in &seam {
+        assert!(
+            past_the_mitre(point).abs() < PLACE
+                && ((point.y - centre.y).powi(2) + (point.x - centre.x).powi(2) - r * r).abs()
+                    < 10.0 * PLACE,
+            "{what}: the two round bottoms meet at {point}, off the half ellipse their cylinders \
+             cross along on x + z = 39"
+        );
+    }
+    assert!(
+        seam.len() > 3
+            && [front_end, deepest, back_end]
+                .iter()
+                .all(|&at| drawn_through(&seam, at)),
+        "{what}: the two round bottoms meet along the half ellipse on x + z = 39, drawn from \
+         {front_end} through {deepest} to {back_end}: {seam:?}"
+    );
+    for (side, end) in [(Side::Front, front_end), (Side::Back, back_end)] {
+        assert_eq!(
+            vertices_among(body, &[&[side.wall()], &lying, &standing]),
+            1,
+            "{what}: the {side:?} wall and the two round bottoms meet at one vertex, {end}, an end \
+             of the mitre"
+        );
+        let across = side.wall_at();
+        corners_are(
+            body,
+            side.wall(),
+            &[
+                DVec3::new(LEFT_WALL_AT, across, centre.z),
+                DVec3::new(centre.x, across, centre.z),
+                DVec3::new(centre.x, across, HEIGHT),
+                DVec3::new(LEFT_WALL_AT, across, HEIGHT),
+            ],
+            &format!(
+                "{what}: the {side:?} wall, kept up to where the lying round bottom leaves it and \
+                 out to where the standing one does"
+            ),
+        );
+    }
+    for (face, own, others, which) in [
+        (
+            &lying,
+            &standing,
+            sides_answering(&[&[POCKET_FRONT], &[POCKET_BACK], &[POCKET_LEFT]]),
+            "the lying round bottom meets the front, the back and the left walls",
+        ),
+        (
+            &standing,
+            &lying,
+            sides_answering(&[&[TOP], &[POCKET_FRONT], &[POCKET_BACK]]),
+            "the standing round bottom meets the top, the front and the back walls",
+        ),
+    ] {
+        let other: Vec<u32> = own.iter().map(|&number| number as u32).collect();
+        let met = sides_met_by(body, face);
+        let (mitred, walls): (Vec<Vec<u32>>, Vec<Vec<u32>>) =
+            met.into_iter().partition(|side| *side == other);
+        assert!(
+            walls == others && !mitred.is_empty(),
+            "{what}: {which} by one edge each, and the other round bottom along the mitre, and \
+             nothing else: {walls:?} and {mitred:?}"
+        );
+    }
+}
+
+#[test]
+fn a_fillet_on_a_pocket_s_round_bottom_and_both_uprights_at_its_end_mitres_the_two_round_bottoms_on_the_plane_through_their_crossing_whatever_the_order()
+ {
+    let part = narrow_pocket();
+    let listed = pair_and(&[FRONT_UPRIGHT, BACK_UPRIGHT]);
+    let edges: Vec<[usize; 2]> = listed.iter().map(|&(edge, _)| edge).collect();
+    let promised = kept(Cut::Fillet, WIDTH, &edges);
+    let written = 5658.0 - 90.0 * PI;
+    assert!(
+        (promised - written).abs() <= EXACT * written,
+        "the arithmetic gives {promised}, where the documentation writes 5658 − 90π"
+    );
+    let joined = part
+        .union(&round_bottom_tool(&part, RIGHT_WALL_AT + RADIUS))
+        .expect("the round bottom's prism joins the pocket");
+    let by_booleans = joined
+        .union(&standing_round_bottom_tool(&joined))
+        .expect("the standing round bottom's prism joins the body")
+        .volume();
+    assert!(
+        (by_booleans - promised).abs() <= EXACT * promised,
+        "the two round bottoms' prisms, joined to the pocket by the booleans, leave \
+         {by_booleans}, where arithmetic promises {promised}"
+    );
+    laid_in_every_order(
+        Cut::Fillet,
+        &part,
+        "the pocket 6 wide",
+        &listed,
+        &[],
+        |order, filleted, what| {
+            mitres_the_two_round_bottoms(&part, order, filleted, promised, what)
+        },
+    );
+}
+
+/// The prism the fill of the floor's edge on `side`'s wall adds alone on
+/// [`narrow_pocket`]: the round bottom's prism, its half past the pocket's
+/// middle line cut away.
+fn floor_edge_tool(part: &Body, side: Side) -> Body {
+    round_bottom_tool(part, RIGHT_WALL_AT + RADIUS)
+        .difference(&beyond(
+            part,
+            crossing(),
+            DVec3::Y * side.other().outward(),
+            100.0,
+        ))
+        .expect("the round bottom's prism is halved")
+}
+
+/// The prisms `tools` give, joined to `part` in turn by the booleans: what
+/// the fills they stand for leave where each two meet in a valley.
+fn joined_by_booleans(part: &Body, tools: &[&dyn Fn(&Body) -> Body]) -> Body {
+    tools.iter().fold(part.clone(), |body, tool| {
+        body.union(&tool(&body))
+            .expect("a fill's prism joins the body")
+    })
+}
+
+/// A list the change that built #919's lists builds beside them, on
+/// [`narrow_pocket`] at [`RADIUS`]: what it is called, the cut, its edges,
+/// the corners three of them close, the orders it is laid in — the listed
+/// one among them — the volume the module's documentation writes, and the
+/// volume the booleans leave.
+struct AlsoBuilt {
+    called: String,
+    cut: Cut,
+    listed: Listed,
+    corners: Vec<[usize; 3]>,
+    orders: Vec<Vec<usize>>,
+    written: (f64, &'static str),
+    by_booleans: f64,
+}
+
+/// Holds that `list` is laid in each of its orders as one sound body: the
+/// arithmetic giving the volume the documentation writes and the booleans
+/// giving it too; the value taken whole; the body exact, closed, uncrossed and
+/// holding that volume; and the body the listed order lays, its faces meeting
+/// alike. What does not hold is returned, one line each.
+fn not_held(part: &Body, list: &AlsoBuilt) -> Vec<String> {
+    let edges: Vec<[usize; 2]> = list.listed.iter().map(|&(edge, _)| edge).collect();
+    let promised = kept(list.cut, WIDTH, &edges);
+    let (volume, written) = list.written;
+    let mut not_held = Vec::new();
+    if (promised - volume).abs() > EXACT * volume {
+        not_held.push(format!(
+            "{}: the arithmetic gives {promised}, where the documentation writes {written}",
+            list.called
+        ));
+    }
+    if (list.by_booleans - promised).abs() > EXACT * promised {
+        not_held.push(format!(
+            "{}: the booleans leave {}, where arithmetic promises {promised}",
+            list.called, list.by_booleans
+        ));
+    }
+    let start = part.faces_end();
+    let named: Vec<EdgeName> = edges
+        .iter()
+        .map(|&[one, other]| edge_between(part, one, other))
+        .collect();
+    let listed_order: Vec<usize> = (0..named.len()).collect();
+    let laid: Vec<(&Vec<usize>, Result<Laid, Declined>)> = list
+        .orders
+        .iter()
+        .map(|order| {
+            let names: Vec<EdgeName> = order.iter().map(|&edge| named[edge].clone()).collect();
+            (order, list.cut.laid_on(part, &names, RADIUS))
+        })
+        .collect();
+    let reference = laid
+        .iter()
+        .find(|(order, _)| **order == listed_order)
+        .and_then(|(_, laid)| laid.as_ref().ok());
+    for (order, laid) in &laid {
+        let what = format!("{}, named in the order {order:?}", list.called);
+        let laid = match laid {
+            Ok(laid) => laid,
+            Err(declined) => {
+                not_held.push(format!("{what}: declined, {declined:?}"));
+                continue;
+            }
+        };
+        let body = &laid.body;
+        let triangles = body.triangles();
+        if (laid.asked - RADIUS).abs() >= PLACE || (laid.taken - RADIUS).abs() >= PLACE {
+            not_held.push(format!(
+                "{what}: asked {} and took {}",
+                laid.asked, laid.taken
+            ));
+        } else if !body.is_exact() {
+            not_held.push(format!("{what}: not computed by the exact kernel"));
+        } else if let Err(fault) = closed(&triangles) {
+            not_held.push(format!("{what}: not closed, {fault:?}"));
+        } else if let Err(fault) = uncrossed(&triangles) {
+            not_held.push(format!("{what}: crossed, {fault:?}"));
+        } else if (body.volume() - promised).abs() > EXACT * promised {
+            not_held.push(format!(
+                "{what}: holds {}, where arithmetic gives {promised}",
+                body.volume()
+            ));
+        } else if let Some(reference) = reference {
+            let otherwise = met_otherwise(start, order, body, &reference.body, &list.corners);
+            if !otherwise.is_empty() {
+                not_held.push(format!(
+                    "{what}: not the body the listed order lays:\n{}",
+                    otherwise.join("\n")
+                ));
+            }
+        }
+    }
+    not_held
+}
+
+/// The orders the six-edge list of [`both_ends_and_uprights`] is laid in
+/// within the gate: every order of four blocks — each edge of the pair, the
+/// right end's three and the left end's floor edge — the right end's three
+/// in their listed order and then in its reverse, 48 of the 720.
+fn both_ends_and_uprights_by_blocks() -> Vec<Vec<usize>> {
+    [[2, 3, 4], [4, 3, 2]]
+        .into_iter()
+        .flat_map(|right_end| {
+            let blocks: [Vec<usize>; 4] = [vec![0], vec![1], right_end.to_vec(), vec![5]];
+            every_order(blocks.len())
+                .into_iter()
+                .map(move |order| {
+                    order
+                        .into_iter()
+                        .flat_map(|block| blocks[block].clone())
+                        .collect()
+                })
+                .collect::<Vec<Vec<usize>>>()
+        })
+        .collect()
+}
+
+/// [`all_round`] and the left end's floor edge: the right end rounded all
+/// round, the left end's floor edge meeting the round bottom in #838's
+/// valley, the fillet and the chamfer at [`RADIUS`] each laid in `orders`.
+fn both_ends_and_uprights(part: &Body, orders: &[Vec<usize>]) -> [AlsoBuilt; 2] {
+    let r = RADIUS;
+    let mut listed = all_round();
+    listed.push(End::Left.edge());
+    let filleted = joined_by_booleans(
+        part,
+        &[
+            &|body| round_bottom_tool(body, RIGHT_WALL_AT + r),
+            &|body| End::Right.tool(body),
+            &|body| End::Left.tool(body),
+            &|body| upright_tool(body, End::Right, Side::Front),
+            &|body| upright_tool(body, End::Right, Side::Back),
+            &|body| corner_cell_tool(body, [FRONT_WALL_AT - 1.0, FRONT_WALL_AT + WIDTH + 1.0]),
+        ],
+    )
+    .volume()
+        - PI * r.powi(3) / 3.0;
+    let mut planes = all_round_s_planes();
+    planes.push((
+        DVec3::new(LEFT_WALL_AT, 0.0, FLOOR_AT + r),
+        DVec3::new(-1.0, 0.0, -1.0),
+    ));
+    let called = "the pair, both ends' floor edges and both uprights at the right end";
+    [
+        AlsoBuilt {
+            called: format!("the fillet on {called}"),
+            cut: Cut::Fillet,
+            listed: listed.clone(),
+            corners: END_CORNERS.to_vec(),
+            orders: orders.to_vec(),
+            written: (5658.0 - 171.0 * PI / 2.0, "5658 − 171π/2"),
+            by_booleans: filleted,
+        },
+        AlsoBuilt {
+            called: format!("the chamfer on {called}"),
+            cut: Cut::Chamfer,
+            listed,
+            corners: END_CORNERS.to_vec(),
+            orders: orders.to_vec(),
+            written: (5514.0, "5514"),
+            by_booleans: chamfered_by_booleans(&planes),
+        },
+    ]
+}
+
+/// The lists, but [`both_ends_and_uprights`], that the change which built
+/// #919's lists builds beside them, each in every order: the pair with one
+/// upright at either end, with two uprights at different ends, with the left
+/// end's floor edge and an upright at the right end, and one floor edge
+/// along the pocket with the right end's floor edge and both uprights there.
+fn also_built(part: &Body) -> Vec<AlsoBuilt> {
+    let r = RADIUS;
+    let sides = [Side::Front, Side::Back];
+    let mut lists = Vec::new();
+    for end in [End::Right, End::Left] {
+        for side in sides {
+            lists.push(AlsoBuilt {
+                called: format!(
+                    "the fillet on the pair and the {side:?} upright at the {end:?} end"
+                ),
+                cut: Cut::Fillet,
+                listed: pair_and(&[side.upright(end)]),
+                corners: Vec::new(),
+                orders: every_order(3),
+                written: (5649.0 - 90.0 * PI, "5649 − 90π"),
+                by_booleans: joined_by_booleans(
+                    part,
+                    &[
+                        &|body| round_bottom_tool(body, RIGHT_WALL_AT + r),
+                        &|body| upright_tool(body, end, side),
+                    ],
+                )
+                .volume(),
+            });
+        }
+    }
+    for right in sides {
+        for left in sides {
+            lists.push(AlsoBuilt {
+                called: format!(
+                    "the fillet on the pair, the {right:?} upright at the right end and the \
+                     {left:?} one at the left end"
+                ),
+                cut: Cut::Fillet,
+                listed: pair_and(&[right.upright(End::Right), left.upright(End::Left)]),
+                corners: Vec::new(),
+                orders: every_order(4),
+                written: (5658.0 - 90.0 * PI, "5658 − 90π"),
+                by_booleans: joined_by_booleans(
+                    part,
+                    &[
+                        &|body| round_bottom_tool(body, RIGHT_WALL_AT + r),
+                        &|body| upright_tool(body, End::Right, right),
+                        &|body| upright_tool(body, End::Left, left),
+                    ],
+                )
+                .volume(),
+            });
+        }
+    }
+    for side in sides {
+        lists.push(AlsoBuilt {
+            called: format!(
+                "the fillet on the pair, the left end's floor edge and the {side:?} upright at \
+                 the right end"
+            ),
+            cut: Cut::Fillet,
+            listed: pair_and(&[End::Left.edge(), side.upright(End::Right)]),
+            corners: Vec::new(),
+            orders: every_order(4),
+            written: (5613.0 - 153.0 * PI / 2.0, "5613 − 153π/2"),
+            by_booleans: joined_by_booleans(
+                part,
+                &[
+                    &|body| round_bottom_tool(body, RIGHT_WALL_AT + r),
+                    &|body| End::Left.tool(body),
+                    &|body| upright_tool(body, End::Right, side),
+                ],
+            )
+            .volume(),
+        });
+    }
+    for (side, floor_edge) in sides.into_iter().zip(PAIR) {
+        let cell = match side {
+            Side::Front => [FRONT_WALL_AT - 1.0, crossing().y],
+            Side::Back => [crossing().y, FRONT_WALL_AT + WIDTH + 1.0],
+        };
+        let upright = match side {
+            Side::Front => 2,
+            Side::Back => 3,
+        };
+        lists.push(AlsoBuilt {
+            called: format!(
+                "the fillet on the floor's edge on the {side:?} wall, the right end's floor edge \
+                 and both uprights there"
+            ),
+            cut: Cut::Fillet,
+            listed: vec![floor_edge, End::Right.edge(), FRONT_UPRIGHT, BACK_UPRIGHT],
+            corners: vec![[0, 1, upright]],
+            orders: every_order(4),
+            written: (5523.0 - 225.0 * PI / 4.0, "5523 − 225π/4"),
+            by_booleans: joined_by_booleans(
+                part,
+                &[
+                    &|body| floor_edge_tool(body, side),
+                    &|body| End::Right.tool(body),
+                    &|body| upright_tool(body, End::Right, Side::Front),
+                    &|body| upright_tool(body, End::Right, Side::Back),
+                    &|body| corner_cell_tool(body, cell),
+                ],
+            )
+            .volume()
+                - PI * r.powi(3) / 6.0,
+        });
+    }
+    lists
+}
+
+#[test]
+fn the_lists_the_change_that_built_919_s_lists_lets_in_beside_them_are_built_in_every_order_as_the_arithmetic_and_the_booleans_give()
+ {
+    let part = narrow_pocket();
+    let mut lists = also_built(&part);
+    lists.extend(both_ends_and_uprights(
+        &part,
+        &both_ends_and_uprights_by_blocks(),
+    ));
+    let not_held: Vec<String> = lists
+        .iter()
+        .flat_map(|list| not_held(&part, list))
+        .collect();
+    assert!(
+        not_held.is_empty(),
+        "every list the change lets in beside #919's is laid in each of its orders, the value \
+         taken whole, exact, closed and uncrossed, holding what the arithmetic and the booleans \
+         give, the body the listed order lays; not so:\n{}",
+        not_held.join("\n")
+    );
+}
+
+#[cfg(feature = "campaigns")]
+mod campaign {
+    use super::*;
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn the_fillet_and_the_chamfer_on_the_pair_both_ends_floor_edges_and_both_uprights_at_the_right_end_are_built_in_each_of_the_720_orders()
+     {
+        let part = narrow_pocket();
+        let not_held: Vec<String> = both_ends_and_uprights(&part, &every_order(6))
+            .iter()
+            .flat_map(|list| not_held(&part, list))
+            .collect();
+        assert!(
+            not_held.is_empty(),
+            "the fillet and the chamfer on the pair, both ends' floor edges and both uprights at \
+             the right end are laid in each of the 720 orders as the gate's 48 are; not so:\n{}",
+            not_held.join("\n")
         );
     }
 }
