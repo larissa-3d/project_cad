@@ -825,9 +825,6 @@ impl Sketch {
         }
         let direction = axis.direction();
         let gap = (self.point(to) - self.point(from)).dot(direction);
-        if gap.abs() < 1e-9 {
-            return None;
-        }
         let sign = if gap < 0.0 { -1.0 } else { 1.0 };
 
         let mut equation = Equation::new(self.variables());

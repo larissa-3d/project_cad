@@ -69,8 +69,10 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// three meet, where the step was refused as unverified (#775, #776). 24: a
 /// curve's centre laid on the curve, or a tangency with a trait running
 /// through the centre, is refused where it was laid untrue or shrank the
-/// curve to nothing (#1037, #1038).
-const REBUILT_BY: u32 = 24;
+/// curve to nothing (#1037, #1038). 25: a rule that would turn a shape
+/// against a horizontal or vertical value it carries is refused, where it was
+/// laid and the value driven to nothing (#1042).
+const REBUILT_BY: u32 = 25;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {
