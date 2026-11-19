@@ -74,7 +74,6 @@
 
 mod driver;
 
-use cao_part::PartDocument;
 use glam::{DVec2, DVec3};
 
 /// A point of each plane of the origin, with the name the history gives a
@@ -202,14 +201,7 @@ fn a_line_through(app: &mut driver::App, ends: [DVec2; 2]) {
 /// The ends of every line of the part's sketch, as the application left the
 /// part on disk once it was put away.
 fn the_lines_laid(app: &mut driver::App, test: &str) -> Vec<(DVec2, DVec2)> {
-    driver::click(app, "Accueil");
-    let path = driver::locations_of(test)
-        .documents
-        .expect("the driver keeps a documents folder")
-        .join("CAO")
-        .join(format!("{THE_PART}.caopart"));
-    let part = PartDocument::load(&cao_app::adapters::files::DiskFiles, &path)
-        .unwrap_or_else(|err| panic!("the part at {path:?} does not open: {err:?}"));
+    let part = driver::the_part_put_away(app, test, THE_PART);
     let sketch = &part.sketches()[0];
     sketch
         .live_segments()

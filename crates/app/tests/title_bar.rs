@@ -325,8 +325,7 @@ fn home_in_the_title_bar_goes_back_to_the_home_screen() {
 fn the_part_s_name_shows_its_file_path_on_hover() {
     let test = "the_part_s_name_shows_its_file_path_on_hover";
     let mut app = a_part(test);
-    let path = the_folder(test)
-        .join("Platine.caopart")
+    let path = driver::the_part_s_file(test, "Platine")
         .display()
         .to_string();
 
@@ -767,10 +766,7 @@ const AT_THE_BOTTOM: f32 = 40.0;
 
 /// The folder the driver's application keeps its parts in.
 fn the_folder(test: &str) -> std::path::PathBuf {
-    driver::locations_of(test)
-        .documents
-        .expect("the driver keeps a documents folder")
-        .join("CAO")
+    cao_prefs::locations::default_projects_dir(&driver::locations_of(test))
 }
 
 /// The pointer left over a point of the world, as a hand resting there.

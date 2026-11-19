@@ -56,10 +56,11 @@ fn a_second_run_opening_the_same_test_leaves_what_the_first_run_saved_alone() {
         .env(PLAY_THE_SECOND_RUN, "1")
         .output()
         .expect("the second run starts");
+    let said = String::from_utf8_lossy(&second.stdout);
     assert!(
-        second.status.success(),
-        "the second run failed to open its application:\n{}\n{}",
-        String::from_utf8_lossy(&second.stdout),
+        second.status.success() && said.contains("test result: ok. 1 passed;"),
+        "the second run did not open its application, or ran no test at all: the name it is \
+         started on must stay this function's own:\n{said}\n{}",
         String::from_utf8_lossy(&second.stderr),
     );
 
