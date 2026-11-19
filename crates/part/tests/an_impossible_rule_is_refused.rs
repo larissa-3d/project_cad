@@ -74,7 +74,10 @@
 //!   `two_free_points_a_distance_holds_apart_are_not_made_one`; the join
 //!   itself is held at the sketch's level under the same names, with the
 //!   horizontal value beside them, in
-//!   `crates/sketch/src/sketch/merging/tests.rs`
+//!   `crates/sketch/src/sketch/merging/tests.rs`; so is what the refusal
+//!   leaves alone — two points with nothing between them, a read-out distance
+//!   between them, and a distance elsewhere in the drawing do not keep them
+//!   apart
 //! - The case above holds in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawing is held to its rules there, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`

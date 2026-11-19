@@ -163,3 +163,65 @@ fn two_free_points_a_distance_holds_apart_are_not_made_one() {
 
     joined_refused_with_the_drawing_unchanged(sketch, first, second);
 }
+
+fn joined(mut sketch: Sketch, kept: PointId, dropped: PointId) {
+    let place = sketch.point(kept);
+
+    let joined = sketch.join_points(kept, dropped, 1.0);
+
+    assert!(joined, "the merge was refused: {:?}", sketch.dimensions());
+    assert!(
+        sketch.is_erased_point(dropped),
+        "the point dropped still stands"
+    );
+    assert!(
+        sketch.point(kept).distance(place) < 1e-9,
+        "the point kept moved from {place} to {}",
+        sketch.point(kept)
+    );
+}
+
+#[test]
+fn two_free_points_with_nothing_between_them_are_made_one() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let first = sketch.add_point(DVec2::new(10.0, 10.0));
+    let second = sketch.add_point(DVec2::new(30.0, 25.0));
+
+    joined(sketch, first, second);
+}
+
+#[test]
+fn a_read_out_distance_between_two_points_does_not_keep_them_apart() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let first = sketch.add_point(DVec2::new(10.0, 10.0));
+    let second = sketch.add_point(DVec2::new(30.0, 25.0));
+    sketch.set_dimension(
+        DimensionTarget::Distance {
+            from: first,
+            to: second,
+        },
+        25.0,
+        true,
+    );
+
+    joined(sketch, first, second);
+}
+
+#[test]
+fn a_distance_elsewhere_in_the_drawing_does_not_keep_two_points_apart() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let first = sketch.add_point(DVec2::new(10.0, 10.0));
+    let second = sketch.add_point(DVec2::new(30.0, 25.0));
+    let [held, apart] =
+        [[-20.0, 0.0], [-20.0, 20.0]].map(|[x, y]| sketch.add_point(DVec2::new(x, y)));
+    typed(
+        &mut sketch,
+        DimensionTarget::Distance {
+            from: held,
+            to: apart,
+        },
+        20.0,
+    );
+
+    joined(sketch, first, second);
+}
