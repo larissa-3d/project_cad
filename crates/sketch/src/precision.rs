@@ -21,6 +21,12 @@ pub const SAME: f64 = 1e-8;
 /// micron on a part up to a metre.
 pub const SOLVED: f64 = 1e-9;
 
+/// Whether a trait this long is shorter than [`USE`] on a drawing `scale`
+/// across: nothing the user can type tells it from a point.
+pub fn is_collapsed(length: f64, scale: f64) -> bool {
+    length < scale * USE
+}
+
 /// How big a drawing is: the diagonal of the smallest box holding every live
 /// curve by its extent, construction curves included and the origin left out.
 /// One unit while nothing is drawn, or while what is drawn spans under a

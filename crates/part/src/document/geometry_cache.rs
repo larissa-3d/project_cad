@@ -84,7 +84,11 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// end is made one with its own centre goes, or the merge is refused while a
 /// length on either axis holds it, where its axes were laid anew and an area
 /// appeared (#1043).
-const REBUILT_BY: u32 = 31;
+/// 32: an angle whose side is shorter than the drawing's use precision keeps
+/// what it owes and is no longer turned, and one on a side longer than that is
+/// turned however small the drawing, where the line sat at a fixed millionth
+/// (#1060).
+const REBUILT_BY: u32 = 32;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {

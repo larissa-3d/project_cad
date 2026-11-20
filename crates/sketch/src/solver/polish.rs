@@ -84,11 +84,11 @@ impl Sketch {
     /// system, refused whole.
     fn newton_step(&mut self, millimeters_per_unit: f64, scale: f64) -> bool {
         let pinned = self.pinned_points();
-        let pulled = self.pulled_elsewhere(millimeters_per_unit, &pinned);
+        let pulled = self.pulled_elsewhere(millimeters_per_unit, scale, &pinned);
         let mut equations: Vec<Equation> = Vec::new();
         for index in 0..self.equation_count() {
             let written = equations.len();
-            self.any_equation(index, millimeters_per_unit, &pinned, &mut equations);
+            self.any_equation(index, millimeters_per_unit, scale, &pinned, &mut equations);
             let held_alone = self.held_alone(index, &pinned, &pulled);
             for equation in &mut equations[written..] {
                 if let Some(point) = held_alone {
