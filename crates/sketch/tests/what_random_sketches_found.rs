@@ -197,6 +197,17 @@
 //!   `a_trait_given_a_horizontal_value_is_not_turned_vertical`,
 //!   `half_an_ellipse_given_a_horizontal_value_across_its_axis_is_not_turned`,
 //!   `a_trait_given_a_value_along_an_axis_is_not_turned_square_to_a_side_against_it`
+//!
+//! Closes #1039.
+//! - The rectangle stays settled when another shape is attached at the origin,
+//!   and the freedom count is 3 — no test: held at the `cao_sketch` API,
+//!   with the count corrected to the chain's own 4, in
+//!   `crates/sketch/tests/shapes_meeting_at_the_origin.rs`
+//! - The cases above hold in #501's campaign — the issue's case and the
+//!   comment's two, their `ignore` taken off —
+//!   `a_green_rectangle_stays_green_when_a_chain_is_joined_at_the_origin`,
+//!   `a_green_square_stays_green_when_a_trait_is_joined_at_the_origin`,
+//!   `a_green_straight_chain_stays_green_when_a_free_trait_is_drawn_from_the_origin`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1344,7 +1355,6 @@ fn half_an_ellipse_s_centre_put_on_its_own_curve_is_refused() {
 }
 
 #[test]
-#[ignore = "#1039"]
 fn a_green_rectangle_stays_green_when_a_chain_is_joined_at_the_origin() {
     random_sketches::holds(&[
         Gesture::Rectangle {
@@ -1390,7 +1400,6 @@ fn a_green_rectangle_stays_green_when_a_chain_is_joined_at_the_origin() {
 }
 
 #[test]
-#[ignore = "#1039"]
 fn a_green_square_stays_green_when_a_trait_is_joined_at_the_origin() {
     random_sketches::holds(&[
         Gesture::Rectangle {
@@ -1436,7 +1445,6 @@ fn a_green_square_stays_green_when_a_trait_is_joined_at_the_origin() {
 }
 
 #[test]
-#[ignore = "#1039"]
 fn a_green_straight_chain_stays_green_when_a_free_trait_is_drawn_from_the_origin() {
     random_sketches::holds(&[
         Gesture::Chain {

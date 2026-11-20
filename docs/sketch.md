@@ -1438,6 +1438,15 @@ turn relative to one another, so each answers for its own way round. A single
 shared rule would leave both free to swing against each other, and neither
 would ever be frozen.
 
+**The origin joins no group.** It attaches each shape drawn from it, and that
+is all: two shapes meeting only there still turn about it independently, so
+each keeps its own way round. A rectangle settled from the origin stays settled
+when a chain is joined to it there, and a value retyped in one of them turns
+neither of them (#1039). A chain or an L whose vertex is the origin is two
+groups, each leg answering for its own way round: two legs along the axes are
+settled by their two lengths alone. Shapes also joined anywhere else than the
+origin stay one group.
+
 Each group keeps its way round **about the one point of it that stays for
 good** — the origin, a **Fixed**, later a corner of the part — and not about the
 origin alone: a shape nailed by one corner elsewhere swings about that corner,

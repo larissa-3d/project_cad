@@ -92,8 +92,9 @@ impl Sketch {
             return;
         }
         let groups = self.shapes_joined();
-        let apart = groups[near.0] != groups[far.0];
         let stays = self.points_that_stay();
+        let apart =
+            groups[near.0] != groups[far.0] && !self.hangs_on_what_stays(&groups, far, &stays);
         let drawn = self.shapes_now();
         for index in 0..self.points().len() {
             let point = PointId(index);
@@ -121,15 +122,27 @@ impl Sketch {
         }
     }
 
+    /// Whether the shape of `point` holds a point that stays, or is drawn from
+    /// one: such a shape cannot travel whole.
+    fn hangs_on_what_stays(&self, groups: &[usize], point: PointId, stays: &[bool]) -> bool {
+        let group = groups[point.0];
+        (0..groups.len()).any(|index| stays[index] && groups[index] == group)
+            || self.live_segments().any(|(_, segment)| {
+                let ends = [segment.start.0, segment.end.0];
+                ends.iter().any(|end| stays[*end]) && ends.iter().any(|end| groups[*end] == group)
+            })
+    }
+
     fn leaves_nothing_to_mend(&self, millimeters_per_unit: f64) -> bool {
         self.worst_error(millimeters_per_unit, self.drawing_size()) < SOLVED
     }
 
-    /// Which shape each point belongs to, as `point_groups` reads them, with
-    /// what an arc or an ellipse stands on joined to where it hangs from: an
-    /// arc off the end of a trait goes with that end.
+    /// Which shape each point belongs to, with what an arc or an ellipse
+    /// stands on joined to where it hangs from: an arc off the end of a trait
+    /// goes with that end. The origin joins none of them: a value retyped in
+    /// one shape drawn from it stretches no other.
     fn shapes_joined(&self) -> Vec<usize> {
-        let mut group = self.point_groups();
+        let mut group = self.groups_joined(false);
         fn root(group: &mut [usize], mut point: usize) -> usize {
             while group[point] != point {
                 group[point] = group[group[point]];
