@@ -529,3 +529,108 @@ fn half_an_ellipse_that_goes_leaves_a_trait_on_its_other_end_where_it_was() {
         }
     }
 }
+
+/// The other end and the top handle of [`half_an_ellipse`], when its right end
+/// is the one made one with its centre.
+fn the_other_end_and_the_top(sketch: &Sketch, curve: crate::EllipseId) -> [PointId; 2] {
+    let (_, _, _, [other, _]) = half_an_ellipse();
+    [
+        other,
+        sketch.segments()[sketch.ellipses()[curve.0].second.0].end,
+    ]
+}
+
+#[test]
+fn half_an_ellipse_that_goes_takes_with_it_the_points_nothing_names() {
+    let (_, _, centre, [_, end]) = half_an_ellipse();
+    for (kept, dropped) in [(end, centre), (centre, end)] {
+        let (mut sketch, curve, _, _) = half_an_ellipse();
+        let points = the_other_end_and_the_top(&sketch, curve);
+
+        sketch.join_points(kept, dropped, 1.0);
+
+        assert!(
+            sketch.is_erased_ellipse(curve),
+            "{dropped:?} onto {kept:?}: the curve is still drawn"
+        );
+        for point in points {
+            assert!(
+                sketch.is_erased_point(point),
+                "{dropped:?} onto {kept:?}: {point:?}, named by nothing, outlived the curve"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_rule_elsewhere_in_the_drawing_keeps_none_of_the_points_of_half_an_ellipse_that_goes() {
+    let (_, _, centre, [_, end]) = half_an_ellipse();
+    for (kept, dropped) in [(end, centre), (centre, end)] {
+        let (mut sketch, curve, _, _) = half_an_ellipse();
+        let points = the_other_end_and_the_top(&sketch, curve);
+        let elsewhere = sketch.add_point(DVec2::new(-40.0, -40.0));
+        sketch.add_constraint(Constraint::Fixed {
+            element: crate::Element::Point(elsewhere),
+        });
+
+        sketch.join_points(kept, dropped, 1.0);
+
+        assert!(
+            sketch.is_erased_ellipse(curve),
+            "{dropped:?} onto {kept:?}: the curve is still drawn"
+        );
+        for point in points {
+            assert!(
+                sketch.is_erased_point(point),
+                "{dropped:?} onto {kept:?}: {point:?}, named by nothing, outlived the curve"
+            );
+        }
+    }
+}
+
+#[test]
+fn half_an_ellipse_that_goes_leaves_its_other_end_a_rule_names_and_the_rule() {
+    let (_, _, centre, [other, end]) = half_an_ellipse();
+    for (kept, dropped) in [(end, centre), (centre, end)] {
+        let (mut sketch, curve, _, _) = half_an_ellipse();
+        let rule = Constraint::Fixed {
+            element: crate::Element::Point(other),
+        };
+        sketch.add_constraint(rule);
+
+        sketch.join_points(kept, dropped, 1.0);
+
+        assert!(
+            sketch.is_erased_ellipse(curve),
+            "{dropped:?} onto {kept:?}: the curve is still drawn"
+        );
+        assert!(
+            !sketch.is_erased_point(other) && sketch.point(other).distance(DVec2::ZERO) < 1e-9,
+            "{dropped:?} onto {kept:?}: the other end a rule fixes went with the curve, or moved"
+        );
+        assert!(
+            sketch.carries(rule),
+            "{dropped:?} onto {kept:?}: the rule on the other end went, the rules read {:?}",
+            sketch.constraints()
+        );
+    }
+}
+
+#[test]
+fn half_an_ellipse_whose_end_is_made_one_with_a_point_apart_is_still_drawn() {
+    let (mut sketch, curve, _, [other, end]) = half_an_ellipse();
+    let apart = sketch.add_point(DVec2::new(60.0, 30.0));
+
+    let joined = sketch.join_points(end, apart, 1.0);
+
+    assert!(joined, "the merge was refused");
+    assert!(
+        !sketch.is_erased_ellipse(curve),
+        "a half-ellipse whose end did not land on its centre was taken away"
+    );
+    assert_eq!(
+        sketch.ellipse_ends(curve),
+        Some((end, other)),
+        "the stretch drawn changed"
+    );
+}

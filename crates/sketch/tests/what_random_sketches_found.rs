@@ -250,11 +250,13 @@
 //!   axis, of its second, or points a trim held on it by rules; while a length
 //!   is typed on either of its axes the merge is refused, so that no value
 //!   typed vanishes. What the curve leaves behind stays as it was: its other
-//!   end, its top handle, a value measuring either, a trait on the other end.
-//!   The join is held at the sketch's level in
-//!   `crates/sketch/src/sketch/merging/tests.rs`, for either end and either
-//!   click order, beside a half-ellipse end still made one with a point apart
-//!   and the arc's two cases; the merge step at the part's in
+//!   end, its top handle, a value or a rule naming either, a trait on the
+//!   other end; a point of it nothing names goes with it, as erasing the curve
+//!   takes it, whatever rules hold elsewhere in the drawing. The join is held
+//!   at the sketch's level in `crates/sketch/src/sketch/merging/tests.rs`, for
+//!   either end and either click order, beside a half-ellipse end still made
+//!   one with a point apart, the curve still drawn, and the arc's two cases;
+//!   the merge step at the part's in
 //!   `crates/part/tests/two_points_made_one.rs` and
 //!   `crates/part/tests/an_impossible_rule_is_refused.rs`
 //! - The cases above hold in #501's campaign, its `ignore` taken off —
