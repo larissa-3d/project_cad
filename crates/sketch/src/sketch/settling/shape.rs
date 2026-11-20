@@ -119,6 +119,24 @@ impl Sketch {
                 .any(|(_, line)| line.start == point || line.end == point)
     }
 
+    /// The points a drag of an arc's or an ellipse's centre carries as one
+    /// block: the centre and the curve's own ends, the way a circle's rim
+    /// follows its centre. `None` for a point that is nobody's centre, and for
+    /// a curve holding an end pinned — fixed, or the origin — which a drag
+    /// never moves unless it grabbed it: the centre is then dragged alone and
+    /// the curve gives way around that end (#1057).
+    pub fn carried_with_centre(&self, point: PointId) -> Option<Vec<PointId>> {
+        let mut ends = self.arc_ends_around(point);
+        ends.extend(self.ellipse_ends_around(point));
+        let pinned = self.points_that_stay();
+        let held = |end: &PointId| pinned.get(end.0).copied().unwrap_or(false);
+        (!ends.is_empty() && !ends.iter().any(held)).then(|| {
+            let mut group = vec![point];
+            group.extend(ends);
+            group
+        })
+    }
+
     /// The centres of the curves a point lies on: an arc it is an end of, an
     /// ellipse whose axis ends on it or whose cut ends on it, and any curve a
     /// rule holds it on. They stay where they are while it is dragged.
