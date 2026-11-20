@@ -120,3 +120,6 @@ fn either_collapsed(a: DVec2, b: DVec2, scale: f64) -> bool {
     crate::precision::is_collapsed(a.length(), scale)
         || crate::precision::is_collapsed(b.length(), scale)
 }
+
+#[cfg(test)]
+mod tests;

@@ -93,3 +93,6 @@ impl Sketch {
         Some(equation)
     }
 }
+
+#[cfg(test)]
+mod tests;
