@@ -46,13 +46,17 @@
 //!   free unless its diameter is typed — and the side free —
 //!   `a_fixed_circle_stays_and_a_free_side_made_tangent_to_it_comes_whichever_was_clicked_first`;
 //!   the origin outranks what is fixed, so a side standing on it stays too —
-//!   `a_side_on_the_origin_stays_and_a_free_circle_made_tangent_to_it_comes_whichever_was_clicked_first`
+//!   `a_side_on_the_origin_stays_and_a_free_circle_made_tangent_to_it_comes_whichever_was_clicked_first`;
+//!   the slide the change rewrote still brings a line across to graze a
+//!   fillet clicked first —
+//!   `a_line_short_of_a_fillet_clicked_first_slides_across_to_graze_it_the_fillet_staying`
 //! - The cases above hold in #501's campaign — no test: not in this file;
 //!   `what_random_sketches_found.rs` holds the two drawings
 
 use cao_sketch::{
-    CircleId, Constraint, DimensionTarget, Element, LaidFrom, LengthOutcome, PointId, Rule,
-    RuleIntent, RulePick, SegmentId, Sketch, Support, Toward, WorkPlane, rule_intent,
+    CircleId, Constraint, CutCurve, CutShape, DimensionTarget, Element, LaidFrom, LengthOutcome,
+    PointId, Rule, RuleIntent, RulePick, SegmentId, Sketch, Support, Toward, WorkPlane,
+    rule_intent,
 };
 use glam::DVec2;
 
@@ -1026,4 +1030,62 @@ fn a_rule_between_a_fixed_side_and_a_fixed_circle_still_lands_since_nothing_free
             "{case}: the centre stands {off} off the side"
         );
     }
+}
+
+#[test]
+fn a_line_short_of_a_fillet_clicked_first_slides_across_to_graze_it_the_fillet_staying() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let corner = sketch.add_point(DVec2::new(10.0, 10.0));
+    let right = sketch.add_point(DVec2::new(60.0, 10.0));
+    let up = sketch.add_point(DVec2::new(10.0, 50.0));
+    let along = sketch.add_segment(corner, right);
+    let upward = sketch.add_segment(corner, up);
+    let group = sketch.fresh_cut_group();
+    let cut = sketch
+        .cut_corner(
+            along,
+            upward,
+            CutShape::Fillet { radius: 5.0 },
+            false,
+            group,
+        )
+        .expect("the corner takes a fillet");
+    let start = sketch.add_point(DVec2::new(-10.0, 28.0));
+    let end = sketch.add_point(DVec2::new(-2.0, 20.0));
+    let line = sketch.add_segment(start, end);
+    let picks = [
+        RulePick::CutCurve(cut),
+        RulePick::Element(Element::Segment(line)),
+    ];
+    let Some(RuleIntent::Constrain(tangent)) = rule_intent(Rule::Tangent, &picks, &sketch) else {
+        panic!("a fillet and a line make no tangency");
+    };
+    let fillet = [corner, right, up].map(|point| sketch.point(point));
+
+    let outcome = sketch.lay_rule(tangent, SCALE);
+
+    assert_eq!(outcome, LengthOutcome::Exact, "the tangency was refused");
+    let stayed = [corner, right, up]
+        .into_iter()
+        .zip(fillet)
+        .map(|(point, was)| sketch.point(point).distance(was))
+        .fold(0.0, f64::max);
+    assert!(stayed < CLOSE, "the fillet clicked first moved by {stayed}");
+    let Some(CutCurve::Arc(arc)) = sketch.drawn_cut(cut).map(|drawn| drawn.curve) else {
+        panic!("the fillet is no longer drawn");
+    };
+    let (from, to) = sketch.endpoints(line);
+    let span = to - from;
+    let across = span.perp_dot(arc.centre - from).abs() / span.length();
+    let gap = (across - arc.centre.distance(arc.start)).abs();
+    assert!(
+        gap < SETTLED,
+        "the line stands {gap} off grazing the fillet"
+    );
+    let reach = (arc.centre - from).dot(span) / span.length_squared();
+    let past = (reach - reach.clamp(0.0, 1.0)).abs() * span.length();
+    assert!(
+        past < SETTLED,
+        "the line grazes the fillet {past} past its end"
+    );
 }
