@@ -3,7 +3,7 @@
 
 use cao_part::Operation;
 use cao_prefs::Modifier;
-use cao_sketch::{Grip, PointId, Pulled, Selection, Sketch, SnapSettings};
+use cao_sketch::{Grip, Pulled, Selection, Sketch, SnapSettings};
 use glam::DVec2;
 
 use crate::screens::SketchContext;
@@ -150,7 +150,7 @@ pub(super) fn drag_point(
         let held_off_by = grip
             .filter(|grip| grip.from_afar)
             .map(|grip| sketch.point(grip.point) - gesture.raw_pressed);
-        let arc_group = dragged_point.and_then(|point| centre_group(sketch, point));
+        let arc_group = dragged_point.and_then(|point| sketch.carried_with_centre(point));
         let carried = arc_group.is_some();
         if let Some(state) = context.editor.select_state() {
             // Read where the gesture starts and kept for the whole of it, as
@@ -371,16 +371,5 @@ pub(super) fn reshaped(before: &Sketch, after: &Sketch) -> bool {
             .any(|(one, other)| one.radius != other.radius)
 }
 
-/// The points a drag on `point` would carry along, when it is the centre of
-/// an arc or of an ellipse: the centre and the curve's own points move as one,
-/// the way a circle's rim follows a dragged centre. `None` for a point that is
-/// nobody's centre, so a plain drag of it stays a plain drag.
-fn centre_group(sketch: &Sketch, point: PointId) -> Option<Vec<PointId>> {
-    let mut ends = sketch.arc_ends_around(point);
-    ends.extend(sketch.ellipse_ends_around(point));
-    (!ends.is_empty()).then(|| {
-        let mut group = vec![point];
-        group.extend(ends);
-        group
-    })
-}
+#[cfg(test)]
+mod tests;

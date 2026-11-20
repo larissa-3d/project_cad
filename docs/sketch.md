@@ -1150,6 +1150,10 @@ From what never gives to what gives first:
    and angle given — travels whole with the hand, as a selection moved does
    (#473). Not when it holds a point pinned — fixed, or the origin — that the
    hand did not grab: then the point stops short, and nothing moves (#1041).
+   An arc's or an ellipse's centre dragged carries each curve about it whole,
+   save one holding an end pinned — fixed, or the origin: that curve gives way
+   around its end instead, and a centre left carrying nothing is dragged as a
+   point (#1057).
 6. **Ordinary points.** Among them, a length no value gives yields before an
    angle no value gives: the shape stretches before it turns. A value typed
    leaves the point nearest the origin where it is and moves the other, and
@@ -1268,6 +1272,9 @@ when none decides it.
 | Drag a point | An end of a trait of typed length made parallel to a rectangle | The trait travels whole, still parallel and still its length | Same (#473); nothing moved |
 | Drag a corner | A rectangle away from the origin, both sizes typed, one side made horizontal | It travels whole | Same (#473); nothing moved, by a test that said so |
 | Drag a point | An end of a trait whose length is typed and whose direction a rule holds, its other end fixed | Nothing moves: the point stops short | Same (#1041); the trait travelled whole, its fixed end with it |
+| Drag a centre | An arc or an ellipse, nothing pinned | The curve travels whole with its centre | Same |
+| Drag a centre | An arc, one end fixed; an ellipse, one end of an axis fixed | The centre follows the hand; the curve gives way around the fixed end. A centre that also ends a trait slides along that trait's line, as rank 6 says; brought onto the fixed end, the arc stopping short rather than shrinking to nothing is #1065 | Same (#1057); the curve travelled whole, its fixed end with it |
+| Drag a centre | Two arcs about one centre, one of them with an end fixed | The free arc travels whole with the centre; the other gives way around its fixed end | Same (#1057) |
 | Drag a green point | — | Nothing: it does not answer the hand | Same |
 | Drag a fixed point | A trait, one end fixed | The fixed end follows the hand, and is fixed there | Follows, read off `settle_around`; not yet tried in the application |
 | Pull a side, slide a curve | — | As "Pulling a side" and "Sliding a curve" say | Same (#443) |

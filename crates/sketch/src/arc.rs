@@ -108,7 +108,7 @@ impl Sketch {
     /// The two ends of every arc centred on `point`, which are meant to move
     /// with it the way a circle's rim follows its centre: dragging the centre
     /// alone would otherwise leave the ends behind and stretch the curve.
-    pub fn arc_ends_around(&self, point: PointId) -> Vec<PointId> {
+    pub(crate) fn arc_ends_around(&self, point: PointId) -> Vec<PointId> {
         self.live_arcs()
             .filter(|(_, arc)| arc.center == point)
             .flat_map(|(_, arc)| [arc.start, arc.end])
