@@ -310,6 +310,14 @@ fn meetings(first: &Curve, second: &Curve) -> Vec<DVec2> {
 }
 
 fn straights_meet(from: DVec2, to: DVec2, start: DVec2, end: DVec2) -> Vec<DVec2> {
+    let beside = |at: DVec2, from: DVec2, to: DVec2| {
+        (at - from).perp_dot(to - from).abs() <= one_place(at) * from.distance(to)
+    };
+    if beside(start, from, to) && beside(end, from, to)
+        || beside(from, start, end) && beside(to, start, end)
+    {
+        return vec![from, to, start, end];
+    }
     let (one, other) = (to - from, end - start);
     let across = one.perp_dot(other);
     if across.abs() <= 1e-12 * one.length() * other.length() {

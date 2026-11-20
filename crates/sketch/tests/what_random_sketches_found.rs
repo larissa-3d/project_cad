@@ -261,6 +261,17 @@
 //!   `crates/part/tests/an_impossible_rule_is_refused.rs`
 //! - The cases above hold in #501's campaign, its `ignore` taken off —
 //!   `half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new`
+//!
+//! Closes #1070.
+//! - two traits lying along each other within one place meet at the ends of
+//!   each that lie on the other — no test: not in this file;
+//!   `what_closes_around_a_place.rs` holds the reckoning to it directly
+//! - seeds 31003453 and 30000037, mode `shares` 0,80,0, hold as the campaign
+//!   shrank them —
+//!   `a_chain_folded_onto_itself_by_collinear_closes_no_area`,
+//!   `two_crossed_rectangles_under_a_parallel_and_a_collinear_keep_their_areas`
+//! - a crossing between two traits only nearly parallel is still found once —
+//!   no test: not in this file; `what_closes_around_a_place.rs` holds it
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1947,6 +1958,50 @@ fn an_arc_whose_two_ends_are_brought_onto_one_place_keeps_the_rules_of_its_areas
         Gesture::Rule {
             rule: cao_sketch::Rule::Coincident,
             clicks: vec![[7.131839854487193, -2.2632899575621437], [0.0, 0.0]],
+        },
+    ]);
+}
+
+#[test]
+fn a_chain_folded_onto_itself_by_collinear_closes_no_area() {
+    random_sketches::holds(&[
+        Gesture::Chain {
+            through: vec![[10.0, 7.0], [12.0, 7.0], [0.0, 0.0], [5.0, -5.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Collinear,
+            clicks: vec![[2.0, -2.0], [11.0, 7.0]],
+        },
+    ]);
+}
+
+#[test]
+fn two_crossed_rectangles_under_a_parallel_and_a_collinear_keep_their_areas() {
+    random_sketches::holds(&[
+        Gesture::Chain {
+            through: vec![[-3.0, 5.0], [1.0, 11.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [40.0, 15.0],
+            opposite: [67.5, -7.5],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [45.0, -7.5],
+            opposite: [60.0, 22.5],
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[0.0, -49.0], [40.0, 4.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Collinear,
+            clicks: vec![[52.5, 22.5], [45.0, 7.5]],
         },
     ]);
 }

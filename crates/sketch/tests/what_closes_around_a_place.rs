@@ -19,6 +19,24 @@
 //!   a touch and cut once, is held here —
 //!   `a_side_through_an_ellipse_s_centre_crosses_it_twice`,
 //!   `a_side_through_a_turned_ellipse_s_centre_crosses_it_twice`
+//!
+//! Closes #1070.
+//! - two traits lying along each other within one place meet at the ends of
+//!   each that lie on the other, as they do when they lie along each other
+//!   exactly — the chain seed 31003453 settles into, its three traits a few
+//!   1e-10 apart, closes nothing, as it does laid flat —
+//!   `a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_within_one_place_of_each_other`,
+//!   `a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_along_each_other_exactly`
+//! - seeds 31003453 and 30000037 hold — no test: not in this file;
+//!   `what_random_sketches_found.rs` holds the two shrunk cases
+//! - the reckoning's own tests in `every_sketch_keeps_its_areas.rs` and
+//!   `curves_lying_along_each_other.rs` do not break — no test: they are those
+//!   files' own, run in the same gate. The issue also names
+//!   `two_shapes_lying_along_each_other`, which no test or file of the
+//!   repository is called
+//! - a crossing between two traits only nearly parallel, which do not lie
+//!   along each other, is still found once —
+//!   `two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross`
 
 // The drawing, the rules and the campaign are the campaign file's; this one
 // only holds the reckoning to drawings whose answer is known.
@@ -427,6 +445,67 @@ fn a_quarter_turn_never_reads_a_miss_otherwise() {
     let enclosure = Enclosure::of(&curves);
     assert!(enclosure.may_read_otherwise(|at| at + DVec2::new(64.0, -32.0)));
     assert!(!enclosure.may_read_otherwise(|at| carried(Relaying::Turned(90.0), at)));
+}
+
+fn a_chain_folded_back_along_its_first_trait(lift: f64) -> Vec<Curve> {
+    vec![
+        straight(
+            [2.2297911684811087, 3.757361582676507e-10 * lift],
+            [4.196607412878203, 6.754318231874565e-10 * lift],
+        ),
+        straight(
+            [4.196607412878203, 6.754318231874565e-10 * lift],
+            [0.0, 0.0],
+        ),
+        straight(
+            [0.0, 0.0],
+            [11.21127180268251, 1.8355107801149555e-9 * lift],
+        ),
+    ]
+}
+
+#[test]
+fn a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_along_each_other_exactly() {
+    assert_eq!(
+        Enclosure::of(&a_chain_folded_back_along_its_first_trait(0.0)).areas_closed(),
+        Some(0)
+    );
+}
+
+#[test]
+fn a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_within_one_place_of_each_other()
+ {
+    assert_eq!(
+        Enclosure::of(&a_chain_folded_back_along_its_first_trait(1.0)).areas_closed(),
+        Some(0),
+        "traits a few 1e-10 apart, inside one place, enclose no surface between them"
+    );
+}
+
+#[test]
+fn two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross() {
+    let lean = 5.0 * 1e-4f64.tan();
+    let bow_tie = [
+        straight([-5.0, 0.0], [5.0, 0.0]),
+        straight([-5.0, -lean], [5.0, lean]),
+        straight([-5.0, 0.0], [-5.0, -lean]),
+        straight([5.0, 0.0], [5.0, lean]),
+    ];
+    let enclosure = Enclosure::of(&bow_tie);
+    assert_eq!(
+        enclosure.areas_closed(),
+        Some(2),
+        "the two halves of a bow tie"
+    );
+    assert_eq!(
+        enclosure.encloses(DVec2::new(-2.5, -lean / 4.0)),
+        Some(true)
+    );
+    assert_eq!(enclosure.encloses(DVec2::new(2.5, lean / 4.0)), Some(true));
+    assert_eq!(
+        enclosure.encloses(DVec2::new(-2.5, lean / 4.0)),
+        Some(false)
+    );
 }
 
 #[test]
