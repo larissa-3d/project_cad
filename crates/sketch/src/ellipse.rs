@@ -273,6 +273,12 @@ impl Sketch {
     /// nothing else stands on: an axis cannot outlive the curve it measures,
     /// and the curve cannot stand without its axes.
     pub(crate) fn erase_ellipse(&mut self, id: EllipseId) {
+        self.erase_ellipse_leaving(id, None);
+    }
+
+    /// Takes an ellipse away as [`Self::erase_ellipse`] does, leaving `left`
+    /// standing even when nothing else stands on it.
+    pub(crate) fn erase_ellipse_leaving(&mut self, id: EllipseId, left: Option<PointId>) {
         if self.is_erased_ellipse(id) {
             return;
         }
@@ -286,7 +292,10 @@ impl Sketch {
             self.erase(Element::Segment(ellipse.second));
         }
         for point in points {
-            if !self.is_erased_point(point) && !self.anything_stands_on(point) {
+            if Some(point) != left
+                && !self.is_erased_point(point)
+                && !self.anything_stands_on(point)
+            {
                 self.erase(Element::Point(point));
             }
         }

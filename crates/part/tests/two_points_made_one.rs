@@ -57,6 +57,16 @@
 //! the origin, onto a rule tying it to a point held still — a turn read to the
 //! first order as one that changes nothing. That is held beside the solver, in
 //! `an_arc_tied_to_a_held_point_is_not_turned_back_off_the_rule_that_ties_it`.
+//!
+//! Closes #1043.
+//! - The merge is refused or the half-ellipse goes; no area appears — as for an
+//!   arc: with no value holding its size, the issue's case, it goes, for either
+//!   end and either click order —
+//!   `half_an_ellipse_whose_end_is_made_one_with_its_own_centre_goes`; refused
+//!   while its axis length is typed, in `an_impossible_rule_is_refused.rs`
+//! - The cases above hold in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the drawing is held to its rules there, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -441,6 +451,58 @@ fn an_arc_end_made_one_with_its_own_centre_takes_the_arc() {
         !sketch.is_erased_point(kept),
         "the centre went with the arc"
     );
+}
+
+#[test]
+fn half_an_ellipse_whose_end_is_made_one_with_its_own_centre_goes() {
+    for end_first in [true, false] {
+        for which in [0, 1] {
+            let mut document = blank();
+            let centre = PointRef::New(CENTRE);
+            let (left, right) = (
+                PointRef::New(CENTRE - DVec2::new(20.0, 0.0)),
+                PointRef::New(CENTRE + DVec2::new(20.0, 0.0)),
+            );
+            document.apply(Operation::AddEllipse {
+                sketch: 0,
+                center: centre.clone(),
+                first: [left.clone(), right.clone()],
+                second: [centre, PointRef::New(CENTRE + DVec2::new(0.0, 15.0))],
+                construction: false,
+                drawn: Some([right, left]),
+            });
+            let sketch = &document.sketches()[0];
+            let centre = sketch.ellipses()[0].center;
+            let (from, to) = sketch
+                .ellipse_ends(EllipseId(0))
+                .expect("half an ellipse has two ends");
+            let end = [from, to][which];
+            let (first, second) = match end_first {
+                true => (end, centre),
+                false => (centre, end),
+            };
+
+            let (kept, outcome) = made_to_coincide(&mut document, first, second);
+
+            let sketch = &document.sketches()[0];
+            assert_eq!(
+                outcome, None,
+                "the end clicked first: {end_first}, and the merge was refused"
+            );
+            assert!(
+                sketch.is_erased_ellipse(EllipseId(0)),
+                "the end clicked first: {end_first}, and a half-ellipse of no width is still drawn"
+            );
+            assert!(
+                sketch.regions().is_empty(),
+                "the end clicked first: {end_first}, and an area appeared"
+            );
+            assert!(
+                !sketch.is_erased_point(kept),
+                "the end clicked first: {end_first}, and the merged point went with the curve"
+            );
+        }
+    }
 }
 
 #[test]

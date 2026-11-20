@@ -760,10 +760,14 @@ What the merge leaves with no length goes:
   nothing left to measure, and goes with it. Its centre and the merged point
   stay, as points;
 - an arc whose end becomes its own centre, when no value holds its radius;
-- an arc of ellipse whose two ends become one point.
+- an arc of ellipse whose two ends become one point;
+- half an ellipse, or any arc of ellipse, whose end becomes its own centre,
+  when no length typed on its first axis holds its size (#1043). The merged
+  point stays.
 
 A merge that leaves a rule or a value no way to hold — an arc end made one with
-its own centre while its radius is typed, a point at the middle of a trait made
+its own centre while its radius is typed, half an ellipse's end made one with
+its own centre while a length is typed on its first axis, a point at the middle of a trait made
 one with an end of it, the contact point of a tangency made one with the centre
 of its curve — is **refused** like any other rule (#467): nothing is
 recorded, and the message bar reads « Règle impossible : elle contredit le

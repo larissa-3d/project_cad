@@ -225,3 +225,112 @@ fn a_distance_elsewhere_in_the_drawing_does_not_keep_two_points_apart() {
 
     joined(sketch, first, second);
 }
+
+/// Half an ellipse from (0, 0) round to (40, 0) about (20, 0), rising to
+/// (20, 15): the curve, its centre and its two ends.
+fn half_an_ellipse() -> (Sketch, crate::EllipseId, PointId, [PointId; 2]) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let centre = sketch.add_point(DVec2::new(20.0, 0.0));
+    let ends = [0.0, 40.0].map(|x| sketch.add_point(DVec2::new(x, 0.0)));
+    let top = sketch.add_point(DVec2::new(20.0, 15.0));
+    let curve = sketch.add_ellipse(centre, ends, [centre, top]);
+    sketch.draw_the_stretch(curve, ends[1], ends[0]);
+    (sketch, curve, centre, ends)
+}
+
+/// Each end of the half-ellipse with its centre, the end clicked first and then
+/// the centre: the point kept and the point dropped.
+fn each_end_and_its_centre_both_ways(
+    centre: PointId,
+    ends: [PointId; 2],
+) -> Vec<(PointId, PointId)> {
+    ends.into_iter()
+        .flat_map(|end| [(end, centre), (centre, end)])
+        .collect()
+}
+
+#[test]
+fn half_an_ellipse_whose_end_is_made_one_with_its_centre_goes_while_no_value_holds_its_size() {
+    let (_, _, centre, ends) = half_an_ellipse();
+    for (kept, dropped) in each_end_and_its_centre_both_ways(centre, ends) {
+        let (mut sketch, curve, _, _) = half_an_ellipse();
+
+        let joined = sketch.join_points(kept, dropped, 1.0);
+
+        assert!(joined, "{dropped:?} onto {kept:?}: the merge was refused");
+        assert!(
+            sketch.is_erased_ellipse(curve),
+            "{dropped:?} onto {kept:?}: a half-ellipse of no width is still drawn"
+        );
+        assert!(
+            sketch.regions().is_empty(),
+            "{dropped:?} onto {kept:?}: an area appeared"
+        );
+        assert!(
+            !sketch.is_erased_point(kept) && sketch.is_erased_point(dropped),
+            "{dropped:?} onto {kept:?}: the merged point went with the curve, or both still stand"
+        );
+    }
+}
+
+#[test]
+fn half_an_ellipse_s_end_is_not_made_one_with_its_centre_while_its_axis_length_is_typed() {
+    let (_, _, centre, ends) = half_an_ellipse();
+    for (kept, dropped) in each_end_and_its_centre_both_ways(centre, ends) {
+        let (mut sketch, curve, _, _) = half_an_ellipse();
+        let axis = sketch.ellipses()[curve.0].first;
+        typed(&mut sketch, DimensionTarget::Length(axis), 40.0);
+        let mut tried = sketch.clone();
+
+        joined_refused_with_the_drawing_unchanged(sketch.clone(), kept, dropped);
+        tried.join_points(kept, dropped, 1.0);
+
+        assert!(
+            !tried.is_erased_ellipse(curve)
+                && tried.ellipse_ends(curve) == sketch.ellipse_ends(curve),
+            "{dropped:?} onto {kept:?}: the curve went or its stretch changed"
+        );
+        assert_eq!(
+            tried.regions().len(),
+            sketch.regions().len(),
+            "{dropped:?} onto {kept:?}: an area appeared"
+        );
+    }
+}
+
+#[test]
+fn half_an_ellipse_s_end_is_still_made_one_with_a_point_apart() {
+    let (mut sketch, _, _, ends) = half_an_ellipse();
+    let apart = sketch.add_point(DVec2::new(60.0, 30.0));
+
+    joined(sketch, ends[0], apart);
+}
+
+#[test]
+fn an_arc_end_is_not_made_one_with_its_centre_while_its_radius_is_typed() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let centre = sketch.add_point(DVec2::new(20.0, 0.0));
+    let start = sketch.add_point(DVec2::new(20.0, -5.0));
+    let end = sketch.add_point(DVec2::new(25.0, 0.0));
+    let arc = sketch.add_arc(centre, start, end);
+    typed(&mut sketch, DimensionTarget::ArcRadius(arc), 5.0);
+
+    joined_refused_with_the_drawing_unchanged(sketch, end, centre);
+}
+
+#[test]
+fn an_arc_end_made_one_with_its_centre_takes_the_arc_while_no_value_holds_its_radius() {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let centre = sketch.add_point(DVec2::new(20.0, 0.0));
+    let start = sketch.add_point(DVec2::new(20.0, -5.0));
+    let end = sketch.add_point(DVec2::new(25.0, 0.0));
+    let arc = sketch.add_arc(centre, start, end);
+
+    let joined = sketch.join_points(centre, end, 1.0);
+
+    assert!(joined, "the merge was refused");
+    assert!(
+        sketch.is_erased_arc(arc),
+        "an arc of no radius is still drawn"
+    );
+}
