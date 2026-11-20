@@ -120,17 +120,27 @@ impl Sketch {
     }
 
     /// The points a drag of an arc's or an ellipse's centre carries as one
-    /// block: the centre and the curve's own ends, the way a circle's rim
-    /// follows its centre. `None` for a point that is nobody's centre, and for
-    /// a curve holding an end pinned — fixed, or the origin — which a drag
-    /// never moves unless it grabbed it: the centre is then dragged alone and
-    /// the curve gives way around that end (#1057).
+    /// block: the centre and the ends of each curve about it, the way a
+    /// circle's rim follows its centre. A curve holding an end pinned — fixed,
+    /// or the origin — is left out, since a drag never moves a pinned point it
+    /// did not grab: it gives way around that end instead (#1057). `None` when
+    /// that leaves the centre carrying nothing, so it is dragged alone.
     pub fn carried_with_centre(&self, point: PointId) -> Option<Vec<PointId>> {
-        let mut ends = self.arc_ends_around(point);
-        ends.extend(self.ellipse_ends_around(point));
         let pinned = self.points_that_stay();
-        let held = |end: &PointId| pinned.get(end.0).copied().unwrap_or(false);
-        (!ends.is_empty() && !ends.iter().any(held)).then(|| {
+        let free = |ends: &&[PointId]| {
+            !ends
+                .iter()
+                .any(|end| pinned.get(end.0).copied().unwrap_or(false))
+        };
+        let (arcs, ellipses) = (self.arc_ends_around(point), self.ellipse_ends_around(point));
+        let ends: Vec<PointId> = arcs
+            .chunks(2)
+            .chain(ellipses.chunks(4))
+            .filter(free)
+            .flatten()
+            .copied()
+            .collect();
+        (!ends.is_empty()).then(|| {
             let mut group = vec![point];
             group.extend(ends);
             group

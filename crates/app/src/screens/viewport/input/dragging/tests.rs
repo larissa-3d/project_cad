@@ -5,23 +5,29 @@
 //! - Dragging an arc's centre leaves a fixed end where it stood; the same for
 //!   an ellipse's centre and a fixed end of its axes —
 //!   `an_arc_s_centre_dragged_leaves_its_fixed_end_where_it_stood`,
-//!   `an_ellipse_s_centre_dragged_leaves_the_fixed_end_of_its_axis_where_it_stood`
+//!   `an_ellipse_s_centre_dragged_leaves_a_fixed_end_of_its_first_axis_where_it_stood`,
+//!   `an_ellipse_s_centre_dragged_leaves_a_fixed_end_of_its_second_axis_where_it_stood`
 //! - An arc with nothing fixed still travels whole with its centre —
 //!   `an_arc_with_nothing_fixed_still_travels_whole_with_its_centre`
+//! - A centre two arcs share, one holding a fixed end, still carries the other
+//!   arc whole (surfaced by review) —
+//!   `a_centre_shared_with_an_arc_holding_a_fixed_end_still_carries_the_free_arc_whole`
+//! - A centre that also ends a trait to the fixed end is dragged as an ordinary
+//!   point, and is shown where it is dropped (surfaced by review) —
+//!   `a_centre_ending_a_trait_to_its_fixed_end_leaves_that_end_and_drops_where_it_is_shown`
 
-use cao_part::PartDocument;
 use cao_part::history::PointRef;
-use cao_sketch::{Constraint, Element, ToolState, WorkPlane};
+use cao_part::{Operation, PartDocument};
+use cao_sketch::{Constraint, Element, EllipseId, PointId, Sketch, ToolState, WorkPlane};
 use chrono::Utc;
 use glam::DVec2;
 
 use crate::lang::Catalogue;
+use crate::screens::SketchContext;
 use crate::screens::extrusion::ExtrusionState;
 use crate::screens::sketch::{SketchEditor, SketchPhase, Tool};
 use crate::screens::viewport::input::handle_sketch_input;
 use crate::screens::viewport::{ViewScale, ViewportState, to_ndc};
-
-use super::*;
 
 const SCREEN: egui::Rect = egui::Rect {
     min: egui::Pos2::ZERO,
@@ -232,81 +238,140 @@ fn seen(shown: &Option<Sketch>, dropped: &Sketch) -> Vec<(&'static str, Sketch)>
     seen
 }
 
+impl FaceOn {
+    /// A quarter of a circle `radius` long about the arc's centre, laid on
+    /// `centre`; its centre, start and end.
+    fn add_an_arc(&mut self, centre: PointId, radius: f64) -> [PointId; 3] {
+        let place = self.sketch().point(centre);
+        let (start, end) = (
+            place + DVec2::new(radius, 0.0),
+            place + DVec2::new(0.0, radius),
+        );
+        self.document.apply(Operation::AddArc {
+            sketch: 0,
+            center: PointRef::Existing(centre),
+            start: PointRef::New(start),
+            end: PointRef::New(end),
+            construction: false,
+        });
+        [centre, self.point_at(start), self.point_at(end)]
+    }
+
+    /// An ellipse about `THE_CENTRE`, its first axis level and twice as long
+    /// as its second; its centre and the ends of its axes, first then second.
+    fn with_an_ellipse() -> (Self, [PointId; 5]) {
+        let mut bench = Self::empty();
+        let (centre, reach) = bench.centre_and_reach();
+        let (along, across) = (DVec2::new(reach, 0.0), DVec2::new(0.0, reach * 0.5));
+        bench.document.apply(Operation::AddEllipse {
+            sketch: 0,
+            center: PointRef::New(centre),
+            first: [PointRef::New(centre - along), PointRef::New(centre + along)],
+            second: [
+                PointRef::New(centre - across),
+                PointRef::New(centre + across),
+            ],
+            construction: false,
+            drawn: None,
+        });
+        let points = bench.sketch().ellipse_points(EllipseId(0));
+        (bench, points)
+    }
+}
+
+fn assert_stands(sketch: &Sketch, point: PointId, stood: DVec2, what: &str) {
+    assert!(
+        sketch.point(point).distance(stood) < AFTER_THE_SOLVER,
+        "{what} stands at {}, not where it stood, {stood}",
+        sketch.point(point)
+    );
+}
+
+fn assert_round(sketch: &Sketch, [centre, start, end]: [PointId; 3], what: &str) {
+    let (to_start, to_end) = (
+        sketch.point(centre).distance(sketch.point(start)),
+        sketch.point(centre).distance(sketch.point(end)),
+    );
+    assert!(
+        (to_start - to_end).abs() < AFTER_THE_SOLVER,
+        "{what} still runs from its centre through both its ends: \
+         {to_start} to the start, {to_end} to the end"
+    );
+}
+
+fn assert_a_true_ellipse(sketch: &Sketch, points: [PointId; 5], when: &str) {
+    let [centre, first_start, first_end, second_start, second_end] =
+        points.map(|point| sketch.point(point));
+    for (axis, (one, other)) in [
+        ("first", (first_start, first_end)),
+        ("second", (second_start, second_end)),
+    ] {
+        assert!(
+            ((one + other) / 2.0).distance(centre) < AFTER_THE_SOLVER,
+            "{when}: the centre {centre} is still the middle of the {axis} axis, \
+             from {one} to {other}"
+        );
+    }
+    let (first, second) = (
+        (first_end - first_start).normalize(),
+        (second_end - second_start).normalize(),
+    );
+    assert!(
+        first.dot(second).abs() < AFTER_THE_SOLVER,
+        "{when}: the two axes still stand square: {first} against {second}"
+    );
+}
+
+/// The centre lands where the hand let it go, give or take what the magnets
+/// take of the cursor.
+fn assert_at_the_hand(travelled: DVec2, hand: DVec2, when: &str) {
+    assert!(
+        travelled.distance(hand) < hand.length() * 0.05,
+        "{when}: the centre follows the hand: it travelled {travelled}, the hand {hand}"
+    );
+}
+
 #[test]
 fn an_arc_s_centre_dragged_leaves_its_fixed_end_where_it_stood() {
-    let (mut bench, [centre, start, end]) = FaceOn::with_an_arc();
+    let (mut bench, arc) = FaceOn::with_an_arc();
+    let [centre, start, _] = arc;
     bench.fix(start);
-    let stood = bench.sketch().point(start);
+    let (stood, was) = (bench.sketch().point(start), bench.sketch().point(centre));
+    let hand = bench.the_hand_on_the_plane();
 
     let shown = bench.drag_the_centre();
 
     for (when, sketch) in seen(&shown, bench.sketch()) {
-        assert!(
-            sketch.point(start).distance(stood) < AFTER_THE_SOLVER,
-            "{when}: the fixed end stands at {}, not where it stood, {stood}",
-            sketch.point(start)
-        );
-        let (to_start, to_end) = (
-            sketch.point(centre).distance(sketch.point(start)),
-            sketch.point(centre).distance(sketch.point(end)),
-        );
-        assert!(
-            (to_start - to_end).abs() < AFTER_THE_SOLVER,
-            "{when}: the arc still runs from its centre through both its ends: \
-             {to_start} to the start, {to_end} to the end"
-        );
+        assert_stands(&sketch, start, stood, &format!("{when}: the fixed end"));
+        assert_round(&sketch, arc, &format!("{when}: the arc"));
+        assert_at_the_hand(sketch.point(centre) - was, hand, when);
+    }
+}
+
+fn an_ellipse_s_centre_dragged_leaves_a_fixed_end_where_it_stood(fixed_at: usize) {
+    let (mut bench, points) = FaceOn::with_an_ellipse();
+    let fixed = points[fixed_at];
+    bench.fix(fixed);
+    let (stood, was) = (bench.sketch().point(fixed), bench.sketch().point(points[0]));
+    let hand = bench.the_hand_on_the_plane();
+
+    let shown = bench.drag_the_centre();
+
+    for (when, sketch) in seen(&shown, bench.sketch()) {
+        assert_stands(&sketch, fixed, stood, &format!("{when}: the fixed end"));
+        assert_a_true_ellipse(&sketch, points, when);
+        assert_at_the_hand(sketch.point(points[0]) - was, hand, when);
     }
 }
 
 #[test]
-fn an_ellipse_s_centre_dragged_leaves_the_fixed_end_of_its_axis_where_it_stood() {
-    let mut bench = FaceOn::empty();
-    let (centre, reach) = bench.centre_and_reach();
-    let (along, across) = (DVec2::new(reach, 0.0), DVec2::new(0.0, reach * 0.5));
-    bench.document.apply(Operation::AddEllipse {
-        sketch: 0,
-        center: PointRef::New(centre),
-        first: [PointRef::New(centre - along), PointRef::New(centre + along)],
-        second: [
-            PointRef::New(centre - across),
-            PointRef::New(centre + across),
-        ],
-        construction: false,
-        drawn: None,
-    });
-    let points = bench.sketch().ellipse_points(cao_sketch::EllipseId(0));
-    let fixed = points[2];
-    bench.fix(fixed);
-    let stood = bench.sketch().point(fixed);
+fn an_ellipse_s_centre_dragged_leaves_a_fixed_end_of_its_first_axis_where_it_stood() {
+    an_ellipse_s_centre_dragged_leaves_a_fixed_end_where_it_stood(2);
+}
 
-    let shown = bench.drag_the_centre();
-
-    for (when, sketch) in seen(&shown, bench.sketch()) {
-        let [centre, first_start, first_end, second_start, second_end] =
-            points.map(|point| sketch.point(point));
-        assert!(
-            first_end.distance(stood) < AFTER_THE_SOLVER,
-            "{when}: the fixed end of the axis stands at {first_end}, not where it stood, {stood}"
-        );
-        for (axis, (one, other)) in [
-            ("first", (first_start, first_end)),
-            ("second", (second_start, second_end)),
-        ] {
-            assert!(
-                ((one + other) / 2.0).distance(centre) < AFTER_THE_SOLVER,
-                "{when}: the centre {centre} is still the middle of the {axis} axis, \
-                 from {one} to {other}"
-            );
-        }
-        let (first, second) = (
-            (first_end - first_start).normalize(),
-            (second_end - second_start).normalize(),
-        );
-        assert!(
-            first.dot(second).abs() < AFTER_THE_SOLVER,
-            "{when}: the two axes still stand square: {first} against {second}"
-        );
-    }
+#[test]
+fn an_ellipse_s_centre_dragged_leaves_a_fixed_end_of_its_second_axis_where_it_stood() {
+    an_ellipse_s_centre_dragged_leaves_a_fixed_end_where_it_stood(4);
 }
 
 #[test]
@@ -318,10 +383,7 @@ fn an_arc_with_nothing_fixed_still_travels_whole_with_its_centre() {
     bench.drag_the_centre();
 
     let travelled = bench.sketch().point(points[0]) - before[0];
-    assert!(
-        travelled.distance(hand) < hand.length() * 0.05,
-        "the centre follows the hand: it travelled {travelled}, the hand {hand}"
-    );
+    assert_at_the_hand(travelled, hand, "dropped");
     for (what, (point, was)) in ["the start", "the end"]
         .into_iter()
         .zip(points[1..].iter().zip(&before[1..]))
@@ -330,6 +392,80 @@ fn an_arc_with_nothing_fixed_still_travels_whole_with_its_centre() {
             (bench.sketch().point(*point) - *was).distance(travelled) < AFTER_THE_SOLVER,
             "{what} travels as its centre did, by {travelled}: it travelled {}",
             bench.sketch().point(*point) - *was
+        );
+    }
+}
+
+#[test]
+fn a_centre_shared_with_an_arc_holding_a_fixed_end_still_carries_the_free_arc_whole() {
+    let (mut bench, outer) = FaceOn::with_an_arc();
+    let [centre, fixed, _] = outer;
+    let (_, reach) = bench.centre_and_reach();
+    let inner = bench.add_an_arc(centre, reach * 0.5);
+    bench.fix(fixed);
+    let before = inner.map(|point| bench.sketch().point(point));
+    let stood = bench.sketch().point(fixed);
+    let hand = bench.the_hand_on_the_plane();
+
+    let shown = bench.drag_the_centre();
+
+    for (when, sketch) in seen(&shown, bench.sketch()) {
+        assert_stands(
+            &sketch,
+            fixed,
+            stood,
+            &format!("{when}: the outer arc's fixed end"),
+        );
+        assert_round(&sketch, outer, &format!("{when}: the outer arc"));
+        let travelled = sketch.point(centre) - before[0];
+        assert_at_the_hand(travelled, hand, when);
+        for (what, (point, was)) in ["start", "end"]
+            .into_iter()
+            .zip(inner[1..].iter().zip(&before[1..]))
+        {
+            assert!(
+                (sketch.point(*point) - *was).distance(travelled) < AFTER_THE_SOLVER,
+                "{when}: the inner arc's {what} travels as the centre did, by {travelled}: \
+                 it travelled {}",
+                sketch.point(*point) - *was
+            );
+        }
+    }
+}
+
+#[test]
+fn a_centre_ending_a_trait_to_its_fixed_end_leaves_that_end_and_drops_where_it_is_shown() {
+    let (mut bench, arc) = FaceOn::with_an_arc();
+    let [centre, start, _] = arc;
+    bench.document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::Existing(centre),
+        end: PointRef::Existing(start),
+        construction: true,
+    });
+    bench.fix(start);
+    let (stood, was) = (bench.sketch().point(start), bench.sketch().point(centre));
+
+    let shown = bench
+        .drag_the_centre()
+        .expect("the centre is dragged, and shown where it goes");
+
+    for (when, sketch) in seen(&Some(shown.clone()), bench.sketch()) {
+        assert_stands(&sketch, start, stood, &format!("{when}: the fixed end"));
+        assert_round(&sketch, arc, &format!("{when}: the arc"));
+        let off_the_trait = (sketch.point(centre) - stood).perp_dot((was - stood).normalize());
+        assert!(
+            off_the_trait.abs() < AFTER_THE_SOLVER,
+            "{when}: the centre slides along its trait to the fixed end, an ordinary point \
+             the trait holds: it stands {off_the_trait} off it"
+        );
+    }
+    for point in arc {
+        assert!(
+            shown.point(point).distance(bench.sketch().point(point)) < AFTER_THE_SOLVER,
+            "the arc is dropped where it was shown: {point:?} shown at {}, dropped at {}",
+            shown.point(point),
+            bench.sketch().point(point)
         );
     }
 }

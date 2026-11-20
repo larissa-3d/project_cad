@@ -247,7 +247,7 @@ impl Sketch {
     /// The ends of the axes of every ellipse centred on `point`, which move
     /// with it: dragging the centre alone would leave them behind and pull the
     /// curve out of shape.
-    pub fn ellipse_ends_around(&self, point: PointId) -> Vec<PointId> {
+    pub(crate) fn ellipse_ends_around(&self, point: PointId) -> Vec<PointId> {
         self.live_ellipses()
             .filter(|(_, ellipse)| ellipse.center == point)
             .flat_map(|(id, _)| self.ellipse_points(id)[1..].to_vec())

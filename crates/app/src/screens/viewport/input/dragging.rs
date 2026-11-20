@@ -3,7 +3,7 @@
 
 use cao_part::Operation;
 use cao_prefs::Modifier;
-use cao_sketch::{Grip, PointId, Pulled, Selection, Sketch, SnapSettings};
+use cao_sketch::{Grip, Pulled, Selection, Sketch, SnapSettings};
 use glam::DVec2;
 
 use crate::screens::SketchContext;
@@ -150,8 +150,7 @@ pub(super) fn drag_point(
         let held_off_by = grip
             .filter(|grip| grip.from_afar)
             .map(|grip| sketch.point(grip.point) - gesture.raw_pressed);
-        let arc_group: Option<Vec<PointId>> =
-            dragged_point.and_then(|point| sketch.carried_with_centre(point));
+        let arc_group = dragged_point.and_then(|point| sketch.carried_with_centre(point));
         let carried = arc_group.is_some();
         if let Some(state) = context.editor.select_state() {
             // Read where the gesture starts and kept for the whole of it, as
