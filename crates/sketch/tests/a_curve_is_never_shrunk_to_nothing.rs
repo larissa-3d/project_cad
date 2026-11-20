@@ -15,8 +15,10 @@
 //!   `a_trait_a_value_pulls_under_the_use_precision_leaves_the_solve_residual`,
 //!   `a_trait_a_value_pulls_just_above_the_use_precision_is_solved`
 //! - The five cases above hold in #501's campaign: the drag of seed 31000310
-//!   stops short, the arcs keeping a radius — no test yet: the next round
-//!   writes it
+//!   stops short, the arcs keeping a radius — the pull itself is held here,
+//!   the arc left at the sixth gesture drawn to the size the hand asks —
+//!   `an_arc_pulled_by_its_curve_after_its_ends_are_tied_keeps_its_radius`;
+//!   the campaign holds the seed whole in `what_random_sketches_found.rs`
 //! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
 //!   measurement over #501's campaign once the guard is in, not a test the
 //!   gate can hold
@@ -25,8 +27,8 @@
 mod random_sketches;
 
 use cao_sketch::{
-    DimensionTarget, Element, Rule, RuleIntent, RulePick, SegmentId, SolveOutcome, WorkPlane,
-    rule_intent,
+    CurveDrag, Curved, DimensionTarget, Element, Rule, RuleIntent, RulePick, SegmentId,
+    SnapSettings, SolveOutcome, WorkPlane, rule_intent,
 };
 use cao_sketch::{PointId, Sketch};
 use glam::DVec2;
@@ -152,5 +154,72 @@ fn a_trait_a_value_pulls_just_above_the_use_precision_is_solved() {
         (start.distance(end) - 1e-4).abs() < 1e-7,
         "the trait is 1e-4 long, got {}",
         start.distance(end)
+    );
+}
+
+/// Seed 31000310 up to its last gesture: an arc and its mirror across U, tied
+/// end to end until one arc is left, about (9.57, 0), 9.57 round.
+fn two_mirrored_arcs_tied_end_to_end() -> Vec<Gesture> {
+    vec![
+        Gesture::Arc {
+            centre: [5.0, 6.0],
+            start: [8.5, 6.0],
+            degrees: 135.0,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![[6.3393920132778145, 9.233578363789503]; 3],
+            axis: Axis::U,
+        },
+        Gesture::Rule {
+            rule: Rule::Coincident,
+            clicks: vec![[8.5, -6.0], [8.5, 6.0]],
+        },
+        Gesture::Drag {
+            from: [2.069273733843902, 8.932493948246039],
+            to: [2.069273733843902, 10.066230394236461],
+        },
+        Gesture::Rule {
+            rule: Rule::Coincident,
+            clicks: vec![[0.0, 0.0], [2.5837811533561186, -8.932493948245206]],
+        },
+        Gesture::Rule {
+            rule: Rule::Coincident,
+            clicks: vec![
+                [9.572769548800967, 5.4085440256488434e-12],
+                [4.786384774413328, 5.236530304488603],
+            ],
+        },
+    ]
+}
+
+const NO_MAGNET: SnapSettings = SnapSettings {
+    point_reach: 0.0,
+    curve_reach: 0.0,
+    grid_step: None,
+    grid_reach: 0.0,
+};
+
+#[test]
+fn an_arc_pulled_by_its_curve_after_its_ends_are_tied_keeps_its_radius() {
+    let mut sketch = laid(&two_mirrored_arcs_tied_end_to_end());
+    let (arc, _) = sketch.live_arcs().next().expect("an arc is left standing");
+    let radius = sketch.arc_radius(arc);
+    let (from, to) = (
+        DVec2::new(16.341739811492303, -6.768970262700572),
+        DVec2::new(16.341739811492303, -20.306910788087073),
+    );
+    let CurveDrag::Resize { reach } =
+        sketch.curve_drag(Curved::Arc(arc), from, to, to, &NO_MAGNET, 1.0)
+    else {
+        panic!("a pull across the arc does not draw it to another size");
+    };
+
+    sketch.resize(Curved::Arc(arc), reach, 1.0);
+
+    assert!(
+        sketch.arc_radius(arc) > radius / 10.0,
+        "the arc was {radius} round and is now {}",
+        sketch.arc_radius(arc)
     );
 }

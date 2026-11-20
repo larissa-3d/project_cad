@@ -293,8 +293,8 @@
 //!   `collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused`,
 //!   `an_arc_s_end_made_one_with_its_mirror_s_is_refused_rather_than_shrinking_them`
 //! - The five cases above hold in #501's campaign: the drag of seed 31000310
-//!   stops short, the arcs keeping a radius — no test yet: the next round
-//!   writes it
+//!   stops short, the arcs keeping a radius —
+//!   `a_drag_after_two_mirrored_arcs_are_tied_stops_short_of_shrinking_them`
 //! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
 //!   measurement over #501's campaign once the guard is in, not a test the
 //!   gate can hold
@@ -2206,6 +2206,49 @@ fn an_arc_s_end_made_one_with_its_mirror_s_is_refused_rather_than_shrinking_them
                 [44.09207696399786, -89.23179435565704],
                 [44.09207696395175, 89.23179435564785],
             ],
+        },
+    ]);
+}
+
+#[test]
+fn a_drag_after_two_mirrored_arcs_are_tied_stops_short_of_shrinking_them() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [5.0, 6.0],
+            start: [8.5, 6.0],
+            degrees: 135.0,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![
+                [6.3393920132778145, 9.233578363789503],
+                [6.3393920132778145, 9.233578363789503],
+                [6.3393920132778145, 9.233578363789503],
+            ],
+            axis: Axis::U,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[8.5, -6.0], [8.5, 6.0]],
+        },
+        Gesture::Drag {
+            from: [2.069273733843902, 8.932493948246039],
+            to: [2.069273733843902, 10.066230394236461],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[0.0, 0.0], [2.5837811533561186, -8.932493948245206]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [9.572769548800967, 5.4085440256488434e-12],
+                [4.786384774413328, 5.236530304488603],
+            ],
+        },
+        Gesture::Drag {
+            from: [16.341739811492303, -6.768970262700572],
+            to: [16.341739811492303, -20.306910788087073],
         },
     ]);
 }
