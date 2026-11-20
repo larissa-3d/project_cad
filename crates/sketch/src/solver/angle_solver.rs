@@ -25,21 +25,22 @@ impl Sketch {
         let a = self.point(far_first) - self.point(pivot);
         let b = self.point(far_second) - self.point(pivot);
         let (length_a, length_b) = (a.length_squared(), b.length_squared());
-        if length_a < 1e-12 || length_b < 1e-12 {
-            return None;
-        }
-
         let signed = one.perp_dot(other).atan2(one.dot(other));
         let sign = if signed < 0.0 { -1.0 } else { 1.0 };
+
+        let mut equation = Equation::new(self.variables());
+        equation.error = signed.abs() - degrees.to_radians();
+        equation.angular = true;
+        // An arm shrunk to nothing turns under no push, but the angle it reads
+        // is still owed: left out, a solve collapsing it called itself exact.
+        if length_a < 1e-12 || length_b < 1e-12 {
+            return Some(equation);
+        }
 
         // Turning a point about the pivot changes the angle by the component
         // perpendicular to its arm, scaled by how far out it sits.
         let from_first = DVec2::new(-a.y, a.x) / length_a;
         let from_second = DVec2::new(-b.y, b.x) / length_b;
-
-        let mut equation = Equation::new(self.variables());
-        equation.error = signed.abs() - degrees.to_radians();
-        equation.angular = true;
         equation.add(far_second, from_second * sign);
         equation.add(far_first, -from_first * sign);
         equation.add(pivot, (from_first - from_second) * sign);

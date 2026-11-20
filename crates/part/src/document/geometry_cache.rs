@@ -77,8 +77,9 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// grab among it, is refused, where the fixed point travelled with the hand
 /// (#1041). 28: a fixed trait or curve stays when a rule laid against it can be
 /// held by moving the free one, and a point put on a trait can bring its whole
-/// shape (#1040).
-const REBUILT_BY: u32 = 28;
+/// shape (#1040). 29: « Colinéaire » between two sides an angle holds apart is
+/// refused, where it was laid by shrinking them to nothing (#1044).
+const REBUILT_BY: u32 = 29;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {
