@@ -132,6 +132,14 @@
 //!   1e-6 — `an_angle_at_a_corner_follows_on_a_drawing_a_million_times_smaller`,
 //!   `an_angle_between_two_traits_follows_on_a_drawing_a_million_times_smaller`,
 //!   `an_angle_to_an_axis_holds_on_a_drawing_a_million_times_smaller`
+//!
+//! Closes #1063.
+//! - Joining the two ends of an arc of ellipse with a length typed on an axis
+//!   is refused with the drawing unchanged, the length typed on the first axis
+//!   or on the second, either end clicked first —
+//!   `an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_length_is_typed`
+//! - With no value, the arc of ellipse still goes — no test: a merge that
+//!   lands is held beside the other merges, in `two_points_made_one.rs`
 
 use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -1719,5 +1727,81 @@ fn an_angle_to_an_axis_holds_on_a_drawing_a_million_times_smaller() {
         landed(&mut document, Rule::Parallel, &THE_UPRIGHT_THEN_THE_SLANTED);
 
         reads(&document, slant, 20.0, size);
+    }
+}
+
+/// An ellipse about (0, 50), 60 wide and 40 high, trimmed down to the stretch
+/// a trim leaves between two points laid on it at 45° and 135°, with the
+/// length of one of its axes typed: the document, the curve and the two ends.
+fn an_arc_of_ellipse_an_axis_length_typed(
+    second_axis: bool,
+) -> (PartDocument, EllipseId, [PointId; 2]) {
+    let mut document = a_blank_sketch();
+    let middle = DVec2::new(0.0, 50.0);
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: PointRef::New(middle),
+        first: [-30.0, 30.0].map(|x| PointRef::New(middle + DVec2::new(x, 0.0))),
+        second: [-20.0, 20.0].map(|y| PointRef::New(middle + DVec2::new(0.0, y))),
+        construction: false,
+        drawn: None,
+    });
+    let curve = EllipseId(0);
+    let on_the_curve = |degrees: f64| {
+        let turn = DVec2::from_angle(f64::to_radians(degrees));
+        middle + DVec2::new(30.0 * turn.x, 20.0 * turn.y)
+    };
+    for degrees in [45.0, 135.0] {
+        document.apply(Operation::AddPoint {
+            sketch: 0,
+            position: on_the_curve(degrees),
+            on: vec![Support::Ellipse(curve)],
+        });
+    }
+    let sketch = &document.sketches()[0];
+    let [right, left] = [45.0, 135.0].map(|degrees| {
+        sketch
+            .nearest_point(on_the_curve(degrees), 1e-6)
+            .expect("a point there")
+    });
+    document.apply(Operation::TrimEllipse {
+        sketch: 0,
+        ellipse: curve,
+        between: Some((right, left)),
+    });
+    let sketch = &document.sketches()[0];
+    let (from, to) = sketch
+        .ellipse_ends(curve)
+        .expect("the trim leaves an arc of ellipse");
+    let ellipse = &sketch.ellipses()[curve.0];
+    let (axis, length) = match second_axis {
+        false => (ellipse.first, 60.0),
+        true => (ellipse.second, 40.0),
+    };
+    a_value_typed(&mut document, DimensionTarget::Length(axis), length);
+    (document, curve, [from, to])
+}
+
+#[test]
+fn an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_length_is_typed() {
+    for second_axis in [false, true] {
+        let (_, _, [from, to]) = an_arc_of_ellipse_an_axis_length_typed(second_axis);
+        for (first, second) in [(from, to), (to, from)] {
+            let (document, curve, _) = an_arc_of_ellipse_an_axis_length_typed(second_axis);
+            let merge = the_merge(&document, first, second);
+
+            let document = step_refused_with_the_drawing_unchanged(
+                document,
+                merge,
+                Some(Element::Ellipse(curve)),
+            );
+
+            let sketch = &document.sketches()[0];
+            assert!(
+                !sketch.is_erased_ellipse(curve) && sketch.ellipse_ends(curve) == Some((from, to)),
+                "second axis: {second_axis}, {second:?} onto {first:?}: the curve went or its \
+                 stretch changed"
+            );
+        }
     }
 }

@@ -70,6 +70,20 @@
 //! - The cases above hold in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawing is held to its rules there, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1063.
+//! - Joining the two ends of an arc of ellipse with a length typed on an axis
+//!   is refused with the drawing unchanged — no test: a refusal is held
+//!   beside the other refusals, in `an_impossible_rule_is_refused.rs`
+//! - With no value, the arc of ellipse still goes, either end clicked first —
+//!   `an_arc_of_ellipse_whose_two_ends_are_made_one_goes`
+//! - Also, what the refusal implies: it is the two ends made one that refuses,
+//!   not the length alone — an arc of ellipse with a length typed on either
+//!   axis still ends on a corner one of its ends is made one with, the length
+//!   kept —
+//!   `an_arc_of_ellipse_an_axis_length_holds_still_ends_on_a_corner_it_is_made_one_with`;
+//!   and a length only shown holds nothing, so the curve still goes —
+//!   `an_arc_of_ellipse_whose_axis_length_is_only_shown_goes_when_its_two_ends_are_made_one`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -645,6 +659,137 @@ fn an_arc_of_ellipse_a_trim_left_goes_when_its_end_is_made_one_with_its_centre()
                 "{second:?} onto {first:?}: the merged point went with the curve"
             );
         }
+    }
+}
+
+#[test]
+fn an_arc_of_ellipse_whose_two_ends_are_made_one_goes() {
+    let (_, _, [from, to]) = an_arc_of_ellipse_a_trim_left();
+    for (first, second) in [(from, to), (to, from)] {
+        let (mut document, _, _) = an_arc_of_ellipse_a_trim_left();
+
+        let (kept, outcome) = made_to_coincide(&mut document, first, second);
+
+        let sketch = &document.sketches()[0];
+        assert_eq!(
+            outcome, None,
+            "{second:?} onto {first:?}: the merge was refused"
+        );
+        assert!(
+            sketch.is_erased_ellipse(EllipseId(0)),
+            "{second:?} onto {first:?}: an arc of ellipse of no length is still drawn"
+        );
+        assert!(
+            sketch.regions().is_empty(),
+            "{second:?} onto {first:?}: an area appeared"
+        );
+        assert!(
+            !sketch.is_erased_point(kept),
+            "{second:?} onto {first:?}: the merged point went with the curve"
+        );
+    }
+}
+
+/// The length of an axis of the first ellipse, as the drawing carries it.
+fn the_axis_length(document: &PartDocument, second_axis: bool) -> Option<(f64, bool)> {
+    let sketch = &document.sketches()[0];
+    let ellipse = &sketch.ellipses()[0];
+    let axis = if second_axis {
+        ellipse.second
+    } else {
+        ellipse.first
+    };
+    sketch
+        .dimension_of(DimensionTarget::Length(axis))
+        .map(|laid| (laid.value, laid.driven))
+}
+
+fn type_an_axis_length(document: &mut PartDocument, second_axis: bool) {
+    let ellipse = &document.sketches()[0].ellipses()[0];
+    let (axis, length) = match second_axis {
+        false => (ellipse.first, 60.0),
+        true => (ellipse.second, 40.0),
+    };
+    document.apply(Operation::SetDimension {
+        sketch: 0,
+        target: DimensionTarget::Length(axis),
+        value: length.into(),
+        placement: None,
+    });
+}
+
+#[test]
+fn an_arc_of_ellipse_an_axis_length_holds_still_ends_on_a_corner_it_is_made_one_with() {
+    for second_axis in [false, true] {
+        let (mut document, _, [end, _]) = an_arc_of_ellipse_a_trim_left();
+        type_an_axis_length(&mut document, second_axis);
+        let typed = the_axis_length(&document, second_axis);
+        assert!(
+            typed.is_some_and(|(_, driven)| !driven),
+            "second axis: {second_axis}, the length does not drive the drawing: {typed:?}"
+        );
+        let corner = a_free_trait(&mut document);
+
+        let (kept, outcome) = made_to_coincide(&mut document, corner, end);
+
+        let sketch = &document.sketches()[0];
+        let ends = sketch.ellipse_ends(EllipseId(0));
+        assert_eq!(
+            outcome, None,
+            "second axis: {second_axis}, the merge was refused"
+        );
+        assert!(
+            !sketch.is_erased_ellipse(EllipseId(0))
+                && ends.is_some_and(|(from, to)| from == kept || to == kept),
+            "second axis: {second_axis}, the arc of ellipse went or does not end on the corner: \
+             {ends:?}"
+        );
+        assert_eq!(
+            the_axis_length(&document, second_axis),
+            typed,
+            "second axis: {second_axis}, the length typed changed"
+        );
+    }
+}
+
+#[test]
+fn an_arc_of_ellipse_whose_axis_length_is_only_shown_goes_when_its_two_ends_are_made_one() {
+    let (_, _, [from, to]) = an_arc_of_ellipse_a_trim_left();
+    for (first, second) in [(from, to), (to, from)] {
+        let (mut document, _, _) = an_arc_of_ellipse_a_trim_left();
+        let sketch = &document.sketches()[0];
+        let axis = sketch.segments()[sketch.ellipses()[0].first.0];
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target: DimensionTarget::Distance {
+                from: axis.start,
+                to: axis.end,
+            },
+            value: 60.0.into(),
+            placement: None,
+        });
+        type_an_axis_length(&mut document, false);
+        let shown = the_axis_length(&document, false);
+        assert!(
+            shown.is_some_and(|(_, driven)| driven),
+            "the length of an axis its ends' distance holds drives the drawing: {shown:?}"
+        );
+
+        let (kept, outcome) = made_to_coincide(&mut document, first, second);
+
+        let sketch = &document.sketches()[0];
+        assert_eq!(
+            outcome, None,
+            "{second:?} onto {first:?}: the merge was refused"
+        );
+        assert!(
+            sketch.is_erased_ellipse(EllipseId(0)),
+            "{second:?} onto {first:?}: an arc of ellipse of no length is still drawn"
+        );
+        assert!(
+            !sketch.is_erased_point(kept),
+            "{second:?} onto {first:?}: the merged point went with the curve"
+        );
     }
 }
 
