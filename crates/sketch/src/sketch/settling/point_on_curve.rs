@@ -91,7 +91,7 @@ impl Sketch {
         };
         let step = place - self.place_round(curve, meets);
         let moved = match with_its_shape {
-            true => self.shape_carried(&own, &[point], (point, own[0]), step)?,
+            true => self.shape_carried(&own, &[point], (point, &own[..1]), step)?,
             false => self.curve_carried(&own, &held_on, point, step)?,
         };
         if let Some((end, run)) = slid {
@@ -139,20 +139,23 @@ impl Sketch {
     /// The whole shape some points belong to carried by `step`: nothing when
     /// one of `apart` is in it — what stays while it comes — or something in
     /// it cannot move. The shape is read without the rule being laid, which
-    /// joins the point to the curve's centre: the two are apart until it has
-    /// landed.
+    /// joins the point to a curve's centre, or to both ends of a trait: they
+    /// are apart until it has landed.
     pub(super) fn shape_carried(
         &mut self,
         of: &[PointId],
         apart: &[PointId],
-        laid: (PointId, PointId),
+        (laid, to): (PointId, &[PointId]),
         step: DVec2,
     ) -> Option<Vec<PointId>> {
         let pinned = self.pinned_points();
+        let ties = |(one, other): &(PointId, PointId)| {
+            (*one == laid && to.contains(other)) || (*other == laid && to.contains(one))
+        };
         let pairs: Vec<(PointId, PointId)> = self
             .joined_pairs()
             .into_iter()
-            .filter(|pair| *pair != laid && *pair != (laid.1, laid.0))
+            .filter(|pair| !ties(pair))
             .collect();
         let mut shape = of.to_vec();
         for point in of.iter().filter(|point| !pinned[point.0]) {

@@ -332,7 +332,11 @@ impl Sketch {
             (Placing::ShapeOnto, _) => {
                 let step = self.landing(point, on)? - self.point(point);
                 let own = self.points_it_leans_on(on.element());
-                self.shape_carried(&[point], &own, (point, own[0]), step)
+                let tied = match on {
+                    LaidOn::Trait(_) => &own[..],
+                    LaidOn::Curve(_) => &own[..1],
+                };
+                self.shape_carried(&[point], &own, (point, tied), step)
             }
             (Placing::Onto, _) => {
                 if self.is_held(Element::Point(point)) {

@@ -47,7 +47,9 @@ impl Sketch {
     /// trait: holding the first clicked, nothing would bring the other along
     /// the trait, and the tangency could not land. The second one clicked is
     /// slid along the trait first, just far enough for the curve's centre to
-    /// stand over it — that is part of coming to the first.
+    /// stand over it — that is part of coming to the first. When only the
+    /// second is fixed or stands on the origin, the first is slid instead; a
+    /// fillet, which cannot be slid, is then left to the solver (#1040).
     ///
     /// A line clicked after a fillet is brought the whole way, across too,
     /// until it grazes: the rule keeps no point where the two touch, and the
@@ -116,12 +118,21 @@ impl Sketch {
         let normal = span.perp() / length_squared.sqrt();
         let off = normal.dot(centre - start);
         let across = grazing.map_or(DVec2::ZERO, |radius| normal * (off - radius * off.signum()));
+        let side = self.points_it_leans_on(Element::Segment(segment));
+        let pinned = self.pinned_points();
+        let fixed = |points: &[PointId]| {
+            points
+                .iter()
+                .any(|point| pinned[point.0] || self.is_held(Element::Point(*point)))
+        };
+        let from = match (from, fixed(&side), fixed(&curve)) {
+            (LaidFrom::Curve, true, false) => LaidFrom::Trait,
+            (LaidFrom::Trait, false, true) => LaidFrom::Curve,
+            _ => from,
+        };
         let (moving, shift) = match from {
             LaidFrom::Trait => (curve, -span * past),
-            LaidFrom::Curve => (
-                self.points_it_leans_on(Element::Segment(segment)),
-                span * past + across,
-            ),
+            LaidFrom::Curve => (side, span * past + across),
             LaidFrom::Nowhere | LaidFrom::Point => return,
         };
         for point in moving {
