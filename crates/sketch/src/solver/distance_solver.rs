@@ -28,9 +28,6 @@ impl Sketch {
         let reach = self.point(point) - a;
         let cross = span.perp_dot(reach);
         let distance = cross / length;
-        if distance.abs() < 1e-9 {
-            return None;
-        }
 
         let d_cross_point = DVec2::new(-span.y, span.x);
         let d_cross_start = DVec2::new(span.y - reach.y, reach.x - span.x);

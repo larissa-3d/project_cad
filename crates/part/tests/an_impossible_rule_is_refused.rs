@@ -92,6 +92,18 @@
 //! - The case above holds in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawing is held to its rules there, under the same
 //!   name, in `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1054.
+//! - The three cases are refused with the drawing unchanged —
+//!   `a_point_a_value_holds_off_a_trait_is_not_put_on_it`,
+//!   `a_point_a_value_holds_off_a_trait_is_not_made_its_middle`,
+//!   `a_trait_a_value_holds_off_a_point_is_not_made_collinear_through_it`
+//! - The same rules without a value standing against them still land —
+//!   `a_free_point_is_put_on_a_trait`,
+//!   `a_free_point_is_made_a_trait_s_middle`,
+//!   `a_trait_is_made_collinear_through_a_free_point`
+//! - Also: the merge above is refused with the drawing unchanged —
+//!   `a_point_a_value_holds_off_a_trait_is_not_made_one_with_its_end`
 
 use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -1029,7 +1041,10 @@ fn the_merge(document: &PartDocument, first: PointId, second: PointId) -> Operat
 }
 
 fn a_distance_typed(document: &mut PartDocument, from: PointId, to: PointId, value: f64) {
-    let target = DimensionTarget::Distance { from, to };
+    a_value_typed(document, DimensionTarget::Distance { from, to }, value);
+}
+
+fn a_value_typed(document: &mut PartDocument, target: DimensionTarget, value: f64) {
     let outcome = document.apply(Operation::SetDimension {
         sketch: 0,
         target,
@@ -1230,4 +1245,159 @@ fn collinear_between_two_equal_sides_no_angle_holds_apart_lands() {
         along.perp_dot(across).abs() < 1e-6 * along.length() * across.length(),
         "the two sides lie on one line: {bottom:?} and {left:?}"
     );
+}
+
+/// A trait from (10, 10) to (60, 10), and a free point at (35, 20) beside it,
+/// held 10 off its line when `held` says so.
+fn a_trait_and_a_point_beside_it(held: bool) -> (PartDocument, PointId) {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(10.0, 10.0)),
+        end: PointRef::New(DVec2::new(60.0, 10.0)),
+        construction: false,
+    });
+    document.apply(Operation::AddPoint {
+        sketch: 0,
+        position: DVec2::new(35.0, 20.0),
+        on: Vec::new(),
+    });
+    let point = PointId(document.sketches()[0].points().len() - 1);
+    if held {
+        a_value_typed(
+            &mut document,
+            DimensionTarget::PointToSegment {
+                point,
+                segment: SegmentId(0),
+            },
+            10.0,
+        );
+    }
+    (document, point)
+}
+
+/// The same, with a second trait running from the point to (55, 30).
+fn a_trait_and_one_from_a_point_beside_it(held: bool) -> (PartDocument, PointId) {
+    let (mut document, point) = a_trait_and_a_point_beside_it(held);
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::Existing(point),
+        end: PointRef::New(DVec2::new(55.0, 30.0)),
+        construction: false,
+    });
+    (document, point)
+}
+
+fn the_point_and_the_trait(point: PointId) -> [RulePick; 2] {
+    [
+        RulePick::Element(Element::Point(point)),
+        RulePick::Element(Element::Segment(SegmentId(0))),
+    ]
+}
+
+fn off_the_first_trait_s_line(document: &PartDocument, point: PointId) -> f64 {
+    let sketch = &document.sketches()[0];
+    let (start, end) = sketch.endpoints(SegmentId(0));
+    let along = (end - start).normalize();
+    along.perp_dot(sketch.point(point) - start).abs()
+}
+
+#[test]
+fn a_point_a_value_holds_off_a_trait_is_not_put_on_it() {
+    let (document, point) = a_trait_and_a_point_beside_it(true);
+
+    let rule = the_rule(&document, Rule::Coincident, &the_point_and_the_trait(point));
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn a_free_point_is_put_on_a_trait() {
+    let (mut document, point) = a_trait_and_a_point_beside_it(false);
+
+    landed(
+        &mut document,
+        Rule::Coincident,
+        &the_point_and_the_trait(point),
+    );
+
+    let off = off_the_first_trait_s_line(&document, point);
+    assert!(off < 1e-6, "the point lies on the trait, {off} off it");
+}
+
+#[test]
+fn a_point_a_value_holds_off_a_trait_is_not_made_its_middle() {
+    let (document, point) = a_trait_and_a_point_beside_it(true);
+
+    let rule = the_rule(&document, Rule::Midpoint, &the_point_and_the_trait(point));
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn a_free_point_is_made_a_trait_s_middle() {
+    let (mut document, point) = a_trait_and_a_point_beside_it(false);
+
+    landed(
+        &mut document,
+        Rule::Midpoint,
+        &the_point_and_the_trait(point),
+    );
+
+    let sketch = &document.sketches()[0];
+    let (start, end) = sketch.endpoints(SegmentId(0));
+    let middle = (start + end) / 2.0;
+    assert!(
+        sketch.point(point).distance(middle) < 1e-6,
+        "the point stands at the trait's middle {middle}, not at {}",
+        sketch.point(point)
+    );
+}
+
+#[test]
+fn a_trait_a_value_holds_off_a_point_is_not_made_collinear_through_it() {
+    let (document, _) = a_trait_and_one_from_a_point_beside_it(true);
+
+    let rule = the_rule(&document, Rule::Collinear, &THE_TWO_TRAITS);
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn a_trait_is_made_collinear_through_a_free_point() {
+    let (mut document, point) = a_trait_and_one_from_a_point_beside_it(false);
+
+    landed(&mut document, Rule::Collinear, &THE_TWO_TRAITS);
+
+    let off = off_the_first_trait_s_line(&document, point);
+    assert!(
+        off < 1e-6,
+        "the trait's line runs through the point, {off} off it"
+    );
+}
+
+#[test]
+fn a_point_a_value_holds_off_a_trait_is_not_made_one_with_its_end() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(10.0, 10.0)),
+        end: PointRef::New(DVec2::new(20.0, 10.0)),
+        construction: false,
+    });
+    document.apply(Operation::AddPoint {
+        sketch: 0,
+        position: DVec2::new(15.0, 15.0),
+        on: Vec::new(),
+    });
+    let point = PointId(document.sketches()[0].points().len() - 1);
+    a_value_typed(
+        &mut document,
+        DimensionTarget::PointToSegment {
+            point,
+            segment: SegmentId(0),
+        },
+        5.0,
+    );
+    let end = document.sketches()[0].segments()[0].start;
+    let merge = the_merge(&document, end, point);
+
+    step_refused_with_the_drawing_unchanged(document, merge, None);
 }
