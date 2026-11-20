@@ -104,6 +104,19 @@
 //!   `a_trait_is_made_collinear_through_a_free_point`
 //! - Also: the merge above is refused with the drawing unchanged —
 //!   `a_point_a_value_holds_off_a_trait_is_not_made_one_with_its_end`
+//!
+//! Closes #1043.
+//! - The merge is refused or the half-ellipse goes; no area appears — as for an
+//!   arc: refused while a length typed on either of its axes holds its size,
+//!   so that no value typed vanishes, for either end and either click order —
+//!   `half_an_ellipse_s_end_made_one_with_its_centre_is_refused_while_its_axis_length_is_typed`;
+//!   the same with half an ellipse a trim left between the ends of its second
+//!   axis, that axis's length typed —
+//!   `half_an_ellipse_a_trim_left_on_its_second_axis_is_refused_while_its_height_is_typed`;
+//!   with no value, the issue's case, it goes, held in `two_points_made_one.rs`
+//! - The cases above hold in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the drawing is held to its rules there, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -1400,4 +1413,141 @@ fn a_point_a_value_holds_off_a_trait_is_not_made_one_with_its_end() {
     let merge = the_merge(&document, end, point);
 
     step_refused_with_the_drawing_unchanged(document, merge, None);
+}
+
+#[test]
+fn half_an_ellipse_s_end_made_one_with_its_centre_is_refused_while_its_axis_length_is_typed() {
+    for end_first in [true, false] {
+        for which in [0, 1] {
+            let mut document = a_blank_sketch();
+            let centre = PointRef::New(DVec2::new(20.0, 0.0));
+            let (left, right) = (
+                PointRef::New(DVec2::new(0.0, 0.0)),
+                PointRef::New(DVec2::new(40.0, 0.0)),
+            );
+            document.apply(Operation::AddEllipse {
+                sketch: 0,
+                center: centre.clone(),
+                first: [left.clone(), right.clone()],
+                second: [centre, PointRef::New(DVec2::new(20.0, 15.0))],
+                construction: false,
+                drawn: Some([right, left]),
+            });
+            let curve = EllipseId(0);
+            let axis = document.sketches()[0].ellipses()[curve.0].first;
+            let outcome = document.apply(Operation::SetDimension {
+                sketch: 0,
+                target: DimensionTarget::Length(axis),
+                value: 40.0.into(),
+                placement: None,
+            });
+            assert!(
+                matches!(
+                    outcome,
+                    None | Some(Outcome::Dimension(DimensionOutcome::ScaleDefined { .. }))
+                ),
+                "the axis length does not land: {outcome:?}"
+            );
+            let sketch = &document.sketches()[0];
+            let centre = sketch.ellipses()[curve.0].center;
+            let (from, to) = sketch
+                .ellipse_ends(curve)
+                .expect("half an ellipse has two ends");
+            let end = [from, to][which];
+            let merge = match end_first {
+                true => the_merge(&document, end, centre),
+                false => the_merge(&document, centre, end),
+            };
+
+            let document = step_refused_with_the_drawing_unchanged(
+                document,
+                merge,
+                Some(Element::Ellipse(curve)),
+            );
+
+            let sketch = &document.sketches()[0];
+            assert!(
+                !sketch.is_erased_ellipse(curve) && sketch.ellipse_ends(curve) == Some((from, to)),
+                "the end clicked first: {end_first}, and the curve went or its stretch changed"
+            );
+            assert!(
+                sketch.regions().is_empty(),
+                "the end clicked first: {end_first}, and an area appeared"
+            );
+        }
+    }
+}
+
+/// An ellipse about (0, 50), 60 wide and 40 high, trimmed down to the half
+/// running between the two ends of its second axis, with that axis's length
+/// typed: the document, the curve, its centre and its two ends.
+fn half_an_ellipse_a_trim_left_on_its_second_axis_its_height_typed()
+-> (PartDocument, EllipseId, PointId, [PointId; 2]) {
+    let mut document = a_blank_sketch();
+    let middle = DVec2::new(0.0, 50.0);
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: PointRef::New(middle),
+        first: [-30.0, 30.0].map(|x| PointRef::New(middle + DVec2::new(x, 0.0))),
+        second: [-20.0, 20.0].map(|y| PointRef::New(middle + DVec2::new(0.0, y))),
+        construction: false,
+        drawn: None,
+    });
+    let curve = EllipseId(0);
+    let sketch = &document.sketches()[0];
+    let second = sketch.ellipses()[curve.0].second;
+    let handles = [
+        sketch.segments()[second.0].start,
+        sketch.segments()[second.0].end,
+    ];
+    document.apply(Operation::TrimEllipse {
+        sketch: 0,
+        ellipse: curve,
+        between: Some((handles[0], handles[1])),
+    });
+    let ends = document.sketches()[0]
+        .ellipse_ends(curve)
+        .expect("the trim leaves half an ellipse");
+    assert!(
+        [ends.0, ends.1].iter().all(|end| handles.contains(end)),
+        "the half runs between {ends:?}, not the second axis's ends {handles:?}"
+    );
+    let outcome = document.apply(Operation::SetDimension {
+        sketch: 0,
+        target: DimensionTarget::Length(second),
+        value: 40.0.into(),
+        placement: None,
+    });
+    assert!(
+        matches!(
+            outcome,
+            None | Some(Outcome::Dimension(DimensionOutcome::ScaleDefined { .. }))
+        ),
+        "the height does not land: {outcome:?}"
+    );
+    let centre = document.sketches()[0].ellipses()[curve.0].center;
+    (document, curve, centre, handles)
+}
+
+#[test]
+fn half_an_ellipse_a_trim_left_on_its_second_axis_is_refused_while_its_height_is_typed() {
+    let (_, _, centre, ends) = half_an_ellipse_a_trim_left_on_its_second_axis_its_height_typed();
+    for end in ends {
+        for (first, second) in [(end, centre), (centre, end)] {
+            let (document, curve, _, _) =
+                half_an_ellipse_a_trim_left_on_its_second_axis_its_height_typed();
+            let merge = the_merge(&document, first, second);
+
+            let document = step_refused_with_the_drawing_unchanged(
+                document,
+                merge,
+                Some(Element::Ellipse(curve)),
+            );
+
+            assert!(
+                !document.sketches()[0].is_erased_ellipse(curve),
+                "{second:?} onto {first:?}: the curve went"
+            );
+        }
+    }
 }

@@ -61,7 +61,8 @@ impl Sketch {
     /// turning about `dropped` is carried whole onto `kept`, keeping its size,
     /// its opening and the way it is turned. What the joining leaves with no
     /// length goes: a trait with the same point at both ends, an arc whose ends
-    /// meet or that ends on its own centre, an arc of ellipse whose ends meet.
+    /// meet or that ends on its own centre, an arc of ellipse whose ends meet
+    /// or that ends on its own centre.
     pub fn merge_points(&mut self, kept: PointId, dropped: PointId) {
         self.merge_carrying(kept, dropped);
     }
@@ -75,7 +76,7 @@ impl Sketch {
         let step = self.point(kept) - self.point(dropped);
         let carried = self.carry_curves_about(dropped, step, [kept, dropped]);
         self.hand_over_the_point(kept, dropped);
-        self.take_away_what_collapsed();
+        self.take_away_what_collapsed(kept);
 
         Erased::mark(&mut self.erased.points, dropped.0);
         let dimensions = std::mem::take(&mut self.dimensions);
@@ -144,8 +145,16 @@ impl Sketch {
                 .iter()
                 .any(|value| value.target == DimensionTarget::ArcRadius(arc) && !value.driven)
         };
+        let length_typed = |axis| {
+            self.dimensions()
+                .iter()
+                .any(|value| value.target == DimensionTarget::Length(axis) && !value.driven)
+        };
         let onto_its_centre = self.live_arcs().any(|(id, arc)| {
             (same(arc.center, arc.start) || same(arc.center, arc.end)) && radius_typed(id)
+        }) || self.live_ellipses().any(|(_, ellipse)| {
+            ellipse.ends_on(|end| same(ellipse.center, end))
+                && (length_typed(ellipse.first) || length_typed(ellipse.second))
         });
         let impossible_rule = self
             .constraints
@@ -208,6 +217,7 @@ impl Sketch {
         let ellipses = self
             .live_ellipses()
             .filter(|(_, ellipse)| ellipse.center == centre)
+            .filter(|(_, ellipse)| !ellipse.ends_on(|end| joined.contains(&end)))
             .map(|(id, _)| Element::Ellipse(id));
         let turning: Vec<Element> = arcs.chain(circles).chain(ellipses).collect();
         let mut carried: Vec<PointId> = Vec::new();
@@ -309,8 +319,10 @@ impl Sketch {
     /// Takes away what the joining left with no length. An arc whose two ends
     /// met leaves its radius behind as the distance from its centre to where
     /// they met, so that the number typed is kept; a value on its opening has
-    /// nothing left to measure, and goes with it.
-    fn take_away_what_collapsed(&mut self) {
+    /// nothing left to measure, and goes with it. The point kept stays, even
+    /// when the curve that goes was all that stood on it, and so does a point
+    /// of an ellipse that goes which a value or a rule still names.
+    fn take_away_what_collapsed(&mut self, kept: PointId) {
         let traits: Vec<Element> = self
             .live_segments()
             .filter(|(_, segment)| segment.start == segment.end)
@@ -340,14 +352,34 @@ impl Sketch {
             }
             self.erase(Element::Arc(id));
         }
-        let ellipses: Vec<Element> = self
+        let ellipses: Vec<_> = self
             .live_ellipses()
-            .filter(|(_, ellipse)| ellipse.drawn.is_some_and(|(from, to)| from == to))
-            .map(|(id, _)| Element::Ellipse(id))
+            .filter(|(_, ellipse)| {
+                ellipse.drawn.is_some_and(|(from, to)| from == to)
+                    || ellipse.ends_on(|end| end == ellipse.center)
+            })
+            .map(|(id, _)| id)
             .collect();
         for collapsed in ellipses {
-            self.erase(collapsed);
+            self.erase_ellipse_leaving(collapsed, |sketch, point| {
+                point == kept || sketch.still_named(point)
+            });
+            // Already gone: this lets go of the rules and values that leaned on it.
+            self.erase(Element::Ellipse(collapsed));
         }
+    }
+
+    /// Whether a value or a rule names a point.
+    fn still_named(&self, point: PointId) -> bool {
+        let nowhere = PointId(usize::MAX);
+        let away = |named: PointId| if named == point { nowhere } else { named };
+        self.dimensions()
+            .iter()
+            .any(|value| value.target.redirected(nowhere, point) != value.target)
+            || self
+                .constraints
+                .iter()
+                .any(|rule| handed_over(*rule, away) != *rule)
     }
 }
 

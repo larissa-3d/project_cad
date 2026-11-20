@@ -80,8 +80,11 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// shape (#1040). 29: « Colinéaire » between two sides an angle holds apart is
 /// refused, where it was laid by shrinking them to nothing (#1044). 30: a rule
 /// bringing a trait through a point a value holds off it is refused, where it
-/// was laid and the value measured nothing (#1054).
-const REBUILT_BY: u32 = 30;
+/// was laid and the value measured nothing (#1054). 31: half an ellipse whose
+/// end is made one with its own centre goes, or the merge is refused while a
+/// length on either axis holds it, where its axes were laid anew and an area
+/// appeared (#1043).
+const REBUILT_BY: u32 = 31;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {

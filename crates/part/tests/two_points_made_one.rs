@@ -57,6 +57,19 @@
 //! the origin, onto a rule tying it to a point held still — a turn read to the
 //! first order as one that changes nothing. That is held beside the solver, in
 //! `an_arc_tied_to_a_held_point_is_not_turned_back_off_the_rule_that_ties_it`.
+//!
+//! Closes #1043.
+//! - The merge is refused or the half-ellipse goes; no area appears — as for an
+//!   arc: with no value holding its size, the issue's case, it goes, for either
+//!   end and either click order —
+//!   `half_an_ellipse_whose_end_is_made_one_with_its_own_centre_goes`; so does
+//!   an arc of ellipse a trim left, its ends held on the curve by rules —
+//!   `an_arc_of_ellipse_a_trim_left_goes_when_its_end_is_made_one_with_its_centre`;
+//!   refused while a length is typed on either axis, in
+//!   `an_impossible_rule_is_refused.rs`
+//! - The cases above hold in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the drawing is held to its rules there, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -444,6 +457,58 @@ fn an_arc_end_made_one_with_its_own_centre_takes_the_arc() {
 }
 
 #[test]
+fn half_an_ellipse_whose_end_is_made_one_with_its_own_centre_goes() {
+    for end_first in [true, false] {
+        for which in [0, 1] {
+            let mut document = blank();
+            let centre = PointRef::New(CENTRE);
+            let (left, right) = (
+                PointRef::New(CENTRE - DVec2::new(20.0, 0.0)),
+                PointRef::New(CENTRE + DVec2::new(20.0, 0.0)),
+            );
+            document.apply(Operation::AddEllipse {
+                sketch: 0,
+                center: centre.clone(),
+                first: [left.clone(), right.clone()],
+                second: [centre, PointRef::New(CENTRE + DVec2::new(0.0, 15.0))],
+                construction: false,
+                drawn: Some([right, left]),
+            });
+            let sketch = &document.sketches()[0];
+            let centre = sketch.ellipses()[0].center;
+            let (from, to) = sketch
+                .ellipse_ends(EllipseId(0))
+                .expect("half an ellipse has two ends");
+            let end = [from, to][which];
+            let (first, second) = match end_first {
+                true => (end, centre),
+                false => (centre, end),
+            };
+
+            let (kept, outcome) = made_to_coincide(&mut document, first, second);
+
+            let sketch = &document.sketches()[0];
+            assert_eq!(
+                outcome, None,
+                "the end clicked first: {end_first}, and the merge was refused"
+            );
+            assert!(
+                sketch.is_erased_ellipse(EllipseId(0)),
+                "the end clicked first: {end_first}, and a half-ellipse of no width is still drawn"
+            );
+            assert!(
+                sketch.regions().is_empty(),
+                "the end clicked first: {end_first}, and an area appeared"
+            );
+            assert!(
+                !sketch.is_erased_point(kept),
+                "the end clicked first: {end_first}, and the merged point went with the curve"
+            );
+        }
+    }
+}
+
+#[test]
 fn an_arc_end_made_one_with_its_own_centre_is_refused_while_its_radius_is_typed() {
     let (mut document, [centre, _, end]) = an_arc_alone();
     type_its_radius(&mut document);
@@ -511,6 +576,76 @@ fn an_arc_of_ellipse_whose_end_is_made_one_with_a_corner_ends_on_that_corner() {
         "the arc of ellipse ends on {ends:?}, not on the corner {kept:?}"
     );
     assert!(off < 1e-6, "the corner stands {off} off the curve");
+}
+
+/// An ellipse about (0, 50), 60 wide and 40 high, trimmed down to the stretch
+/// a trim leaves between two points laid on it at 45° and 135°: the document,
+/// the centre and the two ends.
+fn an_arc_of_ellipse_a_trim_left() -> (PartDocument, PointId, [PointId; 2]) {
+    let mut document = blank();
+    let middle = DVec2::new(0.0, 50.0);
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: PointRef::New(middle),
+        first: [-30.0, 30.0].map(|x| PointRef::New(middle + DVec2::new(x, 0.0))),
+        second: [-20.0, 20.0].map(|y| PointRef::New(middle + DVec2::new(0.0, y))),
+        construction: false,
+        drawn: None,
+    });
+    let on_the_curve = |degrees: f64| {
+        let turn = DVec2::from_angle(f64::to_radians(degrees));
+        middle + DVec2::new(30.0 * turn.x, 20.0 * turn.y)
+    };
+    for degrees in [45.0, 135.0] {
+        document.apply(Operation::AddPoint {
+            sketch: 0,
+            position: on_the_curve(degrees),
+            on: vec![Support::Ellipse(EllipseId(0))],
+        });
+    }
+    let sketch = &document.sketches()[0];
+    let [right, left] = [45.0, 135.0].map(|degrees| point_at(sketch, on_the_curve(degrees)));
+    document.apply(Operation::TrimEllipse {
+        sketch: 0,
+        ellipse: EllipseId(0),
+        between: Some((right, left)),
+    });
+    let sketch = &document.sketches()[0];
+    let (from, to) = sketch
+        .ellipse_ends(EllipseId(0))
+        .expect("the trim leaves an arc of ellipse");
+    let centre = sketch.ellipses()[0].center;
+    (document, centre, [from, to])
+}
+
+#[test]
+fn an_arc_of_ellipse_a_trim_left_goes_when_its_end_is_made_one_with_its_centre() {
+    let (_, centre, ends) = an_arc_of_ellipse_a_trim_left();
+    for end in ends {
+        for (first, second) in [(end, centre), (centre, end)] {
+            let (mut document, _, _) = an_arc_of_ellipse_a_trim_left();
+
+            let (kept, outcome) = made_to_coincide(&mut document, first, second);
+
+            let sketch = &document.sketches()[0];
+            assert_eq!(
+                outcome, None,
+                "{second:?} onto {first:?}: the merge was refused"
+            );
+            assert!(
+                sketch.is_erased_ellipse(EllipseId(0)),
+                "{second:?} onto {first:?}: an arc of ellipse of no width is still drawn"
+            );
+            assert!(
+                sketch.regions().is_empty(),
+                "{second:?} onto {first:?}: an area appeared"
+            );
+            assert!(
+                !sketch.is_erased_point(kept),
+                "{second:?} onto {first:?}: the merged point went with the curve"
+            );
+        }
+    }
 }
 
 /// Every point a rule names.

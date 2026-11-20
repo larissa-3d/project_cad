@@ -242,6 +242,25 @@
 //!   `crates/part/tests/an_impossible_rule_is_refused.rs`
 //! - The case above holds in #501's campaign, its `ignore` taken off —
 //!   `collinear_between_two_equal_sides_an_angle_holds_apart_is_refused`
+//!
+//! Closes #1043.
+//! - The merge is refused or the half-ellipse goes; no area appears — no test:
+//!   not in this file. As for an arc: with no value holding its size, the
+//!   issue's case, the curve goes, whether its ends are the ends of its first
+//!   axis, of its second, or points a trim held on it by rules; while a length
+//!   is typed on either of its axes the merge is refused, so that no value
+//!   typed vanishes. What the curve leaves behind stays as it was: its other
+//!   end, its top handle, a value or a rule naming either, a trait on the
+//!   other end; a point of it nothing names goes with it, as erasing the curve
+//!   takes it, whatever rules hold elsewhere in the drawing. The join is held
+//!   at the sketch's level in `crates/sketch/src/sketch/merging/tests.rs`, for
+//!   either end and either click order, beside a half-ellipse end still made
+//!   one with a point apart, the curve still drawn, and the arc's two cases;
+//!   the merge step at the part's in
+//!   `crates/part/tests/two_points_made_one.rs` and
+//!   `crates/part/tests/an_impossible_rule_is_refused.rs`
+//! - The cases above hold in #501's campaign, its `ignore` taken off —
+//!   `half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1749,7 +1768,6 @@ fn a_trait_given_a_value_along_an_axis_is_not_turned_square_to_a_side_against_it
 }
 
 #[test]
-#[ignore = "#1043"]
 fn half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new() {
     random_sketches::holds(&[
         Gesture::HalfEllipse {
