@@ -163,7 +163,7 @@ impl Sketch {
         // are handed back to the same end, one equation at a time.
         let mut moves = vec![DVec2::ZERO; self.points().len()];
         let mut entry: Vec<Equation> = Vec::new();
-        let pulled = self.pulled_elsewhere(millimeters_per_unit, &pinned);
+        let pulled = self.pulled_elsewhere(millimeters_per_unit, scale, &pinned);
 
         let mut stall = stall::Stall::new();
         let mut worst: f64 = f64::INFINITY;
@@ -171,7 +171,7 @@ impl Sketch {
             worst = 0.0;
             for index in 0..self.equation_count() {
                 let held_alone = self.held_alone(index, &pinned, &pulled);
-                self.any_equation(index, millimeters_per_unit, &pinned, &mut entry);
+                self.any_equation(index, millimeters_per_unit, scale, &pinned, &mut entry);
                 for equation in entry.iter_mut() {
                     let off = equation.off_by(scale);
                     worst = worst.max(off);
@@ -251,7 +251,7 @@ impl Sketch {
         let mut entry: Vec<Equation> = Vec::new();
         for index in 0..self.equation_count() {
             let mut off = false;
-            self.any_equation(index, millimeters_per_unit, &pinned, &mut entry);
+            self.any_equation(index, millimeters_per_unit, scale, &pinned, &mut entry);
             for equation in entry.drain(..) {
                 if equation.off_by(scale) < SOLVED {
                     continue;
@@ -438,11 +438,9 @@ impl Sketch {
         pinned: &[bool],
     ) -> Vec<Equation> {
         let mut equations = Vec::new();
-
+        let drawing_size = self.drawing_size();
         for index in 0..self.dimension_count() {
-            if let Some(equation) = self.equation(index, millimeters_per_unit, pinned) {
-                equations.push(equation);
-            }
+            equations.extend(self.equation(index, millimeters_per_unit, drawing_size, pinned));
         }
         for index in 0..self.constraints().len() {
             self.rule_equations(index, pinned, &mut equations);
@@ -480,6 +478,7 @@ impl Sketch {
         &self,
         index: usize,
         millimeters_per_unit: f64,
+        drawing_size: f64,
         pinned: &[bool],
         into: &mut Vec<Equation>,
     ) {
@@ -488,7 +487,9 @@ impl Sketch {
             Row::Arc(at) => self.arc_equation(ArcId(at), pinned, into),
             Row::Ellipse(at) => self.ellipse_equation(crate::ellipse::EllipseId(at), pinned, into),
             Row::Kept(at) => self.kept_equation(at, pinned, into),
-            Row::Dimension(at) => into.extend(self.equation(at, millimeters_per_unit, pinned)),
+            Row::Dimension(at) => {
+                into.extend(self.equation(at, millimeters_per_unit, drawing_size, pinned))
+            }
         }
     }
 
@@ -727,6 +728,7 @@ impl Sketch {
         &self,
         index: usize,
         millimeters_per_unit: f64,
+        drawing_size: f64,
         pinned: &[bool],
     ) -> Option<Equation> {
         let dimension = self.dimensions().get(index)?;
@@ -748,13 +750,13 @@ impl Sketch {
                 self.length_equation(from, to, dimension.value / scale)?
             }
             DimensionTarget::Angle { .. } => {
-                self.angle_equation(dimension.target, dimension.value, self.drawing_size())?
+                self.angle_equation(dimension.target, dimension.value, drawing_size)?
             }
             DimensionTarget::AngleBetween { .. } => {
-                self.angle_between_equation(dimension.target, dimension.value, self.drawing_size())?
+                self.angle_between_equation(dimension.target, dimension.value, drawing_size)?
             }
             DimensionTarget::AxisAngle { .. } => {
-                self.axis_angle_equation(dimension.target, dimension.value, self.drawing_size())?
+                self.axis_angle_equation(dimension.target, dimension.value, drawing_size)?
             }
             DimensionTarget::PointToSegment { point, segment } => {
                 self.point_to_segment_equation(point, segment, dimension.value / scale)?

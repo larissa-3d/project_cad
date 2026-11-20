@@ -91,7 +91,12 @@ impl Sketch {
     /// Read once per sweep rather than per correction: which rows speak of
     /// which points does not change while the drawing settles, only how far
     /// off they are.
-    pub(super) fn pulled_elsewhere(&self, millimeters_per_unit: f64, pinned: &[bool]) -> Vec<bool> {
+    pub(super) fn pulled_elsewhere(
+        &self,
+        millimeters_per_unit: f64,
+        drawing_size: f64,
+        pinned: &[bool],
+    ) -> Vec<bool> {
         let mut pulled: Vec<bool> = (0..self.points().len())
             .map(|point| self.is_loosened(PointId(point)))
             .collect();
@@ -100,7 +105,13 @@ impl Sketch {
             if self.held_by_a_rule(index).is_some() {
                 continue;
             }
-            self.any_equation(index, millimeters_per_unit, pinned, &mut entry);
+            self.any_equation(
+                index,
+                millimeters_per_unit,
+                drawing_size,
+                pinned,
+                &mut entry,
+            );
             for equation in entry.drain(..) {
                 for (point, pulled) in pulled.iter_mut().enumerate() {
                     *pulled |= equation.gradient[point * 2].abs() > 1e-12
