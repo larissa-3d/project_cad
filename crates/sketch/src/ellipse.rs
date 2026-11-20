@@ -43,6 +43,13 @@ pub struct Ellipse {
     pub drawn: Option<(PointId, PointId)>,
 }
 
+impl Ellipse {
+    /// Whether the drawn stretch ends on a point `is` picks out.
+    pub(crate) fn ends_on(&self, is: impl Fn(PointId) -> bool) -> bool {
+        self.drawn.is_some_and(|(from, to)| is(from) || is(to))
+    }
+}
+
 impl Sketch {
     /// Lays an ellipse from its centre and the four ends of its axes, the two
     /// axes drawn as construction traits.
@@ -273,12 +280,16 @@ impl Sketch {
     /// nothing else stands on: an axis cannot outlive the curve it measures,
     /// and the curve cannot stand without its axes.
     pub(crate) fn erase_ellipse(&mut self, id: EllipseId) {
-        self.erase_ellipse_leaving(id, None);
+        self.erase_ellipse_leaving(id, |_, _| false);
     }
 
-    /// Takes an ellipse away as [`Self::erase_ellipse`] does, leaving `left`
-    /// standing even when nothing else stands on it.
-    pub(crate) fn erase_ellipse_leaving(&mut self, id: EllipseId, left: Option<PointId>) {
+    /// Takes an ellipse away as [`Self::erase_ellipse`] does, leaving standing
+    /// the points `left` picks out even when nothing else stands on them.
+    pub(crate) fn erase_ellipse_leaving(
+        &mut self,
+        id: EllipseId,
+        left: impl Fn(&Self, PointId) -> bool,
+    ) {
         if self.is_erased_ellipse(id) {
             return;
         }
@@ -292,9 +303,7 @@ impl Sketch {
             self.erase(Element::Segment(ellipse.second));
         }
         for point in points {
-            if Some(point) != left
-                && !self.is_erased_point(point)
-                && !self.anything_stands_on(point)
+            if !left(self, point) && !self.is_erased_point(point) && !self.anything_stands_on(point)
             {
                 self.erase(Element::Point(point));
             }

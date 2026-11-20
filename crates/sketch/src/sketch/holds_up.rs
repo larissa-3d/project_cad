@@ -106,10 +106,10 @@ impl Sketch {
                 }
                 curve => (point, curve.map(|curve| curve.center)),
             },
-            Constraint::OnEllipse { point, ellipse, .. } => (
-                point,
-                self.ellipses.get(ellipse.0).map(|ellipse| ellipse.center),
-            ),
+            Constraint::OnEllipse { point, ellipse, .. } => match self.ellipses.get(ellipse.0) {
+                Some(curve) if curve.ends_on(|end| same(curve.center, end)) => return false,
+                curve => (point, curve.map(|curve| curve.center)),
+            },
             Constraint::OnSegment { point, segment, .. }
             | Constraint::Midpoint { point, segment } => {
                 return self

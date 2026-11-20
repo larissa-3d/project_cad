@@ -246,12 +246,16 @@
 //! Closes #1043.
 //! - The merge is refused or the half-ellipse goes; no area appears — no test:
 //!   not in this file. As for an arc: with no value holding its size, the
-//!   issue's case, the half-ellipse goes; while a length typed on its first
-//!   axis holds it, the merge is refused. The join is held at the sketch's
-//!   level in `crates/sketch/src/sketch/merging/tests.rs`, both ways, for
-//!   either end and either click order, beside a half-ellipse end still made
-//!   one with a point apart and the arc's two cases; the merge step at the
-//!   part's in `crates/part/tests/two_points_made_one.rs` and
+//!   issue's case, the curve goes, whether its ends are the ends of its first
+//!   axis, of its second, or points a trim held on it by rules; while a length
+//!   is typed on either of its axes the merge is refused, so that no value
+//!   typed vanishes. What the curve leaves behind stays as it was: its other
+//!   end, its top handle, a value measuring either, a trait on the other end.
+//!   The join is held at the sketch's level in
+//!   `crates/sketch/src/sketch/merging/tests.rs`, for either end and either
+//!   click order, beside a half-ellipse end still made one with a point apart
+//!   and the arc's two cases; the merge step at the part's in
+//!   `crates/part/tests/two_points_made_one.rs` and
 //!   `crates/part/tests/an_impossible_rule_is_refused.rs`
 //! - The cases above hold in #501's campaign, its `ignore` taken off —
 //!   `half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new`
