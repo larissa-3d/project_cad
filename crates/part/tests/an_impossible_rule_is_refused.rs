@@ -150,9 +150,14 @@
 //!   `a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`,
 //!   `a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`;
 //!   the campaign's own cases are held in `cao_sketch`, in
-//!   `crates/sketch/tests/what_random_sketches_found.rs`, and the merge of
-//!   seed 30005683 at the sketch's level in
-//!   `crates/sketch/tests/a_curve_is_never_shrunk_to_nothing.rs`
+//!   `crates/sketch/tests/what_random_sketches_found.rs`, and the merges of
+//!   seeds 30005683 and 31000310 at the sketch's level in
+//!   `crates/sketch/tests/a_curve_is_never_shrunk_to_nothing.rs`. Only a
+//!   curve the solve brings down is refused: one drawn tiny by its own step,
+//!   under what the drawing reads as nothing, does not stop a rule laid
+//!   elsewhere, nor its replay when the part is opened again —
+//!   `a_rule_elsewhere_still_lands_beside_a_circle_drawn_tiny`,
+//!   `a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny`
 //! - The drag of seed 31000310 stops short — no test: a drag is the sketch's,
 //!   held in `cao_sketch`
 //! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
@@ -1891,4 +1896,73 @@ fn a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_re
 
     let (document, rule) = a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(document, arc);
     refused_with_the_drawing_unchanged(document, rule, Some(arc));
+}
+
+/// A slanted trait 1000 long, from (0, 0) to (800, 600), and `curve` drawn
+/// about (500, 100) with a radius of 1e-5: laid by its own step, far under
+/// the 1e-4 a drawing that size reads as nothing.
+fn a_long_trait_beside(curve: Operation) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(0.0, 0.0)),
+        end: PointRef::New(DVec2::new(800.0, 600.0)),
+        construction: false,
+    });
+    document.apply(curve);
+    document
+}
+
+const A_TINY_PLACE: DVec2 = DVec2::new(500.0, 100.0);
+
+#[test]
+fn a_rule_elsewhere_still_lands_beside_a_circle_drawn_tiny() {
+    let mut document = a_long_trait_beside(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(A_TINY_PLACE),
+        radius: 1e-5,
+        rim: Vec::new(),
+        construction: false,
+    });
+    assert_eq!(
+        document.sketches()[0].circles().len(),
+        1,
+        "the circle is drawn"
+    );
+
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::U),
+    );
+
+    let (start, end) = document.sketches()[0].endpoints(SegmentId(0));
+    assert!(
+        (start.y - end.y).abs() < 1e-6,
+        "the trait lies horizontal: {start} to {end}"
+    );
+}
+
+#[test]
+fn a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny() {
+    let mut document = a_long_trait_beside(Operation::AddArc {
+        sketch: 0,
+        center: PointRef::New(A_TINY_PLACE),
+        start: PointRef::New(A_TINY_PLACE + DVec2::new(1e-5, 0.0)),
+        end: PointRef::New(A_TINY_PLACE + DVec2::new(0.0, 1e-5)),
+        construction: false,
+    });
+    assert_eq!(document.sketches()[0].arcs().len(), 1, "the arc is drawn");
+
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::U),
+    );
+
+    let (start, end) = document.sketches()[0].endpoints(SegmentId(0));
+    assert!(
+        (start.y - end.y).abs() < 1e-6,
+        "the trait lies horizontal: {start} to {end}"
+    );
 }

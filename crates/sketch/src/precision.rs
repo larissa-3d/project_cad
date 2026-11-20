@@ -7,7 +7,7 @@
 
 use glam::DVec2;
 
-use crate::sketch::Sketch;
+use crate::sketch::{Element, Sketch};
 
 /// How near is treated as one at the use: a tenth of a micron on a part up to
 /// a metre.
@@ -25,6 +25,29 @@ pub const SOLVED: f64 = 1e-9;
 /// across: nothing the user can type tells it from a point.
 pub fn is_collapsed(length: f64, scale: f64) -> bool {
     length < scale * USE
+}
+
+/// Whether any trait is shorter than [`USE`] on a drawing `scale` across.
+pub(crate) fn has_a_collapsed_trait(sketch: &Sketch, scale: f64) -> bool {
+    sketch
+        .live_segments()
+        .any(|(id, _)| is_collapsed(sketch.segment_length(id), scale))
+}
+
+/// The circles and arcs whose radius is under [`USE`] on a drawing `scale`
+/// across, an arc read at whichever end stands nearer its centre.
+pub(crate) fn collapsed_curves(sketch: &Sketch, scale: f64) -> Vec<Element> {
+    let circles = (sketch.live_circles()).map(|(id, circle)| (Element::Circle(id), circle.radius));
+    let arcs = sketch.live_arcs().map(|(id, arc)| {
+        let centre = sketch.point(arc.center);
+        let reach = |end| centre.distance(sketch.point(end));
+        (Element::Arc(id), reach(arc.start).min(reach(arc.end)))
+    });
+    circles
+        .chain(arcs)
+        .filter(|(_, radius)| is_collapsed(*radius, scale))
+        .map(|(curve, _)| curve)
+        .collect()
 }
 
 /// How big a drawing is: the diagonal of the smallest box holding every live

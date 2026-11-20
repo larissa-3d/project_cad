@@ -235,7 +235,9 @@ impl Sketch {
         kept: (Vec<DVec2>, Vec<Circle>),
         outcome: LengthOutcome,
     ) -> LengthOutcome {
-        if !self.has_a_collapsed_curve(self.drawing_size()) && !self.has_a_flipped_tangent() {
+        if !crate::precision::has_a_collapsed_trait(self, self.drawing_size())
+            && !self.has_a_flipped_tangent()
+        {
             return outcome;
         }
         self.give_back(kept);
