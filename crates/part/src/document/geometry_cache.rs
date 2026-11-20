@@ -71,8 +71,10 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// through the centre, is refused where it was laid untrue or shrank the
 /// curve to nothing (#1037, #1038). 25: a rule that would turn a shape
 /// against a horizontal or vertical value it carries is refused, where it was
-/// laid and the value driven to nothing (#1042).
-const REBUILT_BY: u32 = 25;
+/// laid and the value driven to nothing (#1042). 26: two points a value holds
+/// apart are not made one, where they were and the value measured nothing
+/// (#1036).
+const REBUILT_BY: u32 = 26;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {

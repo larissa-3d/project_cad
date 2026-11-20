@@ -66,11 +66,26 @@
 //!   `cao_sketch`, and the trait, the half-ellipse and the perpendicular
 //!   drawings it found are held to its rules there, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1036.
+//! - That join returns false and the drawing is as it was —
+//!   `a_corner_a_distance_holds_apart_from_the_origin_is_not_made_one_with_it`;
+//!   so it does for any two points a distance holds apart —
+//!   `two_free_points_a_distance_holds_apart_are_not_made_one`; the join
+//!   itself is held at the sketch's level under the same names, with the
+//!   horizontal value beside them, in
+//!   `crates/sketch/src/sketch/merging/tests.rs`; so is what the refusal
+//!   leaves alone — two points with nothing between them, a read-out distance
+//!   between them, and a distance elsewhere in the drawing do not keep them
+//!   apart
+//! - The case above holds in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the drawing is held to its rules there, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`
 
-use cao_part::{Operation, Outcome, PartDocument, PointRef};
+use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
     Constraint, DimensionTarget, Element, EllipseId, PointId, Rule, RuleIntent, RulePick,
-    SegmentId, SketchAxis, WorkPlane, rule_intent,
+    SegmentId, Sketch, SketchAxis, WorkPlane, rule_intent,
 };
 use glam::DVec2;
 
@@ -983,4 +998,96 @@ fn two_points_a_horizontal_value_holds_apart_are_not_made_one() {
         },
         None,
     );
+}
+
+fn the_merge(document: &PartDocument, first: PointId, second: PointId) -> Operation {
+    let picks = [
+        RulePick::Element(Element::Point(first)),
+        RulePick::Element(Element::Point(second)),
+    ];
+    let Some(RuleIntent::Merge { kept, dropped }) =
+        rule_intent(Rule::Coincident, &picks, &document.sketches()[0])
+    else {
+        panic!("the tool does not make two points one");
+    };
+    Operation::MergePoints {
+        sketch: 0,
+        kept,
+        dropped,
+    }
+}
+
+fn a_distance_typed(document: &mut PartDocument, from: PointId, to: PointId, value: f64) {
+    let target = DimensionTarget::Distance { from, to };
+    let outcome = document.apply(Operation::SetDimension {
+        sketch: 0,
+        target,
+        value: value.into(),
+        placement: None,
+    });
+    assert!(
+        matches!(
+            outcome,
+            None | Some(Outcome::Dimension(DimensionOutcome::ScaleDefined { .. }))
+        ),
+        "{target:?} = {value} does not land: {outcome:?}"
+    );
+    assert!(
+        document.sketches()[0]
+            .dimensions()
+            .iter()
+            .any(|laid| laid.target == target && !laid.driven),
+        "{target:?} does not drive the drawing"
+    );
+}
+
+#[test]
+fn a_corner_a_distance_holds_apart_from_the_origin_is_not_made_one_with_it() {
+    let mut document = a_blank_sketch();
+    let corners = [[2.0, 0.0], [0.5, 0.0], [0.5, 1.0], [2.0, 1.0]].map(|[x, y]| {
+        document.apply(Operation::AddPoint {
+            sketch: 0,
+            position: DVec2::new(x, y),
+            on: Vec::new(),
+        });
+        PointId(document.sketches()[0].points().len() - 1)
+    });
+    for index in 0..4 {
+        document.apply(Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::Existing(corners[index]),
+            end: PointRef::Existing(corners[(index + 1) % 4]),
+            construction: false,
+        });
+    }
+    let corner = corners[1];
+    assert!(
+        document.sketches()[0]
+            .point(corner)
+            .distance(DVec2::new(0.5, 0.0))
+            < 1e-9,
+        "the corner is not at (0.5, 0)"
+    );
+    a_distance_typed(&mut document, corner, Sketch::ORIGIN, 0.5);
+    let merge = the_merge(&document, corner, Sketch::ORIGIN);
+
+    step_refused_with_the_drawing_unchanged(document, merge, None);
+}
+
+#[test]
+fn two_free_points_a_distance_holds_apart_are_not_made_one() {
+    let mut document = a_blank_sketch();
+    for position in [DVec2::new(10.0, 10.0), DVec2::new(30.0, 25.0)] {
+        document.apply(Operation::AddPoint {
+            sketch: 0,
+            position,
+            on: Vec::new(),
+        });
+    }
+    let count = document.sketches()[0].points().len();
+    let (first, second) = (PointId(count - 2), PointId(count - 1));
+    a_distance_typed(&mut document, first, second, 20.0);
+    let merge = the_merge(&document, first, second);
+
+    step_refused_with_the_drawing_unchanged(document, merge, None);
 }
