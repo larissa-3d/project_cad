@@ -90,7 +90,10 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// (#1060).
 /// 33: an arc of ellipse whose two ends are made one is refused while a length
 /// on either axis holds it, where it went and took the value with it (#1063).
-const REBUILT_BY: u32 = 33;
+/// 34: a curve's centre slid along a trait to the curve's fixed end stops short
+/// of shrinking the curve below a tenth of its size or turning it inside out,
+/// where it shrank or flipped it (#1065).
+const REBUILT_BY: u32 = 34;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {
