@@ -32,10 +32,25 @@
 //! gap, turning it about its far end
 //! (`an_arc_beside_the_end_of_a_trait_is_brought_alongside_it`,
 //! `an_ellipse_beside_the_end_of_a_trait_is_brought_alongside_it`).
+//!
+//! Closes #1040.
+//! - In both cases the fixed trait does not move and the free curve comes to
+//!   it — `a_fixed_side_stays_and_a_free_circle_made_tangent_to_it_comes_whichever_was_clicked_first`,
+//!   `a_free_circle_s_centre_put_on_a_fixed_side_comes_onto_it_whichever_was_clicked_first`;
+//!   the same rules with nothing fixed still land as they did —
+//!   `a_tangency_between_a_side_and_a_circle_with_nothing_fixed_still_leaves_the_first_clicked_where_it_was`,
+//!   `a_circle_s_centre_put_on_a_side_with_nothing_fixed_still_lands_touching_the_rectangle`;
+//!   and with the curve fixed too, something fixed still gives —
+//!   `a_rule_between_a_fixed_side_and_a_fixed_circle_still_lands_since_nothing_free_can_hold_it`;
+//!   and the other way round, the circle fixed — its centre held, its radius
+//!   free unless its diameter is typed — and the side free —
+//!   `a_fixed_circle_stays_and_a_free_side_made_tangent_to_it_comes_whichever_was_clicked_first`
+//! - The cases above hold in #501's campaign — no test: not in this file;
+//!   `what_random_sketches_found.rs` holds the two drawings
 
 use cao_sketch::{
-    Constraint, DimensionTarget, Element, LaidFrom, LengthOutcome, PointId, Rule, RuleIntent,
-    RulePick, SegmentId, Sketch, Toward, WorkPlane, rule_intent,
+    CircleId, Constraint, DimensionTarget, Element, LaidFrom, LengthOutcome, PointId, Rule,
+    RuleIntent, RulePick, SegmentId, Sketch, Support, Toward, WorkPlane, rule_intent,
 };
 use glam::DVec2;
 
@@ -569,4 +584,391 @@ fn an_ellipse_beside_the_end_of_a_trait_is_brought_alongside_it() {
                 .expect("the trait has a length")
         },
     );
+}
+
+/// A rectangle from (15, 40) to (25, 55) whose left side — its fourth trait,
+/// from (15, 55) down to (15, 40) — may be fixed, and a circle of radius 5
+/// centred at (20, 30) below it, whose centre may be fixed too: #1040's first
+/// case. The circle stands beside the side's lower end, so one of the two has
+/// to travel along the other before they touch.
+fn a_side_over_a_circle(side_fixed: bool, circle_fixed: bool) -> (Sketch, SegmentId, CircleId) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let corners = [(15.0, 40.0), (25.0, 40.0), (25.0, 55.0), (15.0, 55.0)]
+        .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+    let sides =
+        [0, 1, 2, 3].map(|index| sketch.add_segment(corners[index], corners[(index + 1) % 4]));
+    let centre = sketch.add_point(DVec2::new(20.0, 30.0));
+    let circle = sketch.add_circle(centre, 5.0);
+    if side_fixed {
+        sketch.add_constraint(Constraint::Fixed {
+            element: Element::Segment(sides[3]),
+        });
+    }
+    if circle_fixed {
+        sketch.add_constraint(Constraint::Fixed {
+            element: Element::Circle(circle),
+        });
+    }
+    (sketch, sides[3], circle)
+}
+
+/// The rule the constraint tool lays for these picks, in this order.
+fn intended(rule: Rule, picks: [Element; 2], sketch: &Sketch) -> Constraint {
+    match rule_intent(rule, &picks.map(RulePick::Element), sketch) {
+        Some(RuleIntent::Constrain(constraint)) => constraint,
+        other => panic!("{rule:?} on {picks:?} lays {other:?}"),
+    }
+}
+
+/// How far the circle stands off touching the trait itself: off its line, or
+/// beside the trait's ends rather than over it.
+fn off_touching(sketch: &Sketch, circle: CircleId, segment: SegmentId) -> f64 {
+    let (start, end) = sketch.endpoints(segment);
+    let drawn = sketch.circle(circle);
+    let centre = sketch.point(drawn.center);
+    let span = end - start;
+    let across = span.perp_dot(centre - start).abs() / span.length();
+    let along = (centre - start).dot(span) / span.length_squared();
+    let beside = (along - along.clamp(0.0, 1.0)).abs() * span.length();
+    (across - drawn.radius).abs().max(beside)
+}
+
+/// How far the centre of `circle` stands off the line of `segment`.
+fn off_the_line(sketch: &Sketch, circle: CircleId, segment: SegmentId) -> f64 {
+    let (start, end) = sketch.endpoints(segment);
+    let centre = sketch.point(sketch.circle(circle).center);
+    let span = end - start;
+    span.perp_dot(centre - start).abs() / span.length()
+}
+
+/// How far `circle` stands off touching the line of `segment`.
+fn off_its_line(sketch: &Sketch, circle: CircleId, segment: SegmentId) -> f64 {
+    (off_the_line(sketch, circle, segment) - sketch.circle(circle).radius).abs()
+}
+
+fn where_the_circle_is(sketch: &Sketch, circle: CircleId) -> (DVec2, f64) {
+    let drawn = sketch.circle(circle);
+    (sketch.point(drawn.center), drawn.radius)
+}
+
+fn how_far_it_went(sketch: &Sketch, circle: CircleId, was: (DVec2, f64)) -> f64 {
+    let now = where_the_circle_is(sketch, circle);
+    now.0.distance(was.0) + (now.1 - was.1).abs()
+}
+
+fn side_moved(sketch: &Sketch, side: SegmentId, was: (DVec2, DVec2)) -> f64 {
+    let now = sketch.endpoints(side);
+    now.0.distance(was.0).max(now.1.distance(was.1))
+}
+
+const CLICK_ORDERS: [bool; 2] = [true, false];
+
+#[test]
+fn a_fixed_side_stays_and_a_free_circle_made_tangent_to_it_comes_whichever_was_clicked_first() {
+    for curve_first in CLICK_ORDERS {
+        let (mut sketch, side, circle) = a_side_over_a_circle(true, false);
+        let picks = match curve_first {
+            true => [Element::Circle(circle), Element::Segment(side)],
+            false => [Element::Segment(side), Element::Circle(circle)],
+        };
+        let tangent = intended(Rule::Tangent, picks, &sketch);
+        let before = (sketch.endpoints(side), where_the_circle_is(&sketch, circle));
+
+        let outcome = sketch.lay_rule(tangent, SCALE);
+
+        let case = format!("curve first: {curve_first}");
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the tangency was refused"
+        );
+        let slid = side_moved(&sketch, side, before.0);
+        assert!(slid < CLOSE, "{case}: the fixed side moved by {slid}");
+        let off = off_touching(&sketch, circle, side);
+        assert!(
+            off < SETTLED,
+            "{case}: the circle stands {off} off touching the side"
+        );
+        assert!(
+            how_far_it_went(&sketch, circle, before.1) > CLOSE,
+            "{case}: the circle did not come"
+        );
+    }
+}
+
+#[test]
+fn a_fixed_circle_stays_and_a_free_side_made_tangent_to_it_comes_whichever_was_clicked_first() {
+    for diameter in [None, Some(10.0)] {
+        for curve_first in CLICK_ORDERS {
+            let (mut sketch, side, circle) = a_side_over_a_circle(false, true);
+            if let Some(diameter) = diameter {
+                sketch.set_dimension(DimensionTarget::Diameter(circle), diameter, false);
+                sketch.resolve(SCALE);
+            }
+            let picks = match curve_first {
+                true => [Element::Circle(circle), Element::Segment(side)],
+                false => [Element::Segment(side), Element::Circle(circle)],
+            };
+            let tangent = intended(Rule::Tangent, picks, &sketch);
+            let before = (sketch.endpoints(side), where_the_circle_is(&sketch, circle));
+
+            let outcome = sketch.lay_rule(tangent, SCALE);
+
+            let case = format!("diameter {diameter:?}, curve first: {curve_first}");
+            assert_eq!(
+                outcome,
+                LengthOutcome::Exact,
+                "{case}: the tangency was refused"
+            );
+            let went = where_the_circle_is(&sketch, circle).0.distance(before.1.0);
+            assert!(
+                went < CLOSE,
+                "{case}: the fixed circle's centre moved by {went}"
+            );
+            let off = off_touching(&sketch, circle, side);
+            assert!(
+                off < SETTLED,
+                "{case}: the circle stands {off} off touching the side"
+            );
+            assert!(
+                side_moved(&sketch, side, before.0) > CLOSE,
+                "{case}: the side did not come"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_tangency_between_a_side_and_a_circle_with_nothing_fixed_still_leaves_the_first_clicked_where_it_was()
+ {
+    for curve_first in CLICK_ORDERS {
+        let (mut sketch, side, circle) = a_side_over_a_circle(false, false);
+        let picks = match curve_first {
+            true => [Element::Circle(circle), Element::Segment(side)],
+            false => [Element::Segment(side), Element::Circle(circle)],
+        };
+        let tangent = intended(Rule::Tangent, picks, &sketch);
+        let before = (sketch.endpoints(side), where_the_circle_is(&sketch, circle));
+
+        let outcome = sketch.lay_rule(tangent, SCALE);
+
+        let case = format!("curve first: {curve_first}");
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the tangency was refused"
+        );
+        let (stayed, came) = match curve_first {
+            true => (
+                how_far_it_went(&sketch, circle, before.1),
+                side_moved(&sketch, side, before.0),
+            ),
+            false => (
+                side_moved(&sketch, side, before.0),
+                how_far_it_went(&sketch, circle, before.1),
+            ),
+        };
+        assert!(
+            stayed < CLOSE,
+            "{case}: the first clicked moved by {stayed}"
+        );
+        assert!(
+            came > CLOSE,
+            "{case}: the second clicked stayed where it was"
+        );
+    }
+}
+
+/// #1040's second case: a rectangle from (1, 3) to (6.5, 7) whose left side —
+/// its fourth trait, from (1, 7) down to (1, 3) — may be fixed; a second,
+/// free rectangle from (2, 4) to (3.5, 9), drawn from its top corner as the
+/// seed drew it or from its bottom one, which runs its bottom the other way;
+/// and a circle made tangent to that bottom, which brings it under the
+/// bottom's right end. The circle's centre may be fixed too.
+fn a_side_beside_a_circle_touching_a_free_rectangle(
+    side_fixed: bool,
+    circle_fixed: bool,
+    drawn_from_the_top: bool,
+) -> (Sketch, SegmentId, CircleId, SegmentId) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let mut rectangle = |corner: (f64, f64), opposite: (f64, f64)| {
+        let corners = [
+            corner,
+            (opposite.0, corner.1),
+            opposite,
+            (corner.0, opposite.1),
+        ]
+        .map(|(x, y)| sketch.add_point(DVec2::new(x, y)));
+        [0, 1, 2, 3].map(|index| sketch.add_segment(corners[index], corners[(index + 1) % 4]))
+    };
+    let fixed_one = rectangle((1.0, 3.0), (6.5, 7.0));
+    let (free_one, bottom) = match drawn_from_the_top {
+        true => (rectangle((2.0, 9.0), (3.5, 4.0)), 2),
+        false => (rectangle((2.0, 4.0), (3.5, 9.0)), 0),
+    };
+    let centre = sketch.add_point(DVec2::new(9.0, 2.0));
+    let circle = sketch.add_circle(centre, 1.0);
+    let rim = sketch.add_point(DVec2::new(10.0, 2.0));
+    sketch.add_constraint(Support::Circle(circle).holding(rim));
+    if side_fixed {
+        sketch.add_constraint(Constraint::Fixed {
+            element: Element::Segment(fixed_one[3]),
+        });
+    }
+    if circle_fixed {
+        sketch.add_constraint(Constraint::Fixed {
+            element: Element::Circle(circle),
+        });
+    }
+    let touching = intended(
+        Rule::Tangent,
+        [Element::Segment(free_one[bottom]), Element::Circle(circle)],
+        &sketch,
+    );
+    assert_eq!(
+        sketch.lay_rule(touching, SCALE),
+        LengthOutcome::Exact,
+        "the circle did not come to touch the free rectangle"
+    );
+    (sketch, fixed_one[3], circle, free_one[bottom])
+}
+
+fn its_centre(sketch: &Sketch, circle: CircleId) -> Element {
+    Element::Point(sketch.circle(circle).center)
+}
+
+const BOTH_WAYS_ROUND: [bool; 2] = [true, false];
+
+#[test]
+fn a_free_circle_s_centre_put_on_a_fixed_side_comes_onto_it_whichever_was_clicked_first() {
+    for (drawn_from_the_top, centre_first) in BOTH_WAYS_ROUND
+        .into_iter()
+        .flat_map(|way| CLICK_ORDERS.map(|order| (way, order)))
+    {
+        let (mut sketch, side, circle, touched) =
+            a_side_beside_a_circle_touching_a_free_rectangle(true, false, drawn_from_the_top);
+        let (centre, line) = (its_centre(&sketch, circle), Element::Segment(side));
+        let picks = match centre_first {
+            true => [centre, line],
+            false => [line, centre],
+        };
+        let on_the_side = intended(Rule::Coincident, picks, &sketch);
+        let before = sketch.endpoints(side);
+
+        let outcome = sketch.lay_rule(on_the_side, SCALE);
+
+        let case = format!(
+            "free rectangle drawn from the top: {drawn_from_the_top}, centre first: {centre_first}"
+        );
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the rule was refused"
+        );
+        let turned = side_moved(&sketch, side, before);
+        assert!(turned < CLOSE, "{case}: the fixed side moved by {turned}");
+        let off = off_the_line(&sketch, circle, side);
+        assert!(
+            off < SETTLED,
+            "{case}: the centre stands {off} off the side"
+        );
+        let gap = off_its_line(&sketch, circle, touched);
+        assert!(
+            gap < SETTLED,
+            "{case}: the circle no longer touches the rectangle, {gap} off"
+        );
+    }
+}
+
+#[test]
+fn a_circle_s_centre_put_on_a_side_with_nothing_fixed_still_lands_touching_the_rectangle() {
+    for (drawn_from_the_top, centre_first) in BOTH_WAYS_ROUND
+        .into_iter()
+        .flat_map(|way| CLICK_ORDERS.map(|order| (way, order)))
+    {
+        let (mut sketch, side, circle, touched) =
+            a_side_beside_a_circle_touching_a_free_rectangle(false, false, drawn_from_the_top);
+        let (centre, line) = (its_centre(&sketch, circle), Element::Segment(side));
+        let picks = match centre_first {
+            true => [centre, line],
+            false => [line, centre],
+        };
+        let on_the_side = intended(Rule::Coincident, picks, &sketch);
+
+        let outcome = sketch.lay_rule(on_the_side, SCALE);
+
+        let case = format!(
+            "free rectangle drawn from the top: {drawn_from_the_top}, centre first: {centre_first}"
+        );
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the rule was refused"
+        );
+        let off = off_the_line(&sketch, circle, side);
+        assert!(
+            off < SETTLED,
+            "{case}: the centre stands {off} off the side"
+        );
+        let gap = off_its_line(&sketch, circle, touched);
+        assert!(
+            gap < SETTLED,
+            "{case}: the circle no longer touches the rectangle, {gap} off"
+        );
+    }
+}
+
+#[test]
+fn a_rule_between_a_fixed_side_and_a_fixed_circle_still_lands_since_nothing_free_can_hold_it() {
+    for curve_first in CLICK_ORDERS {
+        let (mut sketch, side, circle) = a_side_over_a_circle(true, true);
+        let picks = match curve_first {
+            true => [Element::Circle(circle), Element::Segment(side)],
+            false => [Element::Segment(side), Element::Circle(circle)],
+        };
+        let tangent = intended(Rule::Tangent, picks, &sketch);
+
+        let outcome = sketch.lay_rule(tangent, SCALE);
+
+        let case = format!("a tangency, curve first: {curve_first}");
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the rule was refused"
+        );
+        let off = off_touching(&sketch, circle, side);
+        assert!(
+            off < SETTLED,
+            "{case}: the circle stands {off} off touching the side"
+        );
+    }
+    for (drawn_from_the_top, centre_first) in BOTH_WAYS_ROUND
+        .into_iter()
+        .flat_map(|way| CLICK_ORDERS.map(|order| (way, order)))
+    {
+        let (mut sketch, side, circle, _) =
+            a_side_beside_a_circle_touching_a_free_rectangle(true, true, drawn_from_the_top);
+        let (centre, line) = (its_centre(&sketch, circle), Element::Segment(side));
+        let picks = match centre_first {
+            true => [centre, line],
+            false => [line, centre],
+        };
+        let on_the_side = intended(Rule::Coincident, picks, &sketch);
+
+        let outcome = sketch.lay_rule(on_the_side, SCALE);
+
+        let case = format!(
+            "a centre on a side, free rectangle drawn from the top: {drawn_from_the_top}, centre first: {centre_first}"
+        );
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the rule was refused"
+        );
+        let off = off_the_line(&sketch, circle, side);
+        assert!(
+            off < SETTLED,
+            "{case}: the centre stands {off} off the side"
+        );
+    }
 }

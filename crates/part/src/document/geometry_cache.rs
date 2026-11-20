@@ -75,8 +75,10 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// apart are not made one, where they were and the value measured nothing
 /// (#1036). 27: a drag that would carry a shape whole, a fixed point it did not
 /// grab among it, is refused, where the fixed point travelled with the hand
-/// (#1041).
-const REBUILT_BY: u32 = 27;
+/// (#1041). 28: a fixed trait or curve stays when a rule laid against it can be
+/// held by moving the free one, and a point put on a trait can bring its whole
+/// shape (#1040).
+const REBUILT_BY: u32 = 28;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {

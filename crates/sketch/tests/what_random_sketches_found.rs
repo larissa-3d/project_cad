@@ -225,6 +225,16 @@
 //!   the hand
 //! - The case above holds in #501's campaign, its `ignore` taken off —
 //!   `a_drag_never_moves_a_fixed_point_it_did_not_grab`
+//!
+//! Closes #1040.
+//! - In both cases the fixed trait does not move and the free curve comes to
+//!   it — no test: not in this file; `a_rule_brings_the_second_clicked_to_the_first.rs`
+//!   lays the two rules directly, in both orders
+//! - The cases above hold in #501's campaign, the tangency's `ignore` taken
+//!   off, with the centre put on a fixed side drawn by hand, as seed 20000007
+//!   no longer draws it —
+//!   `a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first`,
+//!   `a_circle_s_centre_put_on_a_fixed_side_leaves_the_side_where_it_was`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1521,7 +1531,6 @@ fn stands_at(gestures: &[Gesture], place: [f64; 2]) -> bool {
 }
 
 #[test]
-#[ignore = "#1040"]
 fn a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first() {
     let drawing = [
         Gesture::Rectangle {
@@ -1546,6 +1555,51 @@ fn a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first() {
     assert!(
         stands_at(&drawing, [15.0, 40.0]) && stands_at(&drawing, [15.0, 55.0]),
         "the fixed side left (15, 40)–(15, 55)"
+    );
+    assert!(
+        !stands_at(&drawing, [20.0, 30.0]),
+        "the circle never came: its centre is still at (20, 30)"
+    );
+}
+
+#[test]
+fn a_circle_s_centre_put_on_a_fixed_side_leaves_the_side_where_it_was() {
+    let drawing = [
+        Gesture::Rectangle {
+            corner: [1.0, 3.0],
+            opposite: [6.5, 7.0],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [2.0, 9.0],
+            opposite: [3.5, 4.0],
+            construction: false,
+        },
+        Gesture::Circle {
+            centre: [9.0, 2.0],
+            radius: 1.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Fixed,
+            clicks: vec![[1.0, 5.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[2.75, 4.0], [9.0, 3.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[3.5, 2.5], [1.0, 5.0]],
+        },
+    ];
+    assert!(
+        stands_at(&drawing, [1.0, 3.0]) && stands_at(&drawing, [1.0, 7.0]),
+        "the fixed side left (1, 3)–(1, 7)"
+    );
+    assert!(
+        !stands_at(&drawing, [3.5, 2.5]),
+        "the circle never came: its centre is still at (3.5, 2.5)"
     );
 }
 
