@@ -43,6 +43,20 @@
 //!   `two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross`,
 //!   down to the finest lean the reckoning can tell from lying along —
 //!   `two_traits_whose_ends_stand_just_beyond_the_doubt_of_lying_along_each_other_are_cut_once_where_they_cross`
+//!
+//! Closes #1071.
+//! - two closed curves that are the same curve within one place close one
+//!   loop between them, as two edges laid along each other already do in
+//!   `areas_closed` — a circle and a round ellipse of the same centre and
+//!   radius, as seed 30002413 leaves them, and an ellipse and its mirror that
+//!   is the same ellipse, as seed 30001705 leaves them —
+//!   `a_circle_and_a_round_ellipse_lying_on_it_within_one_place_close_one_area`,
+//!   `an_ellipse_and_its_mirror_lying_on_it_within_one_place_close_one_area`;
+//!   and two closed curves a hair apart beyond one place are a real sliver,
+//!   which keeps its two loops —
+//!   `a_circle_and_a_round_ellipse_a_hair_apart_beyond_one_place_close_two_areas`
+//! - seeds 30002413 and 30001705 hold — no test: not in this file;
+//!   `what_random_sketches_found.rs` holds the two shrunk cases
 
 // The drawing, the rules and the campaign are the campaign file's; this one
 // only holds the reckoning to drawings whose answer is known.
@@ -538,6 +552,73 @@ fn a_long_trait_beside_a_short_one_farther_than_one_place_from_it_closes_nothing
         "two traits apart by {gap} near the origin, where one place is 4e-7"
     );
     assert_eq!(enclosure.encloses(DVec2::new(0.0, gap / 2.0)), Some(false));
+}
+
+/// The circle seed 30002413 settles into, and a round ellipse on its centre
+/// whose radius stands `apart` from it, its first axis turned away from where
+/// the circle starts.
+fn a_circle_and_a_round_ellipse_turned_from_it(apart: f64) -> Vec<Curve> {
+    let centre = DVec2::new(10.26801538484842, 3.6915722659915917);
+    let radius = 10.911454794741264;
+    let turned = DVec2::new(10.268015384851186, 3.6915722659838983).normalize();
+    vec![
+        circle(centre.into(), radius),
+        Curve::Oval {
+            drawn: EllipseDraft {
+                centre,
+                first: turned * (radius + apart),
+                second: radius + apart,
+            },
+            from: 0.0,
+            sweep: std::f64::consts::TAU,
+        },
+    ]
+}
+
+#[test]
+fn a_circle_and_a_round_ellipse_lying_on_it_within_one_place_close_one_area() {
+    let enclosure = Enclosure::of(&a_circle_and_a_round_ellipse_turned_from_it(3e-9));
+    assert_eq!(
+        enclosure.areas_closed(),
+        Some(1),
+        "a circle and an ellipse 3e-9 apart, inside one place, are one disc"
+    );
+    assert_eq!(enclosure.encloses(DVec2::new(10.0, 4.0)), Some(true));
+    assert_eq!(enclosure.encloses(DVec2::new(30.0, 4.0)), Some(false));
+}
+
+#[test]
+fn a_circle_and_a_round_ellipse_a_hair_apart_beyond_one_place_close_two_areas() {
+    let apart = 2.0 * hair(22.0);
+    assert_eq!(
+        Enclosure::of(&a_circle_and_a_round_ellipse_turned_from_it(apart)).areas_closed(),
+        Some(2),
+        "a circle and an ellipse {apart} apart enclose a sliver between them"
+    );
+}
+
+#[test]
+fn an_ellipse_and_its_mirror_lying_on_it_within_one_place_close_one_area() {
+    let ellipse_and_mirror = [
+        ellipse(
+            [1.9430826598650506e-9, 7.602026630243957],
+            [1.4232288077731736, -3.5270808496079553e-10],
+            7.602026630248487,
+        ),
+        ellipse(
+            [-1.9610611732446543e-9, 7.60202663022837],
+            [-1.423228807764167, -3.5622260696754893e-10],
+            7.602026630252278,
+        ),
+    ];
+    let enclosure = Enclosure::of(&ellipse_and_mirror);
+    assert_eq!(
+        enclosure.areas_closed(),
+        Some(1),
+        "an ellipse and its mirror a few 1e-9 apart, inside one place, are one area"
+    );
+    assert_eq!(enclosure.encloses(DVec2::new(0.0, 7.0)), Some(true));
+    assert_eq!(enclosure.encloses(DVec2::new(3.0, 7.0)), Some(false));
 }
 
 #[test]

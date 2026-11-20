@@ -272,6 +272,15 @@
 //!   `two_crossed_rectangles_under_a_parallel_and_a_collinear_keep_their_areas`
 //! - a crossing between two traits only nearly parallel is still found once —
 //!   no test: not in this file; `what_closes_around_a_place.rs` holds it
+//!
+//! Closes #1071.
+//! - two closed curves that are the same curve within one place close one
+//!   loop between them — no test: not in this file;
+//!   `what_closes_around_a_place.rs` holds the reckoning to it directly
+//! - seeds 30002413 and 30001705, mode `shares` 0,80,0, hold as the campaign
+//!   shrank them —
+//!   `a_circle_and_an_ellipse_made_one_curve_by_coincident_are_one_area`,
+//!   `an_ellipse_mirrored_across_the_axis_its_centre_is_brought_onto_is_one_area_with_its_mirror`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -2002,6 +2011,69 @@ fn two_crossed_rectangles_under_a_parallel_and_a_collinear_keep_their_areas() {
         Gesture::Rule {
             rule: cao_sketch::Rule::Collinear,
             clicks: vec![[52.5, 22.5], [45.0, 7.5]],
+        },
+    ]);
+}
+
+#[test]
+fn a_circle_and_an_ellipse_made_one_curve_by_coincident_are_one_area() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [10.0, 6.0],
+            radius: 4.0,
+            construction: false,
+        },
+        Gesture::Ellipse {
+            centre: [10.0, 6.0],
+            reach: [18.0, 6.0],
+            across: 4.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[14.0, 6.0], [18.0, 6.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Fixed,
+            clicks: vec![[8.0, 10.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[2.0, 6.0], [0.0, 0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [20.6921262997093, 6.916127641909394],
+                [8.000000000028958, 10.0],
+            ],
+        },
+    ]);
+}
+
+#[test]
+fn an_ellipse_mirrored_across_the_axis_its_centre_is_brought_onto_is_one_area_with_its_mirror() {
+    random_sketches::holds(&[
+        Gesture::Ellipse {
+            centre: [6.0, 9.0],
+            reach: [7.060660171779821, 10.060660171779821],
+            across: 0.5,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![[5.335988725681406, 9.008487237645364]],
+            axis: Axis::V,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Perpendicular,
+            clicks: vec![
+                [0.0, -7.205304147987005],
+                [5.787867965644036, 8.787867965644036],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[0.0, 0.0], [6.219669914110387, 7.969669914110086]],
         },
     ]);
 }

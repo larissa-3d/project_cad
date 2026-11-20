@@ -821,17 +821,21 @@ impl Enclosure {
     }
 
     /// How many areas the curves close: one for each fundamental loop, but
-    /// for the loops two edges laid along each other close, which have no
-    /// surface — or nothing, when the drawing holds a near touch the walk may
-    /// read either way.
+    /// for the loops two edges laid along each other close, or two closed
+    /// curves that are the same curve, which have no surface — or nothing,
+    /// when the drawing holds a near touch the walk may read either way.
     pub fn areas_closed(&self) -> Option<usize> {
         if self.doubtful {
             return None;
         }
+        let whole = |edge: &Edge| edge.from == edge.to && self.curves[edge.curve].is_closed();
         let alike = |one: &Edge, other: &Edge| {
             let (ends, others) = ([one.from, one.to], [other.from, other.to]);
             (ends == others || ends == [other.to, other.from])
                 && one.middle.distance(other.middle) <= one_place(one.middle)
+                || whole(one)
+                    && whole(other)
+                    && same_curve(&self.curves[one.curve], &self.curves[other.curve])
         };
         let laid = (0..self.edges.len())
             .filter(|index| {
