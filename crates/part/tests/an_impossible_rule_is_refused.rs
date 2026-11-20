@@ -81,11 +81,22 @@
 //! - The case above holds in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawing is held to its rules there, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1044.
+//! - The rule is refused with the drawing unchanged —
+//!   `collinear_between_two_equal_sides_an_angle_holds_apart_is_refused`;
+//!   so is the same rule with no « Égalité » between the two sides —
+//!   `collinear_between_two_sides_an_angle_holds_apart_is_refused`; and two
+//!   equal sides no angle holds apart still become collinear, both keeping
+//!   their length — `collinear_between_two_equal_sides_no_angle_holds_apart_lands`
+//! - The case above holds in #501's campaign — no test: the campaign lives in
+//!   `cao_sketch`, and the drawing is held to its rules there, under the same
+//!   name, in `crates/sketch/tests/what_random_sketches_found.rs`
 
 use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
-    Constraint, DimensionTarget, Element, EllipseId, PointId, Rule, RuleIntent, RulePick,
-    SegmentId, Sketch, SketchAxis, WorkPlane, rule_intent,
+    Along, AxisToward, Constraint, DimensionTarget, Element, EllipseId, PointId, Rule, RuleIntent,
+    RulePick, SegmentId, Sketch, SketchAxis, Support, Toward, WorkPlane, rule_intent,
 };
 use glam::DVec2;
 
@@ -1090,4 +1101,133 @@ fn two_free_points_a_distance_holds_apart_are_not_made_one() {
     let merge = the_merge(&document, first, second);
 
     step_refused_with_the_drawing_unchanged(document, merge, None);
+}
+
+/// The rectangle from (0, 1) to (1, -2.5), its first corner held on V: the
+/// top, the right side, the bottom, the left. The left side is held at 0° to
+/// V, the right side typed 3.535; the bottom and the left are made equal when
+/// `equal`, and given 81.258° at both their ends when `apart`.
+fn a_quadrilateral(equal: bool, apart: bool) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::Held {
+            at: DVec2::new(0.0, 1.0),
+            on: vec![Support::Axis(SketchAxis::V)],
+        },
+        opposite: PointRef::New(DVec2::new(1.0, -2.5)),
+        construction: false,
+    });
+    let [right, bottom, left] = [SegmentId(1), SegmentId(2), SegmentId(3)];
+    if equal {
+        let rule = the_rule(
+            &document,
+            Rule::Equal,
+            &[
+                RulePick::Element(Element::Segment(bottom)),
+                RulePick::Element(Element::Segment(left)),
+            ],
+        );
+        document.apply(Operation::Constrain {
+            sketch: 0,
+            constraint: rule,
+        });
+        assert!(document.sketches()[0].carries(rule), "the sides are equal");
+    }
+    let mut values = vec![
+        (
+            DimensionTarget::AxisAngle {
+                segment: left,
+                segment_toward: Toward::End,
+                axis: SketchAxis::V,
+                axis_toward: AxisToward::Positive,
+            },
+            0.0,
+        ),
+        (DimensionTarget::Length(right), 3.535),
+    ];
+    if apart {
+        values.extend([
+            (
+                DimensionTarget::Angle {
+                    first: right,
+                    first_along: Along::Trait,
+                    second: bottom,
+                    second_along: Along::Prolongation,
+                },
+                81.258,
+            ),
+            (
+                DimensionTarget::Angle {
+                    first: bottom,
+                    first_along: Along::Trait,
+                    second: left,
+                    second_along: Along::Trait,
+                },
+                81.258,
+            ),
+        ]);
+    }
+    for (target, value) in values {
+        document.apply(Operation::SetDimension {
+            sketch: 0,
+            target,
+            value: value.into(),
+            placement: None,
+        });
+        assert!(
+            document.sketches()[0]
+                .dimensions()
+                .iter()
+                .any(|laid| laid.target == target && !laid.driven),
+            "{target:?} drives the drawing"
+        );
+    }
+    document
+}
+
+fn the_bottom_and_the_left() -> [RulePick; 2] {
+    [
+        RulePick::Element(Element::Segment(SegmentId(3))),
+        RulePick::Element(Element::Segment(SegmentId(2))),
+    ]
+}
+
+#[test]
+fn collinear_between_two_equal_sides_an_angle_holds_apart_is_refused() {
+    let document = a_quadrilateral(true, true);
+
+    let rule = the_rule(&document, Rule::Collinear, &the_bottom_and_the_left());
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn collinear_between_two_sides_an_angle_holds_apart_is_refused() {
+    let document = a_quadrilateral(false, true);
+
+    let rule = the_rule(&document, Rule::Collinear, &the_bottom_and_the_left());
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn collinear_between_two_equal_sides_no_angle_holds_apart_lands() {
+    let mut document = a_quadrilateral(true, false);
+
+    landed(&mut document, Rule::Collinear, &the_bottom_and_the_left());
+
+    let sketch = &document.sketches()[0];
+    let (bottom, left) = (
+        sketch.endpoints(SegmentId(2)),
+        sketch.endpoints(SegmentId(3)),
+    );
+    let lengths = [bottom.0.distance(bottom.1), left.0.distance(left.1)];
+    assert!(
+        lengths.iter().all(|length| (length - 1.0).abs() < 1e-6),
+        "both sides keep their length of 1: {lengths:?}"
+    );
+    let (along, across) = (bottom.0 - bottom.1, left.1 - left.0);
+    assert!(
+        along.perp_dot(across).abs() < 1e-6 * along.length() * across.length(),
+        "the two sides lie on one line: {bottom:?} and {left:?}"
+    );
 }

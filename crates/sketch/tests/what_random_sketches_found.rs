@@ -235,6 +235,13 @@
 //!   no longer draws it —
 //!   `a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first`,
 //!   `a_circle_s_centre_put_on_a_fixed_side_leaves_the_side_where_it_was`
+//!
+//! Closes #1044.
+//! - The rule is refused with the drawing unchanged — no test: the refusal is
+//!   `cao_part`'s, held under the same name in
+//!   `crates/part/tests/an_impossible_rule_is_refused.rs`
+//! - The case above holds in #501's campaign, its `ignore` taken off —
+//!   `collinear_between_two_equal_sides_an_angle_holds_apart_is_refused`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1759,7 +1766,6 @@ fn half_an_ellipse_whose_end_is_made_one_with_its_centre_encloses_nothing_new() 
 }
 
 #[test]
-#[ignore = "#1044"]
 fn collinear_between_two_equal_sides_an_angle_holds_apart_is_refused() {
     random_sketches::holds(&[
         Gesture::Rectangle {
