@@ -92,10 +92,10 @@ impl Sketch {
             outcome = SolveOutcome::Solved;
         }
 
-        // A trait pulled down to nothing, or a tangency whose contact has slid
+        // A trait or a radius pulled down to nothing, or a tangency whose contact has slid
         // off its segment, is not geometry: the system would call itself
         // solved while the drawing had quietly fallen apart.
-        match self.has_a_collapsed_trait(scale) || self.has_a_flipped_tangent() {
+        match self.has_a_collapsed_curve(scale) || self.has_a_flipped_tangent() {
             true => SolveOutcome::Residual,
             false => outcome,
         }
@@ -106,12 +106,15 @@ impl Sketch {
         crate::precision::drawing_size(self)
     }
 
-    /// Whether any trait has been squeezed down to something shorter than the
-    /// use precision — under which nothing the user can type tells it from a
-    /// point.
-    pub(crate) fn has_a_collapsed_trait(&self, scale: f64) -> bool {
-        self.live_segments()
-            .any(|(id, _)| crate::precision::is_collapsed(self.segment_length(id), scale))
+    /// Whether any trait, or the radius of any circle or arc, has been
+    /// squeezed down to something shorter than the use precision — under which
+    /// nothing the user can type tells it from a point.
+    pub(crate) fn has_a_collapsed_curve(&self, scale: f64) -> bool {
+        let traits = self.live_segments().map(|(id, _)| self.segment_length(id));
+        let circles = self.live_circles().map(|(_, circle)| circle.radius);
+        let arcs = self.live_arcs().map(|(id, _)| self.arc_radius(id));
+        (traits.chain(circles).chain(arcs))
+            .any(|length| crate::precision::is_collapsed(length, scale))
     }
 
     /// One go at settling the drawing: the shapes that must not bend are read

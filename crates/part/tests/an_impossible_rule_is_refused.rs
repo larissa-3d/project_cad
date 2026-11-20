@@ -140,6 +140,24 @@
 //!   `an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_length_is_typed`
 //! - With no value, the arc of ellipse still goes — no test: a merge that
 //!   lands is held beside the other merges, in `two_points_made_one.rs`
+//!
+//! Closes #1072.
+//! - The decision is written here — no test: it is the issue's comment of
+//!   2026-11-20, one guard after every solve
+//! - The five cases above hold in #501's campaign: a rule whose solution
+//!   would shrink a circle or an arc to nothing is refused with the drawing
+//!   as it was, as seed 30000491 lays it —
+//!   `a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`,
+//!   `a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`;
+//!   the campaign's own cases are held in `cao_sketch`, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`, and the merge of
+//!   seed 30005683 at the sketch's level in
+//!   `crates/sketch/tests/a_curve_is_never_shrunk_to_nothing.rs`
+//! - The drag of seed 31000310 stops short — no test: a drag is the sketch's,
+//!   held in `cao_sketch`
+//! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
+//!   measurement over #501's campaign once the guard is in, not a test the
+//!   gate can hold
 
 use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -1804,4 +1822,73 @@ fn an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_lengt
             );
         }
     }
+}
+
+/// `curve`'s centre made the centre of an ellipse too, its first axis 40 to
+/// either side along U and its second 20 along V; the rule is a tangency
+/// between `curve` and that first axis, as the tool lays it.
+fn a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(
+    mut document: PartDocument,
+    curve: Element,
+) -> (PartDocument, Constraint) {
+    let sketch = &document.sketches()[0];
+    let centre = match curve {
+        Element::Circle(circle) => sketch.circles()[circle.0].center,
+        Element::Arc(arc) => sketch.arcs()[arc.0].center,
+        other => panic!("not a round curve: {other:?}"),
+    };
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: PointRef::Existing(centre),
+        first: [
+            PointRef::New(DVec2::new(-20.0, 15.0)),
+            PointRef::New(DVec2::new(60.0, 15.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(20.0, -5.0)),
+            PointRef::New(DVec2::new(20.0, 35.0)),
+        ],
+        construction: false,
+        drawn: None,
+    });
+    let axis = document.sketches()[0].ellipses()[0].first;
+    let picks = [
+        RulePick::Element(curve),
+        RulePick::Element(Element::Segment(axis)),
+    ];
+    let rule = the_rule(&document, Rule::Tangent, &picks);
+    (document, rule)
+}
+
+#[test]
+fn a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        radius: 25.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let circle = Element::Circle(cao_sketch::CircleId(0));
+
+    let (document, rule) =
+        a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(document, circle);
+    refused_with_the_drawing_unchanged(document, rule, Some(circle));
+}
+
+#[test]
+fn a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddArc {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        start: PointRef::New(DVec2::new(45.0, 15.0)),
+        end: PointRef::New(DVec2::new(20.0, 40.0)),
+        construction: false,
+    });
+    let arc = Element::Arc(cao_sketch::ArcId(0));
+
+    let (document, rule) = a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(document, arc);
+    refused_with_the_drawing_unchanged(document, rule, Some(arc));
 }

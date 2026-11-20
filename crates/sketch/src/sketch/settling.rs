@@ -123,7 +123,7 @@ impl Sketch {
         self.held.lines.clear();
         let broken = outcome != LengthOutcome::Exact
             || backwards
-            || self.has_a_collapsed_trait(self.drawing_size())
+            || self.has_a_collapsed_curve(self.drawing_size())
             || self.has_a_flipped_tangent()
             || self.throws_a_point();
         match (broken, inside_out || self.shrinks_a_curve()) {
@@ -192,7 +192,7 @@ impl Sketch {
         let outcome = self.resolve(millimeters_per_unit);
         self.held.points.clear();
         if outcome == LengthOutcome::Exact
-            && !self.has_a_collapsed_trait(self.drawing_size())
+            && !self.has_a_collapsed_curve(self.drawing_size())
             && !self.has_a_flipped_tangent()
             && !self.throws_a_point()
         {

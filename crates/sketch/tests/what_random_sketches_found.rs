@@ -281,6 +281,23 @@
 //!   shrank them —
 //!   `a_circle_and_an_ellipse_made_one_curve_by_coincident_are_one_area`,
 //!   `an_ellipse_mirrored_across_the_axis_its_centre_is_brought_onto_is_one_area_with_its_mirror`
+//!
+//! Closes #1072.
+//! - The decision is written here — no test: it is the issue's comment of
+//!   2026-11-20, one guard after every solve
+//! - The five cases above hold in #501's campaign: the four rules and merges,
+//!   seeds 30000491, 30001541, 30005567 and 30005683, mode `shares` 0,80,0,
+//!   are refused with the drawing as it was —
+//!   `a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`,
+//!   `a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused`,
+//!   `collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused`,
+//!   `an_arc_s_end_made_one_with_its_mirror_s_is_refused_rather_than_shrinking_them`
+//! - The five cases above hold in #501's campaign: the drag of seed 31000310
+//!   stops short, the arcs keeping a radius — no test yet: the next round
+//!   writes it
+//! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
+//!   measurement over #501's campaign once the guard is in, not a test the
+//!   gate can hold
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -2074,6 +2091,121 @@ fn an_ellipse_mirrored_across_the_axis_its_centre_is_brought_onto_is_one_area_wi
         Gesture::Rule {
             rule: cao_sketch::Rule::Coincident,
             clicks: vec![[0.0, 0.0], [6.219669914110387, 7.969669914110086]],
+        },
+    ]);
+}
+
+#[test]
+fn a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [4.0, 0.0],
+            radius: 4.5,
+            construction: false,
+        },
+        Gesture::Ellipse {
+            centre: [4.0, 0.0],
+            reach: [13.0, 0.0],
+            across: 5.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[2.2, 0.0], [8.299014201065226, 1.3298409299760279]],
+        },
+    ]);
+}
+
+#[test]
+fn a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [0.0, 6.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[0.0, 0.0], [3.0, 6.0], [1.0, 0.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[1.5, 3.0], [0.0, -6.5]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[2.866009467376818, 6.886560619984019], [0.5, 3.0]],
+        },
+    ]);
+}
+
+#[test]
+fn collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [1.5, 0.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [7.0, 9.0],
+            opposite: [12.5, 11.5],
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[4.366009467376818, 0.8865606199840186], [9.7499795, 9.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Collinear,
+            clicks: vec![
+                [3.2918894443644473, 3.996719624824003],
+                [-11.92422641927401, 0.0],
+            ],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_its_mirror_s_is_refused_rather_than_shrinking_them() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [45.0, 0.0],
+            start: [45.0, -135.0],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Trim {
+            at: [140.45941546018392, -95.4594154601839],
+        },
+        Gesture::Arc {
+            centre: [60.0, 90.0],
+            start: [60.0, 75.0],
+            degrees: 300.0,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![[67.5, 102.99038105676658]],
+            axis: Axis::U,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[47.00961894323342, 82.5], [45.0, 0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [44.09207696395175, 89.23179435564785],
+                [71.9589620358558, 4.185344086103531],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [44.09207696399786, -89.23179435565704],
+                [44.09207696395175, 89.23179435564785],
+            ],
         },
     ]);
 }
