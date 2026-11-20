@@ -1295,6 +1295,9 @@ when none decides it.
 | Lay a rule | Two traits made equal | The second takes the first's length | Same |
 | Lay a rule | A free trait and a free circle made tangent | Whichever was clicked second comes to touch the first | Same (#451) |
 | Lay a rule | The same, the circle beside the end of the trait rather than over it | The second clicked also slides along the trait, just far enough for the circle to stand over it | Same (#451); both moved, the circle resizing, whichever came first |
+| Lay a rule | The same, the trait fixed or ending on the origin, either clicked first | The trait stays; the curve slides along it and comes to touch it | Same (#1040); clicked curve first, the trait slid along to the curve, or shrank and the rule was refused |
+| Lay a rule | The same, the curve fixed and the trait free, either clicked first | The curve stays; the trait slides along it and comes | Same (#1040); clicked trait first, the curve slid along to the trait |
+| Lay a rule | « Coïncidence », a circle's centre and a fixed trait, the circle touching a free rectangle, either clicked first | The trait stays; the circle comes onto its line, carrying the rectangle it touches | Same (#1040); the fixed trait turned about its end and stretched |
 | Lay a rule | A rectangle drawn from the origin along its axes, made parallel to a free trait | The trait turns; the rectangle keeps lying along the axes, and stays green | Same (#471); the rectangle turned to the trait when clicked second, and turned yellow |
 | Lay a rule | Two free traits made square, the second fixed | The first gives: the order decides before the clicks | Same (#451) |
 | Type a value | A length on the second of two traits made equal | Both take it | Same since #451; it was refused, Equal only ever moving the second |

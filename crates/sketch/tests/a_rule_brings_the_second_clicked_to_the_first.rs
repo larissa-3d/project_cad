@@ -44,7 +44,9 @@
 //!   `a_rule_between_a_fixed_side_and_a_fixed_circle_still_lands_since_nothing_free_can_hold_it`;
 //!   and the other way round, the circle fixed — its centre held, its radius
 //!   free unless its diameter is typed — and the side free —
-//!   `a_fixed_circle_stays_and_a_free_side_made_tangent_to_it_comes_whichever_was_clicked_first`
+//!   `a_fixed_circle_stays_and_a_free_side_made_tangent_to_it_comes_whichever_was_clicked_first`;
+//!   the origin outranks what is fixed, so a side standing on it stays too —
+//!   `a_side_on_the_origin_stays_and_a_free_circle_made_tangent_to_it_comes_whichever_was_clicked_first`
 //! - The cases above hold in #501's campaign — no test: not in this file;
 //!   `what_random_sketches_found.rs` holds the two drawings
 
@@ -735,6 +737,59 @@ fn a_fixed_circle_stays_and_a_free_side_made_tangent_to_it_comes_whichever_was_c
                 "{case}: the side did not come"
             );
         }
+    }
+}
+
+#[test]
+fn a_side_on_the_origin_stays_and_a_free_circle_made_tangent_to_it_comes_whichever_was_clicked_first()
+ {
+    for curve_first in CLICK_ORDERS {
+        let mut sketch = Sketch::new(WorkPlane::XY);
+        let corners = [
+            Sketch::ORIGIN,
+            sketch.add_point(DVec2::new(10.0, 0.0)),
+            sketch.add_point(DVec2::new(10.0, 15.0)),
+            sketch.add_point(DVec2::new(0.0, 15.0)),
+        ];
+        let sides =
+            [0, 1, 2, 3].map(|index| sketch.add_segment(corners[index], corners[(index + 1) % 4]));
+        let side = sides[3];
+        let centre = sketch.add_point(DVec2::new(5.0, -10.0));
+        let circle = sketch.add_circle(centre, 5.0);
+        let picks = match curve_first {
+            true => [Element::Circle(circle), Element::Segment(side)],
+            false => [Element::Segment(side), Element::Circle(circle)],
+        };
+        let tangent = intended(Rule::Tangent, picks, &sketch);
+        let before = (sketch.endpoints(side), where_the_circle_is(&sketch, circle));
+
+        let outcome = sketch.lay_rule(tangent, SCALE);
+
+        let case = format!("curve first: {curve_first}");
+        assert_eq!(
+            outcome,
+            LengthOutcome::Exact,
+            "{case}: the tangency was refused"
+        );
+        let slid = side_moved(&sketch, side, before.0);
+        assert!(
+            slid < CLOSE,
+            "{case}: the side on the origin moved by {slid}"
+        );
+        let length = sketch.segment_length(side);
+        assert!(
+            (length - 15.0).abs() < CLOSE,
+            "{case}: the side on the origin is {length} long, not 15"
+        );
+        let off = off_touching(&sketch, circle, side);
+        assert!(
+            off < SETTLED,
+            "{case}: the circle stands {off} off touching the side"
+        );
+        assert!(
+            how_far_it_went(&sketch, circle, before.1) > CLOSE,
+            "{case}: the circle did not come"
+        );
     }
 }
 
