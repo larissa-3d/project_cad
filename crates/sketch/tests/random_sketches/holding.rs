@@ -263,23 +263,16 @@ pub(super) fn drag(sketch: &mut Sketch, from: DVec2, to: DVec2) {
                 && sketch.holds_on(grip.point).len() <= 1
         });
     match grip {
-        Some(grip) => {
-            let mut group = sketch.arc_ends_around(grip.point);
-            group.extend(sketch.ellipse_ends_around(grip.point));
-            match group.is_empty() {
-                true => {
-                    let held_off = match grip.from_afar {
-                        true => sketch.point(grip.point) - from,
-                        false => DVec2::ZERO,
-                    };
-                    move_point(sketch, grip.point, to + held_off);
-                }
-                false => {
-                    group.insert(0, grip.point);
-                    move_many(sketch, &group, to - from);
-                }
+        Some(grip) => match sketch.carried_with_centre(grip.point) {
+            Some(group) => move_many(sketch, &group, to - from),
+            None => {
+                let held_off = match grip.from_afar {
+                    true => sketch.point(grip.point) - from,
+                    false => DVec2::ZERO,
+                };
+                move_point(sketch, grip.point, to + held_off);
             }
-        }
+        },
         None => match sketch.pulled_at(from, snap, SCALE) {
             Some(Pulled::Side(side)) => {
                 let pulled = sketch.side_drag(side, from, to, &NO_MAGNET, SCALE);
