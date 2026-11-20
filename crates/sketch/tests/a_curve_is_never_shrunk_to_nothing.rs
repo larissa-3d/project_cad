@@ -40,6 +40,15 @@
 //!   `an_arc_s_start_dropped_on_its_own_centre_takes_the_arc_as_the_merge_does`;
 //!   the application's drop holds it under the same name in
 //!   `crates/app/src/screens/viewport/input/dragging/tests.rs`
+//! - Also, surfaced by review: an arc counts as brought down by the solve at
+//!   either end — one end made one with another point standing on its
+//!   centre, or a hair off it, is refused rather than taking the other end
+//!   down with it or leaving it alone on the far side —
+//!   `an_arc_s_end_made_one_with_a_point_a_hair_off_its_centre_is_refused`,
+//!   `an_arc_s_end_made_one_with_another_point_standing_on_its_centre_is_refused`;
+//!   and an end dragged within the use precision of its centre leaves the
+//!   arc a radius at both ends —
+//!   `an_arc_s_end_dragged_within_the_use_precision_of_its_centre_leaves_the_arc_a_radius`
 
 #[allow(dead_code, unused_imports)]
 mod random_sketches;
@@ -337,5 +346,81 @@ fn an_arc_s_start_dropped_on_its_own_centre_takes_the_arc_as_the_merge_does() {
         ends_from_centres(&sketch).is_empty(),
         "the arc is still drawn, its ends {:?} from its centre",
         ends_from_centres(&sketch)
+    );
+}
+
+/// An arc about (20, 20), 10 round, from (30, 20) to (20, 30); another about
+/// (60, 50) that keeps the drawing some 57 across, so a use precision of
+/// some 5.7e-6; and a trait to (45, 25) from a point of its own `off` the
+/// first arc's centre. The arc's centre, start and end, and that point.
+fn an_arc_beside_a_point_off_its_centre(off: DVec2) -> (Sketch, [PointId; 3], PointId) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let [centre, start, end] =
+        [(20.0, 20.0), (30.0, 20.0), (20.0, 30.0)].map(|at| sketch.add_point(DVec2::from(at)));
+    sketch.add_arc(centre, start, end);
+    let [other_centre, other_start, other_end] =
+        [(60.0, 50.0), (65.0, 50.0), (60.0, 55.0)].map(|at| sketch.add_point(DVec2::from(at)));
+    sketch.add_arc(other_centre, other_start, other_end);
+    let beside = sketch.add_point(DVec2::new(20.0, 20.0) + off);
+    let far = sketch.add_point(DVec2::new(45.0, 25.0));
+    sketch.add_segment(beside, far);
+    (sketch, [centre, start, end], beside)
+}
+
+fn use_precision(sketch: &Sketch) -> f64 {
+    cao_sketch::precision::drawing_size(sketch) * cao_sketch::precision::USE
+}
+
+fn the_end_made_one_with_a_point_off_its_centre_is_refused(off: DVec2) {
+    let (mut sketch, [centre, start, end], beside) = an_arc_beside_a_point_off_its_centre(off);
+    assert!(
+        sketch.point(beside).distance(sketch.point(centre)) < use_precision(&sketch),
+        "the point stands within the use precision of the centre"
+    );
+    let was = sketch.clone();
+
+    let joined = sketch.join_points(beside, end, 1.0);
+
+    assert!(
+        !joined,
+        "the end was made one with the point: the start now {} from the centre, the end {}",
+        sketch.point(start).distance(sketch.point(centre)),
+        sketch.point(end).distance(sketch.point(centre))
+    );
+    assert!(
+        sketch
+            .points()
+            .iter()
+            .zip(was.points())
+            .all(|(now, then)| now.distance(*then) < 1e-9),
+        "nothing about the drawing moved"
+    );
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_a_point_a_hair_off_its_centre_is_refused() {
+    the_end_made_one_with_a_point_off_its_centre_is_refused(DVec2::new(3e-7, 0.0));
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_another_point_standing_on_its_centre_is_refused() {
+    the_end_made_one_with_a_point_off_its_centre_is_refused(DVec2::ZERO);
+}
+
+#[test]
+fn an_arc_s_end_dragged_within_the_use_precision_of_its_centre_leaves_the_arc_a_radius() {
+    let (mut sketch, [centre, start, end], _) = an_arc_beside_a_point_off_its_centre(DVec2::ZERO);
+    let landing = sketch.point(centre) + DVec2::new(0.0, 3e-7);
+    let pull = sketch.pull(end, 1.0);
+
+    sketch.settle_pulled(&pull, landing, 1.0);
+
+    let reach = |point: PointId| sketch.point(point).distance(sketch.point(centre));
+    assert!(
+        reach(start) > use_precision(&sketch) && reach(end) > use_precision(&sketch),
+        "the arc is brought under the use precision {}: its start {} from the centre, its end {}",
+        use_precision(&sketch),
+        reach(start),
+        reach(end)
     );
 }

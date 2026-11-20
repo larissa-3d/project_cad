@@ -164,7 +164,7 @@
 //!   measurement over #501's campaign once the guard is in, not a test the
 //!   gate can hold
 
-use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
+use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PartState, PointRef};
 use cao_sketch::{
     Along, AxisToward, Constraint, DimensionTarget, Element, EllipseId, LengthOutcome, PointId,
     Rule, RuleIntent, RulePick, SegmentId, Sketch, SketchAxis, Support, Toward, WorkPlane,
@@ -1915,9 +1915,31 @@ fn a_long_trait_beside(curve: Operation) -> PartDocument {
 
 const A_TINY_PLACE: DVec2 = DVec2::new(500.0, 100.0);
 
+/// The long trait made horizontal, as the tool lays it, and the part opened
+/// again: the rule is laid, and replayed, both times the trait lying flat.
+fn the_trait_is_made_horizontal_and_replayed(mut document: PartDocument) {
+    let picks = the_trait_and_the_axis(SketchAxis::U);
+    let rule = the_rule(&document, Rule::Parallel, &picks);
+
+    landed(&mut document, Rule::Parallel, &picks);
+    let replayed = PartState::rebuild(&document.history);
+
+    for (when, sketch) in [
+        ("laid", &document.sketches()[0]),
+        ("replayed", &replayed.sketches[0]),
+    ] {
+        assert!(sketch.carries(rule), "{when}: the rule is kept");
+        let (start, end) = sketch.endpoints(SegmentId(0));
+        assert!(
+            (start.y - end.y).abs() < 1e-6,
+            "{when}: the trait lies horizontal: {start} to {end}"
+        );
+    }
+}
+
 #[test]
 fn a_rule_elsewhere_still_lands_beside_a_circle_drawn_tiny() {
-    let mut document = a_long_trait_beside(Operation::AddCircle {
+    let document = a_long_trait_beside(Operation::AddCircle {
         sketch: 0,
         center: PointRef::New(A_TINY_PLACE),
         radius: 1e-5,
@@ -1930,22 +1952,12 @@ fn a_rule_elsewhere_still_lands_beside_a_circle_drawn_tiny() {
         "the circle is drawn"
     );
 
-    landed(
-        &mut document,
-        Rule::Parallel,
-        &the_trait_and_the_axis(SketchAxis::U),
-    );
-
-    let (start, end) = document.sketches()[0].endpoints(SegmentId(0));
-    assert!(
-        (start.y - end.y).abs() < 1e-6,
-        "the trait lies horizontal: {start} to {end}"
-    );
+    the_trait_is_made_horizontal_and_replayed(document);
 }
 
 #[test]
 fn a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny() {
-    let mut document = a_long_trait_beside(Operation::AddArc {
+    let document = a_long_trait_beside(Operation::AddArc {
         sketch: 0,
         center: PointRef::New(A_TINY_PLACE),
         start: PointRef::New(A_TINY_PLACE + DVec2::new(1e-5, 0.0)),
@@ -1954,15 +1966,5 @@ fn a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny() {
     });
     assert_eq!(document.sketches()[0].arcs().len(), 1, "the arc is drawn");
 
-    landed(
-        &mut document,
-        Rule::Parallel,
-        &the_trait_and_the_axis(SketchAxis::U),
-    );
-
-    let (start, end) = document.sketches()[0].endpoints(SegmentId(0));
-    assert!(
-        (start.y - end.y).abs() < 1e-6,
-        "the trait lies horizontal: {start} to {end}"
-    );
+    the_trait_is_made_horizontal_and_replayed(document);
 }

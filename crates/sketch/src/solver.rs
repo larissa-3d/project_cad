@@ -71,7 +71,7 @@ impl Sketch {
         }
 
         let scale = self.drawing_size();
-        let small_already = precision::collapsed_curves(self, scale);
+        let small_already = precision::collapsed_reaches(self, scale);
         let mut outcome = SolveOutcome::Residual;
         let mut before = f64::INFINITY;
         for _ in 0..ROUNDS {
@@ -97,9 +97,7 @@ impl Sketch {
         // contact has slid off its segment, is not geometry: the system would
         // call itself solved while the drawing had quietly fallen apart. A
         // curve drawn that small is the user's, not the solve's doing.
-        let shrunk = precision::collapsed_curves(self, scale)
-            .iter()
-            .any(|curve| !small_already.contains(curve));
+        let shrunk = precision::has_shrunk_a_curve(&small_already, self, scale);
         match shrunk
             || precision::has_a_collapsed_trait(self, scale)
             || self.has_a_flipped_tangent()
