@@ -88,7 +88,9 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// what it owes and is no longer turned, and one on a side longer than that is
 /// turned however small the drawing, where the line sat at a fixed millionth
 /// (#1060).
-const REBUILT_BY: u32 = 32;
+/// 33: an arc of ellipse whose two ends are made one is refused while a length
+/// on either axis holds it, where it went and took the value with it (#1063).
+const REBUILT_BY: u32 = 33;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {

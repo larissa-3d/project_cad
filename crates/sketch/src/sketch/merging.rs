@@ -150,10 +150,11 @@ impl Sketch {
                 .iter()
                 .any(|value| value.target == DimensionTarget::Length(axis) && !value.driven)
         };
-        let onto_its_centre = self.live_arcs().any(|(id, arc)| {
+        let a_held_curve_goes = self.live_arcs().any(|(id, arc)| {
             (same(arc.center, arc.start) || same(arc.center, arc.end)) && radius_typed(id)
         }) || self.live_ellipses().any(|(_, ellipse)| {
-            ellipse.ends_on(|end| same(ellipse.center, end))
+            (ellipse.ends_on(|end| same(ellipse.center, end))
+                || ellipse.drawn.is_some_and(|(from, to)| same(from, to)))
                 && (length_typed(ellipse.first) || length_typed(ellipse.second))
         });
         let impossible_rule = self
@@ -165,7 +166,7 @@ impl Sketch {
                 && matches!(value.target, DimensionTarget::Distance { from, to }
                     if from != to && same(from, to))
         });
-        !onto_its_centre && !impossible_rule && !value_against_itself
+        !a_held_curve_goes && !impossible_rule && !value_against_itself
     }
 
     /// Whether a rule could not hold with the points `same` names as one.

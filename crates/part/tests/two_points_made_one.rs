@@ -70,6 +70,13 @@
 //! - The cases above hold in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawing is held to its rules there, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1063.
+//! - Joining the two ends of an arc of ellipse with a length typed on an axis
+//!   is refused with the drawing unchanged — no test: a refusal is held
+//!   beside the other refusals, in `an_impossible_rule_is_refused.rs`
+//! - With no value, the arc of ellipse still goes, either end clicked first —
+//!   `an_arc_of_ellipse_whose_two_ends_are_made_one_goes`
 
 use cao_part::{Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
@@ -645,6 +652,34 @@ fn an_arc_of_ellipse_a_trim_left_goes_when_its_end_is_made_one_with_its_centre()
                 "{second:?} onto {first:?}: the merged point went with the curve"
             );
         }
+    }
+}
+
+#[test]
+fn an_arc_of_ellipse_whose_two_ends_are_made_one_goes() {
+    let (_, _, [from, to]) = an_arc_of_ellipse_a_trim_left();
+    for (first, second) in [(from, to), (to, from)] {
+        let (mut document, _, _) = an_arc_of_ellipse_a_trim_left();
+
+        let (kept, outcome) = made_to_coincide(&mut document, first, second);
+
+        let sketch = &document.sketches()[0];
+        assert_eq!(
+            outcome, None,
+            "{second:?} onto {first:?}: the merge was refused"
+        );
+        assert!(
+            sketch.is_erased_ellipse(EllipseId(0)),
+            "{second:?} onto {first:?}: an arc of ellipse of no length is still drawn"
+        );
+        assert!(
+            sketch.regions().is_empty(),
+            "{second:?} onto {first:?}: an area appeared"
+        );
+        assert!(
+            !sketch.is_erased_point(kept),
+            "{second:?} onto {first:?}: the merged point went with the curve"
+        );
     }
 }
 
