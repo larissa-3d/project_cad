@@ -111,7 +111,7 @@ impl Sketch {
     /// point.
     pub(crate) fn has_a_collapsed_trait(&self, scale: f64) -> bool {
         self.live_segments()
-            .any(|(id, _)| self.segment_length(id) < scale * crate::precision::USE)
+            .any(|(id, _)| crate::precision::is_collapsed(self.segment_length(id), scale))
     }
 
     /// One go at settling the drawing: the shapes that must not bend are read
@@ -748,13 +748,13 @@ impl Sketch {
                 self.length_equation(from, to, dimension.value / scale)?
             }
             DimensionTarget::Angle { .. } => {
-                self.angle_equation(dimension.target, dimension.value)?
+                self.angle_equation(dimension.target, dimension.value, self.drawing_size())?
             }
             DimensionTarget::AngleBetween { .. } => {
-                self.angle_between_equation(dimension.target, dimension.value)?
+                self.angle_between_equation(dimension.target, dimension.value, self.drawing_size())?
             }
             DimensionTarget::AxisAngle { .. } => {
-                self.axis_angle_equation(dimension.target, dimension.value)?
+                self.axis_angle_equation(dimension.target, dimension.value, self.drawing_size())?
             }
             DimensionTarget::PointToSegment { point, segment } => {
                 self.point_to_segment_equation(point, segment, dimension.value / scale)?

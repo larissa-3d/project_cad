@@ -16,7 +16,12 @@ impl Sketch {
     /// 30° on a corner that opens one way does not flip it to the other. An arm
     /// run along a prolongation turns with its trait all the same: only the
     /// angle read between the arms is another, not how a point moving turns it.
-    pub(super) fn angle_equation(&self, target: DimensionTarget, degrees: f64) -> Option<Equation> {
+    pub(super) fn angle_equation(
+        &self,
+        target: DimensionTarget,
+        degrees: f64,
+        scale: f64,
+    ) -> Option<Equation> {
         let DimensionTarget::Angle { first, second, .. } = target else {
             return None;
         };
@@ -33,7 +38,7 @@ impl Sketch {
         equation.angular = true;
         // An arm shrunk to nothing turns under no push, but the angle it reads
         // is still owed: left out, a solve collapsing it called itself exact.
-        if length_a < 1e-12 || length_b < 1e-12 {
+        if either_collapsed(a, b, scale) {
             return Some(equation);
         }
 
@@ -58,6 +63,7 @@ impl Sketch {
         &self,
         target: DimensionTarget,
         degrees: f64,
+        scale: f64,
     ) -> Option<Equation> {
         let DimensionTarget::AngleBetween {
             first,
@@ -73,21 +79,20 @@ impl Sketch {
         let a = self.point(head_first) - self.point(tail_first);
         let b = self.point(head_second) - self.point(tail_second);
         let (length_a, length_b) = (a.length_squared(), b.length_squared());
-        if length_a < 1e-12 || length_b < 1e-12 {
-            return None;
-        }
-
         let signed = a.perp_dot(b).atan2(a.dot(b));
         let sign = if signed < 0.0 { -1.0 } else { 1.0 };
+
+        let mut equation = Equation::new(self.variables());
+        equation.error = signed.abs() - degrees.to_radians();
+        equation.angular = true;
+        if either_collapsed(a, b, scale) {
+            return Some(equation);
+        }
 
         // How the angle answers a push square to each arm, scaled by how long
         // that arm is — the same derivative a corner's arms have.
         let across_a = DVec2::new(-a.y, a.x) / length_a;
         let across_b = DVec2::new(-b.y, b.x) / length_b;
-
-        let mut equation = Equation::new(self.variables());
-        equation.error = signed.abs() - degrees.to_radians();
-        equation.angular = true;
         equation.add(head_first, -across_a * sign);
         equation.add(tail_first, across_a * sign);
         equation.add(head_second, across_b * sign);
@@ -107,4 +112,11 @@ impl Sketch {
             Toward::Start => (drawn.start, drawn.end),
         })
     }
+}
+
+/// Whether either arm of an angle is too short to be turned on a drawing
+/// `scale` across.
+fn either_collapsed(a: DVec2, b: DVec2, scale: f64) -> bool {
+    crate::precision::is_collapsed(a.length(), scale)
+        || crate::precision::is_collapsed(b.length(), scale)
 }

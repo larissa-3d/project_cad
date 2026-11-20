@@ -117,11 +117,27 @@
 //! - The cases above hold in #501's campaign — no test: the campaign lives in
 //!   `cao_sketch`, and the drawing is held to its rules there, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`
+//!
+//! Closes #1060.
+//! - A rule that would shrink a side of a typed angle between two traits to
+//!   nothing is refused with the drawing unchanged —
+//!   `collinear_between_two_traits_an_angle_holds_apart_is_refused`
+//! - The same for an angle typed to an axis —
+//!   `collinear_between_an_upright_trait_and_one_typed_slanted_to_an_axis_is_refused`
+//! - No test reaches these two equations' collapse today: the first step is to
+//!   find a gesture that does — no test: it is the search that found the two
+//!   gestures above, « Colinéaire » between the angle's two traits
+//! - Also, from the review of #1044: the length under which the three angle
+//!   equations give up scales with the drawing, rather than being an absolute
+//!   1e-6 — `an_angle_at_a_corner_follows_on_a_drawing_a_million_times_smaller`,
+//!   `an_angle_between_two_traits_follows_on_a_drawing_a_million_times_smaller`,
+//!   `an_angle_to_an_axis_holds_on_a_drawing_a_million_times_smaller`
 
 use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
 use cao_sketch::{
-    Along, AxisToward, Constraint, DimensionTarget, Element, EllipseId, PointId, Rule, RuleIntent,
-    RulePick, SegmentId, Sketch, SketchAxis, Support, Toward, WorkPlane, rule_intent,
+    Along, AxisToward, Constraint, DimensionTarget, Element, EllipseId, LengthOutcome, PointId,
+    Rule, RuleIntent, RulePick, SegmentId, Sketch, SketchAxis, Support, Toward, WorkPlane,
+    rule_intent,
 };
 use glam::DVec2;
 
@@ -1549,5 +1565,159 @@ fn half_an_ellipse_a_trim_left_on_its_second_axis_is_refused_while_its_height_is
                 "{second:?} onto {first:?}: the curve went"
             );
         }
+    }
+}
+
+fn an_angle_typed(document: &mut PartDocument, target: DimensionTarget, degrees: f64) {
+    let outcome = document.apply(Operation::SetDimension {
+        sketch: 0,
+        target,
+        value: degrees.into(),
+        placement: None,
+    });
+    assert_eq!(
+        outcome,
+        Some(Outcome::Dimension(DimensionOutcome::Geometry(
+            LengthOutcome::Exact
+        ))),
+        "{target:?} = {degrees}° does not land"
+    );
+    assert!(
+        document.sketches()[0]
+            .dimensions()
+            .iter()
+            .any(|laid| laid.target == target && !laid.driven),
+        "{target:?} does not drive the drawing"
+    );
+}
+
+fn an_upright_trait_and_a_slanted_one_apart(document: &mut PartDocument) {
+    for (start, end) in [
+        (DVec2::new(0.0, 0.0), DVec2::new(0.0, 2.0)),
+        (DVec2::new(1.0, 0.5), DVec2::new(2.0, 1.5)),
+    ] {
+        document.apply(Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::New(start),
+            end: PointRef::New(end),
+            construction: false,
+        });
+    }
+}
+
+const THE_UPRIGHT_THEN_THE_SLANTED: [RulePick; 2] = [
+    RulePick::Element(Element::Segment(SegmentId(0))),
+    RulePick::Element(Element::Segment(SegmentId(1))),
+];
+
+#[test]
+fn collinear_between_two_traits_an_angle_holds_apart_is_refused() {
+    let mut document = a_blank_sketch();
+    an_upright_trait_and_a_slanted_one_apart(&mut document);
+    let between = document.sketches()[0].angle_between_traits(SegmentId(0), SegmentId(1));
+    an_angle_typed(&mut document, between, 60.0);
+
+    let rule = the_rule(&document, Rule::Collinear, &THE_UPRIGHT_THEN_THE_SLANTED);
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+#[test]
+fn collinear_between_an_upright_trait_and_one_typed_slanted_to_an_axis_is_refused() {
+    let mut document = a_blank_sketch();
+    an_upright_trait_and_a_slanted_one_apart(&mut document);
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &[
+            RulePick::Element(Element::Segment(SegmentId(0))),
+            RulePick::Axis(SketchAxis::V),
+        ],
+    );
+    let slant = document.sketches()[0].angle_to_axis(SegmentId(1), SketchAxis::U);
+    an_angle_typed(&mut document, slant, 45.0);
+
+    let rule = the_rule(&document, Rule::Collinear, &THE_UPRIGHT_THEN_THE_SLANTED);
+    refused_with_the_drawing_unchanged(document, rule, None);
+}
+
+/// An upright trait 20 long and a short one 0.5 long, from its foot when
+/// `at_its_foot` says so and apart from it otherwise, every coordinate
+/// multiplied by `size`: a million times smaller, the short one is under the
+/// 1e-6 an angle equation used to give up at, and far over what counts as
+/// collapsed on a drawing that size.
+fn a_long_trait_and_a_short_one(size: f64, at_its_foot: bool) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(1.0, 1.0) * size),
+        end: PointRef::New(DVec2::new(1.0, 21.0) * size),
+        construction: false,
+    });
+    let (start, end) = match at_its_foot {
+        true => (
+            PointRef::Existing(document.sketches()[0].segments()[0].start),
+            DVec2::new(1.3, 1.4),
+        ),
+        false => (
+            PointRef::New(DVec2::new(5.0, 5.0) * size),
+            DVec2::new(5.3, 5.4),
+        ),
+    };
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start,
+        end: PointRef::New(end * size),
+        construction: false,
+    });
+    document
+}
+
+fn reads(document: &PartDocument, target: DimensionTarget, degrees: f64, size: f64) {
+    let read = document.sketches()[0]
+        .opening(target)
+        .unwrap_or_else(|| panic!("{target:?} reads nothing"));
+    assert!(
+        (read - degrees).abs() < 1e-6,
+        "at {size} times the size, {target:?} reads {read}° where {degrees}° was typed"
+    );
+}
+
+fn an_angle_to_the_short_trait_follows_the_long_one_turned(at_its_foot: bool) {
+    for size in [1.0, 1e-6] {
+        let mut document = a_long_trait_and_a_short_one(size, at_its_foot);
+        let angle = match at_its_foot {
+            true => document.sketches()[0].corner_angle(SegmentId(0), SegmentId(1)),
+            false => document.sketches()[0].angle_between_traits(SegmentId(0), SegmentId(1)),
+        };
+        an_angle_typed(&mut document, angle, 60.0);
+        let upright = document.sketches()[0].angle_to_axis(SegmentId(0), SketchAxis::U);
+
+        an_angle_typed(&mut document, upright, 80.0);
+
+        reads(&document, upright, 80.0, size);
+        reads(&document, angle, 60.0, size);
+    }
+}
+
+#[test]
+fn an_angle_at_a_corner_follows_on_a_drawing_a_million_times_smaller() {
+    an_angle_to_the_short_trait_follows_the_long_one_turned(true);
+}
+
+#[test]
+fn an_angle_between_two_traits_follows_on_a_drawing_a_million_times_smaller() {
+    an_angle_to_the_short_trait_follows_the_long_one_turned(false);
+}
+
+#[test]
+fn an_angle_to_an_axis_holds_on_a_drawing_a_million_times_smaller() {
+    for size in [1.0, 1e-6] {
+        let mut document = a_long_trait_and_a_short_one(size, false);
+        let slant = document.sketches()[0].angle_to_axis(SegmentId(1), SketchAxis::U);
+        an_angle_typed(&mut document, slant, 20.0);
+
+        landed(&mut document, Rule::Parallel, &THE_UPRIGHT_THEN_THE_SLANTED);
+
+        reads(&document, slant, 20.0, size);
     }
 }

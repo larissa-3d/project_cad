@@ -65,6 +65,7 @@ impl Sketch {
         &self,
         target: DimensionTarget,
         degrees: f64,
+        scale: f64,
     ) -> Option<Equation> {
         let DimensionTarget::AxisAngle {
             segment,
@@ -76,18 +77,17 @@ impl Sketch {
         };
         let (_, reference, span) = self.axis_arms(target)?;
         let (tip, tail) = self.arm_ends(segment, segment_toward)?;
-        let length = span.length_squared();
-        if length < 1e-12 {
-            return None;
-        }
-
         let signed = reference.perp_dot(span).atan2(reference.dot(span));
         let sign = if signed < 0.0 { -1.0 } else { 1.0 };
-        let turn = DVec2::new(-span.y, span.x) / length;
 
         let mut equation = Equation::new(self.variables());
         equation.error = signed.abs() - degrees.to_radians();
         equation.angular = true;
+        if crate::precision::is_collapsed(span.length(), scale) {
+            return Some(equation);
+        }
+
+        let turn = DVec2::new(-span.y, span.x) / span.length_squared();
         equation.add(tip, turn * sign);
         equation.add(tail, -turn * sign);
         Some(equation)
