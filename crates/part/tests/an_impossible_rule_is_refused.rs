@@ -1732,11 +1732,10 @@ fn an_angle_to_an_axis_holds_on_a_drawing_a_million_times_smaller() {
 
 /// An ellipse about (0, 50), 60 wide and 40 high, trimmed down to the stretch
 /// a trim leaves between two points laid on it at 45° and 135°, with the
-/// length of one of its axes typed: the document, the curve, that axis and the
-/// two ends.
+/// length of one of its axes typed: the document, the curve and the two ends.
 fn an_arc_of_ellipse_an_axis_length_typed(
     second_axis: bool,
-) -> (PartDocument, EllipseId, SegmentId, [PointId; 2]) {
+) -> (PartDocument, EllipseId, [PointId; 2]) {
     let mut document = a_blank_sketch();
     let middle = DVec2::new(0.0, 50.0);
     document.apply(Operation::AddEllipse {
@@ -1780,30 +1779,16 @@ fn an_arc_of_ellipse_an_axis_length_typed(
         true => (ellipse.second, 40.0),
     };
     a_value_typed(&mut document, DimensionTarget::Length(axis), length);
-    (document, curve, axis, [from, to])
+    (document, curve, [from, to])
 }
 
 #[test]
 fn an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_length_is_typed() {
     for second_axis in [false, true] {
-        let (_, _, _, [from, to]) = an_arc_of_ellipse_an_axis_length_typed(second_axis);
+        let (_, _, [from, to]) = an_arc_of_ellipse_an_axis_length_typed(second_axis);
         for (first, second) in [(from, to), (to, from)] {
-            let (document, curve, axis, _) = an_arc_of_ellipse_an_axis_length_typed(second_axis);
+            let (document, curve, _) = an_arc_of_ellipse_an_axis_length_typed(second_axis);
             let merge = the_merge(&document, first, second);
-            let mut tried = document.clone();
-            let outcome = tried.apply(merge.clone());
-            let sketch = &tried.sketches()[0];
-            let typed = sketch
-                .dimensions()
-                .iter()
-                .any(|value| value.target == DimensionTarget::Length(axis) && !value.driven);
-            assert_eq!(
-                outcome,
-                Some(Outcome::RuleRefused),
-                "second axis: {second_axis}, {second:?} onto {first:?}: the merge was laid, \
-                 the curve gone: {}, the length typed on its axis still there: {typed}",
-                sketch.is_erased_ellipse(curve)
-            );
 
             let document = step_refused_with_the_drawing_unchanged(
                 document,

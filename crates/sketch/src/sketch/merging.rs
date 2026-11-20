@@ -13,6 +13,7 @@ use glam::DVec2;
 
 use super::settling::Landing;
 use super::{Element, LengthOutcome, PointId, Sketch};
+use crate::Ellipse;
 use crate::constraints::{Constraint, Dimension, DimensionTarget};
 use crate::erased::Erased;
 use handing_over::handed_over;
@@ -145,17 +146,22 @@ impl Sketch {
                 .iter()
                 .any(|value| value.target == DimensionTarget::ArcRadius(arc) && !value.driven)
         };
-        let length_typed = |axis| {
-            self.dimensions()
-                .iter()
-                .any(|value| value.target == DimensionTarget::Length(axis) && !value.driven)
+        let axis_typed = |ellipse: &Ellipse| {
+            self.dimensions().iter().any(|value| {
+                !value.driven
+                    && [ellipse.first, ellipse.second]
+                        .iter()
+                        .any(|axis| value.target == DimensionTarget::Length(*axis))
+            })
         };
-        let a_held_curve_goes = self.live_arcs().any(|(id, arc)| {
+        let arc_onto_its_centre_while_radius_typed = self.live_arcs().any(|(id, arc)| {
             (same(arc.center, arc.start) || same(arc.center, arc.end)) && radius_typed(id)
-        }) || self.live_ellipses().any(|(_, ellipse)| {
-            (ellipse.ends_on(|end| same(ellipse.center, end))
-                || ellipse.drawn.is_some_and(|(from, to)| same(from, to)))
-                && (length_typed(ellipse.first) || length_typed(ellipse.second))
+        });
+        let ellipse_onto_its_centre_while_axis_typed = self.live_ellipses().any(|(_, ellipse)| {
+            ellipse.ends_on(|end| same(ellipse.center, end)) && axis_typed(&ellipse)
+        });
+        let ellipse_ends_made_one_while_axis_typed = self.live_ellipses().any(|(_, ellipse)| {
+            ellipse.drawn.is_some_and(|(from, to)| same(from, to)) && axis_typed(&ellipse)
         });
         let impossible_rule = self
             .constraints
@@ -166,7 +172,11 @@ impl Sketch {
                 && matches!(value.target, DimensionTarget::Distance { from, to }
                     if from != to && same(from, to))
         });
-        !a_held_curve_goes && !impossible_rule && !value_against_itself
+        !arc_onto_its_centre_while_radius_typed
+            && !ellipse_onto_its_centre_while_axis_typed
+            && !ellipse_ends_made_one_while_axis_typed
+            && !impossible_rule
+            && !value_against_itself
     }
 
     /// Whether a rule could not hold with the points `same` names as one.
