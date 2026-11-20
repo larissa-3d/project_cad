@@ -1148,7 +1148,8 @@ From what never gives to what gives first:
    A shape the drag can neither stretch nor turn — a trait whose length is
    typed and whose direction a rule holds, an ellipse's axis with its length
    and angle given — travels whole with the hand, as a selection moved does
-   (#473).
+   (#473). Not when it holds a point pinned — fixed, or the origin — that the
+   hand did not grab: then the point stops short, and nothing moves (#1041).
 6. **Ordinary points.** Among them, a length no value gives yields before an
    angle no value gives: the shape stretches before it turns. A value typed
    leaves the point nearest the origin where it is and moves the other, and
@@ -1266,6 +1267,7 @@ when none decides it.
 | Drag a point | Tied to a fixed point by a trait of typed length | The point stops at that length and turns round the fixed one | Same |
 | Drag a point | An end of a trait of typed length made parallel to a rectangle | The trait travels whole, still parallel and still its length | Same (#473); nothing moved |
 | Drag a corner | A rectangle away from the origin, both sizes typed, one side made horizontal | It travels whole | Same (#473); nothing moved, by a test that said so |
+| Drag a point | An end of a trait whose length is typed and whose direction a rule holds, its other end fixed | Nothing moves: the point stops short | Same (#1041); the trait travelled whole, its fixed end with it |
 | Drag a green point | — | Nothing: it does not answer the hand | Same |
 | Drag a fixed point | A trait, one end fixed | The fixed end follows the hand, and is fixed there | Follows, read off `settle_around`; not yet tried in the application |
 | Pull a side, slide a curve | — | As "Pulling a side" and "Sliding a curve" say | Same (#443) |

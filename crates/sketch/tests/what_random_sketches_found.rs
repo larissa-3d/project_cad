@@ -217,6 +217,14 @@
 //!   same names
 //! - The case above holds in #501's campaign, its `ignore` taken off —
 //!   `a_merge_that_would_leave_a_value_measuring_a_point_against_itself_is_refused`
+//!
+//! Closes #1041.
+//! - The fixed point stays; the dragged point stops short — no test: not in
+//!   this file; `what_a_drag_does_to_a_fixed_point.rs` holds it at the
+//!   sketch's level, beside a fixed point grabbed directly that still follows
+//!   the hand
+//! - The case above holds in #501's campaign, its `ignore` taken off —
+//!   `a_drag_never_moves_a_fixed_point_it_did_not_grab`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -1542,7 +1550,6 @@ fn a_fixed_side_stays_put_when_a_circle_is_made_tangent_to_it_curve_first() {
 }
 
 #[test]
-#[ignore = "#1041"]
 fn a_drag_never_moves_a_fixed_point_it_did_not_grab() {
     let drawing = [
         Gesture::Chain {

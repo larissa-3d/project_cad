@@ -185,8 +185,17 @@ impl Sketch {
             // neither a way to stretch nor to turn — a trait whose length is
             // typed and whose direction a rule holds. The shape travels whole
             // with the hand instead, as a selection moved does, and what
-            // cannot travel either is given back (#473).
+            // cannot travel either is given back (#473). A shape holding a
+            // pinned point the hand did not grab cannot travel (#1041).
             Give::Stuck => {
+                let pinned = self.pinned_points();
+                if holding
+                    .shape
+                    .iter()
+                    .any(|each| *each != pull.point && pinned[each.0])
+                {
+                    return LengthOutcome::BestEffort;
+                }
                 let travel = position - from;
                 let moved: Vec<(PointId, DVec2)> = holding
                     .shape
