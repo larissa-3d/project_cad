@@ -26,7 +26,11 @@
 //!   exactly — the chain seed 31003453 settles into, its three traits a few
 //!   1e-10 apart, closes nothing, as it does laid flat —
 //!   `a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_within_one_place_of_each_other`,
-//!   `a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_along_each_other_exactly`
+//!   `a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_along_each_other_exactly`;
+//!   and a trait only beside another, its ends within one place of the
+//!   other's line far out but the other standing farther than one place from
+//!   it, meets it nowhere —
+//!   `a_long_trait_beside_a_short_one_farther_than_one_place_from_it_closes_nothing`
 //! - seeds 31003453 and 30000037 hold — no test: not in this file;
 //!   `what_random_sketches_found.rs` holds the two shrunk cases
 //! - the reckoning's own tests in `every_sketch_keeps_its_areas.rs` and
@@ -36,7 +40,9 @@
 //!   repository is called
 //! - a crossing between two traits only nearly parallel, which do not lie
 //!   along each other, is still found once —
-//!   `two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross`
+//!   `two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross`,
+//!   down to the finest lean the reckoning can tell from lying along —
+//!   `two_traits_whose_ends_stand_just_beyond_the_doubt_of_lying_along_each_other_are_cut_once_where_they_cross`
 
 // The drawing, the rules and the campaign are the campaign file's; this one
 // only holds the reckoning to drawings whose answer is known.
@@ -482,30 +488,56 @@ fn a_chain_folded_back_along_itself_closes_nothing_when_its_traits_lie_within_on
     );
 }
 
-#[test]
-fn two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross() {
-    let lean = 5.0 * 1e-4f64.tan();
+/// Two traits ten long crossing at the origin, the second's ends `rise` off
+/// the first's, each pair of ends joined so that the two halves close.
+fn assert_a_bow_tie_closes_its_two_halves(rise: f64) {
     let bow_tie = [
         straight([-5.0, 0.0], [5.0, 0.0]),
-        straight([-5.0, -lean], [5.0, lean]),
-        straight([-5.0, 0.0], [-5.0, -lean]),
-        straight([5.0, 0.0], [5.0, lean]),
+        straight([-5.0, -rise], [5.0, rise]),
+        straight([-5.0, 0.0], [-5.0, -rise]),
+        straight([5.0, 0.0], [5.0, rise]),
     ];
     let enclosure = Enclosure::of(&bow_tie);
     assert_eq!(
         enclosure.areas_closed(),
         Some(2),
-        "the two halves of a bow tie"
+        "the two halves of a bow tie whose ends rise {rise}"
     );
     assert_eq!(
-        enclosure.encloses(DVec2::new(-2.5, -lean / 4.0)),
+        enclosure.encloses(DVec2::new(-2.5, -rise / 4.0)),
         Some(true)
     );
-    assert_eq!(enclosure.encloses(DVec2::new(2.5, lean / 4.0)), Some(true));
+    assert_eq!(enclosure.encloses(DVec2::new(2.5, rise / 4.0)), Some(true));
     assert_eq!(
-        enclosure.encloses(DVec2::new(-2.5, lean / 4.0)),
+        enclosure.encloses(DVec2::new(-2.5, rise / 4.0)),
         Some(false)
     );
+}
+
+#[test]
+fn two_traits_nearly_parallel_crossing_in_their_middle_are_cut_once_where_they_cross() {
+    assert_a_bow_tie_closes_its_two_halves(5.0 * 1e-4f64.tan());
+}
+
+#[test]
+fn two_traits_whose_ends_stand_just_beyond_the_doubt_of_lying_along_each_other_are_cut_once_where_they_cross()
+ {
+    assert_a_bow_tie_closes_its_two_halves(6e-6);
+}
+
+#[test]
+fn a_long_trait_beside_a_short_one_farther_than_one_place_from_it_closes_nothing() {
+    let gap = 1e-5;
+    let enclosure = Enclosure::of(&[
+        straight([-1.0, 0.0], [1.0, 0.0]),
+        straight([-70.0, gap], [70.0, gap]),
+    ]);
+    assert_eq!(
+        enclosure.areas_closed(),
+        Some(0),
+        "two traits apart by {gap} near the origin, where one place is 4e-7"
+    );
+    assert_eq!(enclosure.encloses(DVec2::new(0.0, gap / 2.0)), Some(false));
 }
 
 #[test]

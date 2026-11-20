@@ -316,7 +316,11 @@ fn straights_meet(from: DVec2, to: DVec2, start: DVec2, end: DVec2) -> Vec<DVec2
     if beside(start, from, to) && beside(end, from, to)
         || beside(from, start, end) && beside(to, start, end)
     {
-        return vec![from, to, start, end];
+        return [from, to]
+            .into_iter()
+            .filter(|at| beside(*at, start, end))
+            .chain([start, end].into_iter().filter(|at| beside(*at, from, to)))
+            .collect();
     }
     let (one, other) = (to - from, end - start);
     let across = one.perp_dot(other);
