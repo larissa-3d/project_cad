@@ -90,16 +90,19 @@ impl Kept {
     /// which would turn the arc inside out, nor a trait rounded into a curve,
     /// whose fillet or cap would come out crossed.
     pub(crate) fn runs_backwards(&self, sketch: &Sketch) -> bool {
-        let Some(from) = self.from else {
-            return false;
-        };
         if self
             .segment
             .is_some_and(|segment| !sketch.is_rounded(segment))
         {
             return false;
         }
-        (sketch.point(self.to) - sketch.point(from)).dot(self.along) <= 0.0
+        self.turned_round(sketch)
+    }
+
+    /// Whether the direction kept came out the other way round, may it or not.
+    pub(crate) fn turned_round(&self, sketch: &Sketch) -> bool {
+        self.from
+            .is_some_and(|from| (sketch.point(self.to) - sketch.point(from)).dot(self.along) <= 0.0)
     }
 }
 

@@ -24,6 +24,16 @@ pub use point_on_curve::CLEAR_OF_AN_END;
 pub use pull::PointPull;
 pub(in crate::sketch) use turned_whole::Landing;
 
+/// How a settling with points held came out. A curve brought to or through
+/// nothing is told apart from the rest: the hand stops short of it, rather
+/// than the drawing finding a place of its own to rest at.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Settled {
+    Whole,
+    Broken,
+    ThroughNothing,
+}
+
 /// What the user is holding while a drag lasts: points the solver reads as
 /// immovable, and the lines the drag keeps where they lie — or, while a rule
 /// lands, what it was laid from, circles' sizes included — and the fixed points
@@ -84,24 +94,43 @@ impl Sketch {
     /// says whether it came out whole: every value true, no trait squeezed to
     /// nothing, no tangency slid off, nothing kept come out the other way
     /// round where it may not (`Kept::runs_backwards`), no point thrown past
-    /// the bound of a drag under way (`Sketch::throws_a_point`).
+    /// the bound of a drag under way (`Sketch::throws_a_point`), no curve the
+    /// drag of its centre brought to nothing or turned inside out
+    /// (`Sketch::shrinks_a_curve`, `Sketch::turns_an_axis_round`).
     pub(crate) fn settle_held(
         &mut self,
         points: Vec<PointId>,
         lines: Vec<Kept>,
         millimeters_per_unit: f64,
     ) -> bool {
+        self.judge_held(points, lines, millimeters_per_unit) == Settled::Whole
+    }
+
+    /// The same, saying apart a drawing whole but for a curve brought to or
+    /// through nothing.
+    pub(crate) fn judge_held(
+        &mut self,
+        points: Vec<PointId>,
+        lines: Vec<Kept>,
+        millimeters_per_unit: f64,
+    ) -> Settled {
         self.held.points = points;
         self.held.lines = lines;
         let outcome = self.resolve(millimeters_per_unit);
         let backwards = self.held.lines.iter().any(|line| line.runs_backwards(self));
+        let inside_out = self.turns_an_axis_round(&self.held.lines);
         self.held.points.clear();
         self.held.lines.clear();
-        outcome == LengthOutcome::Exact
-            && !backwards
-            && !self.has_a_collapsed_trait(self.drawing_size())
-            && !self.has_a_flipped_tangent()
-            && !self.throws_a_point()
+        let broken = outcome != LengthOutcome::Exact
+            || backwards
+            || self.has_a_collapsed_trait(self.drawing_size())
+            || self.has_a_flipped_tangent()
+            || self.throws_a_point();
+        match (broken, inside_out || self.shrinks_a_curve()) {
+            (true, _) => Settled::Broken,
+            (false, true) => Settled::ThroughNothing,
+            (false, false) => Settled::Whole,
+        }
     }
 
     /// The same for a whole handful of points dropped at once, which is how a
