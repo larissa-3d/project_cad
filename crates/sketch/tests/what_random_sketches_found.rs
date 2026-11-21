@@ -281,6 +281,37 @@
 //!   shrank them —
 //!   `a_circle_and_an_ellipse_made_one_curve_by_coincident_are_one_area`,
 //!   `an_ellipse_mirrored_across_the_axis_its_centre_is_brought_onto_is_one_area_with_its_mirror`
+//!
+//! Closes #1072.
+//! - The decision is written here — no test: it is the issue's comment of
+//!   2026-11-20, one guard after every solve
+//! - The five cases above hold in #501's campaign: the four rules and merges,
+//!   seeds 30000491, 30001541, 30005567 and 30005683, mode `shares` 0,80,0,
+//!   are refused with the drawing as it was —
+//!   `a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`,
+//!   `a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused`,
+//!   `collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused`,
+//!   `an_arc_s_end_made_one_with_its_mirror_s_is_refused_rather_than_shrinking_them`
+//! - The five cases above hold in #501's campaign: the drag of seed 31000310
+//!   stops short, the arcs keeping a radius —
+//!   `a_drag_after_two_mirrored_arcs_are_tied_stops_short_of_shrinking_them`
+//! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
+//!   measurement over #501's campaign once the guard is in, not a test the
+//!   gate can hold
+//! - Also, from the measure taken after the guard, mode `shares` 0,80,0: a
+//!   « Coïncidence » that holds an arc's end on a trait ending at the arc's
+//!   own centre lays the end on the centre and the arc stays, seeds 30002091,
+//!   30002414, 30003188, 30003712 and 30004238. The user's decision of
+//!   2026-11-21 — "when a « Coïncidence » or a drop brings an arc's end
+//!   within the use precision of its centre … the arc goes … it is refused
+//!   while a value holds its size" — answers it; the two seeds whose areas
+//!   break hold as the campaign shrank them —
+//!   `an_arc_s_end_put_on_a_trait_from_its_centre_to_its_start_keeps_its_areas_mirrored`,
+//!   `an_arc_s_end_put_on_a_trait_ending_at_its_centre_keeps_the_tint_the_measure`
+//! - Also, from the last measure: seed 30002414, mode `shares` 0,80,0, whose
+//!   fifth gesture makes two corners of a rectangle one and lays the start of
+//!   a half-turn held on its side onto the half-turn's centre, holds whole as
+//!   drawn — `a_half_turn_on_a_rectangle_folded_corner_to_corner_keeps_its_areas`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -2074,6 +2105,272 @@ fn an_ellipse_mirrored_across_the_axis_its_centre_is_brought_onto_is_one_area_wi
         Gesture::Rule {
             rule: cao_sketch::Rule::Coincident,
             clicks: vec![[0.0, 0.0], [6.219669914110387, 7.969669914110086]],
+        },
+    ]);
+}
+
+#[test]
+fn a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [4.0, 0.0],
+            radius: 4.5,
+            construction: false,
+        },
+        Gesture::Ellipse {
+            centre: [4.0, 0.0],
+            reach: [13.0, 0.0],
+            across: 5.0,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[2.2, 0.0], [8.299014201065226, 1.3298409299760279]],
+        },
+    ]);
+}
+
+#[test]
+fn a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [0.0, 6.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[0.0, 0.0], [3.0, 6.0], [1.0, 0.0]],
+            closed: false,
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[1.5, 3.0], [0.0, -6.5]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[2.866009467376818, 6.886560619984019], [0.5, 3.0]],
+        },
+    ]);
+}
+
+#[test]
+fn collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused() {
+    random_sketches::holds(&[
+        Gesture::Circle {
+            centre: [1.5, 0.0],
+            radius: 3.0,
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [7.0, 9.0],
+            opposite: [12.5, 11.5],
+            construction: false,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Tangent,
+            clicks: vec![[4.366009467376818, 0.8865606199840186], [9.7499795, 9.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Collinear,
+            clicks: vec![
+                [3.2918894443644473, 3.996719624824003],
+                [-11.92422641927401, 0.0],
+            ],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_its_mirror_s_is_refused_rather_than_shrinking_them() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [45.0, 0.0],
+            start: [45.0, -135.0],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Trim {
+            at: [140.45941546018392, -95.4594154601839],
+        },
+        Gesture::Arc {
+            centre: [60.0, 90.0],
+            start: [60.0, 75.0],
+            degrees: 300.0,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![[67.5, 102.99038105676658]],
+            axis: Axis::U,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[47.00961894323342, 82.5], [45.0, 0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [44.09207696395175, 89.23179435564785],
+                [71.9589620358558, 4.185344086103531],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [44.09207696399786, -89.23179435565704],
+                [44.09207696395175, 89.23179435564785],
+            ],
+        },
+    ]);
+}
+
+#[test]
+fn a_drag_after_two_mirrored_arcs_are_tied_stops_short_of_shrinking_them() {
+    random_sketches::holds(&[
+        Gesture::Arc {
+            centre: [5.0, 6.0],
+            start: [8.5, 6.0],
+            degrees: 135.0,
+            construction: false,
+        },
+        Gesture::Mirror {
+            of: vec![
+                [6.3393920132778145, 9.233578363789503],
+                [6.3393920132778145, 9.233578363789503],
+                [6.3393920132778145, 9.233578363789503],
+            ],
+            axis: Axis::U,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[8.5, -6.0], [8.5, 6.0]],
+        },
+        Gesture::Drag {
+            from: [2.069273733843902, 8.932493948246039],
+            to: [2.069273733843902, 10.066230394236461],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[0.0, 0.0], [2.5837811533561186, -8.932493948245206]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [9.572769548800967, 5.4085440256488434e-12],
+                [4.786384774413328, 5.236530304488603],
+            ],
+        },
+        Gesture::Drag {
+            from: [16.341739811492303, -6.768970262700572],
+            to: [16.341739811492303, -20.306910788087073],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_end_put_on_a_trait_from_its_centre_to_its_start_keeps_its_areas_mirrored() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [-3.9979500000000003, -2.4979500000000003],
+            opposite: [5.99795, 7.49795],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [2.0, 1.0],
+            start: [-2.0, 1.0],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[-2.0, 1.0], [0.5, -1.5], [2.0, 1.0]],
+            closed: true,
+            construction: true,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Perpendicular,
+            clicks: vec![[-10.0, 0.0], [-1.0, -0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [1.914213562373095, 0.6213203435596427],
+                [0.5, -3.6213203435596424],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[5.99795, 2.5], [0.5, -1.5]],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_end_put_on_a_trait_ending_at_its_centre_keeps_the_tint_the_measure() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [6.0, 8.0],
+            opposite: [5.0, 9.5],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [6.0, 9.5],
+            start: [3.0, 9.5],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Drag {
+            from: [5.5, 9.5],
+            to: [5.5, 7.378679656440358],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[5.499999999998556, 7.378679656443246], [6.0, 6.5]],
+        },
+    ]);
+}
+
+#[test]
+fn a_half_turn_on_a_rectangle_folded_corner_to_corner_keeps_its_areas() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [7.0, 5.0],
+            opposite: [10.0, 9.0],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [2.0, 0.0],
+            opposite: [1.0, -4.5],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [3.0, 8.0],
+            opposite: [-1.5, 11.5],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [7.0, 5.0],
+            start: [7.0, 6.0],
+            degrees: 180.0,
+            construction: true,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[10.0, 5.0], [7.0, 9.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[3.0, 8.0], [1.0, 0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[8.50046617259751, 5.037393856121566], [-1.5, 9.75]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [-9.527587556853724, -0.9629252925700684],
+                [-9.583678341036075, -3.212226033673803],
+            ],
         },
     ]);
 }

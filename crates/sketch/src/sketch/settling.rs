@@ -123,7 +123,7 @@ impl Sketch {
         self.held.lines.clear();
         let broken = outcome != LengthOutcome::Exact
             || backwards
-            || self.has_a_collapsed_trait(self.drawing_size())
+            || crate::precision::has_a_collapsed_trait(self, self.drawing_size())
             || self.has_a_flipped_tangent()
             || self.throws_a_point();
         match (broken, inside_out || self.shrinks_a_curve()) {
@@ -192,7 +192,7 @@ impl Sketch {
         let outcome = self.resolve(millimeters_per_unit);
         self.held.points.clear();
         if outcome == LengthOutcome::Exact
-            && !self.has_a_collapsed_trait(self.drawing_size())
+            && !crate::precision::has_a_collapsed_trait(self, self.drawing_size())
             && !self.has_a_flipped_tangent()
             && !self.throws_a_point()
         {
@@ -201,10 +201,10 @@ impl Sketch {
         }
 
         // Neither way leaves a drawing worth keeping: a value or a rule left
-        // untrue, a trait collapsed, a tangency's contact slid off its
-        // segment, or a point a drag threw far beyond the drawing (#597). The
-        // gesture is refused rather than the shape broken — the point simply
-        // does not go there (#472).
+        // untrue, a trait or a curve collapsed, a tangency's contact slid off
+        // its segment, or a point a drag threw far beyond the drawing (#597).
+        // The gesture is refused rather than the shape broken — the point
+        // simply does not go there (#472).
         self.give_back(kept);
         LengthOutcome::BestEffort
     }

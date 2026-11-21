@@ -49,7 +49,9 @@ impl Sketch {
             self.move_point(kept, self.point(dropped));
         }
         carried.extend(self.merge_carrying(kept, dropped));
-        if self.settle_joined(kept, carried, millimeters_per_unit) == LengthOutcome::BestEffort {
+        if self.settle_joined(kept, carried, millimeters_per_unit) == LengthOutcome::BestEffort
+            || crate::precision::has_shrunk_a_curve_since(&before, self)
+        {
             *self = before;
             return false;
         }
@@ -342,13 +344,7 @@ impl Sketch {
         for collapsed in traits {
             self.erase(collapsed);
         }
-        let arcs: Vec<_> = self
-            .live_arcs()
-            .filter(|(_, arc)| {
-                arc.start == arc.end || arc.center == arc.start || arc.center == arc.end
-            })
-            .collect();
-        for (id, arc) in arcs {
+        for (id, arc) in self.arcs_collapsed_about(kept) {
             let radius = self
                 .dimensions()
                 .iter()

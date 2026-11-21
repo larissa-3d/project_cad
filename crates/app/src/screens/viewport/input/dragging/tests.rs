@@ -53,6 +53,13 @@
 //! - Nor, surfaced by the last review: a centre ending a trait to a free point
 //!   elsewhere, dragged near its arc's fixed end, follows the hand —
 //!   `an_arc_s_centre_ending_a_trait_to_a_free_point_dragged_near_its_fixed_end_follows_the_hand`
+//!
+//! Closes #1072.
+//! - Also: a merge the curve goes with still takes it — an arc's start
+//!   dragged and dropped on its own centre is the merge #1043 and #1063
+//!   decided, and takes the arc away rather than stopping a hair short of
+//!   the centre —
+//!   `an_arc_s_start_dropped_on_its_own_centre_takes_the_arc_as_the_merge_does`
 
 use cao_part::history::PointRef;
 use cao_part::{Operation, PartDocument};
@@ -961,4 +968,20 @@ fn an_arc_s_centre_ending_a_trait_to_a_free_point_dragged_near_its_fixed_end_fol
             to.distance(stood)
         );
     }
+}
+
+#[test]
+fn an_arc_s_start_dropped_on_its_own_centre_takes_the_arc_as_the_merge_does() {
+    let (mut bench, [centre, start, _]) = FaceOn::with_an_arc();
+    let pressed = on_the_screen(&bench.state, bench.sketch().point(start));
+    let dropped = on_the_screen(&bench.state, bench.sketch().point(centre));
+
+    bench.drag_from(pressed, dropped - pressed);
+
+    let arcs: Vec<f64> = bench
+        .sketch()
+        .live_arcs()
+        .map(|(arc, _)| bench.sketch().arc_radius(arc))
+        .collect();
+    assert!(arcs.is_empty(), "the arc is still drawn, {arcs:?} round");
 }

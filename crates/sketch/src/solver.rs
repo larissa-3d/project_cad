@@ -3,7 +3,7 @@ use glam::DVec2;
 use crate::arc::ArcId;
 use crate::constraints::{Constraint, DimensionTarget};
 use crate::equation::{Equation, Row, row_at};
-use crate::precision::SOLVED;
+use crate::precision::{self, SOLVED};
 use crate::rigid::{Block, ownership, rigidify};
 use crate::sketch::{PointId, SegmentId, Sketch};
 mod angle_solver;
@@ -71,6 +71,7 @@ impl Sketch {
         }
 
         let scale = self.drawing_size();
+        let small_already = precision::collapsed_reaches(self, scale);
         let mut outcome = SolveOutcome::Residual;
         let mut before = f64::INFINITY;
         for _ in 0..ROUNDS {
@@ -92,10 +93,15 @@ impl Sketch {
             outcome = SolveOutcome::Solved;
         }
 
-        // A trait pulled down to nothing, or a tangency whose contact has slid
-        // off its segment, is not geometry: the system would call itself
-        // solved while the drawing had quietly fallen apart.
-        match self.has_a_collapsed_trait(scale) || self.has_a_flipped_tangent() {
+        // A trait or a radius pulled down to nothing, or a tangency whose
+        // contact has slid off its segment, is not geometry: the system would
+        // call itself solved while the drawing had quietly fallen apart. A
+        // curve drawn that small is the user's, not the solve's doing.
+        let shrunk = precision::has_shrunk_a_curve(&small_already, self, scale);
+        match shrunk
+            || precision::has_a_collapsed_trait(self, scale)
+            || self.has_a_flipped_tangent()
+        {
             true => SolveOutcome::Residual,
             false => outcome,
         }
@@ -103,15 +109,7 @@ impl Sketch {
 
     /// How big the drawing is, the one size every tolerance is read against.
     pub(crate) fn drawing_size(&self) -> f64 {
-        crate::precision::drawing_size(self)
-    }
-
-    /// Whether any trait has been squeezed down to something shorter than the
-    /// use precision — under which nothing the user can type tells it from a
-    /// point.
-    pub(crate) fn has_a_collapsed_trait(&self, scale: f64) -> bool {
-        self.live_segments()
-            .any(|(id, _)| crate::precision::is_collapsed(self.segment_length(id), scale))
+        precision::drawing_size(self)
     }
 
     /// One go at settling the drawing: the shapes that must not bend are read

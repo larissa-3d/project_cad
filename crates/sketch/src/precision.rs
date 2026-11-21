@@ -7,7 +7,7 @@
 
 use glam::DVec2;
 
-use crate::sketch::Sketch;
+use crate::sketch::{Element, Sketch};
 
 /// How near is treated as one at the use: a tenth of a micron on a part up to
 /// a metre.
@@ -25,6 +25,54 @@ pub const SOLVED: f64 = 1e-9;
 /// across: nothing the user can type tells it from a point.
 pub fn is_collapsed(length: f64, scale: f64) -> bool {
     length < scale * USE
+}
+
+/// Whether any trait is shorter than [`USE`] on a drawing `scale` across.
+pub(crate) fn has_a_collapsed_trait(sketch: &Sketch, scale: f64) -> bool {
+    sketch
+        .live_segments()
+        .any(|(id, _)| is_collapsed(sketch.segment_length(id), scale))
+}
+
+/// Each circle's radius and each arc's reach from its centre to either end
+/// that is under [`USE`] on a drawing `scale` across: the curve, and whether
+/// it is the arc's end rather than its start.
+pub(crate) fn collapsed_reaches(sketch: &Sketch, scale: f64) -> Vec<(Element, bool)> {
+    let circles =
+        (sketch.live_circles()).map(|(id, circle)| ((Element::Circle(id), false), circle.radius));
+    let arcs = sketch.live_arcs().flat_map(|(id, arc)| {
+        let centre = sketch.point(arc.center);
+        [(false, arc.start), (true, arc.end)].map(|(at_end, end)| {
+            (
+                (Element::Arc(id), at_end),
+                centre.distance(sketch.point(end)),
+            )
+        })
+    });
+    circles
+        .chain(arcs)
+        .filter(|(_, reach)| is_collapsed(*reach, scale))
+        .map(|(reach, _)| reach)
+        .collect()
+}
+
+/// Whether a reach [`collapsed_reaches`] did not hold in `small_already` has
+/// come under [`USE`] since.
+pub(crate) fn has_shrunk_a_curve(
+    small_already: &[(Element, bool)],
+    sketch: &Sketch,
+    scale: f64,
+) -> bool {
+    collapsed_reaches(sketch, scale)
+        .iter()
+        .any(|reach| !small_already.contains(reach))
+}
+
+/// Whether `sketch` holds a reach under [`USE`] that `was` did not, both read
+/// on `was`'s size.
+pub(crate) fn has_shrunk_a_curve_since(was: &Sketch, sketch: &Sketch) -> bool {
+    let scale = drawing_size(was);
+    has_shrunk_a_curve(&collapsed_reaches(was, scale), sketch, scale)
 }
 
 /// How big a drawing is: the diagonal of the smallest box holding every live

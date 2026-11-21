@@ -140,8 +140,37 @@
 //!   `an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_length_is_typed`
 //! - With no value, the arc of ellipse still goes — no test: a merge that
 //!   lands is held beside the other merges, in `two_points_made_one.rs`
+//!
+//! Closes #1072.
+//! - The decision is written here — no test: it is the issue's comment of
+//!   2026-11-20, one guard after every solve
+//! - The five cases above hold in #501's campaign: a rule whose solution
+//!   would shrink a circle or an arc to nothing is refused with the drawing
+//!   as it was, as seed 30000491 lays it —
+//!   `a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`,
+//!   `a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`;
+//!   so are the « Tangente » to a free trait ending at the circle's centre of
+//!   seed 30001541 and the « Colinéaire » of seed 30005567 that brings a trait
+//!   already tangent to a circle through its centre, laid as the seeds lay
+//!   them —
+//!   `a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused`,
+//!   `collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused`;
+//!   the campaign's own cases are held in `cao_sketch`, in
+//!   `crates/sketch/tests/what_random_sketches_found.rs`, and the merges of
+//!   seeds 30005683 and 31000310 at the sketch's level in
+//!   `crates/sketch/tests/a_curve_is_never_shrunk_to_nothing.rs`. Only a
+//!   curve the solve brings down is refused: one drawn tiny by its own step,
+//!   under what the drawing reads as nothing, does not stop a rule laid
+//!   elsewhere, nor its replay when the part is opened again —
+//!   `a_rule_elsewhere_still_lands_beside_a_circle_drawn_tiny`,
+//!   `a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny`
+//! - The drag of seed 31000310 stops short — no test: a drag is the sketch's,
+//!   held in `cao_sketch`
+//! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
+//!   measurement over #501's campaign once the guard is in, not a test the
+//!   gate can hold
 
-use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PointRef};
+use cao_part::{DimensionOutcome, Operation, Outcome, PartDocument, PartState, PointRef};
 use cao_sketch::{
     Along, AxisToward, Constraint, DimensionTarget, Element, EllipseId, LengthOutcome, PointId,
     Rule, RuleIntent, RulePick, SegmentId, Sketch, SketchAxis, Support, Toward, WorkPlane,
@@ -1804,4 +1833,257 @@ fn an_arc_of_ellipse_whose_two_ends_are_made_one_is_refused_while_its_axis_lengt
             );
         }
     }
+}
+
+/// `curve`'s centre made the centre of an ellipse too, its first axis 40 to
+/// either side along U and its second 20 along V; the rule is a tangency
+/// between `curve` and that first axis, as the tool lays it.
+fn a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(
+    mut document: PartDocument,
+    curve: Element,
+) -> (PartDocument, Constraint) {
+    let sketch = &document.sketches()[0];
+    let centre = match curve {
+        Element::Circle(circle) => sketch.circles()[circle.0].center,
+        Element::Arc(arc) => sketch.arcs()[arc.0].center,
+        other => panic!("not a round curve: {other:?}"),
+    };
+    document.apply(Operation::AddEllipse {
+        sketch: 0,
+        center: PointRef::Existing(centre),
+        first: [
+            PointRef::New(DVec2::new(-20.0, 15.0)),
+            PointRef::New(DVec2::new(60.0, 15.0)),
+        ],
+        second: [
+            PointRef::New(DVec2::new(20.0, -5.0)),
+            PointRef::New(DVec2::new(20.0, 35.0)),
+        ],
+        construction: false,
+        drawn: None,
+    });
+    let axis = document.sketches()[0].ellipses()[0].first;
+    let picks = [
+        RulePick::Element(curve),
+        RulePick::Element(Element::Segment(axis)),
+    ];
+    let rule = the_rule(&document, Rule::Tangent, &picks);
+    (document, rule)
+}
+
+#[test]
+fn a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        radius: 25.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let circle = Element::Circle(cao_sketch::CircleId(0));
+
+    let (document, rule) =
+        a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(document, circle);
+    refused_with_the_drawing_unchanged(document, rule, Some(circle));
+}
+
+#[test]
+fn a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddArc {
+        sketch: 0,
+        center: PointRef::New(DVec2::new(20.0, 15.0)),
+        start: PointRef::New(DVec2::new(45.0, 15.0)),
+        end: PointRef::New(DVec2::new(20.0, 40.0)),
+        construction: false,
+    });
+    let arc = Element::Arc(cao_sketch::ArcId(0));
+
+    let (document, rule) = a_tangency_to_the_axis_of_an_ellipse_of_the_same_centre(document, arc);
+    refused_with_the_drawing_unchanged(document, rule, Some(arc));
+}
+
+/// A slanted trait 1000 long, from (0, 0) to (800, 600), and `curve` drawn
+/// about (500, 100) with a radius of 1e-5: laid by its own step, far under
+/// the 1e-4 a drawing that size reads as nothing.
+fn a_long_trait_beside(curve: Operation) -> PartDocument {
+    let mut document = a_blank_sketch();
+    document.apply(Operation::AddSegment {
+        sketch: 0,
+        start: PointRef::New(DVec2::new(0.0, 0.0)),
+        end: PointRef::New(DVec2::new(800.0, 600.0)),
+        construction: false,
+    });
+    document.apply(curve);
+    document
+}
+
+const A_TINY_PLACE: DVec2 = DVec2::new(500.0, 100.0);
+
+/// The long trait made horizontal, as the tool lays it, and the part opened
+/// again: the rule is laid, and replayed, both times the trait lying flat.
+fn the_trait_is_made_horizontal_and_replayed(mut document: PartDocument) {
+    let picks = the_trait_and_the_axis(SketchAxis::U);
+    let rule = the_rule(&document, Rule::Parallel, &picks);
+
+    landed(&mut document, Rule::Parallel, &picks);
+    let replayed = PartState::rebuild(&document.history);
+
+    for (when, sketch) in [
+        ("laid", &document.sketches()[0]),
+        ("replayed", &replayed.sketches[0]),
+    ] {
+        assert!(sketch.carries(rule), "{when}: the rule is kept");
+        let (start, end) = sketch.endpoints(SegmentId(0));
+        assert!(
+            (start.y - end.y).abs() < 1e-6,
+            "{when}: the trait lies horizontal: {start} to {end}"
+        );
+    }
+}
+
+#[test]
+fn a_rule_elsewhere_still_lands_beside_a_circle_drawn_tiny() {
+    let document = a_long_trait_beside(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::New(A_TINY_PLACE),
+        radius: 1e-5,
+        rim: Vec::new(),
+        construction: false,
+    });
+    assert_eq!(
+        document.sketches()[0].circles().len(),
+        1,
+        "the circle is drawn"
+    );
+
+    the_trait_is_made_horizontal_and_replayed(document);
+}
+
+#[test]
+fn a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny() {
+    let document = a_long_trait_beside(Operation::AddArc {
+        sketch: 0,
+        center: PointRef::New(A_TINY_PLACE),
+        start: PointRef::New(A_TINY_PLACE + DVec2::new(1e-5, 0.0)),
+        end: PointRef::New(A_TINY_PLACE + DVec2::new(0.0, 1e-5)),
+        construction: false,
+    });
+    assert_eq!(document.sketches()[0].arcs().len(), 1, "the arc is drawn");
+
+    the_trait_is_made_horizontal_and_replayed(document);
+}
+
+fn a_point_held_on(document: &mut PartDocument, at: (f64, f64), on: Vec<Support>) -> PointId {
+    document.apply(Operation::AddPoint {
+        sketch: 0,
+        position: DVec2::new(at.0, at.1),
+        on,
+    });
+    PointId(document.sketches()[0].points().len() - 1)
+}
+
+#[test]
+fn a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    let centre = a_point_held_on(
+        &mut document,
+        (0.0, 6.0),
+        vec![Support::Axis(SketchAxis::V)],
+    );
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::Existing(centre),
+        radius: 3.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let circle = Element::Circle(cao_sketch::CircleId(0));
+    let corner = a_point_held_on(
+        &mut document,
+        (3.0, 6.0),
+        vec![Support::Circle(cao_sketch::CircleId(0))],
+    );
+    let foot = a_point_held_on(
+        &mut document,
+        (1.0, 0.0),
+        vec![Support::Axis(SketchAxis::U)],
+    );
+    let origin = PointId(0);
+    for (start, end) in [(origin, corner), (corner, foot)] {
+        document.apply(Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::Existing(start),
+            end: PointRef::Existing(end),
+            construction: false,
+        });
+    }
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::V),
+    );
+
+    let rule = the_rule(
+        &document,
+        Rule::Tangent,
+        &[
+            RulePick::Element(circle),
+            RulePick::Element(Element::Segment(SegmentId(1))),
+        ],
+    );
+    refused_with_the_drawing_unchanged(document, rule, Some(circle));
+}
+
+#[test]
+fn collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    let centre = a_point_held_on(
+        &mut document,
+        (1.5, 0.0),
+        vec![Support::Axis(SketchAxis::U)],
+    );
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::Existing(centre),
+        radius: 3.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let circle = Element::Circle(cao_sketch::CircleId(0));
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::new(7.0, 9.0)),
+        opposite: PointRef::New(DVec2::new(12.5, 11.5)),
+        construction: false,
+    });
+    let sketch = &document.sketches()[0];
+    let (bottom, _) = sketch
+        .live_segments()
+        .find(|(_, side)| sketch.point(side.start).y == 9.0 && sketch.point(side.end).y == 9.0)
+        .expect("the rectangle's bottom side");
+    let tangent = the_rule(
+        &document,
+        Rule::Tangent,
+        &[
+            RulePick::Element(circle),
+            RulePick::Element(Element::Segment(bottom)),
+        ],
+    );
+    let outcome = document.apply(Operation::Constrain {
+        sketch: 0,
+        constraint: tangent,
+    });
+    assert_eq!(outcome, None, "the tangency was refused");
+
+    let rule = the_rule(
+        &document,
+        Rule::Collinear,
+        &[
+            RulePick::Element(Element::Segment(bottom)),
+            RulePick::Axis(SketchAxis::U),
+        ],
+    );
+    refused_with_the_drawing_unchanged(document, rule, Some(circle));
 }
