@@ -13,6 +13,10 @@
 //!   refused, every arc keeping both ends off its centre —
 //!   `an_arc_and_its_mirror_refuse_an_end_made_one_with_its_centre`,
 //!   `two_mirrored_arcs_tied_end_to_end_refuse_an_end_made_one_with_its_centre`;
+//!   so is the merge of seed 30002414 at its fifth gesture, two corners of a
+//!   rectangle made one whose settling lays the start of a half-turn held on
+//!   its side onto the half-turn's centre, the arc touched by neither corner —
+//!   `a_merge_whose_settling_lays_an_arc_s_start_on_its_centre_is_refused`;
 //!   the solve's tail the guard joins is pinned as it stands —
 //!   `a_trait_a_value_pulls_under_the_use_precision_leaves_the_solve_residual`,
 //!   `a_trait_a_value_pulls_just_above_the_use_precision_is_solved`;
@@ -586,4 +590,75 @@ fn an_arc_drawn_tiny_keeps_itself_when_its_centre_is_made_one_with_a_point_elsew
             "{when}: the arc keeps its radius of 1e-5 at both ends, got {ends:?}"
         );
     }
+}
+
+/// Seed 30002414, mode `shares` 0,80,0, up to its fifth gesture: three
+/// rectangles, a construction half-turn about the first one's corner at
+/// (7, 5) whose start is held on that rectangle's left side, and the
+/// « Coïncidence » of the first rectangle's two diagonal corners at (10, 5)
+/// and (7, 9).
+fn a_half_turn_on_a_rectangle_folded_corner_to_corner() -> Vec<Gesture> {
+    vec![
+        Gesture::Rectangle {
+            corner: [7.0, 5.0],
+            opposite: [10.0, 9.0],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [2.0, 0.0],
+            opposite: [1.0, -4.5],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [3.0, 8.0],
+            opposite: [-1.5, 11.5],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [7.0, 5.0],
+            start: [7.0, 6.0],
+            degrees: 180.0,
+            construction: true,
+        },
+        Gesture::Rule {
+            rule: Rule::Coincident,
+            clicks: vec![[10.0, 5.0], [7.0, 9.0]],
+        },
+    ]
+}
+
+#[test]
+fn a_merge_whose_settling_lays_an_arc_s_start_on_its_centre_is_refused() {
+    let gestures = a_half_turn_on_a_rectangle_folded_corner_to_corner();
+    let (Gesture::Rule { clicks, .. }, before) = gestures.split_last().expect("a gesture") else {
+        panic!("the last gesture is not a rule");
+    };
+    let mut sketch = laid(before);
+    let picks: Vec<RulePick> = clicks
+        .iter()
+        .map(|place| RulePick::Element(Element::Point(standing_at(&sketch, *place))))
+        .collect();
+    let Some(RuleIntent::Merge { kept, dropped }) = rule_intent(Rule::Coincident, &picks, &sketch)
+    else {
+        panic!("the tool does not make the two corners one");
+    };
+    let was = sketch.clone();
+
+    let joined = sketch.join_points(kept, dropped, 1.0);
+
+    assert!(
+        !joined,
+        "the two corners were made one, the arc's ends now {:?} from its centre, {:?} before",
+        ends_from_centres(&sketch),
+        ends_from_centres(&was)
+    );
+    assert!(
+        sketch
+            .points()
+            .iter()
+            .zip(was.points())
+            .all(|(now, then)| now.distance(*then) < 1e-9),
+        "nothing about the drawing moved"
+    );
+    assert_eq!(ends_from_centres(&sketch), ends_from_centres(&was));
 }

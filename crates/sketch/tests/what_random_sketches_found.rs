@@ -308,6 +308,10 @@
 //!   break hold as the campaign shrank them —
 //!   `an_arc_s_end_put_on_a_trait_from_its_centre_to_its_start_keeps_its_areas_mirrored`,
 //!   `an_arc_s_end_put_on_a_trait_ending_at_its_centre_keeps_the_tint_the_measure`
+//! - Also, from the last measure: seed 30002414, mode `shares` 0,80,0, whose
+//!   fifth gesture makes two corners of a rectangle one and lays the start of
+//!   a half-turn held on its side onto the half-turn's centre, holds whole as
+//!   drawn — `a_half_turn_on_a_rectangle_folded_corner_to_corner_keeps_its_areas`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -2321,6 +2325,52 @@ fn an_arc_s_end_put_on_a_trait_ending_at_its_centre_keeps_the_tint_the_measure()
         Gesture::Rule {
             rule: cao_sketch::Rule::Coincident,
             clicks: vec![[5.499999999998556, 7.378679656443246], [6.0, 6.5]],
+        },
+    ]);
+}
+
+#[test]
+fn a_half_turn_on_a_rectangle_folded_corner_to_corner_keeps_its_areas() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [7.0, 5.0],
+            opposite: [10.0, 9.0],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [2.0, 0.0],
+            opposite: [1.0, -4.5],
+            construction: false,
+        },
+        Gesture::Rectangle {
+            corner: [3.0, 8.0],
+            opposite: [-1.5, 11.5],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [7.0, 5.0],
+            start: [7.0, 6.0],
+            degrees: 180.0,
+            construction: true,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[10.0, 5.0], [7.0, 9.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[3.0, 8.0], [1.0, 0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Parallel,
+            clicks: vec![[8.50046617259751, 5.037393856121566], [-1.5, 9.75]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [-9.527587556853724, -0.9629252925700684],
+                [-9.583678341036075, -3.212226033673803],
+            ],
         },
     ]);
 }

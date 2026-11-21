@@ -49,8 +49,8 @@ impl Sketch {
             self.move_point(kept, self.point(dropped));
         }
         carried.extend(self.merge_carrying(kept, dropped));
-        if crate::precision::has_shrunk_a_curve_since(&before, self)
-            || self.settle_joined(kept, carried, millimeters_per_unit) == LengthOutcome::BestEffort
+        if self.settle_joined(kept, carried, millimeters_per_unit) == LengthOutcome::BestEffort
+            || crate::precision::has_shrunk_a_curve_since(&before, self)
         {
             *self = before;
             return false;
