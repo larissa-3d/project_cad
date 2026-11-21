@@ -58,6 +58,11 @@
 //! - Also, surfaced by review: an end dragged within the use precision of its
 //!   centre and dropped on no point leaves the arc a radius at both ends —
 //!   `an_arc_s_end_dragged_within_the_use_precision_of_its_centre_leaves_the_arc_a_radius`
+//! - Also, surfaced by the final review: an arc drawn tiny by its own step is
+//!   the user's, and a merge that only carries it — its centre made one with
+//!   a point elsewhere, either clicked first — keeps it, as a rule laid
+//!   elsewhere does beside it —
+//!   `an_arc_drawn_tiny_keeps_itself_when_its_centre_is_made_one_with_a_point_elsewhere`
 
 #[allow(dead_code, unused_imports)]
 mod random_sketches;
@@ -528,4 +533,57 @@ fn an_arc_s_end_dragged_within_the_use_precision_of_its_centre_leaves_the_arc_a_
         reach(start),
         reach(end)
     );
+}
+
+/// A trait 1000 long, from (10, 10) to (810, 610), so a use precision of some
+/// 1e-4; an arc of radius 1e-5 about (500, 100), drawn so by its own step;
+/// and a short trait from (600, 100). The arc, its centre, and that trait's
+/// end at (600, 100).
+fn an_arc_drawn_tiny_beside_a_trait_end() -> (Sketch, cao_sketch::ArcId, PointId, PointId) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    for (from, to) in [
+        ((10.0, 10.0), (810.0, 610.0)),
+        ((600.0, 100.0), (650.0, 150.0)),
+    ] {
+        let from = sketch.add_point(DVec2::from(from));
+        let to = sketch.add_point(DVec2::from(to));
+        sketch.add_segment(from, to);
+    }
+    let end = sketch
+        .nearest_point(DVec2::new(600.0, 100.0), 1e-9)
+        .expect("the trait's end");
+    let [centre, start, finish] = [(500.0, 100.0), (500.00001, 100.0), (500.0, 100.00001)]
+        .map(|at| sketch.add_point(DVec2::from(at)));
+    let arc = sketch.add_arc(centre, start, finish);
+    (sketch, arc, centre, end)
+}
+
+#[test]
+fn an_arc_drawn_tiny_keeps_itself_when_its_centre_is_made_one_with_a_point_elsewhere() {
+    for centre_kept in [true, false] {
+        let (mut sketch, arc, centre, end) = an_arc_drawn_tiny_beside_a_trait_end();
+        assert!(
+            sketch.arc_radius(arc) < use_precision(&sketch),
+            "the arc is drawn under the use precision"
+        );
+        let (kept, dropped) = match centre_kept {
+            true => (centre, end),
+            false => (end, centre),
+        };
+
+        let joined = sketch.join_points(kept, dropped, 1.0);
+
+        let when = format!(
+            "the centre clicked {}",
+            if centre_kept { "first" } else { "second" }
+        );
+        assert!(joined, "{when}: the merge was refused");
+        assert!(!sketch.is_erased_arc(arc), "{when}: the arc is gone");
+        let ends = ends_from_centres(&sketch);
+        assert!(
+            ends.iter()
+                .any(|(start, end)| (start - 1e-5).abs() < 1e-9 && (end - 1e-5).abs() < 1e-9),
+            "{when}: the arc keeps its radius of 1e-5 at both ends, got {ends:?}"
+        );
+    }
 }

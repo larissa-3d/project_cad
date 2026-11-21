@@ -97,8 +97,8 @@ impl Sketch {
     }
 
     /// The arcs a merge onto `kept` leaves with no length: their two ends one,
-    /// an end on their own centre, or — an arc of `kept`'s whose size no value
-    /// holds — an end within the use precision of its centre.
+    /// an end on their own centre, or — an arc whose size no value holds — an
+    /// end made `kept` standing within the use precision of its centre.
     pub(crate) fn arcs_collapsed_about(&self, kept: PointId) -> Vec<(ArcId, Arc)> {
         let scale = self.drawing_size();
         let typed = |id| {
@@ -106,15 +106,18 @@ impl Sketch {
                 .any(|value| value.target == DimensionTarget::ArcRadius(id) && !value.driven)
         };
         let near = |arc: &Arc, end: PointId| {
-            crate::precision::is_collapsed(self.point(arc.center).distance(self.point(end)), scale)
+            end == kept
+                && crate::precision::is_collapsed(
+                    self.point(arc.center).distance(self.point(end)),
+                    scale,
+                )
         };
         self.live_arcs()
             .filter(|(id, arc)| {
-                let on_it = [arc.center, arc.start, arc.end].contains(&kept) && !typed(*id);
                 arc.start == arc.end
                     || arc.center == arc.start
                     || arc.center == arc.end
-                    || (on_it && (near(arc, arc.start) || near(arc, arc.end)))
+                    || ((near(arc, arc.start) || near(arc, arc.end)) && !typed(*id))
             })
             .collect()
     }
