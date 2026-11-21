@@ -67,6 +67,15 @@
 //!   a point elsewhere, either clicked first — keeps it, as a rule laid
 //!   elsewhere does beside it —
 //!   `an_arc_drawn_tiny_keeps_itself_when_its_centre_is_made_one_with_a_point_elsewhere`
+//! - Also, surfaced by the mutants: a value typed on something else — a
+//!   trait's length, another arc's radius — does not keep an arc whose end is
+//!   made one with a point on its centre —
+//!   `an_arc_s_end_made_one_with_another_point_on_its_centre_takes_the_arc_beside_a_value_typed_elsewhere`;
+//!   an arc whose two ends are made one goes —
+//!   `an_arc_whose_two_ends_are_made_one_goes`;
+//!   and the bare merge, which settles nothing and refuses nothing, takes an
+//!   arc it leaves ending on its own centre whatever value is typed on it —
+//!   `an_arc_ending_on_its_centre_by_a_bare_merge_goes_even_while_its_radius_is_typed`
 
 #[allow(dead_code, unused_imports)]
 mod random_sketches;
@@ -661,4 +670,71 @@ fn a_merge_whose_settling_lays_an_arc_s_start_on_its_centre_is_refused() {
         "nothing about the drawing moved"
     );
     assert_eq!(ends_from_centres(&sketch), ends_from_centres(&was));
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_another_point_on_its_centre_takes_the_arc_beside_a_value_typed_elsewhere()
+ {
+    for elsewhere in ["the trait's length", "the other arc's radius"] {
+        let (mut sketch, [centre, _, end], beside) =
+            an_arc_beside_a_point_off_its_centre(DVec2::ZERO);
+        let (target, value) = match elsewhere {
+            "the trait's length" => (
+                DimensionTarget::Length(SegmentId(0)),
+                sketch.segment_length(SegmentId(0)),
+            ),
+            _ => {
+                let (other, _) = sketch
+                    .live_arcs()
+                    .find(|(_, arc)| arc.center != centre)
+                    .expect("the other arc");
+                (DimensionTarget::ArcRadius(other), sketch.arc_radius(other))
+            }
+        };
+        sketch.set_dimension(target, value, false);
+        let was = sketch.clone();
+
+        let joined = sketch.join_points(beside, end, 1.0);
+
+        assert!(joined, "{elsewhere} typed: the merge was refused");
+        the_arc_is_taken_and_the_rest_kept(&sketch, &was, centre, beside);
+    }
+}
+
+/// An arc about (20, 20), 10 round, from (30, 20) to (20, 30), alone: its
+/// centre, start and end.
+fn an_arc_alone() -> (Sketch, cao_sketch::ArcId, [PointId; 3]) {
+    let mut sketch = Sketch::new(WorkPlane::XY);
+    let [centre, start, end] =
+        [(20.0, 20.0), (30.0, 20.0), (20.0, 30.0)].map(|at| sketch.add_point(DVec2::from(at)));
+    let arc = sketch.add_arc(centre, start, end);
+    (sketch, arc, [centre, start, end])
+}
+
+#[test]
+fn an_arc_whose_two_ends_are_made_one_goes() {
+    let (mut sketch, arc, [_, start, end]) = an_arc_alone();
+
+    let joined = sketch.join_points(start, end, 1.0);
+
+    assert!(joined, "the merge was refused");
+    assert!(
+        sketch.is_erased_arc(arc),
+        "an arc of no length is still drawn"
+    );
+}
+
+#[test]
+fn an_arc_ending_on_its_centre_by_a_bare_merge_goes_even_while_its_radius_is_typed() {
+    for start_goes in [true, false] {
+        let (mut sketch, arc, [centre, start, end]) = an_arc_alone();
+        sketch.set_dimension(DimensionTarget::ArcRadius(arc), 10.0, false);
+
+        sketch.merge_points(centre, if start_goes { start } else { end });
+
+        assert!(
+            sketch.is_erased_arc(arc),
+            "the start going: {start_goes}, and an arc ending on its own centre is still drawn"
+        );
+    }
 }
