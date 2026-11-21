@@ -19,15 +19,22 @@ impl Sketch {
         if self.on_its_own_centre(rule, |a, b| a == b) {
             return LengthOutcome::BestEffort;
         }
+        let scale = self.drawing_size();
+        let small_already = crate::precision::collapsed_reaches(self, scale);
         if !self.carries(rule) && self.holds_up(rule) {
             self.bring_alongside(rule);
             self.turn_onto_the_axis(rule);
         }
         self.add_constraint(rule);
-        if let Some(landed) = self.meet_in_order(rule, millimeters_per_unit) {
-            return landed;
+        let landed = match self.meet_in_order(rule, millimeters_per_unit) {
+            Some(landed) => landed,
+            None => self.land(rule.laid_from(), Landing::Rule(rule), millimeters_per_unit),
+        };
+        // A rule may place a point before any solve, onto a curve's own centre.
+        match crate::precision::has_shrunk_a_curve(&small_already, self, scale) {
+            true => LengthOutcome::BestEffort,
+            false => landed,
         }
-        self.land(rule.laid_from(), Landing::Rule(rule), millimeters_per_unit)
     }
 
     /// Every point held on two things or more.

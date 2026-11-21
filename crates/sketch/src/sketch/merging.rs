@@ -344,13 +344,7 @@ impl Sketch {
         for collapsed in traits {
             self.erase(collapsed);
         }
-        let arcs: Vec<_> = self
-            .live_arcs()
-            .filter(|(_, arc)| {
-                arc.start == arc.end || arc.center == arc.start || arc.center == arc.end
-            })
-            .collect();
-        for (id, arc) in arcs {
+        for (id, arc) in self.arcs_collapsed_about(kept) {
             let radius = self
                 .dimensions()
                 .iter()

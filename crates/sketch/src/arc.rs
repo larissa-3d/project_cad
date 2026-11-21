@@ -4,6 +4,7 @@ use glam::DVec2;
 use serde::{Deserialize, Serialize};
 
 use crate::arcing::{ArcDraft, places_along, steps_along, sweep_of};
+use crate::constraints::DimensionTarget;
 use crate::equation::Equation;
 use crate::erased::Erased;
 use crate::sketch::{Element, PointId, Sketch};
@@ -93,6 +94,29 @@ impl Sketch {
             .enumerate()
             .map(|(rank, arc)| (ArcId(rank), *arc))
             .filter(|(id, _)| !self.is_erased_arc(*id))
+    }
+
+    /// The arcs a merge onto `kept` leaves with no length: their two ends one,
+    /// an end on their own centre, or — an arc of `kept`'s whose size no value
+    /// holds — an end within the use precision of its centre.
+    pub(crate) fn arcs_collapsed_about(&self, kept: PointId) -> Vec<(ArcId, Arc)> {
+        let scale = self.drawing_size();
+        let typed = |id| {
+            (self.dimensions().iter())
+                .any(|value| value.target == DimensionTarget::ArcRadius(id) && !value.driven)
+        };
+        let near = |arc: &Arc, end: PointId| {
+            crate::precision::is_collapsed(self.point(arc.center).distance(self.point(end)), scale)
+        };
+        self.live_arcs()
+            .filter(|(id, arc)| {
+                let on_it = [arc.center, arc.start, arc.end].contains(&kept) && !typed(*id);
+                arc.start == arc.end
+                    || arc.center == arc.start
+                    || arc.center == arc.end
+                    || (on_it && (near(arc, arc.start) || near(arc, arc.end)))
+            })
+            .collect()
     }
 
     /// The arcs a point holds up: an arc missing its centre or either of its

@@ -40,14 +40,23 @@
 //!   `an_arc_s_start_dropped_on_its_own_centre_takes_the_arc_as_the_merge_does`;
 //!   the application's drop holds it under the same name in
 //!   `crates/app/src/screens/viewport/input/dragging/tests.rs`
-//! - Also, surfaced by review: an arc counts as brought down by the solve at
-//!   either end — one end made one with another point standing on its
-//!   centre, or a hair off it, is refused rather than taking the other end
-//!   down with it or leaving it alone on the far side —
-//!   `an_arc_s_end_made_one_with_a_point_a_hair_off_its_centre_is_refused`,
-//!   `an_arc_s_end_made_one_with_another_point_standing_on_its_centre_is_refused`;
-//!   and an end dragged within the use precision of its centre leaves the
-//!   arc a radius at both ends —
+//! - Also, decided by the user on 2026-11-21: "when a « Coïncidence » or a
+//!   drop brings an arc's end within the use precision of its centre —
+//!   through the centre point itself or through another point standing
+//!   there — the arc goes, as #1043 decided for the centre point; and, as
+//!   #1064/#1068, it is refused while a value holds its size. Same gesture,
+//!   same result whichever point is clicked." An end made one with another
+//!   point on the centre, or a hair off it, takes the arc and keeps the rest
+//!   of the drawing —
+//!   `an_arc_s_end_made_one_with_a_point_a_hair_off_its_centre_takes_the_arc`,
+//!   `an_arc_s_end_made_one_with_another_point_standing_on_its_centre_takes_the_arc`;
+//!   is refused while the arc's radius is typed —
+//!   `an_arc_s_end_made_one_with_another_point_on_its_centre_is_refused_while_its_radius_is_typed`;
+//!   and an end dropped on such a point does the same —
+//!   `an_arc_s_end_dropped_on_another_point_standing_on_its_centre_takes_the_arc`,
+//!   `an_arc_s_end_dropped_on_a_point_a_hair_off_its_centre_takes_the_arc`
+//! - Also, surfaced by review: an end dragged within the use precision of its
+//!   centre and dropped on no point leaves the arc a radius at both ends —
 //!   `an_arc_s_end_dragged_within_the_use_precision_of_its_centre_leaves_the_arc_a_radius`
 
 #[allow(dead_code, unused_imports)]
@@ -349,21 +358,21 @@ fn an_arc_s_start_dropped_on_its_own_centre_takes_the_arc_as_the_merge_does() {
     );
 }
 
-/// An arc about (20, 20), 10 round, from (30, 20) to (20, 30); another about
-/// (60, 50) that keeps the drawing some 57 across, so a use precision of
-/// some 5.7e-6; and a trait to (45, 25) from a point of its own `off` the
-/// first arc's centre. The arc's centre, start and end, and that point.
+/// A trait to (45, 25) from a point of its own `off` (20, 20), drawn first;
+/// then an arc about (20, 20), 10 round, from (30, 20) to (20, 30); and
+/// another about (60, 50) that keeps the drawing some 57 across, so a use
+/// precision of some 5.7e-6. The arc's centre, start and end, and that point.
 fn an_arc_beside_a_point_off_its_centre(off: DVec2) -> (Sketch, [PointId; 3], PointId) {
     let mut sketch = Sketch::new(WorkPlane::XY);
+    let beside = sketch.add_point(DVec2::new(20.0, 20.0) + off);
+    let far = sketch.add_point(DVec2::new(45.0, 25.0));
+    sketch.add_segment(beside, far);
     let [centre, start, end] =
         [(20.0, 20.0), (30.0, 20.0), (20.0, 30.0)].map(|at| sketch.add_point(DVec2::from(at)));
     sketch.add_arc(centre, start, end);
     let [other_centre, other_start, other_end] =
         [(60.0, 50.0), (65.0, 50.0), (60.0, 55.0)].map(|at| sketch.add_point(DVec2::from(at)));
     sketch.add_arc(other_centre, other_start, other_end);
-    let beside = sketch.add_point(DVec2::new(20.0, 20.0) + off);
-    let far = sketch.add_point(DVec2::new(45.0, 25.0));
-    sketch.add_segment(beside, far);
     (sketch, [centre, start, end], beside)
 }
 
@@ -371,12 +380,82 @@ fn use_precision(sketch: &Sketch) -> f64 {
     cao_sketch::precision::drawing_size(sketch) * cao_sketch::precision::USE
 }
 
-fn the_end_made_one_with_a_point_off_its_centre_is_refused(off: DVec2) {
-    let (mut sketch, [centre, start, end], beside) = an_arc_beside_a_point_off_its_centre(off);
+/// Whether the first arc of [`an_arc_beside_a_point_off_its_centre`] is
+/// gone, and the rest of the drawing — the other arc, the trait and the
+/// point the end was brought to — kept where it stood.
+fn the_arc_is_taken_and_the_rest_kept(
+    sketch: &Sketch,
+    was: &Sketch,
+    centre: PointId,
+    kept: PointId,
+) {
+    assert!(
+        !sketch.live_arcs().any(|(_, arc)| arc.center == centre),
+        "the arc is still drawn, its ends {:?} from its centre",
+        ends_from_centres(sketch)
+    );
+    assert_eq!(
+        sketch.live_arcs().count(),
+        1,
+        "the other arc is still drawn"
+    );
+    assert_eq!(
+        sketch.live_segments().count(),
+        1,
+        "the trait is still drawn"
+    );
+    for point in sketch
+        .live_arcs()
+        .flat_map(|(_, arc)| [arc.center, arc.start, arc.end])
+        .chain(
+            sketch
+                .live_segments()
+                .flat_map(|(_, side)| [side.start, side.end]),
+        )
+        .chain([kept])
+    {
+        assert!(
+            sketch.point(point).distance(was.point(point)) < 1e-9,
+            "{point:?} moved from {} to {}",
+            was.point(point),
+            sketch.point(point)
+        );
+    }
+}
+
+fn the_end_made_one_with_a_point_off_its_centre_takes_the_arc(off: DVec2) {
+    let (mut sketch, [centre, _, end], beside) = an_arc_beside_a_point_off_its_centre(off);
     assert!(
         sketch.point(beside).distance(sketch.point(centre)) < use_precision(&sketch),
         "the point stands within the use precision of the centre"
     );
+    let was = sketch.clone();
+
+    let joined = sketch.join_points(beside, end, 1.0);
+
+    assert!(joined, "the merge was refused");
+    the_arc_is_taken_and_the_rest_kept(&sketch, &was, centre, beside);
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_a_point_a_hair_off_its_centre_takes_the_arc() {
+    the_end_made_one_with_a_point_off_its_centre_takes_the_arc(DVec2::new(3e-7, 0.0));
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_another_point_standing_on_its_centre_takes_the_arc() {
+    the_end_made_one_with_a_point_off_its_centre_takes_the_arc(DVec2::ZERO);
+}
+
+#[test]
+fn an_arc_s_end_made_one_with_another_point_on_its_centre_is_refused_while_its_radius_is_typed() {
+    let (mut sketch, [centre, start, end], beside) =
+        an_arc_beside_a_point_off_its_centre(DVec2::ZERO);
+    let (arc, _) = sketch
+        .live_arcs()
+        .find(|(_, arc)| arc.center == centre)
+        .expect("the arc is drawn");
+    sketch.set_dimension(DimensionTarget::ArcRadius(arc), 10.0, false);
     let was = sketch.clone();
 
     let joined = sketch.join_points(beside, end, 1.0);
@@ -387,6 +466,7 @@ fn the_end_made_one_with_a_point_off_its_centre_is_refused(off: DVec2) {
         sketch.point(start).distance(sketch.point(centre)),
         sketch.point(end).distance(sketch.point(centre))
     );
+    assert!(!sketch.is_erased_arc(arc), "the arc is still drawn");
     assert!(
         sketch
             .points()
@@ -397,14 +477,39 @@ fn the_end_made_one_with_a_point_off_its_centre_is_refused(off: DVec2) {
     );
 }
 
-#[test]
-fn an_arc_s_end_made_one_with_a_point_a_hair_off_its_centre_is_refused() {
-    the_end_made_one_with_a_point_off_its_centre_is_refused(DVec2::new(3e-7, 0.0));
+/// The arc's end pressed, carried onto the point `off` its centre and let go
+/// of, as the drop decides and `cao_part` replays it: settled there, then
+/// joined to the point when the drop joins it.
+fn the_end_dropped_on_a_point_off_its_centre_takes_the_arc(off: DVec2) {
+    let (mut sketch, [centre, _, end], beside) = an_arc_beside_a_point_off_its_centre(off);
+    let was = sketch.clone();
+    let landing = sketch.point(beside);
+    let pull = sketch.pull(end, 1.0);
+    let mut settling = sketch.clone();
+    settling.settle_pulled(&pull, landing, 1.0);
+
+    let merged_into = pull.joins(&settling, landing, 1e-6, 1.0);
+    sketch.settle_pulled(&pull, landing, 1.0);
+    if let Some(kept) = merged_into {
+        sketch.join_points(kept, end, 1.0);
+    }
+
+    assert!(
+        merged_into.is_some(),
+        "the drop joins nothing, the end left {} from the centre",
+        settling.point(end).distance(settling.point(centre))
+    );
+    the_arc_is_taken_and_the_rest_kept(&sketch, &was, centre, beside);
 }
 
 #[test]
-fn an_arc_s_end_made_one_with_another_point_standing_on_its_centre_is_refused() {
-    the_end_made_one_with_a_point_off_its_centre_is_refused(DVec2::ZERO);
+fn an_arc_s_end_dropped_on_another_point_standing_on_its_centre_takes_the_arc() {
+    the_end_dropped_on_a_point_off_its_centre_takes_the_arc(DVec2::ZERO);
+}
+
+#[test]
+fn an_arc_s_end_dropped_on_a_point_a_hair_off_its_centre_takes_the_arc() {
+    the_end_dropped_on_a_point_off_its_centre_takes_the_arc(DVec2::new(1e-11, 0.0));
 }
 
 #[test]

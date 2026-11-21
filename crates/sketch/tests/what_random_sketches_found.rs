@@ -298,6 +298,16 @@
 //! - The 88 seeds no longer shrink a curve to nothing — no test: it is a
 //!   measurement over #501's campaign once the guard is in, not a test the
 //!   gate can hold
+//! - Also, from the measure taken after the guard, mode `shares` 0,80,0: a
+//!   « Coïncidence » that holds an arc's end on a trait ending at the arc's
+//!   own centre lays the end on the centre and the arc stays, seeds 30002091,
+//!   30002414, 30003188, 30003712 and 30004238. The user's decision of
+//!   2026-11-21 — "when a « Coïncidence » or a drop brings an arc's end
+//!   within the use precision of its centre … the arc goes … it is refused
+//!   while a value holds its size" — answers it; the two seeds whose areas
+//!   break hold as the campaign shrank them —
+//!   `an_arc_s_end_put_on_a_trait_from_its_centre_to_its_start_keeps_its_areas_mirrored`,
+//!   `an_arc_s_end_put_on_a_trait_ending_at_its_centre_keeps_the_tint_the_measure`
 
 // The drawing, the rules and the shrinking are the campaign's; this file only
 // lays drawings and holds them.
@@ -2249,6 +2259,68 @@ fn a_drag_after_two_mirrored_arcs_are_tied_stops_short_of_shrinking_them() {
         Gesture::Drag {
             from: [16.341739811492303, -6.768970262700572],
             to: [16.341739811492303, -20.306910788087073],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_end_put_on_a_trait_from_its_centre_to_its_start_keeps_its_areas_mirrored() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [-3.9979500000000003, -2.4979500000000003],
+            opposite: [5.99795, 7.49795],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [2.0, 1.0],
+            start: [-2.0, 1.0],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Chain {
+            through: vec![[-2.0, 1.0], [0.5, -1.5], [2.0, 1.0]],
+            closed: true,
+            construction: true,
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Perpendicular,
+            clicks: vec![[-10.0, 0.0], [-1.0, -0.0]],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![
+                [1.914213562373095, 0.6213203435596427],
+                [0.5, -3.6213203435596424],
+            ],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[5.99795, 2.5], [0.5, -1.5]],
+        },
+    ]);
+}
+
+#[test]
+fn an_arc_s_end_put_on_a_trait_ending_at_its_centre_keeps_the_tint_the_measure() {
+    random_sketches::holds(&[
+        Gesture::Rectangle {
+            corner: [6.0, 8.0],
+            opposite: [5.0, 9.5],
+            construction: false,
+        },
+        Gesture::Arc {
+            centre: [6.0, 9.5],
+            start: [3.0, 9.5],
+            degrees: 90.0,
+            construction: false,
+        },
+        Gesture::Drag {
+            from: [5.5, 9.5],
+            to: [5.5, 7.378679656440358],
+        },
+        Gesture::Rule {
+            rule: cao_sketch::Rule::Coincident,
+            clicks: vec![[5.499999999998556, 7.378679656443246], [6.0, 6.5]],
         },
     ]);
 }
