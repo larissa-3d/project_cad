@@ -149,6 +149,12 @@
 //!   as it was, as seed 30000491 lays it —
 //!   `a_tangency_between_a_circle_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`,
 //!   `a_tangency_between_an_arc_and_the_axis_of_an_ellipse_of_the_same_centre_is_refused`;
+//!   so are the « Tangente » to a free trait ending at the circle's centre of
+//!   seed 30001541 and the « Colinéaire » of seed 30005567 that brings a trait
+//!   already tangent to a circle through its centre, laid as the seeds lay
+//!   them —
+//!   `a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused`,
+//!   `collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused`;
 //!   the campaign's own cases are held in `cao_sketch`, in
 //!   `crates/sketch/tests/what_random_sketches_found.rs`, and the merges of
 //!   seeds 30005683 and 31000310 at the sketch's level in
@@ -1967,4 +1973,117 @@ fn a_rule_elsewhere_still_lands_beside_an_arc_drawn_tiny() {
     assert_eq!(document.sketches()[0].arcs().len(), 1, "the arc is drawn");
 
     the_trait_is_made_horizontal_and_replayed(document);
+}
+
+fn a_point_held_on(document: &mut PartDocument, at: (f64, f64), on: Vec<Support>) -> PointId {
+    document.apply(Operation::AddPoint {
+        sketch: 0,
+        position: DVec2::new(at.0, at.1),
+        on,
+    });
+    PointId(document.sketches()[0].points().len() - 1)
+}
+
+#[test]
+fn a_tangency_to_a_free_trait_ending_at_the_circle_s_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    let centre = a_point_held_on(
+        &mut document,
+        (0.0, 6.0),
+        vec![Support::Axis(SketchAxis::V)],
+    );
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::Existing(centre),
+        radius: 3.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let circle = Element::Circle(cao_sketch::CircleId(0));
+    let corner = a_point_held_on(
+        &mut document,
+        (3.0, 6.0),
+        vec![Support::Circle(cao_sketch::CircleId(0))],
+    );
+    let foot = a_point_held_on(
+        &mut document,
+        (1.0, 0.0),
+        vec![Support::Axis(SketchAxis::U)],
+    );
+    let origin = PointId(0);
+    for (start, end) in [(origin, corner), (corner, foot)] {
+        document.apply(Operation::AddSegment {
+            sketch: 0,
+            start: PointRef::Existing(start),
+            end: PointRef::Existing(end),
+            construction: false,
+        });
+    }
+    landed(
+        &mut document,
+        Rule::Parallel,
+        &the_trait_and_the_axis(SketchAxis::V),
+    );
+
+    let rule = the_rule(
+        &document,
+        Rule::Tangent,
+        &[
+            RulePick::Element(circle),
+            RulePick::Element(Element::Segment(SegmentId(1))),
+        ],
+    );
+    refused_with_the_drawing_unchanged(document, rule, Some(circle));
+}
+
+#[test]
+fn collinear_bringing_a_trait_tangent_to_a_circle_through_its_centre_is_refused() {
+    let mut document = a_blank_sketch();
+    let centre = a_point_held_on(
+        &mut document,
+        (1.5, 0.0),
+        vec![Support::Axis(SketchAxis::U)],
+    );
+    document.apply(Operation::AddCircle {
+        sketch: 0,
+        center: PointRef::Existing(centre),
+        radius: 3.0,
+        rim: Vec::new(),
+        construction: false,
+    });
+    let circle = Element::Circle(cao_sketch::CircleId(0));
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::new(7.0, 9.0)),
+        opposite: PointRef::New(DVec2::new(12.5, 11.5)),
+        construction: false,
+    });
+    let sketch = &document.sketches()[0];
+    let (bottom, _) = sketch
+        .live_segments()
+        .find(|(_, side)| sketch.point(side.start).y == 9.0 && sketch.point(side.end).y == 9.0)
+        .expect("the rectangle's bottom side");
+    let tangent = the_rule(
+        &document,
+        Rule::Tangent,
+        &[
+            RulePick::Element(circle),
+            RulePick::Element(Element::Segment(bottom)),
+        ],
+    );
+    let outcome = document.apply(Operation::Constrain {
+        sketch: 0,
+        constraint: tangent,
+    });
+    assert_eq!(outcome, None, "the tangency was refused");
+
+    let rule = the_rule(
+        &document,
+        Rule::Collinear,
+        &[
+            RulePick::Element(Element::Segment(bottom)),
+            RulePick::Axis(SketchAxis::U),
+        ],
+    );
+    refused_with_the_drawing_unchanged(document, rule, Some(circle));
 }
