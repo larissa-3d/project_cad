@@ -296,6 +296,24 @@
 //!   prism, cut by the booleans after the hip's, leaving no face of its own;
 //!   then, at each of the four feet and in both orders, the step declined
 //!   `Unsupported`. A pin, green on f1a96289
+//! - Decided on the way, after cargo-mutants on cedf31ab (2026-11-22): the
+//!   check made once every edge is laid holds the face each earlier edge at a
+//!   shared foot laid by that edge's rank, and the pin above names the pair
+//!   at ranks 0 and 1 only, where `start - rank` reads as `start + rank`, so
+//!   that mutant of `Exact::in_turn` lived. On the pyramid 10 by 6 on its thin
+//!   slabs, at each foot, the hip and the upright named with the upright
+//!   across the slab, a third edge a chamfer alone takes whole, in each of
+//!   the six orders: declined `Unsupported` in every one, until #1083 —
+//!   `a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_on_a_thin_slab_named_with_the_upright_across_the_slab_is_declined_as_unsupported_in_every_order`.
+//!   Read as: the slabs and values of the pin above; before the step, the
+//!   upright across the slab chamfered alone, built and the value taken
+//!   whole, so that it neither bounds nor declines the step; then every order
+//!   declined `Unsupported`, no other reason. A pin, green on cedf31ab.
+//!   Checked in a scratch copy with its own target, the face recorded as
+//!   `start - rank`: the list naming the upright across first, then the hip,
+//!   then the upright under it, is built at every foot, at the booleans'
+//!   volume of all three prisms, 102.48778977138126 at 1 on 0.1, and the five
+//!   other orders stay declined; this test fails there, and only it
 //! - Decided on the way, after the review (2026-11-22), the same comment:
 //!   the chamfer on three or more edges named, not all, at a convex vertex of
 //!   four or more is built as the booleans cut each flat, the same body in
@@ -3267,6 +3285,66 @@ fn a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_
         "the upright and the hip above it at a foot of the pyramid 10 by 6 on a thin slab, where \
          the upright's flat takes one corner the hip's leaves on the floor and not the other, \
          are declined `Unsupported` in every order, a broken step and its reason, and no body, \
+         until #1083; built, or declined for another reason:\n{}",
+        otherwise.join("\n")
+    );
+}
+
+#[test]
+fn a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_on_a_thin_slab_named_with_the_upright_across_the_slab_is_declined_as_unsupported_in_every_order()
+ {
+    let mut otherwise = Vec::new();
+    for (value, height, _) in ON_THE_OBLONG_S_THIN_SLABS {
+        let part = oblong_on_a_slab_of(height);
+        let feet = oblong_feet_on_a_slab_of(height);
+        for (foot, [upright, hip]) in feet.iter().enumerate() {
+            let [across, _] = &feet[(foot + 2) % 4];
+            let alone = laid_at(&part, &[across.name(&part)], Cut::Flat, value);
+            let (asked, taken, _) = alone.unwrap_or_else(|declined| {
+                panic!(
+                    "the fixture: the chamfer at {value} on {} alone, on the slab {height} high \
+                     under the pyramid 10 by 6, is built: declined {declined:?}",
+                    across.called
+                )
+            });
+            taken_as_asked(
+                asked,
+                taken,
+                value,
+                &format!(
+                    "the fixture: the chamfer at {value} on {} alone, on the slab {height} high, \
+                     bounding no step it is named in",
+                    across.called
+                ),
+            );
+            let edges = [across, hip, upright];
+            for order in every_order(&[0, 1, 2]) {
+                let named = order.iter().map(|&index| edges[index]);
+                let what = format!(
+                    "the chamfer at {value} on {}, on the slab {height} high under the pyramid 10 \
+                     by 6",
+                    named
+                        .clone()
+                        .map(|edge| edge.called)
+                        .collect::<Vec<_>>()
+                        .join(", then ")
+                );
+                let names: Vec<EdgeName> = named.map(|edge| edge.name(&part)).collect();
+                match laid_at(&part, &names, Cut::Flat, value) {
+                    Err(Declined::Unsupported) => {}
+                    Err(declined) => otherwise.push(format!("{what}: declined {declined:?}")),
+                    Ok((_, _, body)) => {
+                        otherwise.push(format!("{what}: built, holding {}", body.volume()))
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        otherwise.is_empty(),
+        "the upright and the hip above it at a foot of the pyramid 10 by 6 on a thin slab, named \
+         with the upright across the slab, which a chamfer alone takes whole, are declined \
+         `Unsupported` in every order, whatever ranks the list gives the hip and the upright, \
          until #1083; built, or declined for another reason:\n{}",
         otherwise.join("\n")
     );
