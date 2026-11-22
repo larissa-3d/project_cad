@@ -387,7 +387,10 @@ It can:
   stand out of the part where the rib stands near its side (#807). The ends
   so trimmed: a rib's round end bulging out of the matter, or
   drawn in by draft, and a slot's round end that turns in toward the slot off
-  its wall at a few degrees, which the fill runs on into. The round stays one
+  its wall at a few degrees, which the fill runs on into — drafted with the
+  slot's walls too, the chamfer (#807) and the fillet (#907) alike, the
+  fillet's round meeting the cone at the front's own few degrees at its
+  shallowest. The round stays one
   face and takes in the fill's section. A round the edge runs into, its
   matter inside — a pillar at the end of a wall (#908) — trims the prism by
   the box past the plane through its axis and by its own disc, raised along
@@ -525,7 +528,8 @@ Left, in the order #497 set:
   "Two walls at any angle"): two walls nearly parallel, a cone whose
   rulings run along the other wall's axis, a hole in the flank of a
   pointed cone (#711), and a cone and a wall closer than a chord's sag
-  without meeting (#720). A plane crossing a cylinder or a cone at a slant
+  without meeting, at a place on both their faces (#720, #907). A plane
+  crossing a cylinder or a cone at a slant
   is done (#552), the elliptic cylinder against planes and walls parallel
   or square to it (#571), and two cylinders, elliptic walls or cones at any
   angle (#577);
@@ -2458,10 +2462,17 @@ Declined as unsupported, where the faces may meet and do not stand clear:
   from the rest, and is built.
 - **Grazing** (`grazing`, #706): a cone and a wall that come closer than
   the coarsest drawn chord's sag without meeting within the tolerance, at
-  a nearest approach of the cone's rulings in a box where their faces may
-  meet — the gap over `EPS`, under the larger of the two walls' sags there,
-  each cut by `divisions_in` at `COARSEST_DRAWN`. Their triangles would have to
-  be sampled in common, as `tessellation/contact` does for two cylinders.
+  a nearest approach of the cone's rulings standing on a face of each
+  operand — the gap over `EPS`, under the larger of the two walls' sags
+  there, each cut by `divisions_in` at `COARSEST_DRAWN`. Their triangles
+  would have to be sampled in common, as `tessellation/contact` does for
+  two cylinders. The place is read on the faces themselves, its foot on
+  each surface within that sag of a face lying there
+  (`combine/related.rs`), the boxes round the faces only sparing what
+  cannot be on them (#907): a slot's drafted round end leaves its front a
+  few degrees short of the ruling that comes nearest a fillet's round
+  tangent to that front, a ruling the cone's face never reaches though the
+  round's box holds it, and the fillet was declined there.
 
 The nearly-parallel declines above reach a cone only by the sag: a cone
 in #552's band is checked by `closer_than_a_sag`, its size read along

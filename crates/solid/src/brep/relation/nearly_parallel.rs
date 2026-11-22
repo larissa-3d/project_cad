@@ -157,27 +157,40 @@ pub(in crate::brep) fn within_two_sags(
     sine > Scale::RELATIVE && sine < BAND && closer_than_a_sag(&first, &second, within, scale, 2.0)
 }
 
-/// Whether a cone and a wall, at any angle, come closer to each other than
-/// the coarsest drawn chord's sag without meeting within the tolerance, at
-/// a place where their faces may meet: at a nearest approach of one cone's
-/// rulings to the other wall (`meet::nearest_approaches`), the gap to the
-/// wall the point does not lie on is over `eps` and under the larger of the
-/// two walls' sags there, each cut into `divisions_in(size,
-/// COARSEST_DRAWN · reach, reach)` steps. Their triangles would
-/// have to be sampled in common there, as `tessellation/contact` does for
-/// two cylinders and not yet for a cone (#706).
+/// Whether a cone and a wall graze in one of the boxes `within`, as
+/// [`grazed`] reads it.
+#[cfg(test)]
 pub(in crate::brep) fn grazing(
     one: &Surface,
     other: &Surface,
     within: &[[DVec3; 2]],
     scale: Scale,
 ) -> bool {
+    !grazed(one, other, within, scale).is_empty()
+}
+
+/// Where a cone and a wall, at any angle, come closer to each other than
+/// the coarsest drawn chord's sag without meeting within the tolerance, in
+/// one of the boxes `within` round where their faces may meet, widened by
+/// that sag: at a nearest approach of one cone's rulings to the other wall
+/// (`meet::nearest_approaches`), the gap to the wall the point does not lie
+/// on is over `eps` and under the larger of the two walls' sags there, each
+/// cut into `divisions_in(size, COARSEST_DRAWN · reach, reach)` steps. Each
+/// place comes with that sag. Their triangles would have to be sampled in
+/// common there, as `tessellation/contact` does for two cylinders and not
+/// yet for a cone (#706).
+pub(in crate::brep) fn grazed(
+    one: &Surface,
+    other: &Surface,
+    within: &[[DVec3; 2]],
+    scale: Scale,
+) -> Vec<(DVec3, f64)> {
     let (Some(first), Some(second)) = (Wall::of(one), Wall::of(other)) else {
-        return false;
+        return Vec::new();
     };
     let (cone, wall) = match (first, second) {
         (Wall::Cone(cone), wall) | (wall, Wall::Cone(cone)) => (cone, wall),
-        _ => return false,
+        _ => return Vec::new(),
     };
     let tolerance = COARSEST_DRAWN * scale.reach();
     let sag =
@@ -190,17 +203,19 @@ pub(in crate::brep) fn grazing(
     };
     nearest_approaches(&cone, &wall)
         .into_iter()
-        .any(|(point, on)| {
+        .filter_map(|(point, on)| {
             let room = sag(size(&Wall::Cone(cone), point)).max(sag(size(&wall, point)));
             let away = if on == wall { Wall::Cone(cone) } else { wall };
             let apart = gap(&away, point);
-            apart > scale.eps()
+            (apart > scale.eps()
                 && apart <= room
                 && within.iter().any(|[low, high]| {
                     point.cmpge(*low - DVec3::splat(room)).all()
                         && point.cmple(*high + DVec3::splat(room)).all()
-                })
+                }))
+            .then_some((point, room))
         })
+        .collect()
 }
 
 /// Whether two walls in the band stand closer to each other than `sags`
