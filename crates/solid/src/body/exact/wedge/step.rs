@@ -46,8 +46,7 @@ impl Exact {
     /// name no longer finds its edge, and `Unsupported` where an edge is not a
     /// wedge, two names find one edge, or the corners are declined as
     /// [`corners::admit`] and [`corners::closed`] decline them, the latter
-    /// leaving out a corner some of whose edges are named where the kind's
-    /// apex lays them so.
+    /// leaving out a corner partly named where the kind's apex opens it.
     pub(super) fn step(&self, names: &[EdgeName], kind: &Kind) -> Result<Step, Declined> {
         let found = names
             .iter()
@@ -59,7 +58,8 @@ impl Exact {
             return Err(Declined::Unsupported);
         }
         let beside = corners::admit(&self.brep, &edges)?;
-        let closed = corners::closed(&self.brep, &edges, kind.meeting.closing.apex.some)?;
+        let opens = kind.meeting.closing.apex.opens_partly_named;
+        let closed = corners::closed(&self.brep, &edges, opens)?;
         let mut wedges: Vec<Wedge> = found.into_iter().map(|(_, wedge)| wedge).collect();
         let reached = |rank: usize, side: usize| {
             let ends = runs(
@@ -197,6 +197,7 @@ impl Exact {
         let closes = closing::closings(closed, &wedges, laid_at, set_back, meeting.closing)?;
         let given: Vec<(EdgeId, &Wedge)> = edges.iter().copied().zip(&wedges).collect();
         let crossing = set_backs::crossing_on(&self.brep, &edges, &wedges, set_back);
+        let sharing = corners::sharing(&self.brep, &edges);
         let meet = |one: usize, other: usize| corners::meet(&self.brep, [edges[one], edges[other]]);
         let start = self.next;
         let mut reported = taken;
@@ -242,8 +243,14 @@ impl Exact {
                 }
                 (None, _) => {
                     let open = flush::open(&self.brep, rank, &given, &beside);
-                    let completed =
-                        completing(rank, &given, &crossing, &pairs, |member| meet(member, rank));
+                    let completed = completing(
+                        rank,
+                        &given,
+                        &crossing,
+                        &pairs,
+                        |member| meet(member, rank),
+                        &sharing,
+                    );
                     let met = Met {
                         mitred: &mitred,
                         open: &open,
@@ -271,13 +278,18 @@ impl Exact {
 /// says it meets at a corner, whose one prism, cut whole, takes away what
 /// its cut leaves on that edge's wall: the round of a notch's edge, stopped
 /// flush on the sharp wall's plane where that plane leans across it, runs
-/// on past its shoulder to the wall of the edge it meets there (#917).
+/// on past its shoulder to the wall of the edge it meets there (#917) — and
+/// of those ending with it at a convex corner of four or more edges, not
+/// every one listed, as `sharing` holds them, on whose walls its face,
+/// carried past the corner, may end until their own cuts take that away
+/// (#942).
 fn completing<'a>(
     rank: usize,
     edges: &[(EdgeId, &'a Wedge)],
     crossing: &[(usize, [usize; 2])],
     pairs: &[pairs::Pair],
     meets: impl Fn(usize) -> bool,
+    sharing: &[[usize; 2]],
 ) -> Vec<&'a Wedge> {
     let crossed = (crossing.iter())
         .filter(|&&(between, pair)| pair.contains(&rank) && between > rank)
@@ -288,5 +300,10 @@ fn completing<'a>(
         })
         .flat_map(|&(one, other, _)| [one, other])
         .filter(|&member| meets(member));
-    crossed.chain(cut_whole).map(|at| edges[at].1).collect()
+    let shared = (sharing.iter())
+        .filter(|&&[earlier, _]| earlier == rank)
+        .map(|&[_, later]| later);
+    (crossed.chain(cut_whole).chain(shared))
+        .map(|at| edges[at].1)
+        .collect()
 }

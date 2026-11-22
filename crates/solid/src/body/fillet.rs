@@ -47,10 +47,11 @@ impl Body {
     /// convex corner, every edge ending there named — a right pyramid's apex
     /// — are closed there by one piece of sphere too, where the faces round
     /// the corner all touch one sphere of the radius, and declined
-    /// `Unsupported` where they touch none; so are three or more of a
-    /// corner's edges named and not all, three of a pyramid's four hips
-    /// (#1031), and two at a corner of four or more — at a hip's foot on a
-    /// box — are mitred where they meet, the others left sharp (#942). Two
+    /// `Unsupported` where they touch none; so are three or more of the edges
+    /// at a convex vertex of four or more named and not all — three at a hip's
+    /// foot, three of a pyramid's four hips (#1031) — and two of them, at a
+    /// hip's foot on a box or a thin slab, are mitred where they meet, in
+    /// either order, the others left sharp (#942). Two
     /// rounded off where they
     /// meet beside a concave edge left sharp — the L's top edges at its inner
     /// corner, a pocket's rim — each stop flush on the face the other runs

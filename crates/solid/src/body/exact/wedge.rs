@@ -145,8 +145,9 @@ impl Exact {
     /// named, is cleared before any edge is laid, as [`Exact::cleared`] clears
     /// it, so that no cut carried past it takes the matter of a face its edge
     /// does not lie on, and closed the same way once all are laid; some of
-    /// them named and not all, each is laid in turn where `meeting` says so,
-    /// nothing closing the corner (#942). A corner
+    /// them named and not all, each is laid in turn where `meeting` opens such
+    /// a corner, nothing closing it, and an earlier edge's face may end on a
+    /// later one's walls there, which its cut takes away (#942). A corner
     /// three of them meet at, two of one sense and the odd one of the other —
     /// two feet and the upright above them, two top edges and the upright
     /// below them — is gone round its odd edge as `meeting` says, as
@@ -164,9 +165,9 @@ impl Exact {
     /// is neither convex — every edge ending there a wedge whose faces meet
     /// outwards — nor two of one sense beside an edge of the other left out of
     /// the list, nor two concave beside a third concave, nor three of mixed
-    /// sense, three or more meeting at a corner where another edge ends too
-    /// but where `meeting` says, four or more that `meeting` closes on no
-    /// one surface, where `meeting` raises two together an edge
+    /// sense, three or more meeting at a corner where another edge ends too,
+    /// unless `meeting` opens such a corner, four or more that `meeting`
+    /// closes on no one surface, where `meeting` raises two together an edge
     /// meeting two others but in a closed chain, cut down to one cylinder as
     /// [`Exact::closed_round`] cuts it, or one of two laid together that meets another
     /// edge of the list at a corner any other way — a notch's two edges among
@@ -382,7 +383,7 @@ struct Met<'a> {
     /// [`flush::open`] reads them.
     open: &'a [Stop],
     /// The wedges of the listed edges laid after it whose walls its cut may
-    /// reach, or take whole, since their own cuts take that away.
+    /// reach, or take whole, since their own cuts take that away (#822, #942).
     completed: &'a [&'a Wedge],
 }
 

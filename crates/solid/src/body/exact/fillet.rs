@@ -168,8 +168,9 @@ impl Exact {
     /// running on tangentially into the next edge of a face on the body as
     /// given, one edge named twice, two edges meeting at any other corner where
     /// an edge meets inwards, three or more meeting at a corner where another
-    /// edge, left out of the list, ends too — three of a pyramid's four hips,
-    /// whose rounds no surface of the kernel closes yet (#1031) — four or more
+    /// edge, left out of the list, ends too — three at a hip's foot or of a
+    /// pyramid's four hips, whose rounds no surface of the kernel closes yet
+    /// (#1031) — four or more
     /// whose faces touch no
     /// one sphere of the radius, an edge whose set-backs meet those of two others
     /// — rounds closing on themselves, #790 — an edge of a full round meeting
@@ -212,7 +213,7 @@ impl Exact {
                     apex: Apex {
                         clear: cell,
                         close: sphere_across,
-                        some: false,
+                        opens_partly_named: false,
                     },
                 },
                 around: Around::Torus,

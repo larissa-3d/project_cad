@@ -267,14 +267,20 @@ It can:
   end kinked where it crosses from one to the next, a corner on the edge
   between them, which the check takes as on a side. Some of the edges
   ending at such a corner named and not all are carried past it the same
-  way (#942): two at a hip's foot on a box — the hip, an eave or the
-  upright under it — each laid in turn, the later mitred against the
-  earlier as at a corner of three, the two others left sharp; and three of
-  a pyramid's four hips chamfered, each flat a plane the part is cut by,
-  mitred against the flats laid before, the fourth hip left sharp and no
-  face laid at the apex, since what two flats both take needs no face of
-  its own. Three rounds there are declined: the kernel has no surface yet
-  for where they meet beside the sharp hip (#1031). A round leaving
+  way (#942), each laid in turn, the later mitred against the earlier as at
+  a corner of three, the others left sharp and no face laid at the corner.
+  Two of them are built chamfered or rounded — at a hip's foot, the hip, an
+  eave or the upright under it, on a box or on a slab so thin that the hip
+  alone would cross the upright below the floor. Three or more are built
+  chamfered at any convex vertex of four or more — three of the four edges
+  at a hip's foot, three hips of an apex of four whether or not its four
+  flats would cross on one plane, three or four of a five-sided apex — each
+  flat a plane the part is cut by, since what two flats both take needs no
+  face of its own. The earlier edge's face, carried past the corner, may
+  end on the walls of a later one there, which that one's cut takes away
+  (`corners::sharing`), so the step builds the booleans' body in every
+  order. Three or more rounds there are declined: the kernel has no surface
+  yet for where they meet beside a sharp edge (#1031). A round leaving
   the edge's end at a few degrees inwards trims the chamfer like any other
   end face; one leaving it outwards dips outside the edge's face past the
   end corner, by `r·(1 − cos θ)` for a round of radius `r` leaving at `θ`.

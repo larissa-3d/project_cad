@@ -44,12 +44,15 @@ impl Exact {
     /// round the corner it meets, so its flat ends across those faces, a
     /// corner on each edge between two of them (#943). Two edges meeting at a
     /// convex corner are mitred there, from where their flats cross on the
-    /// face they share down to the corner's third edge, left sharp; at a
-    /// corner of four or more, two of the edges ending there — at a hip's
-    /// foot, the hip, an eave or the upright under it — are mitred where they
-    /// meet, the others left sharp, and three of a pyramid's four hips are
-    /// each a plane the part is cut by, every flat mitred against those laid
-    /// before, the fourth hip left sharp and no face laid at the apex (#942).
+    /// face they share down to the corner's third edge, left sharp. At a
+    /// convex vertex of four or more, some of the edges ending there named and
+    /// not all — two or three at a hip's foot on a box, the hip, an eave or
+    /// the upright under it, on a box or a thin slab, three hips of an apex
+    /// of four whether its flats would cross on one plane or not, three or
+    /// four of five — each flat is a plane the part is cut by, mitred against
+    /// those laid before and, laid before them, ending on the walls of the
+    /// later ones there until their cuts take that away, whatever the order,
+    /// the others left sharp and no face laid at the corner (#942).
     /// Two cut
     /// off where they meet beside a concave edge left sharp — the L's two top edges
     /// at its inner corner, two edges of a pocket's rim — each stop flush there
@@ -149,7 +152,7 @@ impl Exact {
                     apex: Apex {
                         clear: tip,
                         close: polygon_across,
-                        some: true,
+                        opens_partly_named: true,
                     },
                 },
                 around: Around::Edge,

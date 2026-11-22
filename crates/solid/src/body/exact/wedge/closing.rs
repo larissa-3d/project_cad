@@ -40,15 +40,16 @@ pub(in crate::body::exact) struct Closing {
 
 /// What a kind closes a corner four or more edges meet at with: the clearing
 /// `clear` cuts before any edge is laid, and the face `close` lays once all
-/// are, in place of what the clearing left; and whether `some` of its edges,
-/// not all, are laid each in turn, nothing closing the corner — flats, each
-/// a plane the part is cut by, whatever the others take (#942), and no
-/// rounds, which no surface of the kernel closes there yet (#1031).
+/// are, in place of what the clearing left; and whether it opens such a
+/// corner partly named, three or more of its edges in the list and not all,
+/// each laid in turn and nothing closing it — flats, each a plane the part
+/// is cut by, whatever the others take (#942), and no rounds, which no
+/// surface of the kernel closes there yet (#1031).
 #[derive(Clone, Copy)]
 pub(in crate::body::exact) struct Apex {
     pub clear: Clear,
     pub close: Close,
-    pub some: bool,
+    pub opens_partly_named: bool,
 }
 
 /// How far what fills a concave corner reaches into the matter past the
