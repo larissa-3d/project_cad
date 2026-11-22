@@ -533,6 +533,21 @@
 //! cargo test -p cao_solid --features campaigns \
 //!     --test a_round_bottom_meets_the_fill_of_the_edge_at_its_pocket_s_end_in_a_valley -- --ignored
 //! ```
+//!
+//! Decided on the way, after #921's mutants (2026-11-22), held by the same
+//! test: the pair, the right end's floor edge and the upright at its front or
+//! its back corner, with the upright on the same side at the left end. The
+//! corner the three close at the right end is closed by an eighth of the
+//! ball, the other corner there is #838's valley, and the left end's upright
+//! meets the round bottom in a valley beside the floor edge left sharp there:
+//! `5280 + 58r²(1 − π/4) − r³(2 − 7π/12) − 2r³(5/3 − π/2)`, `5658 − 351π/4`,
+//! 5382.3252, which the booleans give as above. It holds the rule
+//! `at_their_ends` lets an upright in by: the closed corners it reads are
+//! those holding both the upright and the edge of the pair it meets, not every
+//! corner either one ends at. The left end's upright meets the front floor
+//! edge, whose other corner, at the right end, is closed by an upright that
+//! is not at the pair's end; read the other way, the list is declined in
+//! every order.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::PI;
@@ -5721,8 +5736,10 @@ fn both_ends_and_uprights(part: &Body, orders: &[Vec<usize>]) -> [AlsoBuilt; 2] 
 /// The lists, but [`both_ends_and_uprights`], that the change which built
 /// #919's lists builds beside them, each in every order: the pair with one
 /// upright at either end, with two uprights at different ends, with the left
-/// end's floor edge and an upright at the right end, and one floor edge
-/// along the pocket with the right end's floor edge and both uprights there.
+/// end's floor edge and an upright at the right end, with the right end's
+/// floor edge and the upright at one corner there and the one on the same
+/// side at the left end, and one floor edge along the pocket with the right
+/// end's floor edge and both uprights there.
 fn also_built(part: &Body) -> Vec<AlsoBuilt> {
     let r = RADIUS;
     let sides = [Side::Front, Side::Back];
@@ -5793,6 +5810,43 @@ fn also_built(part: &Body) -> Vec<AlsoBuilt> {
                 ],
             )
             .volume(),
+        });
+    }
+    for side in sides {
+        let cell = match side {
+            Side::Front => [FRONT_WALL_AT - 1.0, crossing().y],
+            Side::Back => [crossing().y, FRONT_WALL_AT + WIDTH + 1.0],
+        };
+        let floor_edge = match side {
+            Side::Front => 0,
+            Side::Back => 1,
+        };
+        lists.push(AlsoBuilt {
+            called: format!(
+                "the fillet on the pair, the right end's floor edge and the {side:?} upright \
+                 there, and the {side:?} upright at the left end"
+            ),
+            cut: Cut::Fillet,
+            listed: pair_and(&[
+                End::Right.edge(),
+                side.upright(End::Right),
+                side.upright(End::Left),
+            ]),
+            corners: vec![[floor_edge, 2, 3]],
+            orders: every_order(5),
+            written: (5658.0 - 351.0 * PI / 4.0, "5658 − 351π/4"),
+            by_booleans: joined_by_booleans(
+                part,
+                &[
+                    &|body| round_bottom_tool(body, RIGHT_WALL_AT + r),
+                    &|body| End::Right.tool(body),
+                    &|body| upright_tool(body, End::Right, side),
+                    &|body| upright_tool(body, End::Left, side),
+                    &|body| corner_cell_tool(body, cell),
+                ],
+            )
+            .volume()
+                - PI * r.powi(3) / 6.0,
         });
     }
     for (side, floor_edge) in sides.into_iter().zip(PAIR) {

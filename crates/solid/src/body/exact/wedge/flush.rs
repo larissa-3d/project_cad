@@ -318,13 +318,6 @@ impl Exact {
         if stops.is_empty() {
             return Ok(cut);
         }
-        let on_its_faces = |point: &DVec3| {
-            (wedge.outward.iter()).any(|side| side.dot(*point - wedge.point).abs() <= eps)
-        };
-        let seams = (self.brep.vertex_ids())
-            .filter(|_| !flush.overlaps.is_empty())
-            .map(|vertex| self.brep.vertex(vertex).point)
-            .filter(on_its_faces);
         let corners: Vec<DVec3> = (stops.iter().map(|stop| stop.corner))
             .chain(
                 flush
@@ -332,15 +325,31 @@ impl Exact {
                     .iter()
                     .flat_map(|overlap| overlap.cleared.iter().copied()),
             )
-            .chain(seams)
+            .chain(self.seams(wedge, &flush.overlaps, eps))
             .collect();
         cut.merged_at(&corners)
+    }
+
+    /// The corners this body holds on the plane of either face of `wedge`,
+    /// within `eps`, where its edge takes one of `overlaps`, and none where it
+    /// takes none: there a face laid before it, stopped on that plane, may run
+    /// on into the overlap, and the edges either side of such a corner are
+    /// made one.
+    pub(super) fn seams(&self, wedge: &Wedge, overlaps: &[Overlap], eps: f64) -> Vec<DVec3> {
+        let on_its_faces = |point: &DVec3| {
+            (wedge.outward.iter()).any(|side| side.dot(*point - wedge.point).abs() <= eps)
+        };
+        (self.brep.vertex_ids())
+            .filter(|_| !overlaps.is_empty())
+            .map(|vertex| self.brep.vertex(vertex).point)
+            .filter(on_its_faces)
+            .collect()
     }
 }
 
 /// The plane of the face `id` and the way it faces out of the matter, where
 /// it is flat; none on any other face.
-fn flat(body: &brep::Body, id: FaceId) -> Option<(&Plane, DVec3)> {
+pub(super) fn flat(body: &brep::Body, id: FaceId) -> Option<(&Plane, DVec3)> {
     let face = body.face(id);
     let Surface::Plane(plane) = body.surface(face.surface) else {
         return None;

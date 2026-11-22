@@ -106,16 +106,33 @@ impl Body {
     /// by a hollow piece of sphere; with both uprights and that edge, in a
     /// pocket as wide as two radii, the two round bottoms stop tangent to one
     /// hollow quarter of a ball, that edge's fill closing to nothing between
-    /// its two corners, as at a tongue's tip (#919). An
+    /// its two corners, as at a tongue's tip (#919). The two floor edges of a
+    /// pocket's pointed or notched end, named with the round bottom along its
+    /// floor, are filled in at its radius too, each meeting it in a valley
+    /// from its shoulder, where every edge ending there meets inwards, the
+    /// round bottom ending flush on both end walls, and the two meeting each
+    /// other in a valley at a point's tip, or, at a notch, mitred outside its
+    /// upright, left sharp; the upright at a point's tip, named too, is filled
+    /// in and closed with them by a hollow piece of sphere, and the round
+    /// bottom alone, or at a point with an upright at a shoulder, ends flush on
+    /// both end walls as well, each half on its own whichever edge is named
+    /// first — at a stepped end too, whose two walls share no edge, where
+    /// both stand square to the edges, the step kept whole (#921). An
     /// edge of a full round meeting any other edge of the list at a corner, a
     /// notch's two where its concave upright is named too (#914), an upright
     /// where a third edge of the list ends but one at its end — the edge
     /// across it, or a pointed end's (#837, #911) —, or
-    /// one of a round bottom meeting any but the edge at its end or an upright
-    /// there beside a floor edge meeting inwards — a pit's upright, beside one
-    /// meeting outwards (#919), the edges of a pointed or a notched end (#921)
-    /// — or that edge where its faces meet outwards — an open slot's end, the
-    /// rim above a standing round bottom — is declined `Unsupported`. Rounds
+    /// one of a round bottom meeting any but the edge at its end, an upright
+    /// there beside a floor edge meeting inwards or the two edges of a pointed
+    /// or a notched end — a pit's upright, beside one meeting outwards (#919),
+    /// one edge of a notched end alone, and both with an upright at a point's
+    /// shoulder or the one at a notch's tip (#921) — or that edge where its
+    /// faces meet outwards — an open slot's end, the
+    /// rim above a standing round bottom — is declined `Unsupported`, and so is
+    /// a round bottom whose two edges end on two faces where either has air
+    /// past it — a slot widening past the end of one of them (#921) — or on
+    /// the two walls of a stepped end where either stands at a slant to the
+    /// edges (#1021). Rounds
     /// that would meet only on a curved edge are not measured, and declined
     /// `Unsupported` where they meet. The first edge declined declines the
     /// step.
