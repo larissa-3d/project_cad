@@ -3223,7 +3223,7 @@ const ON_THE_OBLONG_S_THIN_SLABS: [(f64, f64, f64); 5] = [
 #[test]
 fn a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_on_a_thin_slab_is_declined_as_unsupported_in_either_order()
  {
-    let mut built = Vec::new();
+    let mut otherwise = Vec::new();
     for (value, height, kept) in ON_THE_OBLONG_S_THIN_SLABS {
         let part = oblong_on_a_slab_of(height);
         for [upright, hip] in oblong_feet_on_a_slab_of(height) {
@@ -3252,19 +3252,23 @@ fn a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_
                     fixture.volume()
                 );
                 let names = order.map(|edge| edge.name(&part));
-                if let Ok((_, _, body)) = laid_at(&part, &names, Cut::Flat, value) {
-                    built.push(format!("{what}: built, holding {}", body.volume()));
+                match laid_at(&part, &names, Cut::Flat, value) {
+                    Err(Declined::Unsupported) => {}
+                    Err(declined) => otherwise.push(format!("{what}: declined {declined:?}")),
+                    Ok((_, _, body)) => {
+                        otherwise.push(format!("{what}: built, holding {}", body.volume()))
+                    }
                 }
             }
         }
     }
     assert!(
-        built.is_empty(),
+        otherwise.is_empty(),
         "the upright and the hip above it at a foot of the pyramid 10 by 6 on a thin slab, where \
          the upright's flat takes one corner the hip's leaves on the floor and not the other, \
-         are declined in every order, a broken step and its reason, and no body, until #1083; \
-         built:\n{}",
-        built.join("\n")
+         are declined `Unsupported` in every order, a broken step and its reason, and no body, \
+         until #1083; built, or declined for another reason:\n{}",
+        otherwise.join("\n")
     );
 }
 
