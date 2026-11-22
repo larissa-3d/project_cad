@@ -161,13 +161,12 @@ fn a_click_on_a_side_away_from_its_marks_still_takes_the_side() {
 fn a_box_drawn_around_a_corner_mark_takes_the_rule_alone() {
     let mut app = a_rectangle("a_box_drawn_around_a_corner_mark");
     let mark = the_mark_out_in_the_open(&app);
-    let within_the_corner_s_magnet = mark + egui::vec2(17.0, -15.0);
+    // Up and to the right, towards the corner, and short of it: a right
+    // angle's box stands at least 15 pt from each side of its corner, so the
+    // corner lies outside a box ending 12 pt from the mark.
+    let towards_the_corner = mark + egui::vec2(12.0, -12.0);
 
-    driver::drag_and_drop(
-        &mut app,
-        mark + egui::vec2(-25.0, 25.0),
-        within_the_corner_s_magnet,
-    );
+    driver::drag_and_drop(&mut app, mark + egui::vec2(-25.0, 25.0), towards_the_corner);
     let history = delete_and_read_the_history(&mut app);
 
     assert!(

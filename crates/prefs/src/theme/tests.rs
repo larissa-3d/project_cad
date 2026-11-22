@@ -40,11 +40,18 @@
 //! - The « Par défaut » profile takes these colours: settled off-white
 //!   (`trait_regle`, `sketch.settled_stroke` since #749), free blue
 //!   (`trait_libre`, `sketch.free_stroke`), areas tinted a light blue, strokes
-//!   2 px — `the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours`;
+//!   2 px — decided by Tom once he had tried the branch: free strokes keep the
+//!   orange-yellow they had before the redesign, the redesign's blue set
+//!   aside; the rest stands —
+//!   `the_default_profile_draws_settled_strokes_and_areas_as_the_redesign_and_free_ones_orange`;
 //!   construction grey and the tool in progress amber, two colours the theme
 //!   did not have — `the_default_profile_carries_a_construction_grey_and_a_tool_amber`
 //! - decided in the issue: against the sketch background, settled 15.1:1, free
-//!   8.6:1, construction 6.2:1, tool 9.1:1; settled against free 1.75:1 —
+//!   8.6:1, construction 6.2:1, tool 9.1:1; settled against free 1.75:1 — read
+//!   since Tom kept the orange: settled 15.1:1, construction 6.2:1 and tool
+//!   9.1:1 as the issue decided, free 13.4:1, what the orange gives; settled
+//!   against free falls to 1.13:1, the hue rather than the brightness telling
+//!   the two apart, and is no longer held —
 //!   `each_stroke_stands_off_the_sketch_background_by_the_contrast_decided`
 //! - Grid: in the redesign's colours; axes X red, Y green, Z blue — true since
 //!   #724, and held by `the_default_grid_and_axes_are_the_redesign_s`
@@ -383,8 +390,11 @@ fn written_with_its_opacity(path: &str) -> [u8; 4] {
     [r as u8, g as u8, b as u8, (a * 255.0).round() as u8]
 }
 
+/// The orange-yellow free strokes had before the redesign, which Tom kept.
+const THE_OLD_ORANGE: Rgba = Rgba::opaque(0.98, 0.85, 0.35);
+
 #[test]
-fn the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours() {
+fn the_default_profile_draws_settled_strokes_and_areas_as_the_redesign_and_free_ones_orange() {
     let theme = the_default_profile_s_theme();
 
     let wrong: Vec<String> = [
@@ -393,11 +403,7 @@ fn the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours() {
             theme.sketch_settled,
             written("sketch.settled_stroke"),
         ),
-        (
-            "sketch_free",
-            theme.sketch_free,
-            written("sketch.free_stroke"),
-        ),
+        ("sketch_free", theme.sketch_free, bytes(THE_OLD_ORANGE)),
         (
             "region_fill",
             theme.region_fill,
@@ -408,7 +414,7 @@ fn the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours() {
     .filter(|(_, worn, design)| bytes(*worn) != *design)
     .map(|(name, worn, design)| {
         format!(
-            "{name} is {:?}, the redesign writes {design:?}",
+            "{name} is {:?}, where it is decided {design:?}",
             bytes(worn)
         )
     })
@@ -453,10 +459,8 @@ fn contrast(one: Rgba, other: Rgba) -> f32 {
     (one.max(other) + 0.05) / (one.min(other) + 0.05)
 }
 
-/// A figure the issue wrote to a tenth holds any ratio that rounds to it.
+/// A figure written to a tenth holds any ratio that rounds to it.
 const TO_A_TENTH: f32 = 0.05;
-/// The same, for the one written to a hundredth.
-const TO_A_HUNDREDTH: f32 = 0.005;
 
 #[test]
 fn each_stroke_stands_off_the_sketch_background_by_the_contrast_decided() {
@@ -480,7 +484,7 @@ fn each_stroke_stands_off_the_sketch_background_by_the_contrast_decided() {
             "free against the background",
             Some(theme.sketch_free),
             background,
-            8.6,
+            13.4,
             TO_A_TENTH,
         ),
         (
@@ -497,13 +501,6 @@ fn each_stroke_stands_off_the_sketch_background_by_the_contrast_decided() {
             9.1,
             TO_A_TENTH,
         ),
-        (
-            "settled against free",
-            Some(theme.sketch_settled),
-            theme.sketch_free,
-            1.75,
-            TO_A_HUNDREDTH,
-        ),
     ]
     .into_iter()
     .filter_map(|(what, stroke, against, decided, near)| match stroke {
@@ -511,14 +508,16 @@ fn each_stroke_stands_off_the_sketch_background_by_the_contrast_decided() {
         Some(stroke) => {
             let ratio = contrast(stroke, against);
             ((ratio - decided).abs() > near)
-                .then(|| format!("{what} is {ratio:.3}:1, the issue decided {decided}:1"))
+                .then(|| format!("{what} is {ratio:.3}:1, where {decided}:1 is decided"))
         }
     })
     .collect();
 
     assert!(
         wrong.is_empty(),
-        "the default profile's strokes stand off the sketch background by other contrasts:\n  {}",
+        "the default profile's strokes stand off the sketch background by other contrasts \
+         (settled against free reads {:.2}:1, no longer held since Tom kept the orange):\n  {}",
+        contrast(theme.sketch_settled, theme.sketch_free),
         wrong.join("\n  "),
     );
 }

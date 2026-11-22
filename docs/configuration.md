@@ -102,9 +102,11 @@ of grid, the three states of a sketch (free, constrained, another sketch), its
 construction geometry, the tool in progress, the dimensions and the ones that
 only report, what a rule holds in place, the marks of those rules and the fill
 and border of their boxes, the tint of the areas, the matter, the hover, and
-the two extrusion colours. The « Par défaut » profile takes the redesign's: free
-blue, settled off-white, construction grey, the tool in progress amber. No colour of the viewport is hard-coded any more: a colour
-that lives in a constant somewhere is a colour nobody can change.
+the two extrusion colours. The « Par défaut » profile takes the redesign's
+settled off-white, construction grey and amber tool in progress, and keeps the
+orange-yellow free strokes had before it. No colour of the viewport is
+hard-coded any more: a colour that lives in a constant somewhere is a colour
+nobody can change.
 
 Colours are stored in sRGB — the space of colour pickers — and converted once,
 where the geometry is built.

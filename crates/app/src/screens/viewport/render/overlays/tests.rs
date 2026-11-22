@@ -101,6 +101,11 @@
 //!   capture shows and at a larger one: no point of a side lies in a box or
 //!   answers as a mark, and no box covers a vertex's square —
 //!   `the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_corners`
+//! - decided by Tom once he had tried the branch: a right angle's mark stood
+//!   too far inside its corner — its box stands inside the corner, on its
+//!   bisector, as near as clearing both sides by the room allows and no more
+//!   than 4 pt further, on rectangles laid as the tool lays them, both sizes,
+//!   every corner — `a_right_angle_s_mark_stands_as_near_its_corner_as_clearing_allows`
 //!
 //! The two box colours are read by the names a profile writes them under,
 //! `rule_background` and `rule_border`, as #742 did for its stroke colours.
@@ -2229,6 +2234,78 @@ fn the_marks_of_a_rectangle_drawn_with_its_tool_stand_clear_of_its_sides_and_cor
         wrong.is_empty(),
         "a rectangle drawn with its tool has a mark over a side or a corner, where a click \
          is meant for the side or the corner:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+/// The room a mark's box leaves between itself and a trait, in points.
+const BOX_CLEARS: f32 = 6.0;
+
+/// How much further than the room it has to leave a right angle's box may
+/// stand from the sides of its corner, in points: as near as clearing allows,
+/// give or take.
+const NO_FURTHER_THAN: f32 = 4.0;
+
+#[test]
+fn a_right_angle_s_mark_stands_as_near_its_corner_as_clearing_allows() {
+    let mut camera = OrbitCamera::default();
+    let (yaw, pitch) = cao_render::camera::view_angles_towards(Vec3::Z);
+    camera.set_view_angles(yaw, pitch);
+    let view_projection = camera.view_projection(SCREEN.aspect_ratio());
+    let pixel = f64::from(camera.world_units_per_pixel(SCREEN.height()));
+    let screen = |sketch: &cao_sketch::Sketch, at: DVec2| {
+        to_screen(sketch.plane.to_world(at), view_projection, SCREEN)
+            .expect("the rectangle stands in front of the camera")
+    };
+    let nearest = MARK_BOX / 2.0 + BOX_CLEARS;
+
+    let mut wrong = Vec::new();
+    for (wide, high) in [(126.0, 91.0), (300.0, 200.0)] {
+        let base = DVec2::new(40.0, 40.0) * pixel;
+        let far = base + DVec2::new(wide, high) * pixel;
+        let (right_low, left_high) = (DVec2::new(far.x, base.y), DVec2::new(base.x, far.y));
+        for (corner, opposite) in [
+            (base, far),
+            (far, base),
+            (right_low, left_high),
+            (left_high, right_low),
+        ] {
+            let sketch = a_rectangle_as_its_tool_lays_it(corner, opposite);
+            let drawn = format!("{wide}×{high} pt from {corner:?}");
+            for (rule, at) in placed_marks(&sketch, view_projection, SCREEN) {
+                let Constraint::Perpendicular { first, second } = rule else {
+                    continue;
+                };
+                let Some((pivot, one, other)) = sketch.corner_points(first, second) else {
+                    continue;
+                };
+                let here = screen(&sketch, pivot);
+                let arms = [one, other].map(|end| (screen(&sketch, end) - here).normalized());
+                let from = at - here;
+                let inside = arms.iter().all(|arm| arm.dot(from) > 0.0);
+                let off = arms.map(|arm| (arm.x * from.y - arm.y * from.x).abs());
+                let near_enough = off
+                    .iter()
+                    .all(|side| (nearest - 0.5..=nearest + NO_FURTHER_THAN).contains(side));
+                let on_the_bisector = (off[0] - off[1]).abs() <= 1.0;
+                if !(inside && near_enough && on_the_bisector) {
+                    wrong.push(format!(
+                        "{drawn}: the right angle at {here:?} has its mark at {at:?}, \
+                         {:.1} and {:.1} pt from its two sides{}",
+                        off[0],
+                        off[1],
+                        if inside { "" } else { ", outside the corner" },
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "a right angle's box stands inside its corner, on its bisector, {nearest} pt from \
+         each side — its half and the room it leaves — and no more than {NO_FURTHER_THAN} pt \
+         further:\n  {}",
         wrong.join("\n  "),
     );
 }

@@ -293,7 +293,7 @@ impl Default for Theme {
             grid_major_width: 1.5,
             grid_major_every: 10,
 
-            sketch_free: Rgba::from_bytes(0x6C, 0xB6, 0xFF),
+            sketch_free: Rgba::opaque(0.98, 0.85, 0.35),
             sketch_settled: Rgba::from_bytes(0xE6, 0xE8, 0xEC),
             sketch_inactive: Rgba::new(0.70, 0.72, 0.76, 0.8),
             sketch_construction: Theme::default_sketch_construction(),

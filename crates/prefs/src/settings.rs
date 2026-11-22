@@ -25,7 +25,10 @@ use crate::toolbar::ToolbarLayout;
 ///
 /// 5 drew the sketch in the redesign's colours: a file written by 4 would keep
 /// the yellow and the green.
-pub const SETTINGS_VERSION: u32 = 5;
+///
+/// 6 kept the free strokes orange: a file written by 5 while the branch drew
+/// them blue would keep the blue.
+pub const SETTINGS_VERSION: u32 = 6;
 
 /// Everything the user can set. One value, so a profile is one thing to save,
 /// to reset, and to hand to somebody else.

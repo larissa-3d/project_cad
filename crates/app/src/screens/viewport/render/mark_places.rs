@@ -27,13 +27,8 @@ pub(crate) fn placed_marks(
                 continue;
             };
             let clear = match corner_of(sketch, *constraint) {
-                Some(corner) => screen(corner).map(|here| {
-                    let arms = arms_at(sketch, corner, here, screen);
-                    match clears_their_lines(&arms, position - here) {
-                        true => position,
-                        false => here + clear_of(&arms),
-                    }
-                }),
+                Some(corner) => screen(corner)
+                    .map(|here| here + clear_of(&arms_at(sketch, corner, here, screen))),
                 None => Some(position + clear_of(&arms_at(sketch, at, position, screen))),
             };
             let Some(mut position) = clear else {
@@ -51,9 +46,9 @@ pub(crate) fn placed_marks(
     placed
 }
 
-/// The corner a right angle is written in, when its two traits meet: the
-/// drawing marks it just inside, where the box stays when that clears the
-/// corner and both its sides, and is pushed further in when it does not.
+/// The corner a right angle is written in, when its two traits meet: its box
+/// stands in it as near as clearing the corner and both its sides allows,
+/// rather than where the drawing marks it, further in.
 fn corner_of(sketch: &Sketch, rule: Constraint) -> Option<DVec2> {
     let Constraint::Perpendicular { first, second } = rule else {
         return None;
@@ -130,13 +125,6 @@ fn clear_of(arms: &[egui::Vec2]) -> egui::Vec2 {
 /// box to keep clear of it.
 fn room(normal: egui::Vec2) -> f32 {
     MARK_BOX / 2.0 * (normal.x.abs() + normal.y.abs()) + MARK_CLEARS
-}
-
-/// Whether a box standing `offset` from where `arms` leave keeps clear of the
-/// lines they run along.
-fn clears_their_lines(arms: &[egui::Vec2], offset: egui::Vec2) -> bool {
-    arms.iter()
-        .all(|arm| (arm.x * offset.y - arm.y * offset.x).abs() >= room(arm.rot90()))
 }
 
 /// The rule whose mark is under `pointer`: on the surface the mark is drawn

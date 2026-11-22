@@ -669,9 +669,8 @@ Each mark sits in a **small box, 18 points across**, standing **clear of the
 traits** through the place it marks — beside a trait, inside the corner of a
 right angle, clear of the corner's own vertex too — so that a click on a trait
 or on a vertex is the trait's or the vertex's, not the rule's. A right angle's
-box stands a quarter of the shorter side into its corner, and further in on a
-shape too small for that to clear the sides; a corner too sharp to hold it
-takes it outside.
+box stands inside its corner, on the bisector, as near the corner as clearing
+both sides allows; a corner too sharp to hold it takes it outside.
 
 Several rules can hold the same spot — a midpoint and a perpendicularity, for
 instance. Marks that would land on one another are therefore **spread side by
@@ -1414,7 +1413,7 @@ instead of tearing it off. A radius turns around its circle.
 
 | Colour | What it means |
 | --- | --- |
-| **Blue** | Freedom is left: this element can still move. |
+| **Orange-yellow** | Freedom is left: this element can still move. |
 | **Off-white** | Entirely constrained, settled: this point can no longer move at all. |
 | **Grey, dashed** | Construction geometry, settled or not. |
 | **Amber** | The tool in progress, and only it: the trait the next click lays — drawn as solid and as wide as a laid one — the ring and the name of a snap, the arc of a line's angle and the border of the fields the cursor carries. |

@@ -23,8 +23,10 @@
 //! - **Strokes**: settled off-white (`trait_regle`), free blue (`trait_libre`),
 //!   construction grey and dashed, 2 px; vertices as 8 px squares; areas
 //!   tinted a light blue — a settled trait, off-white and 2 px wide —
-//!   `a_settled_stroke_is_drawn_off_white_two_pixels_wide`; a free one, blue
-//!   and 2 px wide — `a_free_stroke_is_drawn_blue_two_pixels_wide`; a
+//!   `a_settled_stroke_is_drawn_off_white_two_pixels_wide`; a free one 2 px
+//!   wide and, decided by Tom once he had tried the branch, in the
+//!   orange-yellow it had before the redesign rather than the redesign's blue —
+//!   `a_free_stroke_is_drawn_orange_two_pixels_wide`; a
 //!   construction one, grey and in dashes —
 //!   `a_construction_stroke_is_drawn_grey_and_dashed`; a vertex, a square 8 px
 //!   across, as it already was — `a_vertex_is_marked_by_a_square_eight_pixels_across`;
@@ -81,7 +83,7 @@
 //!   and `the_scale_bar_says_how_long_one_grid_step_is` in
 //!   `crates/app/src/screens/viewport/render/overlays/tests.rs`
 //! - The « Par défaut » profile takes these colours — no test: in this file;
-//!   held by `the_default_profile_draws_strokes_and_areas_in_the_redesign_s_colours`
+//!   held by `the_default_profile_draws_settled_strokes_and_areas_as_the_redesign_and_free_ones_orange`
 //!   and `the_default_profile_carries_a_construction_grey_and_a_tool_amber`,
 //!   with the contrasts the issue decided by
 //!   `each_stroke_stands_off_the_sketch_background_by_the_contrast_decided`,
@@ -160,6 +162,10 @@
 //!   the laid ones and the mockup's solid amber — a line, a rectangle and a
 //!   circle in progress are drawn at the sketch's width and near opaque, in
 //!   the tool's colour — `the_provisional_trait_is_drawn_solid_at_the_sketch_width`
+//! - decided by Tom once he had tried the branch: a right angle's mark stands
+//!   as near its corner as clearing its sides allows — no test: in this file;
+//!   held by `a_right_angle_s_mark_stands_as_near_its_corner_as_clearing_allows`
+//!   in `crates/app/src/screens/viewport/render/overlays/tests.rs`
 //!
 //! The grid's spacing is out of scope: it stays in millimetres. The two colours
 //! the theme gains are read by the names a profile writes them under,
@@ -728,7 +734,7 @@ fn not_in(steps: &[Step], hex: [u8; 3]) -> Vec<([u8; 3], f32)> {
 }
 
 #[test]
-fn a_free_stroke_is_drawn_blue_two_pixels_wide() {
+fn a_free_stroke_is_drawn_orange_two_pixels_wide() {
     let (from, to) = (DVec2::new(4.0, 5.0), DVec2::new(40.0, 25.0));
     let document = a_part_with_a_trait(from, to, false);
     let settled = document.sketches()[0].settled_points(document.scale());
@@ -740,15 +746,15 @@ fn a_free_stroke_is_drawn_blue_two_pixels_wide() {
     let (sketch, lines, _) = a_frame_of(document, SketchEditor::default(), &Theme::default());
 
     let stroke = painted_along(&lines, &sketch, from, to);
-    let (blue, _) = redesign(&["sketch", "free_stroke"]);
+    let orange = hex_of(tint(Rgba::opaque(0.98, 0.85, 0.35)));
     assert!(
         !stroke.is_empty(),
         "nothing is painted along the free trait"
     );
-    let wrong = not_in(&stroke, blue);
+    let wrong = not_in(&stroke, orange);
     assert!(
         wrong.is_empty(),
-        "a free trait is painted the redesign's blue, {blue:?}, not {wrong:?}",
+        "a free trait is painted the orange-yellow Tom kept, {orange:?}, not {wrong:?}",
     );
     assert!(
         stroke.iter().all(|step| step.width == 2.0),
