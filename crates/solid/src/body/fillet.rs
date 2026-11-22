@@ -98,16 +98,24 @@ impl Body {
     /// plane, as two fills at a pocket's bottom corner do (#838): the floor's
     /// edge on a pocket's end wall, with the round bottom along its floor,
     /// and the same edge named with the two uprights at that end, a standing
-    /// round bottom meeting the edge at its foot. An
+    /// round bottom meeting the edge at its foot. An upright at a pocket's
+    /// end named with the round bottom along its floor is filled in at that
+    /// radius too, meeting the round bottom in a valley where the floor's edge
+    /// beside it, meeting inwards, is left sharp, and closed with it and that
+    /// edge, named too,
+    /// by a hollow piece of sphere; with both uprights and that edge, in a
+    /// pocket as wide as two radii, the two round bottoms stop tangent to one
+    /// hollow quarter of a ball, that edge's fill closing to nothing between
+    /// its two corners, as at a tongue's tip (#919). An
     /// edge of a full round meeting any other edge of the list at a corner, a
     /// notch's two where its concave upright is named too (#914), an upright
     /// where a third edge of the list ends but one at its end — the edge
     /// across it, or a pointed end's (#837, #911) —, or
-    /// one of a round bottom meeting any but the edge at its end — the
-    /// uprights at a pocket's end with the round bottom along its floor
-    /// (#919), the edges of a pointed or a notched end (#921) — or that edge
-    /// where its faces meet outwards — an open slot's end, the rim above a
-    /// standing round bottom — is declined `Unsupported`. Rounds
+    /// one of a round bottom meeting any but the edge at its end or an upright
+    /// there beside a floor edge meeting inwards — a pit's upright, beside one
+    /// meeting outwards (#919), the edges of a pointed or a notched end (#921)
+    /// — or that edge where its faces meet outwards — an open slot's end, the
+    /// rim above a standing round bottom — is declined `Unsupported`. Rounds
     /// that would meet only on a curved edge are not measured, and declined
     /// `Unsupported` where they meet. The first edge declined declines the
     /// step.

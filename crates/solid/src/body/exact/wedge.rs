@@ -117,7 +117,10 @@ impl Exact {
     /// their one prism the same way, at their value, as
     /// [`pairs::at_their_ends`] reads it, the two read on the body as given,
     /// and so does a concave edge bounding the face two fills laid together
-    /// meet across and meeting both, its fill joined to theirs in a valley.
+    /// meet across and meeting both, its fill joined to theirs in a valley,
+    /// and a concave upright meeting one of them, closed there with that edge
+    /// or meeting theirs in a valley beside it left sharp, where every edge
+    /// ending there meets inwards, a pocket's bottom corner (#919).
     /// Two edges of one sense meeting at a
     /// corner beside an edge of the other sense left out of the list, as
     /// [`corners::admit`] admits it — two cuts beside a concave edge, two fills

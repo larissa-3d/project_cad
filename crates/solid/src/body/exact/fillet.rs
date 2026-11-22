@@ -58,6 +58,15 @@ impl Exact {
     /// plane, as two fills at a pocket's bottom corner meet; and so is the
     /// end's floor edge named with the two
     /// uprights there, a standing round bottom meeting the edge at its foot.
+    /// An upright at that end, meeting one of the round bottom's edges, is
+    /// filled in at its radius too, as two fills at a pocket's bottom corner
+    /// are: its fill meeting the round bottom in a valley where the floor's
+    /// edge between them, meeting inwards too, is left sharp, the three closed
+    /// by a hollow piece of
+    /// sphere where it is named; and with both uprights and that edge, in a
+    /// pocket as wide as two radii, the two corners' pieces are one hollow
+    /// quarter of a ball, as at a tongue's tip, the two round bottoms stopping
+    /// tangent to it (#919).
     /// Where
     /// matter lies past an end of an edge rounded off, behind the one flat face
     /// it runs into there — the inner corner of an L, a pocket's rim, the foot
@@ -146,9 +155,10 @@ impl Exact {
     /// bottom, or an upright, a notch's two where the
     /// upright at its bottom is named too and an upright where a third edge
     /// of the list ends but the edge at its end, one of a round bottom meeting
-    /// any but the edge at its end — the uprights at a pocket's end with the
-    /// round bottom along its floor (#919), the edges of a pointed or a
-    /// notched end (#921) — or that edge where its faces meet outwards — an
+    /// any but the edge at its end or an upright there beside a floor edge
+    /// meeting inwards — a pit's upright, beside one meeting outwards (#919),
+    /// the edges of a pointed or a notched end (#921) — or that edge where its
+    /// faces meet outwards — an
     /// open slot's end, the rim above a standing round bottom — refused by
     /// the laying, and a cut that left anything but its round —
     /// a face of the prism, the round in two
