@@ -632,6 +632,71 @@
 //!   ones, builds the same body either way; the fillet there, where the order
 //!   could tell, is declined until #944
 //!
+//! Closes #946.
+//! - First a smaller fixture: a body with an edge whose faces meet at an
+//!   acute angle (45°), its two end corners closed by #699 in one step.
+//!   Built in every order, or the decline reproduced there and its cause in
+//!   the boolean named —
+//!   `a_chamfer_and_a_fillet_on_the_edges_at_both_ends_of_an_edge_whose_faces_meet_at_45_degrees_close_both_corners_whatever_the_order`,
+//!   and the fillet in every order in a campaign run by hand,
+//!   `a_fillet_on_the_edges_at_both_ends_of_an_edge_whose_faces_meet_at_45_degrees_closes_both_corners_in_each_of_120_orders`.
+//!   Read as: on the hipped block, 30 by 20 by 10, its front and both ends
+//!   sloping in at 45° from the edges of its floor, its back upright and its
+//!   top level, the front's foot, where the front meets the floor at 45°,
+//!   ends at two corners of three edges, the foot, a hip and an end's foot,
+//!   as at the square pyramid's base corners, with no apex; before the step,
+//!   the block holding 9500/3, the three feet meeting at 45° and the two hips
+//!   at 120°, and the arithmetic below agreeing with the booleans; then the
+//!   five edges in each of the 120 orders a list can name them in for the
+//!   chamfer at 1, and in 30 of them, every fourth, for the fillet at 1, all
+//!   120 in the campaign: the value taken whole; the body exact, closed,
+//!   uncrossed, holding 3128.429773960448 chamfered and 3083.3582436557235
+//!   filleted, its triangles enclosing that within the drawing's tolerance;
+//!   one face for each edge by its rank, meeting that edge's two faces, then
+//!   one patch for each corner, numbered by the lowest ranks of its edges as
+//!   #699 numbers corners closed in one step, the step ending past them and
+//!   every face of the block kept; each patch at its own corner, the triangle
+//!   through its three crossings facing the old corner, or the piece of the
+//!   sphere of 1 about the point one in from its three faces, curved, drawn
+//!   on the corner's side of its three rounds' end sections, touching each
+//!   face where the centre's foot on it stands, met first by rays from
+//!   outside toward its centre; each patch meeting the three faces laid on
+//!   its corner's edges and nothing else; the front's foot's face running
+//!   between the two patches, its flat's corners the four crossings on the
+//!   floor and the front, facing halfway between the two, or its round drawn
+//!   on its cylinder about the line through the two centres and between their
+//!   end sections, each section drawn along its arc between the feet on the
+//!   floor and the front, the round met first from outside; that face meeting
+//!   the floor, the front and the two patches and nothing else; no flat face
+//!   left with a corner at either old corner; and every order laying the body
+//!   the first lays, face for face, each patch found by its plane and its
+//!   corners or by its sphere. Found on main at 54317165: built in every
+//!   order, both cuts, so the criterion's first arm holds and no boolean is
+//!   left to name. Measured before #947, at 1aeb5750, in a scratch copy with
+//!   its own target: the fillet declined `Unsupported` in all 120 orders,
+//!   where each corner's three edges alone and any four of the five were
+//!   built — the second corner declining once the first is closed, as the
+//!   pyramid's did, which this fixture reproduces and #947 took away. A block
+//!   bevelled along one edge at 45°, its ends square to that edge, built in
+//!   every order before #947 as after: it would not have told, and is not
+//!   held
+//! - The pinned decline above flips to one body in every order, with the
+//!   volume — flipped by #947 before this branch, the test renamed from
+//!   `a_chamfer_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_and_a_fillet_is_declined_whatever_the_order`
+//!   to
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_close_its_apex_and_its_four_base_corners_in_one_body_whatever_the_order`,
+//!   with its campaign
+//!   `a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_in_each_of_48_orders`.
+//!   Read as #804's block above reads it, every order being 48 of the 40320
+//!   the eight edges can be named in, spread over them all: the fillet at 1
+//!   in every fourth of the 48 in the gate and in all 48 in the campaign, the
+//!   value taken whole, the body exact, closed, uncrossed, holding
+//!   125.5604204966659, the pyramid opened by the ball of radius 1 by
+//!   Steiner's formula, one round for each edge and five pieces of sphere
+//!   after them, each on the sphere about one corner of the shrunk pyramid,
+//!   and every order laying the body the first lays. Both pass on main at
+//!   54317165, the test as #947 left it, this branch touching neither
+//!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
 //! is `l1`, `b` along `l2`, `c` along `l3`, on a block of volume `V`. At a
@@ -915,10 +980,61 @@
 //! front and the back 3.683 high, and on the left and the right 3.190 high:
 //! the four crossings lie on no one plane.
 //!
-//! The campaign is run by hand, out of the gate, compiled only under the
+//! The hipped block, 30 by 20 by 10, is level-sectioned `30 − 2z` by `20 − z`
+//! at a height `z` and holds `30·20·10 − (30 + 2·20)·10²/2 + 2·10³/3`,
+//! 9500/3. At its corner on the origin the floor, the front `z ≤ y` and the
+//! left end `z ≤ x` meet, as at the square pyramid's base corners: the two
+//! feet meet at 45° and the hip, along (1, 1, 1)/√3, at 120°. The point one
+//! radius in from the three is `(r(1 + √2), r(1 + √2), r)`, and each round
+//! ends on the plane through it square to its edge.
+//!
+//! Its rounds at `r`. A foot's section, between its two faces at 45° and its
+//! arc, holds `r²(1 + √2 − 3π/8)`: the front's foot runs it between its two
+//! end sections, `30 − 2r(1 + √2)`, and each end's foot from its end section
+//! to the back, square to it, `20 − r(1 + √2)`. A hip's section holds
+//! `r²(1/√3 − π/6)`, from its end section, `r(3 + 2√2)/√3` up the hip, to
+//! the top, which cuts the round's prism slantwise: a line of it `α` into the
+//! matter along the line halfway between the slopes reaches the top `√2·α`
+//! further on, as the base spares the pyramid's hips at their feet, so that
+//! the top adds `√2·r³(11/18 − π/(3√3))` to the section along
+//! `10√3 − r(3 + 2√2)/√3`. The three end sections bound at each corner a
+//! cell, the cone from the centre along the ways the three faces face.
+//! Sliced level `Z` above the centre, the block holds in it the square
+//! `(√2·r − Z)²` between the front, the end and the two sections square to
+//! the feet; above the centre the hip's section cuts the square's corner
+//! off, `Z²/2`, and from `Z = r/√2` leaves of it the triangle
+//! `(2√2·r − 3Z)²/2`, up to `Z = 2√2·r/3`: `r³(7/3 + 14√2/9)` from the
+//! floor up. The ball's sector in the cell spans the solid angle between the
+//! three ways, `2 atan(3 + 2√2)`, and holds a third of `r³` times it. The
+//! body keeps
+//! `9500/3 − r²(1 + √2 − 3π/8)(70 − 4r(1 + √2)) − 2r²(1/√3 − π/6)(10√3 − r(3 + 2√2)/√3) − 2√2·r³(11/18 − π/(3√3)) − 2r³(7/3 + 14√2/9) + 4 atan(3 + 2√2)·r³/3`,
+//! 3083.3582436557235 at 1, which the booleans give to the last digits —
+//! the five rounds' prisms cut away, then each cell, its sector given back.
+//!
+//! Its flats at `d`. A foot's prism has the section `d²/(2√2)`: the front's
+//! runs the 30, less the `d³/12` each end's slope spares of it, and each
+//! end's the 20, less the `d³/12` the front spares. A hip's has `√3·d²/4`,
+//! every line of it `10√3` long between the floor and the top. At a height
+//! `z`, measured level in from the left end, `X = x − z`, and in from the
+//! front, `Y = y − z`, the feet's flats take `Y < d − √2·z` and
+//! `X < d − √2·z`, the hip's `X + Y < √(3/2)·d`, and the triangle through
+//! the three crossings, on the plane `x + y + (2√2 − √3 − 2)z = 2d`,
+//! `X + Y < 2d − (2√2 − √3)z`. Up to `z = d/√2`, where the feet's flats run
+//! out and the triangle's plane meets the hip's flat, the slice taken holds
+//! the two feet's strips, their square `(d − √2·z)²` once, and beyond them
+//! the triangle `X, Y ≥ d − √2·z` of `3z²/2`, the hip's `3d²/4` lying in it
+//! whole: each corner gives back to the prisms the integral over that height
+//! of `3d²/4 + (d − √2·z)² − 3z²/2`, `5d³/(6√2)`. The body keeps
+//! `9500/3 − d²(15 + 35/√2) + d³(2 + 5√2)/6`, 3128.429773960448 at 1, which
+//! the booleans give to the last digits — the five flats' prisms cut away,
+//! then the slab beyond each triangle's plane.
+//!
+//! The campaigns are run by hand, out of the gate, compiled only under the
 //! `campaigns` feature: the fillet on the square pyramid's four hips and the
 //! four edges of its base in all 48 of the orders the chamfer is held in,
-//! where the gate takes every fourth, each held as the gate holds its own —
+//! and the fillet on the hipped block's five edges in all 120 of theirs,
+//! where the gate takes every fourth of each, each held as the gate holds its
+//! own —
 //!
 //! ```text
 //! cargo test --release -p cao_solid --features campaigns \
@@ -2775,7 +2891,7 @@ fn a_fillet_on_the_three_edges_of_a_corner_closes_it_with_a_piece_of_sphere_one_
                 );
             }
             assert!(
-                section.len() > 2,
+                distinct_points(&section) > 2,
                 "{which}: its end section is drawn along the arc between its two ends: \
                  {section:?}"
             );
@@ -3004,19 +3120,41 @@ fn tilted_trihedral() -> Trihedral {
 /// side, cut away by the booleans. The body being convex, nothing of it but
 /// the corner stands on that side.
 fn triangle_by_booleans(body: &Body, corner: &Trihedral, distance: f64) -> f64 {
-    let cut = (0..3).fold(body.clone(), |part, edge| {
-        part.difference(&corner.edge(edge).tool(&part, Cut::Flat, distance))
+    triangles_by_booleans(
+        body,
+        &[corner],
+        &[0, 1, 2].map(|edge| corner.edge(edge)),
+        distance,
+    )
+}
+
+/// What a body keeps once `edges` are chamfered at `distance` and each of
+/// `corners`, three of them meeting there, closed by the triangle through its
+/// crossings, computed as [`triangle_by_booleans`] computes one: every flat's
+/// prism cut away, then the slab beyond each triangle's plane.
+fn triangles_by_booleans(
+    body: &Body,
+    corners: &[&Trihedral],
+    edges: &[EdgeAt],
+    distance: f64,
+) -> f64 {
+    let flattened = edges.iter().fold(body.clone(), |part, edge| {
+        part.difference(&edge.tool(&part, Cut::Flat, distance))
             .expect("a flat's prism cuts the body")
     });
-    let crossings = [0, 1, 2].map(|face| corner.crossing(face, distance));
-    let mut toward = (crossings[1] - crossings[0])
-        .cross(crossings[2] - crossings[0])
-        .normalize();
-    if toward.dot(corner.at - crossings[0]) < 0.0 {
-        toward = -toward;
-    }
-    cut.difference(&beyond(&cut, crossings[0], toward, 100.0))
-        .expect("the triangle's slab cuts the corner")
+    corners
+        .iter()
+        .fold(flattened, |cut, corner| {
+            let crossings = [0, 1, 2].map(|face| corner.crossing(face, distance));
+            let mut toward = (crossings[1] - crossings[0])
+                .cross(crossings[2] - crossings[0])
+                .normalize();
+            if toward.dot(corner.at - crossings[0]) < 0.0 {
+                toward = -toward;
+            }
+            cut.difference(&beyond(&cut, crossings[0], toward, 100.0))
+                .expect("the triangle's slab cuts the corner")
+        })
         .volume()
 }
 
@@ -3135,25 +3273,12 @@ fn closes_with_a_triangle(
         numbers(body)
     );
     let crossings = [0, 1, 2].map(|face| corner.crossing(face, distance));
-    corners_are(
+    closed_by_its_triangle(
         body,
         triangle,
-        &crossings,
-        &format!(
-            "{what}: the triangle, its corners where the flats' edges cross on the three faces"
-        ),
-    );
-    let mut away = (crossings[1] - crossings[0])
-        .cross(crossings[2] - crossings[0])
-        .normalize();
-    if away.dot(corner.at - crossings[0]) < 0.0 {
-        away = -away;
-    }
-    faces_toward(
-        body,
-        triangle,
-        away,
-        &format!("{what}: the triangle, facing the old corner"),
+        corner,
+        distance,
+        &format!("{what}: the triangle"),
     );
     assert_eq!(
         sides_met(body, triangle),
@@ -3296,59 +3421,7 @@ fn closes_with_a_sphere(
     );
 
     let which = format!("{what}: the piece of sphere");
-    assert!(
-        !body.is_flat(piece) && body.plane_of(piece).is_none(),
-        "{which} is curved, and offers no plane to draw on"
-    );
-    let drawn: Vec<DVec3> = body.triangles_of(piece).flatten().collect();
-    assert!(!drawn.is_empty(), "{which} is drawn");
-    for point in &drawn {
-        assert!(
-            (point.distance(centre) - r).abs() < PLACE,
-            "{which} is drawn through {point}, off the sphere of {r} about {centre}, one radius \
-             from each of the corner's three faces"
-        );
-        for edge in &edges {
-            assert!(
-                (*point - centre).dot(edge.along) <= PLACE,
-                "{which} is drawn through {point}, past the end section of the round on {}",
-                edge.called
-            );
-        }
-    }
-    for (face, way) in corner.faces.iter().zip(corner.outward) {
-        let foot = centre + way * r;
-        assert!(
-            drawn.iter().any(|point| point.distance(foot) < PLACE),
-            "{which}: a corner at {foot}, where it touches face {face}"
-        );
-    }
-    for weights in [
-        [1.0, 1.0, 1.0],
-        [2.0, 1.0, 1.0],
-        [1.0, 2.0, 1.0],
-        [1.0, 1.0, 2.0],
-    ] {
-        let facing = (0..3)
-            .map(|face| corner.outward[face] * weights[face])
-            .sum::<DVec3>()
-            .normalize();
-        let from = centre + facing * (r + 10.0);
-        let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
-            panic!("{which}: a ray from {from} toward its centre meets nothing")
-        });
-        assert_eq!(
-            hit.face, piece,
-            "{which}: a ray from {from} toward its centre meets face {} before it",
-            hit.face
-        );
-        assert!(
-            hit.normal.distance(facing) < PLACE,
-            "{which}: where a ray from {from} meets it, it faces {}, not {facing}, away from its \
-             centre",
-            hit.normal
-        );
-    }
+    closed_by_its_piece_of_sphere(body, piece, corner, r, &which);
     assert_eq!(
         sides_met(body, piece),
         sides(&[round_of(0), round_of(1), round_of(2)]),
@@ -3387,7 +3460,7 @@ fn closes_with_a_sphere(
             );
         }
         assert!(
-            section.len() > 2,
+            distinct_points(&section) > 2,
             "{which}: its end section is drawn along the arc between its two ends: {section:?}"
         );
         met_from_outside(
@@ -5458,7 +5531,7 @@ fn closes_the_apex_on_its_sphere(r: f64) {
                 );
             }
             assert!(
-                section.len() > 2,
+                distinct_points(&section) > 2,
                 "{which}: its end section is drawn along the arc between its two ends: \
                  {section:?}"
             );
@@ -5956,6 +6029,16 @@ fn same_points(one: &[DVec3], other: &[DVec3]) -> bool {
     within(one, other) && within(other, one)
 }
 
+/// How many of `points` stand apart, each counted once however often it is
+/// listed: a face's triangles list a corner once for each triangle at it.
+fn distinct_points(points: &[&DVec3]) -> usize {
+    (points.iter().enumerate())
+        .filter(|&(index, point)| {
+            (points[..index].iter()).all(|earlier| earlier.distance(**point) >= PLACE)
+        })
+        .count()
+}
+
 #[test]
 fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order()
  {
@@ -6203,6 +6286,32 @@ fn flat_patches_alike(first: &Body, body: &Body, patches: &[usize], which: &str)
                 })
                 .unwrap_or_else(|| {
                     panic!("{which}: no patch where the first order lays one at {plane:?}")
+                })
+        })
+        .collect()
+}
+
+/// The patches `body` lays from `patches` on, one for each of `first`'s
+/// patches, found by their spheres: the numbers this body gives the faces the
+/// first body numbers `patches`, each patch a piece of the sphere of 1 about
+/// one of `centres`.
+fn round_patches_alike(
+    first: &Body,
+    body: &Body,
+    patches: &[usize],
+    centres: &[DVec3],
+    which: &str,
+) -> Vec<usize> {
+    patches
+        .iter()
+        .map(|&patch| {
+            let corner = sphere_of(first, patch, centres)
+                .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
+            *patches
+                .iter()
+                .find(|&&here| sphere_of(body, here, centres) == Some(corner))
+                .unwrap_or_else(|| {
+                    panic!("{which}: no patch on the sphere about {}", centres[corner])
                 })
         })
         .collect()
@@ -6899,20 +7008,7 @@ fn pyramid_s_eight_edges_rounded_in(orders: &[Vec<usize>]) {
         &bodies,
         start,
         8,
-        |(_, first), (_, body), which| {
-            (patches.iter())
-                .map(|&patch| {
-                    let corner = sphere_of(first, patch, &centres)
-                        .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
-                    *patches
-                        .iter()
-                        .find(|&&here| sphere_of(body, here, &centres) == Some(corner))
-                        .unwrap_or_else(|| {
-                            panic!("{which}: no patch on the sphere about {}", centres[corner])
-                        })
-                })
-                .collect()
-        },
+        |(_, first), (_, body), which| round_patches_alike(first, body, &patches, &centres, which),
         "the fillet on the four hips and the four base edges",
     );
 }
@@ -6985,6 +7081,492 @@ fn a_chamfer_and_a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_close_its_
         |(_, first), (_, body), which| flat_patches_alike(first, body, &patches, which),
         "the chamfer on the four hips and the four base edges",
     );
+}
+
+/// The hipped block's breadth and height: it is [`LENGTH`] along X, 20
+/// across and 10 high.
+const HIPPED_BREADTH: f64 = 20.0;
+const HIPPED_HEIGHT: f64 = 10.0;
+
+/// The numbers the hipped block's slopes answer to: each cut by a slab of six
+/// faces, the slab's floor first — the front, then the left end, then the
+/// right end.
+const HIPPED_FRONT: usize = 6;
+const HIPPED_LEFT: usize = 12;
+const HIPPED_RIGHT: usize = 18;
+
+/// What the hipped block holds: its level section `z` high is `30 − 2z` by
+/// `20 − z`.
+const HIPPED_VOLUME: f64 = LENGTH * HIPPED_BREADTH * HIPPED_HEIGHT
+    - (LENGTH + 2.0 * HIPPED_BREADTH) * HIPPED_HEIGHT * HIPPED_HEIGHT / 2.0
+    + 2.0 * HIPPED_HEIGHT * HIPPED_HEIGHT * HIPPED_HEIGHT / 3.0;
+
+/// The block the hipped block is cut from: one wider than it at the front and
+/// at each end, so that each slope's plane cuts the floor along the edge it
+/// rises from and takes a wall away whole.
+fn hipped_block_under() -> Body {
+    raised(
+        Contour::rectangle(DVec2::splat(-1.0), DVec2::new(LENGTH + 1.0, HIPPED_BREADTH)),
+        HIPPED_HEIGHT,
+    )
+}
+
+/// The planes the hipped block's slopes lie on, front, left end and right
+/// end: a point each passes through, on the floor, and the way it faces.
+fn hipped_slopes() -> [(DVec3, DVec3); 3] {
+    [
+        (DVec3::ZERO, DVec3::new(0.0, -1.0, 1.0).normalize()),
+        (DVec3::ZERO, DVec3::new(-1.0, 0.0, 1.0).normalize()),
+        (
+            DVec3::new(LENGTH, 0.0, 0.0),
+            DVec3::new(1.0, 0.0, 1.0).normalize(),
+        ),
+    ]
+}
+
+/// The block 30 by 20 by 10 on the ground's origin whose front and two ends
+/// slope in at 45 degrees from the edges of its floor, as a hipped roof
+/// does, its back upright and its top level: [`hipped_block_under`] cut by
+/// [`hipped_slopes`], its floor numbered nought, its top one, its back four,
+/// its slopes [`HIPPED_FRONT`], [`HIPPED_LEFT`] and [`HIPPED_RIGHT`]. Its
+/// front's foot, where the front meets the floor at 45 degrees, ends at two
+/// corners of three edges, the foot, a hip and an end's foot: the square
+/// pyramid's base corners, and no apex.
+fn hipped_block() -> Body {
+    hipped_slopes()
+        .iter()
+        .fold(hipped_block_under(), |part, &(through, away)| {
+            part.difference(&beyond(&part, through, away, 50.0))
+                .expect("a slope's plane cuts the block")
+        })
+}
+
+/// The reach the hipped block is drawn at: a cut keeps the larger reach of
+/// the part and of the slab cut from it.
+fn hipped_reach() -> f64 {
+    let block = hipped_block_under();
+    hipped_slopes()
+        .iter()
+        .map(|&(through, away)| reach_of(&beyond(&block, through, away, 50.0)))
+        .fold(reach_of(&block), f64::max)
+}
+
+/// The hipped block's two corners at the ends of its front's foot, on the
+/// origin and at (30, 0, 0), each where the floor, the front and an end meet:
+/// across from those the front's foot, running to the other end, the hip,
+/// running up to the top, and the end's foot, running to the back.
+fn hipped_corners() -> [Trihedral; 2] {
+    let [front, left, right] = hipped_slopes().map(|(_, away)| away);
+    let length = [LENGTH, HIPPED_HEIGHT * 3f64.sqrt(), HIPPED_BREADTH];
+    [
+        Trihedral {
+            at: DVec3::ZERO,
+            faces: [HIPPED_LEFT, FLOOR, HIPPED_FRONT],
+            outward: [left, -DVec3::Z, front],
+            called: ["the front's foot", "the left hip", "the left end's foot"],
+            length,
+            far: [HIPPED_RIGHT, TOP, BACK],
+        },
+        Trihedral {
+            at: DVec3::new(LENGTH, 0.0, 0.0),
+            faces: [HIPPED_RIGHT, FLOOR, HIPPED_FRONT],
+            outward: [right, -DVec3::Z, front],
+            called: ["the front's foot", "the right hip", "the right end's foot"],
+            length,
+            far: [HIPPED_LEFT, TOP, BACK],
+        },
+    ]
+}
+
+/// The five edges at [`hipped_corners`]: the front's foot, then the left
+/// corner's hip and end's foot, then the right corner's.
+fn hipped_edges([left, right]: &[Trihedral; 2]) -> [EdgeAt; 5] {
+    [
+        left.edge(0),
+        left.edge(1),
+        left.edge(2),
+        right.edge(1),
+        right.edge(2),
+    ]
+}
+
+/// What the hipped block keeps once its five edges at [`hipped_corners`] are
+/// rounded at `radius` and both corners closed by a piece of sphere, as the
+/// module's documentation derives it: each round from its end section to the
+/// far end of its edge, the top adding to a hip's where it cuts it slantwise,
+/// then each corner's cell, the ball's sector in it given back.
+fn hipped_block_rounded(radius: f64) -> f64 {
+    let r = radius;
+    let [root2, root3] = [2f64.sqrt(), 3f64.sqrt()];
+    let in_from = r * (1.0 + root2);
+    let foot = r * r * (1.0 + root2 - 3.0 * PI / 8.0);
+    let hip = r * r * (1.0 / root3 - PI / 6.0);
+    let feet = foot * (LENGTH - 2.0 * in_from + 2.0 * (HIPPED_BREADTH - in_from));
+    let hips = 2.0
+        * (hip * (HIPPED_HEIGHT * root3 - r * (3.0 + 2.0 * root2) / root3)
+            + root2 * r.powi(3) * (11.0 / 18.0 - PI / (3.0 * root3)));
+    let cells = 2.0 * r.powi(3) * (7.0 / 3.0 + 14.0 * root2 / 9.0);
+    let sectors = 2.0 * 2.0 * (3.0 + 2.0 * root2).atan() * r.powi(3) / 3.0;
+    HIPPED_VOLUME - feet - hips - cells + sectors
+}
+
+/// What the hipped block keeps once its five edges at [`hipped_corners`] are
+/// chamfered at `distance` and both corners closed by a triangle, as the
+/// module's documentation derives it: each flat's prism, and what each corner
+/// gives back of them.
+fn hipped_block_chamfered(distance: f64) -> f64 {
+    let d = distance;
+    let root2 = 2f64.sqrt();
+    let prisms = d * d * ((LENGTH + 2.0 * HIPPED_BREADTH) / (2.0 * root2) + 1.5 * HIPPED_HEIGHT);
+    HIPPED_VOLUME - prisms + d.powi(3) * (2.0 + 5.0 * root2) / 6.0
+}
+
+/// Holds the step of `cut` at 1 on the hipped block's five edges in each of
+/// `orders`, as the module's documentation reads #946's first criterion: the
+/// value taken whole; the body exact, closed and uncrossed, holding what the
+/// arithmetic gives, its triangles enclosing that within the drawing's
+/// tolerance; one face for each edge by its rank and one patch for each
+/// corner after them, numbered by the lowest ranks of the corner's edges;
+/// each patch the triangle through its corner's crossings or the piece of the
+/// sphere about its corner's centre, meeting the faces laid on that corner's
+/// edges and nothing else; the front's foot's face running from one patch to
+/// the other; no flat face left with a corner at either old corner; and every
+/// order laying the body the first lays.
+fn hipped_block_s_corners_closed_in(cut: Cut, orders: &[Vec<usize>]) {
+    let value = 1.0;
+    let part = hipped_block();
+    let corners = hipped_corners();
+    let [left, right] = &corners;
+    let edges = hipped_edges(&corners);
+    let names: Vec<EdgeName> = edges.iter().map(|edge| edge.name(&part)).collect();
+    let start = part.faces_end();
+    let laid_end = start + edges.len() + corners.len();
+    let patches: Vec<usize> = (start + edges.len()..laid_end).collect();
+    let centres = corners.each_ref().map(|corner| corner.centre(value));
+    let (kind, promised, drawn) = match cut {
+        Cut::Flat => {
+            let promised = hipped_block_chamfered(value);
+            ("chamfer", promised, EXACT * promised)
+        }
+        Cut::Round => {
+            let area = (edges.iter())
+                .map(|edge| edge.round(value).area())
+                .sum::<f64>()
+                + (corners.iter())
+                    .map(|corner| corner.spread() * value * value)
+                    .sum::<f64>();
+            (
+                "fillet",
+                hipped_block_rounded(value),
+                DRAWN * hipped_reach() * area,
+            )
+        }
+    };
+    let laid = laid_in_every_listed_order(
+        orders,
+        laid_on_the_edges(&part, &names, orders, cut, value),
+        &format!(
+            "the {kind} at 1 on the hipped block's front's foot and the hip and the foot at each \
+             of its ends closes both corners"
+        ),
+    );
+    let mut bodies = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the {kind} on the hipped block's five edges, named {order:?}");
+        taken_as_asked(asked, taken, value, &what);
+        sound_drawn_within(&body, promised, drawn, &what);
+        assert_eq!(
+            faces_made(&part, &body),
+            (start..laid_end).collect::<Vec<_>>(),
+            "{what}: one face for each edge by its rank, then one patch for each corner: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            laid_end,
+            "{what}: the next step numbers its own faces past the last patch"
+        );
+        assert!(
+            numbers(&part).is_subset(&numbers(&body)),
+            "{what}: a face of the block went: {:?}",
+            numbers(&body)
+        );
+        for (edge, at) in edges.iter().enumerate() {
+            let laid = start + rank_in(order, edge);
+            let met = sides_met(&body, laid);
+            for face in at.faces {
+                assert!(
+                    met.contains(&vec![face as u32]),
+                    "{what}: face {laid}, laid on {} by its rank, meets face {face}, one of that \
+                     edge's two: {met:?}",
+                    at.called
+                );
+            }
+        }
+        let list: Vec<[usize; 2]> = order.iter().map(|&edge| edges[edge].faces).collect();
+        for (index, (corner, ranks)) in closed_corners(&list, &corners).iter().enumerate() {
+            let patch = patches[index];
+            let which = format!(
+                "{what}: patch {patch}, closing the corner at {}, its edges ranked {ranks:?}",
+                corner.at
+            );
+            match cut {
+                Cut::Flat => closed_by_its_triangle(&body, patch, corner, value, &which),
+                Cut::Round => closed_by_its_piece_of_sphere(&body, patch, corner, value, &which),
+            }
+            assert_eq!(
+                sides_met(&body, patch),
+                sides(&ranks.map(|rank| start + rank)),
+                "{which} meets the three faces laid on its corner's edges, and nothing else"
+            );
+        }
+        let foot = start + rank_in(order, 0);
+        let which = format!("{what}: face {foot}, laid on the front's foot");
+        match cut {
+            Cut::Flat => {
+                corners_are(
+                    &body,
+                    foot,
+                    &[left, right]
+                        .map(|corner| [1, 2].map(|face| corner.crossing(face, value)))
+                        .concat(),
+                    &format!(
+                        "{which}, its corners the crossings on the floor and the front at both \
+                         ends"
+                    ),
+                );
+                let [floor, front] = edges[0].outward;
+                faces_toward(&body, foot, (floor + front).normalize(), &which);
+            }
+            Cut::Round => {
+                let round = Round {
+                    start: centres[0],
+                    along: DVec3::X,
+                    length: centres[1].x - centres[0].x,
+                    radius: value,
+                    facing: edges[0].outward,
+                };
+                rounded_between_its_corners(&body, foot, &round, &which);
+            }
+        }
+        assert_eq!(
+            sides_met(&body, foot),
+            sides(&[FLOOR, HIPPED_FRONT, patches[0], patches[1]]),
+            "{which} meets the floor and the front along its sides and the two patches at its \
+             ends, and nothing else"
+        );
+        for face in numbers(&body) {
+            if let Some(plane) = body.plane_of(face) {
+                for corner in &corners {
+                    assert!(
+                        (plane.corners.iter()).all(|point| point.distance(corner.at) > PLACE),
+                        "{what}: face {face} still has a corner at the old vertex {}",
+                        corner.at
+                    );
+                }
+            }
+        }
+        bodies.push((order.clone(), body));
+    }
+    one_body_face_for_face(
+        &bodies,
+        start,
+        edges.len(),
+        |(_, first), (_, body), which| match cut {
+            Cut::Flat => flat_patches_alike(first, body, &patches, which),
+            Cut::Round => round_patches_alike(first, body, &patches, &centres, which),
+        },
+        &format!("the {kind} on the hipped block's five edges"),
+    );
+}
+
+/// Holds that the face numbered `patch` closes `corner` with the triangle
+/// through the crossings a chamfer of `distance` makes on its three faces,
+/// facing the old corner.
+fn closed_by_its_triangle(
+    body: &Body,
+    patch: usize,
+    corner: &Trihedral,
+    distance: f64,
+    which: &str,
+) {
+    let crossings = [0, 1, 2].map(|face| corner.crossing(face, distance));
+    corners_are(
+        body,
+        patch,
+        &crossings,
+        &format!("{which}, its corners where the flats' edges cross on the three faces"),
+    );
+    let mut away = (crossings[1] - crossings[0])
+        .cross(crossings[2] - crossings[0])
+        .normalize();
+    if away.dot(corner.at - crossings[0]) < 0.0 {
+        away = -away;
+    }
+    faces_toward(
+        body,
+        patch,
+        away,
+        &format!("{which}, facing the old corner"),
+    );
+}
+
+/// Holds that the face numbered `patch` closes `corner` with a piece of the
+/// sphere of `radius` about the point that far in from its three faces:
+/// curved, drawn on that sphere and on the corner's side of the three rounds'
+/// end sections, touching each face where the centre's foot on it stands, and
+/// met first by rays from outside toward its centre.
+fn closed_by_its_piece_of_sphere(
+    body: &Body,
+    patch: usize,
+    corner: &Trihedral,
+    radius: f64,
+    which: &str,
+) {
+    let centre = corner.centre(radius);
+    let edges = [0, 1, 2].map(|edge| corner.edge(edge));
+    assert!(
+        !body.is_flat(patch) && body.plane_of(patch).is_none(),
+        "{which} is curved, and offers no plane to draw on"
+    );
+    let drawn: Vec<DVec3> = body.triangles_of(patch).flatten().collect();
+    assert!(!drawn.is_empty(), "{which} is drawn");
+    for point in &drawn {
+        assert!(
+            (point.distance(centre) - radius).abs() < PLACE,
+            "{which} is drawn through {point}, off the sphere of {radius} about {centre}, one \
+             radius from each of the corner's three faces"
+        );
+        for edge in &edges {
+            assert!(
+                (*point - centre).dot(edge.along) <= PLACE,
+                "{which} is drawn through {point}, past the end section of the round on {}",
+                edge.called
+            );
+        }
+    }
+    for (face, way) in corner.faces.iter().zip(corner.outward) {
+        let foot = centre + way * radius;
+        assert!(
+            drawn.iter().any(|point| point.distance(foot) < PLACE),
+            "{which}: a corner at {foot}, where it touches face {face}"
+        );
+    }
+    for weights in [
+        [1.0, 1.0, 1.0],
+        [2.0, 1.0, 1.0],
+        [1.0, 2.0, 1.0],
+        [1.0, 1.0, 2.0],
+    ] {
+        let facing = (0..3)
+            .map(|face| corner.outward[face] * weights[face])
+            .sum::<DVec3>()
+            .normalize();
+        let from = centre + facing * (radius + 10.0);
+        let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
+            panic!("{which}: a ray from {from} toward its centre meets nothing")
+        });
+        assert_eq!(
+            hit.face, patch,
+            "{which}: a ray from {from} toward its centre meets face {} before it",
+            hit.face
+        );
+        assert!(
+            hit.normal.distance(facing) < PLACE,
+            "{which}: where a ray from {from} meets it, it faces {}, not {facing}, away from its \
+             centre",
+            hit.normal
+        );
+    }
+}
+
+/// Holds that the face numbered `face` is `round`, from one end section to the
+/// other: curved, drawn on its cylinder and between its two ends, each end
+/// drawn along its arc between the feet on the edge's two faces, and met first
+/// from outside.
+fn rounded_between_its_corners(body: &Body, face: usize, round: &Round, which: &str) {
+    assert!(
+        !body.is_flat(face) && body.plane_of(face).is_none(),
+        "{which} is curved, and offers no plane to draw on"
+    );
+    let drawn: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+    assert!(!drawn.is_empty(), "{which} is drawn");
+    for point in &drawn {
+        assert!(
+            round.holds(*point),
+            "{which} is drawn through {point}, off its cylinder of {} about the line from {} \
+             along {} for {}",
+            round.radius,
+            round.start,
+            round.along,
+            round.length
+        );
+    }
+    for end in [0.0, round.length] {
+        let axis = round.start + round.along * end;
+        let section: Vec<&DVec3> = (drawn.iter())
+            .filter(|point| ((**point - axis).dot(round.along)).abs() < PLACE)
+            .collect();
+        for way in round.facing {
+            let foot = axis + way * round.radius;
+            assert!(
+                section.iter().any(|point| point.distance(foot) < PLACE),
+                "{which}: its end section through {axis} ends at {foot}, among {section:?}"
+            );
+        }
+        assert!(
+            distinct_points(&section) > 2,
+            "{which}: its end section through {axis} is drawn along the arc between its two \
+             ends: {section:?}"
+        );
+    }
+    met_from_outside(body, face, round, which);
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_on_the_edges_at_both_ends_of_an_edge_whose_faces_meet_at_45_degrees_close_both_corners_whatever_the_order()
+ {
+    let part = hipped_block();
+    let corners = hipped_corners();
+    let [left, right] = &corners;
+    let edges = hipped_edges(&corners);
+    assert!(
+        (part.volume() - HIPPED_VOLUME).abs() <= EXACT * HIPPED_VOLUME,
+        "the hipped block holds {}, where its level sections add up to {HIPPED_VOLUME}",
+        part.volume()
+    );
+    for (edge, angle) in edges.iter().zip([45.0, 120.0, 45.0, 120.0, 45.0]) {
+        assert!(
+            (edge.angle() - f64::to_radians(angle)).abs() < PLACE,
+            "{}, from {}, meets at {} degrees, where the slopes put it at {angle}",
+            edge.called,
+            edge.at,
+            edge.angle().to_degrees()
+        );
+    }
+    for (kind, arithmetic, booleans) in [
+        (
+            "chamfered",
+            hipped_block_chamfered(1.0),
+            triangles_by_booleans(&part, &[left, right], &edges, 1.0),
+        ),
+        (
+            "filleted",
+            hipped_block_rounded(1.0),
+            spheres_by_booleans(&part, &[left, right], &edges, 1.0),
+        ),
+    ] {
+        assert!(
+            (arithmetic - booleans).abs() <= EXACT * booleans,
+            "the hipped block {kind} at 1: the arithmetic gives {arithmetic}, the booleans \
+             {booleans}"
+        );
+    }
+    let orders = every_order(edges.len());
+    let every_fourth: Vec<Vec<usize>> = orders.iter().step_by(4).cloned().collect();
+
+    hipped_block_s_corners_closed_in(Cut::Flat, &orders);
+    hipped_block_s_corners_closed_in(Cut::Round, &every_fourth);
 }
 
 /// The block 30 by 10 by 20 with the corner at its top's front right cut off
@@ -7195,5 +7777,12 @@ mod campaign {
     fn a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_in_each_of_48_orders()
      {
         pyramid_s_eight_edges_rounded_in(&spread_orders_of_eight());
+    }
+
+    #[test]
+    #[ignore = "a campaign, run by hand: see the head of this file"]
+    fn a_fillet_on_the_edges_at_both_ends_of_an_edge_whose_faces_meet_at_45_degrees_closes_both_corners_in_each_of_120_orders()
+     {
+        hipped_block_s_corners_closed_in(Cut::Round, &every_order(5));
     }
 }
