@@ -640,7 +640,7 @@
 //!   `a_chamfer_and_a_fillet_on_the_edges_at_both_ends_of_an_edge_whose_faces_meet_at_45_degrees_close_both_corners_whatever_the_order`,
 //!   and the fillet in every order in a campaign run by hand,
 //!   `a_fillet_on_the_edges_at_both_ends_of_an_edge_whose_faces_meet_at_45_degrees_closes_both_corners_in_each_of_120_orders`.
-//!   Read as: on `hipped_block`, 30 by 20 by 10, its front and both ends
+//!   Read as: on the hipped block, 30 by 20 by 10, its front and both ends
 //!   sloping in at 45° from the edges of its floor, its back upright and its
 //!   top level, the front's foot, where the front meets the floor at 45°,
 //!   ends at two corners of three edges, the foot, a hip and an end's foot,
@@ -1014,9 +1014,9 @@
 //! Its flats at `d`. A foot's prism has the section `d²/(2√2)`: the front's
 //! runs the 30, less the `d³/12` each end's slope spares of it, and each
 //! end's the 20, less the `d³/12` the front spares. A hip's has `√3·d²/4`,
-//! every line of it `10√3` long between the floor and the top. Measured
-//! level from the corner's two edges on the floor, `X = x − z` and
-//! `Y = y − z`, at a height `z` the feet's flats take `Y < d − √2·z` and
+//! every line of it `10√3` long between the floor and the top. At a height
+//! `z`, measured level in from the left end, `X = x − z`, and in from the
+//! front, `Y = y − z`, the feet's flats take `Y < d − √2·z` and
 //! `X < d − √2·z`, the hip's `X + Y < √(3/2)·d`, and the triangle through
 //! the three crossings, on the plane `x + y + (2√2 − √3 − 2)z = 2d`,
 //! `X + Y < 2d − (2√2 − √3)z`. Up to `z = d/√2`, where the feet's flats run
@@ -2891,7 +2891,7 @@ fn a_fillet_on_the_three_edges_of_a_corner_closes_it_with_a_piece_of_sphere_one_
                 );
             }
             assert!(
-                section.len() > 2,
+                distinct_points(&section) > 2,
                 "{which}: its end section is drawn along the arc between its two ends: \
                  {section:?}"
             );
@@ -3273,25 +3273,12 @@ fn closes_with_a_triangle(
         numbers(body)
     );
     let crossings = [0, 1, 2].map(|face| corner.crossing(face, distance));
-    corners_are(
+    closed_by_its_triangle(
         body,
         triangle,
-        &crossings,
-        &format!(
-            "{what}: the triangle, its corners where the flats' edges cross on the three faces"
-        ),
-    );
-    let mut away = (crossings[1] - crossings[0])
-        .cross(crossings[2] - crossings[0])
-        .normalize();
-    if away.dot(corner.at - crossings[0]) < 0.0 {
-        away = -away;
-    }
-    faces_toward(
-        body,
-        triangle,
-        away,
-        &format!("{what}: the triangle, facing the old corner"),
+        corner,
+        distance,
+        &format!("{what}: the triangle"),
     );
     assert_eq!(
         sides_met(body, triangle),
@@ -3434,59 +3421,7 @@ fn closes_with_a_sphere(
     );
 
     let which = format!("{what}: the piece of sphere");
-    assert!(
-        !body.is_flat(piece) && body.plane_of(piece).is_none(),
-        "{which} is curved, and offers no plane to draw on"
-    );
-    let drawn: Vec<DVec3> = body.triangles_of(piece).flatten().collect();
-    assert!(!drawn.is_empty(), "{which} is drawn");
-    for point in &drawn {
-        assert!(
-            (point.distance(centre) - r).abs() < PLACE,
-            "{which} is drawn through {point}, off the sphere of {r} about {centre}, one radius \
-             from each of the corner's three faces"
-        );
-        for edge in &edges {
-            assert!(
-                (*point - centre).dot(edge.along) <= PLACE,
-                "{which} is drawn through {point}, past the end section of the round on {}",
-                edge.called
-            );
-        }
-    }
-    for (face, way) in corner.faces.iter().zip(corner.outward) {
-        let foot = centre + way * r;
-        assert!(
-            drawn.iter().any(|point| point.distance(foot) < PLACE),
-            "{which}: a corner at {foot}, where it touches face {face}"
-        );
-    }
-    for weights in [
-        [1.0, 1.0, 1.0],
-        [2.0, 1.0, 1.0],
-        [1.0, 2.0, 1.0],
-        [1.0, 1.0, 2.0],
-    ] {
-        let facing = (0..3)
-            .map(|face| corner.outward[face] * weights[face])
-            .sum::<DVec3>()
-            .normalize();
-        let from = centre + facing * (r + 10.0);
-        let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
-            panic!("{which}: a ray from {from} toward its centre meets nothing")
-        });
-        assert_eq!(
-            hit.face, piece,
-            "{which}: a ray from {from} toward its centre meets face {} before it",
-            hit.face
-        );
-        assert!(
-            hit.normal.distance(facing) < PLACE,
-            "{which}: where a ray from {from} meets it, it faces {}, not {facing}, away from its \
-             centre",
-            hit.normal
-        );
-    }
+    closed_by_its_piece_of_sphere(body, piece, corner, r, &which);
     assert_eq!(
         sides_met(body, piece),
         sides(&[round_of(0), round_of(1), round_of(2)]),
@@ -3525,7 +3460,7 @@ fn closes_with_a_sphere(
             );
         }
         assert!(
-            section.len() > 2,
+            distinct_points(&section) > 2,
             "{which}: its end section is drawn along the arc between its two ends: {section:?}"
         );
         met_from_outside(
@@ -5596,7 +5531,7 @@ fn closes_the_apex_on_its_sphere(r: f64) {
                 );
             }
             assert!(
-                section.len() > 2,
+                distinct_points(&section) > 2,
                 "{which}: its end section is drawn along the arc between its two ends: \
                  {section:?}"
             );
@@ -6094,6 +6029,16 @@ fn same_points(one: &[DVec3], other: &[DVec3]) -> bool {
     within(one, other) && within(other, one)
 }
 
+/// How many of `points` stand apart, each counted once however often it is
+/// listed: a face's triangles list a corner once for each triangle at it.
+fn distinct_points(points: &[&DVec3]) -> usize {
+    (points.iter().enumerate())
+        .filter(|&(index, point)| {
+            (points[..index].iter()).all(|earlier| earlier.distance(**point) >= PLACE)
+        })
+        .count()
+}
+
 #[test]
 fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order()
  {
@@ -6341,6 +6286,32 @@ fn flat_patches_alike(first: &Body, body: &Body, patches: &[usize], which: &str)
                 })
                 .unwrap_or_else(|| {
                     panic!("{which}: no patch where the first order lays one at {plane:?}")
+                })
+        })
+        .collect()
+}
+
+/// The patches `body` lays from `patches` on, one for each of `first`'s
+/// patches, found by their spheres: the numbers this body gives the faces the
+/// first body numbers `patches`, each patch a piece of the sphere of 1 about
+/// one of `centres`.
+fn round_patches_alike(
+    first: &Body,
+    body: &Body,
+    patches: &[usize],
+    centres: &[DVec3],
+    which: &str,
+) -> Vec<usize> {
+    patches
+        .iter()
+        .map(|&patch| {
+            let corner = sphere_of(first, patch, centres)
+                .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
+            *patches
+                .iter()
+                .find(|&&here| sphere_of(body, here, centres) == Some(corner))
+                .unwrap_or_else(|| {
+                    panic!("{which}: no patch on the sphere about {}", centres[corner])
                 })
         })
         .collect()
@@ -7037,20 +7008,7 @@ fn pyramid_s_eight_edges_rounded_in(orders: &[Vec<usize>]) {
         &bodies,
         start,
         8,
-        |(_, first), (_, body), which| {
-            (patches.iter())
-                .map(|&patch| {
-                    let corner = sphere_of(first, patch, &centres)
-                        .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
-                    *patches
-                        .iter()
-                        .find(|&&here| sphere_of(body, here, &centres) == Some(corner))
-                        .unwrap_or_else(|| {
-                            panic!("{which}: no patch on the sphere about {}", centres[corner])
-                        })
-                })
-                .collect()
-        },
+        |(_, first), (_, body), which| round_patches_alike(first, body, &patches, &centres, which),
         "the fillet on the four hips and the four base edges",
     );
 }
@@ -7416,18 +7374,7 @@ fn hipped_block_s_corners_closed_in(cut: Cut, orders: &[Vec<usize>]) {
         edges.len(),
         |(_, first), (_, body), which| match cut {
             Cut::Flat => flat_patches_alike(first, body, &patches, which),
-            Cut::Round => (patches.iter())
-                .map(|&patch| {
-                    let corner = sphere_of(first, patch, &centres)
-                        .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
-                    *patches
-                        .iter()
-                        .find(|&&here| sphere_of(body, here, &centres) == Some(corner))
-                        .unwrap_or_else(|| {
-                            panic!("{which}: no patch on the sphere about {}", centres[corner])
-                        })
-                })
-                .collect(),
+            Cut::Round => round_patches_alike(first, body, &patches, &centres, which),
         },
         &format!("the {kind} on the hipped block's five edges"),
     );
@@ -7448,7 +7395,7 @@ fn closed_by_its_triangle(
         body,
         patch,
         &crossings,
-        &format!("{which}, a triangle where the flats' edges cross"),
+        &format!("{which}, its corners where the flats' edges cross on the three faces"),
     );
     let mut away = (crossings[1] - crossings[0])
         .cross(crossings[2] - crossings[0])
@@ -7477,6 +7424,7 @@ fn closed_by_its_piece_of_sphere(
     which: &str,
 ) {
     let centre = corner.centre(radius);
+    let edges = [0, 1, 2].map(|edge| corner.edge(edge));
     assert!(
         !body.is_flat(patch) && body.plane_of(patch).is_none(),
         "{which} is curved, and offers no plane to draw on"
@@ -7486,9 +7434,10 @@ fn closed_by_its_piece_of_sphere(
     for point in &drawn {
         assert!(
             (point.distance(centre) - radius).abs() < PLACE,
-            "{which} is drawn through {point}, off the sphere of {radius} about {centre}"
+            "{which} is drawn through {point}, off the sphere of {radius} about {centre}, one \
+             radius from each of the corner's three faces"
         );
-        for edge in [0, 1, 2].map(|edge| corner.edge(edge)) {
+        for edge in &edges {
             assert!(
                 (*point - centre).dot(edge.along) <= PLACE,
                 "{which} is drawn through {point}, past the end section of the round on {}",
@@ -7566,7 +7515,7 @@ fn rounded_between_its_corners(body: &Body, face: usize, round: &Round, which: &
             );
         }
         assert!(
-            section.len() > 2,
+            distinct_points(&section) > 2,
             "{which}: its end section through {axis} is drawn along the arc between its two \
              ends: {section:?}"
         );
