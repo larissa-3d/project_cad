@@ -24,8 +24,8 @@ use super::render::{
     frame_of, paint_band, paint_chamfer_sides_panel, paint_copy_panel, paint_dimension_field,
     paint_dimension_labels, paint_extrusion_pill, paint_face_labels, paint_measure,
     paint_pattern_labels, paint_rule_marks, paint_ruler, paint_section_handle, paint_section_panel,
-    push_blinking_matter, right_of_the_section_panel, turning_guides, what_is_measured,
-    what_would_go,
+    paint_tool_in_progress, push_blinking_matter, right_of_the_section_panel, turning_guides,
+    what_is_measured, what_would_go,
 };
 use super::state::{GestureGoesTo, ViewScale, ViewportState, cube_rect, gesture_goes_to};
 use super::values::refused_for_what_is_typed;
@@ -117,7 +117,7 @@ pub fn show(
     // the preview reflects, not what it was a frame ago. The live field's own popup asks for the
     // egui::Order::Foreground layer regardless of when it is painted, so moving this earlier does
     // not move it behind anything.
-    changed |= advance_on_enter(ui, sketch, scale);
+    changed |= advance_on_enter(ui, sketch, (scale, &state.theme));
     let (laid, copy_panel_let_go_at) = paint_copy_panel(ui, state.copy_panel_at, rect, sketch);
     changed |= laid;
     changed |= paint_section_panel(ui, state, rect, sketch);
@@ -196,6 +196,7 @@ pub fn show(
     paint_dimension_labels(ui, state, rect, sketch, going.as_ref());
     paint_measure(ui, state, rect, sketch, measuring.as_ref());
     paint_pattern_labels(ui, state, rect, sketch, turning.as_ref());
+    paint_tool_in_progress(ui, state, rect, sketch);
     if state.config.ruler_visible {
         paint_ruler(ui, state, rect, scale);
     }

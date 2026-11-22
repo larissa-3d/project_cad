@@ -379,10 +379,12 @@ What it does: [`render.md`](render.md), [`viewport.md`](viewport.md).
 | Canvas: a cut changed from the selection — its values opened again on a double-click or from « Cote de rayon », taken off by `Suppr`, switched by « Construction », a chamfer's sides swapped from « Inverser les côtés » in a small panel at the top left of the view | `app/src/screens/viewport/input/cut_changes.rs`, `app/src/screens/viewport/render/chamfer_sides_panel.rs` | `open_cut_values`, `switch_held_cuts`, `chamfer_to_swap`, `swap_held_chamfer`, `paint_chamfer_sides_panel` |
 | Canvas: a point's square, a midpoint's triangle, a right angle's corner | `app/src/screens/viewport/render/marks.rs` | `push_point_markers`, `push_midpoint_mark`, `push_square_mark` |
 | Canvas: what a click right now would lay down | `app/src/screens/viewport/render/preview.rs` | `push_preview`, `push_preview_line`, `pending_annotation` |
+| Canvas: the tool in progress in its own colour — a ring round the place a snap pulled the cursor onto, named beside it, and the arc a line in progress turns at its start, its angle written beside it (#742) | `app/src/screens/viewport/render/tool_in_progress.rs` | `push_tool_in_progress`, `paint_tool_in_progress` |
 | Canvas: the planes and the face a sketch can be started on, the face drawn under the cursor lit as it is drawn — its triangles kept by the hover in `SketchEditor::hovered_face_drawn` — in the refused colour when it is curved | `app/src/screens/viewport/render/planes.rs`, `app/src/screens/viewport/input/planes.rs` | `push_choosable_planes`, `push_under_the_cursor`, `plane_under` |
 | Canvas: the areas an extrusion would turn into matter, and its axis | `app/src/screens/viewport/render/extrusion.rs` | `push_chosen_areas` |
 | Canvas: the edge of the part under the hand while the edge panel is open — the nearest in sight within `EDGE_REACH` points of the cursor, lit along the points the kernel draws it through, taken by a click — and the part's edges kept for each body (#920) | `app/src/screens/viewport/edges.rs`, `app/src/screens/viewport/input/edges.rs`, `app/src/screens/viewport/render/edges.rs` | `EDGE_REACH`, `DrawnEdges`, `ViewportState::edge_under_the_hand`, `edge_points`, `pick_an_edge`, `push_edge_under_the_hand` |
 | Canvas: what egui draws over the scene — cube labels, rule marks, band, scale bar | `app/src/screens/viewport/render/overlays.rs` | `paint_face_labels`, `paint_rule_marks`, `paint_band`, `paint_ruler` |
+| Canvas: where each rule's mark stands — in its box, clear of the traits and the corner it marks, set aside where two would overlap — read by the painter and the pick | `app/src/screens/viewport/render/mark_places.rs` | `placed_marks`, `mark_under` |
 | Canvas: the value a dimension carries, and the field that edits it | `app/src/screens/viewport/render/dimensions.rs` | `paint_dimension_labels`, `paint_dimension_field` |
 | Canvas: the values a shape is drawn to, typed beside the cursor | `app/src/screens/viewport/render/live_fields.rs` | `paint_live_input`, `live_field` |
 | Canvas: a circle, an arc or a dashed line as straight steps | `app/src/screens/viewport/render/curves.rs` | `push_line`, `push_circle_at`, `push_arc_at` |
@@ -496,6 +498,7 @@ What it does: [`render.md`](render.md), [`viewport.md`](viewport.md).
 | What a way of drawing a circle asks for | `app/src/wording/circle.rs` | `asks_for` |
 | What a way of drawing an arc asks for | `app/src/wording/arc.rs` | `asks_for` |
 | What a work plane is called | `app/src/wording/plane.rs` | `label` |
+| What a snap is called beside its ring | `app/src/wording/snap.rs` | `name` |
 | What a face of the orientation cube is called | `app/src/wording/cube.rs` | `face` |
 | What a profile is called | `app/src/wording/settings.rs` | `profile` |
 | What a key and a chord are called | `app/src/wording/shortcuts.rs` | `chord` |

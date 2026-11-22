@@ -129,7 +129,7 @@ pub(super) fn places_of(drawn: EllipseDraft, from: f64, sweep: f64) -> Vec<DVec2
 /// holds several, and a dash running past a place goes on into the next step.
 ///
 /// A run of no length at all draws nothing.
-fn push_curve(
+pub(super) fn push_curve(
     out: &mut Vec<cao_render::Vertex>,
     sketch: &Sketch,
     places: impl Iterator<Item = DVec2>,

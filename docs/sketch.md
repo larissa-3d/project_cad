@@ -665,6 +665,13 @@ place where it reads as an angle rather than as a note about two traits. A
 tangency likewise goes **to the contact point**: the three tangencies of an
 inscribed circle would otherwise all land in the same place.
 
+Each mark sits in a **small box, 18 points across**, standing **clear of the
+traits** through the place it marks — beside a trait, inside the corner of a
+right angle, clear of the corner's own vertex too — so that a click on a trait
+or on a vertex is the trait's or the vertex's, not the rule's. A right angle's
+box stands inside its corner, on the bisector, as near the corner as clearing
+both sides allows; a corner too sharp to hold it takes it outside.
+
 Several rules can hold the same spot — a midpoint and a perpendicularity, for
 instance. Marks that would land on one another are therefore **spread side by
 side**.
@@ -695,6 +702,16 @@ The cursor is pulled, in this order:
 | **The middle of a trait** | One aims at it on purpose, and nothing on screen says one is exactly halfway: a **little triangle** announces it |
 | **The body of a curve** | Drawing on a trait, a circle, an arc or one of the plane's two axes already there is far more common than drawing beside it |
 | **The grid** | The safety net, with the shortest reach |
+
+While a tool that lays a point is in hand, whatever pulled the cursor is
+**ringed in the colour of the tool in progress** — amber by default — and
+**named beside its ring**, up and to the left, clear of the fields the cursor
+carries: « Coïncidence » for a point, « Intersection » for a crossing,
+« Milieu » for a middle, « Centre » for the centre of a fillet, « Sur la
+courbe » for a place on a curve. The grid is not named. A tool that only picks
+what is drawn — a dimension, a measure, a cut, a rule — rings nothing: the ring
+says where a point is about to be laid. Ring and name go with the cursor when
+it leaves the canvas.
 
 A curve already drawn therefore pulls **harder than the grid**: its reach is
 configurable separately ([configuration.md](configuration.md)).
@@ -1140,15 +1157,15 @@ From what never gives to what gives first:
 1. **The origin.** Never.
 2. **Values and rules.** A value typed and a rule that carries none — square,
    parallel, tangent, equal — weigh the same: whatever stands against them
-   gives. A point they hold entirely is green and does not answer the hand.
+   gives. A point they hold entirely is settled and does not answer the hand.
 3. **A corner or an edge of the part**, for a sketch on one of its faces. A
    point laid on a corner follows it and attaches the drawing, as the origin
-   does: a trait with no value between two corners is green. It lets go only
+   does: a trait with no value between two corners is settled. It lets go only
    when the part changes shape so that the values measured from the origin can
    no longer all hold. A point laid on an edge follows it too, but keeps a
-   freedom along it, and is green only once a value places it there.
+   freedom along it, and is settled only once a value places it there.
 4. **What is fixed.** **Fixed** keeps a point where it is when a value or a rule
-   would move it. It does not attach, so it turns nothing green. It gives only
+   would move it. It does not attach, so it settles nothing. It gives only
    when nothing else can, and then as few fixed points move as possible; among
    as many, the one nearest the origin stays, and then the one fixed first. The
    hand is the exception: a fixed point grabbed directly follows it, and is
@@ -1289,7 +1306,7 @@ when none decides it.
 | Drag a centre | An arc or an ellipse, nothing pinned | The curve travels whole with its centre | Same |
 | Drag a centre | An arc, one end fixed; an ellipse, one end of an axis fixed | The centre follows the hand; the curve gives way around the fixed end. A centre that also ends a trait slides along that trait's line, as rank 6 says; brought onto the fixed end, it stops short rather than shrinking the curve to nothing or turning it inside out (#1065) | Same (#1057); the curve travelled whole, its fixed end with it |
 | Drag a centre | Two arcs about one centre, one of them with an end fixed | The free arc travels whole with the centre; the other gives way around its fixed end | Same (#1057) |
-| Drag a green point | — | Nothing: it does not answer the hand | Same |
+| Drag a settled point | — | Nothing: it does not answer the hand | Same |
 | Drag a fixed point | A trait, one end fixed | The fixed end follows the hand, and is fixed there | Follows, read off `settle_around`; not yet tried in the application |
 | Pull a side, slide a curve | — | As "Pulling a side" and "Sliding a curve" say | Same (#443) |
 | Drag a side already selected | — | Not the order's to say: which gesture the press means is #442 | — |
@@ -1319,7 +1336,7 @@ when none decides it.
 | Lay a rule | The same, the trait fixed or ending on the origin, either clicked first | The trait stays; the curve slides along it and comes to touch it | Same (#1040); clicked curve first, the trait slid along to the curve, or shrank and the rule was refused |
 | Lay a rule | The same, the curve fixed and the trait free, either clicked first | The curve stays; the trait slides along it and comes | Same (#1040); clicked trait first, the curve slid along to the trait |
 | Lay a rule | « Coïncidence », a circle's centre and a fixed trait, the circle touching a free rectangle, either clicked first | The trait stays; the circle comes onto its line, carrying the rectangle it touches | Same (#1040); the fixed trait turned about its end and stretched |
-| Lay a rule | A rectangle drawn from the origin along its axes, made parallel to a free trait | The trait turns; the rectangle keeps lying along the axes, and stays green | Same (#471); the rectangle turned to the trait when clicked second, and turned yellow |
+| Lay a rule | A rectangle drawn from the origin along its axes, made parallel to a free trait | The trait turns; the rectangle keeps lying along the axes, and stays settled | Same (#471); the rectangle turned to the trait when clicked second, and was free again |
 | Lay a rule | Two free traits made square, the second fixed | The first gives: the order decides before the clicks | Same (#451) |
 | Type a value | A length on the second of two traits made equal | Both take it | Same since #451; it was refused, Equal only ever moving the second |
 | Drag a point | An end of the second of two traits made equal | It follows the hand, and the first trait stretches with it | Same since #451; the end stopped short, Equal only ever moving the second |
@@ -1350,7 +1367,9 @@ when none decides it.
 A dimension is not just a number laid beside the drawing: it is **traced**,
 with its extension lines, its dimension line and its arrows for a length, an
 arrowed arc for an angle, an arrowed radius for a circle. The value is written
-on the tracing.
+on the tracing, in a small rounded cartouche, in the dimension colour of the
+profile; a read-only value is written between brackets in its own quieter
+colour. The value of a fillet or a chamfer is written the same way.
 
 This is vector drawing produced by the code, not images: a few segments per
 dimension, which follow the geometry when it moves and stay crisp at any zoom.
@@ -1394,13 +1413,24 @@ instead of tearing it off. A radius turns around its circle.
 
 | Colour | What it means |
 | --- | --- |
-| **Yellow** | Freedom is left: this element can still move. |
-| **Green** | Entirely constrained: this point can no longer move at all. |
-| **Grey** | A sketch other than the one being edited. |
+| **Orange-yellow** | Freedom is left: this element can still move. |
+| **Off-white** | Entirely constrained, settled: this point can no longer move at all. |
+| **Grey, dashed** | Construction geometry, settled or not. |
+| **Amber** | The tool in progress, and only it: the trait the next click lays — drawn as solid and as wide as a laid one — the ring and the name of a snap, the arc of a line's angle and the border of the fields the cursor carries. |
+| **Faint grey** | A sketch other than the one being edited. |
 
 The colour is **per element, not per sketch**: one outline can be entirely
 frozen while its neighbour still floats, and that is precisely what shows what
-is left to do. A trait is green only if both its ends are.
+is left to do. A trait is settled only if both its ends are. Strokes are 2 px
+wide, and a closed area is tinted a light blue. Each of these colours is a
+colour of the profile, set in « Préférences » › « Apparence ».
+
+A line being drawn shows **its angle on an arc** at its start, in amber: from
+the trait it is drawn on from — the one the chain laid just before, or else the
+only trait ending where it starts — or else from the horizontal, round to the
+line the short way, the angle written beside it to a tenth of a degree, on
+whichever side of the start keeps it off the fields the cursor carries. The
+angle field itself keeps what is typed in it.
 
 ### The origin point
 
@@ -1418,7 +1448,7 @@ It is what keeps a drawing from sliding, in two ways:
 *(Later, in 3D, a vertex of an existing part will be able to play the same
 role.)*
 
-### What it takes to get to green
+### What it takes to get to settled
 
 Three things:
 
@@ -1441,7 +1471,7 @@ vertex or a face of the part.
 
 **Fixed** does not attach. It holds an element still while the drawing
 settles — that is what it is for — but it does not say *where*: the figure it
-alone holds back could be elsewhere, so it does not turn it green.
+alone holds back could be elsewhere, so it does not settle it.
 
 ### Orientation, when the shape says it by itself
 
@@ -1456,7 +1486,7 @@ round it was drawn in, without anything having to be written.
 
 A **slanted** shape says nothing. As soon as none of its traits is at 0, 90,
 180 or 270°, it has to be said: an angle dimension against an axis, and it
-turns green. Without that it would be declared finished while it can still be
+is settled. Without that it would be declared finished while it can still be
 swung round.
 
 The rule holds **per group of connected geometry**: two shapes drawn apart can
@@ -1531,7 +1561,7 @@ in tens of milliseconds.
 
 ### A frozen point no longer moves with the mouse
 
-A green vertex does not answer the Selection tool. Pulling it would silently
+A settled vertex does not answer the Selection tool. Pulling it would silently
 undo a value that was typed; to move it, one changes what holds it.
 
 ## Closed surfaces

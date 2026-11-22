@@ -13,6 +13,26 @@
 //! show rather than off where they stand: by default the free view is a
 //! radial gradient and a sketch a plain colour, so the editor whose « Uni » is
 //! chosen is the sketch's, wherever the page puts it.
+//!
+//! Closes #742 — the whole transcription is in
+//! `crates/app/src/screens/viewport/render/drawing/tests.rs`; this bullet is
+//! the page's share.
+//! - Preferences › Apparence still sets each one — the two colours new with
+//!   this issue, the construction's and the tool in progress's, each have a
+//!   row, a colour button beside « Construction » and « Outil en cours » —
+//!   `the_appearance_page_offers_a_row_for_the_construction_and_the_tool_in_progress`.
+//!   That each row sets the colour it names is read off the frame instead, in
+//!   `the_construction_and_tool_colours_a_profile_sets_are_the_ones_drawn`
+//!   beside the transcription: no driver works egui's colour picker; and the
+//!   reset putting them back is
+//!   `the_reset_puts_every_viewport_colour_back_the_sketch_background_included`,
+//!   which compares the whole theme; the two colours of a constraint mark's
+//!   box, new with the marks' boxes, have theirs beside « Fond des marques »
+//!   and « Contour des marques » —
+//!   `the_appearance_page_offers_a_row_for_the_box_of_the_rule_marks`, what
+//!   they set read off the frame in
+//!   `the_rule_marks_box_colours_a_profile_sets_are_the_ones_painted`, in
+//!   `crates/app/src/screens/viewport/render/overlays/tests.rs`
 
 mod driver;
 
@@ -76,6 +96,66 @@ fn the_reset_puts_every_viewport_colour_back_the_sketch_background_included() {
         Theme::default(),
         "the reset left a viewport colour of the profile behind",
     );
+}
+
+#[test]
+fn the_appearance_page_offers_a_row_for_the_construction_and_the_tool_in_progress() {
+    let mut app = driver::open("the_appearance_page_offers_a_row_for_the_construction");
+    the_appearance_page(&mut app);
+    assert!(
+        a_colour_row_reads(&app, "Libre"),
+        "the free strokes' colour, there before this issue, is read as no row of the page: \
+         the way a row is read is wrong, not the page",
+    );
+
+    let missing: Vec<&str> = ["Construction", "Outil en cours"]
+        .into_iter()
+        .filter(|label| !a_colour_row_reads(&app, label))
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "Préférences › Apparence offers no colour beside {missing:?}",
+    );
+}
+
+#[test]
+fn the_appearance_page_offers_a_row_for_the_box_of_the_rule_marks() {
+    let mut app = driver::open("the_appearance_page_offers_a_row_for_the_box_of_the_rule");
+    the_appearance_page(&mut app);
+    assert!(
+        a_colour_row_reads(&app, "Marque de contrainte"),
+        "the marks' own colour, there before this issue, is read as no row of the page: \
+         the way a row is read is wrong, not the page",
+    );
+
+    let missing: Vec<&str> = ["Fond des marques", "Contour des marques"]
+        .into_iter()
+        .filter(|label| !a_colour_row_reads(&app, label))
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "Préférences › Apparence offers no colour beside {missing:?}",
+    );
+}
+
+/// Whether a line of the page reads exactly `label` with a colour button on
+/// the same row, wherever the page has scrolled to.
+fn a_colour_row_reads(app: &driver::App, label: &str) -> bool {
+    let buttons: Vec<f32> = app
+        .query_all_by_role(egui::accesskit::Role::ColorWell)
+        .map(|button| button.rect().center().y)
+        .collect();
+    app.get_all_by(|_| true)
+        .filter(|node| {
+            let read = node.accesskit_node();
+            read.label().or_else(|| read.value()).as_deref() == Some(label)
+        })
+        .any(|row| {
+            let at = row.rect().center().y;
+            buttons.iter().any(|button| (button - at).abs() < 4.0)
+        })
 }
 
 fn the_appearance_page(app: &mut driver::App) {
