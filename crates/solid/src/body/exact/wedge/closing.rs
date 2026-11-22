@@ -53,9 +53,10 @@ pub(in crate::body::exact) struct Apex {
 }
 
 /// How far what fills a concave corner reaches into the matter past the
-/// corner's three faces, as a share of the value: far enough that no face of
-/// it lies nearly flush with theirs, near enough to stay inside a wall or a
-/// floor thicker than that.
+/// corner's three faces, and what clears a convex one out of it past its
+/// faces, as a share of the value: far enough that no face of it lies nearly
+/// flush with theirs, near enough to stay inside a wall or a floor thicker
+/// than that, or to leave whole matter standing farther out (#948).
 const SUNK: f64 = 0.125;
 
 /// A corner edges of a step meet at, read on the body as given: where it
@@ -170,9 +171,25 @@ impl Corner {
     /// `reach` of the corner: what fills a concave corner, kept inside its
     /// walls.
     pub fn sunk(&self, solid: Exact, reach: f64) -> Result<Exact, Declined> {
+        self.within(solid, reach, -1.0)
+    }
+
+    /// `solid` less what of it stands farther out of the matter than [`SUNK`]
+    /// of the value past the corner's faces, every point of it within `reach`
+    /// of the corner: what clears a convex corner, kept off matter standing
+    /// past it.
+    pub fn snug(&self, solid: Exact, reach: f64) -> Result<Exact, Declined> {
+        self.within(solid, reach, 1.0)
+    }
+
+    /// `solid` less what of it stands farther than [`SUNK`] of the value past
+    /// the corner's faces the way they face, `side` one, or against it, `side`
+    /// minus one.
+    fn within(&self, solid: Exact, reach: f64, side: f64) -> Result<Exact, Declined> {
         let depth = self.value * SUNK;
         (self.facing.iter()).try_fold(solid, |kept, &facing| {
-            kept.cut_by(&slab(-facing, self.at - facing * depth, reach)?)
+            let way = facing * side;
+            kept.cut_by(&slab(way, self.at + way * depth, reach)?)
         })
     }
 }
