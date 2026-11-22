@@ -55,7 +55,12 @@ impl Exact {
     /// away, and the step is declined where it does not, so that every order
     /// lays one body or none: the upright and the hip above it on a slab so
     /// thin that the hip's flat, carried past the foot, reaches the floor
-    /// beyond what the upright's takes, or takes all of the upright's (#1083).
+    /// beyond what the upright's takes (#1083). On a slab thinner still, where
+    /// the hip's flat takes all of the upright's, the pair is declined in
+    /// every order before that, by the check of each cut as it is laid, as
+    /// [`Exact::cut_off`] reads it: the hip laid first, the upright's cut
+    /// leaves no face of its own; the upright laid first, the hip's takes the
+    /// upright's face away whole (#1083).
     /// Two cut
     /// off where they meet beside a concave edge left sharp — the L's two top edges
     /// at its inner corner, two edges of a pocket's rim — each stop flush there

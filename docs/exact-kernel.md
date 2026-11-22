@@ -282,12 +282,18 @@ It can:
   corner it kept on them is to be gone, taken by the later cut
   (`Exact::keeps_a_corner_at` in `wedge/sides.rs`), or the step is
   declined: every order lays the booleans' body or none. Declined so, in
-  every order, until #1083 builds them: the chamfer on the upright and the
-  hip above it on a slab thinner than `(√6/4 − 1/2)·d`, about `0.1124·d`,
-  under the square pyramid, where the hip's flat takes all of the
-  upright's, and on one between `0.0606·d` and `0.1837·d` under the
+  every order, until #1083 builds it: the chamfer on the upright and the
+  hip above it on a slab between `0.0606·d` and `0.1837·d` under the
   pyramid 10 by 6, where the upright's flat takes one of the two corners the
-  hip's leaves on the floor and not the other. Three or more rounds there
+  hip's leaves on the floor and not the other. On a slab thinner still —
+  under `(√6/4 − 1/2)·d`, about `0.1124·d`, beneath the square pyramid, and
+  under `0.0606·d` beneath the pyramid 10 by 6 — the hip's flat takes all
+  of the upright's, and the same pair is declined in every order before
+  that check is reached, by the check each cut has as it is laid
+  (`Exact::cut_along` in `body/exact/wedge.rs`): the hip laid first, the
+  upright's cut leaves no face of its own; the upright laid first, the
+  hip's cut takes the upright's face away whole. That too waits on #1083.
+  Three or more rounds there
   are declined: the kernel has no surface yet for where they meet beside a
   sharp edge (#1031). A round leaving
   the edge's end at a few degrees inwards trims the chamfer like any other
