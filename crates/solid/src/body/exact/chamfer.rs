@@ -46,13 +46,16 @@ impl Exact {
     /// convex corner are mitred there, from where their flats cross on the
     /// face they share down to the corner's third edge, left sharp. At a
     /// convex vertex of four or more, some of the edges ending there named and
-    /// not all — two or three at a hip's foot on a box, the hip, an eave or
-    /// the upright under it, on a box or a thin slab, three hips of an apex
-    /// of four whether its flats would cross on one plane or not, three or
-    /// four of five — each flat is a plane the part is cut by, mitred against
-    /// those laid before and, laid before them, ending on the walls of the
-    /// later ones there until their cuts take that away, whatever the order,
-    /// the others left sharp and no face laid at the corner (#942).
+    /// not all — two or three at a hip's foot, the hip, an eave or the
+    /// upright under it, three hips of an apex of four whether its flats would
+    /// cross on one plane or not, three or four of five — each flat is a
+    /// plane the part is cut by, mitred against those laid before, the others
+    /// left sharp and no face laid at the corner (#942). Laid before a later
+    /// one there, a flat may end on that one's walls where its cut takes that
+    /// away, and the step is declined where it does not, so that every order
+    /// lays one body or none: the upright and the hip above it on a slab so
+    /// thin that the hip's flat, carried past the foot, reaches the floor
+    /// beyond what the upright's takes, or takes all of the upright's (#1083).
     /// Two cut
     /// off where they meet beside a concave edge left sharp — the L's two top edges
     /// at its inner corner, two edges of a pocket's rim — each stop flush there
@@ -131,8 +134,9 @@ impl Exact {
     /// as a face of the prism but its chamfer left on the body, the chamfer in
     /// two pieces or with a corner on neither of the edge's faces nor on an
     /// edge ending at a convex corner it ends at alone, or with some of the
-    /// edges there and not all, or a face the body held, but the edge's two,
-    /// taken away whole.
+    /// edges there and not all, or, laid before another edge there, on that
+    /// one's walls where its cut does not take that corner away (#1083), or
+    /// a face the body held, but the edge's two, taken away whole.
     pub fn chamfered(&self, names: &[EdgeName], distance: f64) -> Result<(Exact, f64), Declined> {
         let (cut, taken, _) = self.cut_off(
             names,

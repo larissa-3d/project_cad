@@ -79,8 +79,11 @@ impl Body {
     /// named and not all — two or three at a hip's foot, three hips of an
     /// apex of four, whatever its shape, three or four of five — are cut each
     /// by its flat, as a plane the part is cut by, mitred where they meet,
-    /// in every order, the others left sharp and nothing laid at the corner
-    /// (#942). Two cut off where they meet
+    /// the others left sharp and nothing laid at the corner, whatever the
+    /// order (#942); the upright and the hip above it on a slab so thin that
+    /// the hip's flat reaches the floor beyond what the upright's takes, or
+    /// takes all of it, are declined `Unsupported` in every order (#1083).
+    /// Two cut off where they meet
     /// beside a concave edge left sharp — the L's top edges at its inner
     /// corner, a pocket's rim — each stop flush on the face the other runs
     /// along and are mitred past it, down to the concave edge, no face laid

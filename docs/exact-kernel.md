@@ -270,17 +270,26 @@ It can:
   way (#942), each laid in turn, the later mitred against the earlier as at
   a corner of three, the others left sharp and no face laid at the corner.
   Two of them are built chamfered or rounded — at a hip's foot, the hip, an
-  eave or the upright under it, on a box or on a slab so thin that the hip
-  alone would cross the upright below the floor. Three or more are built
-  chamfered at any convex vertex of four or more — three of the four edges
-  at a hip's foot, three hips of an apex of four whether or not its four
-  flats would cross on one plane, three or four of a five-sided apex — each
-  flat a plane the part is cut by, since what two flats both take needs no
-  face of its own. The earlier edge's face, carried past the corner, may
-  end on the walls of a later one there, which that one's cut takes away
-  (`corners::sharing`), so the step builds the booleans' body in every
-  order. Three or more rounds there are declined: the kernel has no surface
-  yet for where they meet beside a sharp edge (#1031). A round leaving
+  eave or the upright under it, on a box, or on a slab so thin that the hip
+  alone would cross the upright below the floor, as long as the slab stands
+  above the windows below. Three or more are built chamfered at any convex
+  vertex of four or more — three of the four edges at a hip's foot, three
+  hips of an apex of four whether or not its four flats would cross on one
+  plane, three or four of a five-sided apex — each flat a plane the part is
+  cut by, since what two flats both take needs no face of its own. The
+  earlier edge's face, carried past the corner, may end on the walls of a
+  later one there (`corners::sharing`), and once every edge is laid each
+  corner it kept on them is to be gone, taken by the later cut
+  (`Exact::keeps_a_corner_at` in `wedge/sides.rs`), or the step is
+  declined: every order lays the booleans' body or none. Declined so, in
+  every order, until #1083 builds them: the chamfer on the upright and the
+  hip above it on a slab thinner than `(√6/4 − 1/2)·d`, about `0.1124·d`,
+  under the square pyramid, where the hip's flat takes all of the
+  upright's, and on one between `0.0606·d` and `0.1837·d` under the
+  pyramid 10 by 6, where the upright's flat takes one of the two corners the
+  hip's leaves on the floor and not the other. Three or more rounds there
+  are declined: the kernel has no surface yet for where they meet beside a
+  sharp edge (#1031). A round leaving
   the edge's end at a few degrees inwards trims the chamfer like any other
   end face; one leaving it outwards dips outside the edge's face past the
   end corner, by `r·(1 − cos θ)` for a round of radius `r` leaving at `θ`.

@@ -193,7 +193,9 @@ impl Exact {
     /// a face of the prism, the round in two
     /// pieces or with a corner on neither of the edge's faces nor on an edge
     /// ending at a convex corner it ends at alone, or with one other edge of
-    /// the list where four or more end, a face the body held, but
+    /// the list where four or more end, or, laid before that edge, on its
+    /// walls where its round does not take that corner away (#1083), a face
+    /// the body held, but
     /// the edge's two, taken away whole — as where a round leaving
     /// the edge's end outwards bulges past the edge's face, and the prism's
     /// wall square to that face cuts the bulge off, or two rounds meet where

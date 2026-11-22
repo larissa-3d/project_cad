@@ -259,17 +259,48 @@
 //!   and uncrossed at that volume, its triangles enclosing it within the
 //!   drawing's tolerance over both rounds, two faces laid by their edges'
 //!   ranks, one body in both orders — the booleans' cut face for face — and
-//!   no corner left at the foot. Red on 1bdb657a, for the reason the review
-//!   found: every list naming the hip first declined, every list naming the
-//!   upright first built and holding all of the above. Thinner still than
-//!   the mitre between the two faces, as the chamfer at 1 on 0.1, the hip's
-//!   flat takes the upright whole, the booleans' cut in that order leaving
-//!   the upright no face: not held here, declined in both orders on 1bdb657a
+//!   no corner left at the foot. Red on d7a2d118, the commit that first
+//!   built the pairs, for the reason the review found: every list naming the
+//!   hip first declined, every list naming the upright first built and
+//!   holding all of the above. Every slab here stands above the window the
+//!   second review's bullet below pins declined, thinner than
+//!   `(√6/4 − 1/2)·d`, where the hip's flat takes all of the upright's
+//! - Decided on the way, after the second review (2026-11-22), and recorded
+//!   in #1083's opening, which takes over building them: the fix that built
+//!   the slab's pairs above in either order took, for the earlier edge at a
+//!   shared foot, what the later edge takes there, and checked nothing once
+//!   the later edge was laid. On the pyramid 10 by 6 standing on a thin slab,
+//!   its apex 5 above the middle of the slab's top, the chamfer on the upright
+//!   and the hip above it was built hip first, at the booleans' body, and
+//!   declined upright first: the upright's flat takes the corner the hip's
+//!   flat leaves on the floor against the left wall, not the one against the
+//!   front wall. Decided: the earlier face is checked again once the later
+//!   edge is laid, and those lists are declined in every order, until #1083
+//!   builds them —
+//!   `a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_on_a_thin_slab_is_declined_as_unsupported_in_either_order`.
+//!   Read as: chamfered at 0.5 on the slab 0.05 high, at 1 on 0.08, 0.1 and
+//!   0.15, and at 2 on 0.2, five of the review's nine; at each of the four
+//!   feet, which all split the same way on f1a96289, the slab and its slopes
+//!   mirrored from one to the next rather than turned; before the step, the
+//!   hip's flat cut alone crossing the upright's line below the floor, and
+//!   the booleans' cut of both prisms keeping the volume below in either
+//!   order; then both orders declined `Unsupported`. Red on f1a96289, for the
+//!   reason the review found: every list naming the hip first built, at the
+//!   booleans' volume, every list naming the upright first declined. And on
+//!   `pyramid_on_a_slab`, a slab thinner than `(√6/4 − 1/2)·d`, about
+//!   `0.1124·d`, the hip's flat taking all of the upright's, the same pair is
+//!   declined in both orders, until #1083 —
+//!   `a_chamfer_on_a_slab_s_upright_and_the_hip_above_it_where_the_hip_s_flat_would_take_the_upright_s_whole_is_declined_as_unsupported_in_either_order`.
+//!   Read as: chamfered at 0.5 on the slab 0.05 high, at 1 on 0.1 and at 2 on
+//!   0.2; before the step, the slab under that height, and the upright's
+//!   prism, cut by the booleans after the hip's, leaving no face of its own;
+//!   then, at each of the four feet and in both orders, the step declined
+//!   `Unsupported`. A pin, green on f1a96289
 //! - Decided on the way, after the review (2026-11-22), the same comment:
 //!   the chamfer on three or more edges named, not all, at a convex vertex of
 //!   four or more is built as the booleans cut each flat, the same body in
 //!   every order, wherever the review's probe found it sound — pinned, green
-//!   on 1bdb657a. Three of the four edges at each hip's foot on `pyramid()`,
+//!   on d7a2d118. Three of the four edges at each hip's foot on `pyramid()`,
 //!   each choice of three in its six orders —
 //!   `a_chamfer_on_three_of_the_four_edges_ending_at_a_hip_s_foot_on_a_box_cuts_the_part_by_each_flat_and_leaves_the_fourth_sharp_whatever_the_order`;
 //!   three of the four hips of the pyramid on its own base 10 by 6, each
@@ -402,6 +433,13 @@
 //! four. Their planes hold roots ℚ(√2, √3) has not, so the part cut by the
 //! flats' planes is clipped in double precision there, apart from the
 //! kernel; the booleans agree within 1e-13.
+//!
+//! The pyramid 10 by 6 on a slab `h` high holds `60h + 100`; the upright
+//! and the hip above it chamfered at `d` leave, clipped the same way,
+//! 102.13306949609526 at 0.5 on the slab 0.05 high, 101.45319236800253 at 1
+//! on 0.08, 102.64195643804794 at 1 on 0.1, the review's figure,
+//! 105.615675795516 at 1 on 0.15 and 99.44525338152738 at 2 on 0.2, the
+//! booleans agreeing within 1e-13 in either order.
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
@@ -2611,6 +2649,84 @@ fn oblong_hips() -> Vec<Lone> {
     .collect()
 }
 
+/// How broad the slab under [`oblong_on_a_slab_of`] is, front to back,
+/// against [`SIDE`] left to right.
+const OBLONG_BREADTH: f64 = 6.0;
+
+/// The pyramid 10 by 6 standing on a slab `height` high, flush with its four
+/// walls, its apex 5 above the middle of the slab's top: the slab's block cut
+/// by the four planes through the apex and an edge of its top, leaning as
+/// [`oblong_slope_facing`] says, numbered as `pyramid()`'s faces are. Each
+/// hip's foot is a vertex of four edges meeting outwards.
+fn oblong_on_a_slab_of(height: f64) -> Body {
+    let apex = DVec3::new(SIDE / 2.0, OBLONG_BREADTH / 2.0, height + 5.0);
+    let block = raised(
+        Contour::rectangle(DVec2::ZERO, DVec2::new(SIDE, OBLONG_BREADTH)),
+        height + 5.0,
+    );
+    SLOPES.into_iter().fold(block, |part, face| {
+        part.difference(&beyond(&part, apex, oblong_slope_facing(face), 50.0))
+            .expect("a plane through the apex cuts the block")
+    })
+}
+
+/// The upright of [`oblong_on_a_slab_of`] a slab `height` high at each of
+/// its four feet, round from the front left, and the hip above it, each from
+/// its lower end to its upper. Only the hip's foot is read as a lone fill's
+/// end, on the slab's two walls there: no step here lays either alone.
+fn oblong_feet_on_a_slab_of(height: f64) -> Vec<[Lone; 2]> {
+    let apex = DVec3::new(SIDE / 2.0, OBLONG_BREADTH / 2.0, height + 5.0);
+    [
+        ([FRONT, LEFT], [FRONT_SLOPE, LEFT_SLOPE], [0.0, 0.0]),
+        ([FRONT, RIGHT], [FRONT_SLOPE, RIGHT_SLOPE], [SIDE, 0.0]),
+        (
+            [BACK, RIGHT],
+            [BACK_SLOPE, RIGHT_SLOPE],
+            [SIDE, OBLONG_BREADTH],
+        ),
+        (
+            [BACK, LEFT],
+            [BACK_SLOPE, LEFT_SLOPE],
+            [0.0, OBLONG_BREADTH],
+        ),
+    ]
+    .into_iter()
+    .zip(UPRIGHTS.into_iter().zip(HIPS))
+    .map(|((walls, slopes, [x, y]), (upright, hip))| {
+        let facing = |wall: usize| match wall {
+            FRONT => -DVec3::Y,
+            BACK => DVec3::Y,
+            LEFT => -DVec3::X,
+            _ => DVec3::X,
+        };
+        let foot = DVec3::new(x, y, height);
+        let bound = |wall: usize| Bound {
+            face: wall,
+            through: foot,
+            outward: facing(wall),
+        };
+        [
+            Lone {
+                called: upright,
+                faces: walls,
+                outward: walls.map(facing),
+                start: DVec3::new(x, y, 0.0),
+                end: foot,
+                ends: [vec![wall(FLOOR)], Vec::new()],
+            },
+            Lone {
+                called: hip,
+                faces: slopes,
+                outward: slopes.map(oblong_slope_facing),
+                start: foot,
+                end: apex,
+                ends: [walls.map(bound).to_vec(), Vec::new()],
+            },
+        ]
+    })
+    .collect()
+}
+
 /// How far from the axis the corners of the five-sided pyramid's base
 /// stand, and how high its apex stands over the middle of the base.
 const FIVE_RADIUS: f64 = 6.0;
@@ -3090,4 +3206,113 @@ fn a_chamfer_on_three_or_four_of_the_five_hips_of_a_five_sided_pyramid_cuts_the_
         value: VALUE,
         lists,
     }]);
+}
+
+/// The chamfers the upright and the hip above it at a foot of
+/// [`oblong_on_a_slab_of`] are held declined at: the value, the slab's
+/// height, and what the booleans' cut of both prisms keeps there, as the
+/// module's documentation measures it.
+const ON_THE_OBLONG_S_THIN_SLABS: [(f64, f64, f64); 5] = [
+    (0.5, 0.05, 102.13306949609526),
+    (1.0, 0.08, 101.45319236800253),
+    (1.0, 0.1, 102.64195643804794),
+    (1.0, 0.15, 105.615675795516),
+    (2.0, 0.2, 99.44525338152738),
+];
+
+#[test]
+fn a_chamfer_on_the_upright_and_the_hip_above_it_at_a_foot_of_a_pyramid_10_by_6_on_a_thin_slab_is_declined_as_unsupported_in_either_order()
+ {
+    let mut built = Vec::new();
+    for (value, height, kept) in ON_THE_OBLONG_S_THIN_SLABS {
+        let part = oblong_on_a_slab_of(height);
+        for [upright, hip] in oblong_feet_on_a_slab_of(height) {
+            let [one, other] = hip.ways_in().map(|into| hip.start + into * value);
+            let crossing = hip
+                .kink(0, |share: f64| one.lerp(other, share))
+                .expect("two walls round the foot");
+            assert!(
+                crossing.z < -PLACE,
+                "the fixture: the chamfer at {value} on {} alone, on the slab {height} high, \
+                 would cross the line of the upright under it at {crossing}, below the slab's \
+                 floor",
+                hip.called
+            );
+            for order in [[&upright, &hip], [&hip, &upright]] {
+                let what = format!(
+                    "the chamfer at {value} on {}, then {}, on the slab {height} high under the \
+                     pyramid 10 by 6",
+                    order[0].called, order[1].called
+                );
+                let fixture = cut_by_the_booleans_at(&part, &order, Cut::Flat, value).0;
+                assert!(
+                    (fixture.volume() - kept).abs() <= EXACT * kept,
+                    "the fixture: {what}, the booleans' cut of both prisms keeps {}, where \
+                     arithmetic promised {kept}",
+                    fixture.volume()
+                );
+                let names = order.map(|edge| edge.name(&part));
+                if let Ok((_, _, body)) = laid_at(&part, &names, Cut::Flat, value) {
+                    built.push(format!("{what}: built, holding {}", body.volume()));
+                }
+            }
+        }
+    }
+    assert!(
+        built.is_empty(),
+        "the upright and the hip above it at a foot of the pyramid 10 by 6 on a thin slab, where \
+         the upright's flat takes one corner the hip's leaves on the floor and not the other, \
+         are declined in every order, a broken step and its reason, and no body, until #1083; \
+         built:\n{}",
+        built.join("\n")
+    );
+}
+
+/// The chamfers the upright and the hip above it at a foot of
+/// [`pyramid_on_a_slab_of`] are held declined at: the value and the slab's
+/// height, each slab thinner than where their two flats would meet.
+const UNDER_THE_MITRE: [(f64, f64); 3] = [(0.5, 0.05), (1.0, 0.1), (2.0, 0.2)];
+
+#[test]
+fn a_chamfer_on_a_slab_s_upright_and_the_hip_above_it_where_the_hip_s_flat_would_take_the_upright_s_whole_is_declined_as_unsupported_in_either_order()
+ {
+    for (value, height) in UNDER_THE_MITRE {
+        assert!(
+            height < (6f64.sqrt() / 4.0 - 0.5) * value,
+            "the fixture: the slab {height} high is thinner than (√6/4 − 1/2)·{value}, how far \
+             below a foot the flats at {value} on the upright and the hip above it meet"
+        );
+        let part = pyramid_on_a_slab_of(height);
+        let hips = four_of(hip_on_a_slab_of(height), HIPS);
+        let uprights = four_of(upright_of_a_slab_of(height), UPRIGHTS);
+        for (upright, hip) in uprights.iter().zip(&hips) {
+            let after_the_hip = part
+                .difference(&hip.tool(&part, Cut::Flat, value))
+                .expect("the fixture: the booleans cut the hip's prism from the slab");
+            let after_both = after_the_hip
+                .difference(&upright.tool(&after_the_hip, Cut::Flat, value))
+                .expect("the fixture: the booleans cut the upright's prism after the hip's");
+            assert_eq!(
+                faces_made(&after_the_hip, &after_both),
+                Vec::<usize>::new(),
+                "the fixture: the chamfer at {value} on {}, then {}, on the slab {height} high: \
+                 the upright's prism, cut after the hip's, leaves no face of its own, the hip's \
+                 flat having taken all of it there is",
+                hip.called,
+                upright.called
+            );
+            for order in [[upright, hip], [hip, upright]] {
+                let names = order.map(|edge| edge.name(&part));
+                assert_eq!(
+                    laid_at(&part, &names, Cut::Flat, value).err(),
+                    Some(Declined::Unsupported),
+                    "the chamfer at {value} on {}, then {}, on the slab {height} high, thinner \
+                     than where the two flats meet: a broken step and its reason, and no body, \
+                     until #1083",
+                    order[0].called,
+                    order[1].called
+                );
+            }
+        }
+    }
 }

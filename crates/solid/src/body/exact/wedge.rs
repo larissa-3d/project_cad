@@ -19,6 +19,7 @@ mod reading;
 mod ring;
 mod section;
 mod set_backs;
+mod sides;
 mod slope;
 mod sphere;
 mod step;
@@ -31,11 +32,10 @@ use glam::DVec3;
 
 use super::{Exact, PIECES, lineage, root};
 use crate::body::caught::caught;
-use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale, VertexId};
+use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale};
 use crate::profile::{Contour, Frame};
 
 pub(super) use closing::{Apex, Closing};
-use corners::lies_on;
 use flush::{Flush, Stop};
 pub(super) use odd::Around;
 use overlap::OVERLAPS;
@@ -147,7 +147,8 @@ impl Exact {
     /// does not lie on, and closed the same way once all are laid; some of
     /// them named and not all, each is laid in turn where `meeting` opens such
     /// a corner, nothing closing it, and an earlier edge's face may end on a
-    /// later one's walls there, which its cut takes away (#942). A corner
+    /// later one's walls there, which its cut is to take away, the step
+    /// declined where it does not (#942, #1083). A corner
     /// three of them meet at, two of one sense and the odd one of the other —
     /// two feet and the upright above them, two top edges and the upright
     /// below them — is gone round its odd edge as `meeting` says, as
@@ -297,7 +298,6 @@ impl Exact {
         taken: &[u32],
     ) -> bool {
         let made = before.next;
-        let eps = self.brep.scale().eps();
         let numbers = |body: &brep::Body, face: FaceId| body.numbers(face).to_vec();
         let stray = self
             .brep
@@ -308,23 +308,7 @@ impl Exact {
             .roots
             .values()
             .any(|replaced| (made..PIECES).contains(replaced));
-        let corners = |number: u32| {
-            self.named(number as usize)
-                .flat_map(|face| self.brep.face(face).loops.iter().flatten())
-                .flat_map(|coedge| self.brep.edge(coedge.edge).ends.into_iter().flatten())
-        };
-        let mitres: BTreeSet<VertexId> =
-            mitred.iter().flat_map(|&number| corners(number)).collect();
-        let on_a_side = corners(made).all(|corner| {
-            let point = self.brep.vertex(corner).point;
-            mitres.contains(&corner)
-                || open.iter().any(|stop| stop.holds(point, eps))
-                || wedges.iter().any(|wedge| {
-                    let at = point - wedge.point;
-                    wedge.outward.iter().any(|side| side.dot(at).abs() <= eps)
-                        || (wedge.crossed.iter()).any(|&edge| lies_on(edge, point, eps))
-                })
-        });
+        let on_a_side = (self.off_its_sides(made, wedges, mitred, open)).is_empty();
         let consumable: BTreeSet<u32> = (wedges.iter())
             .flat_map(|wedge| wedge.numbers.iter().flatten().copied())
             .chain(taken.iter().copied())
