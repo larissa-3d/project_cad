@@ -201,17 +201,14 @@ fn past_two_faces(
 /// slot's round end turning in toward the slot off its wall, which the fill
 /// then runs on into — what [`round::outside_cylinder`] raises or
 /// [`round::outside_cone`] turns; on a cylinder the edge runs into, its
-/// matter inside — a pillar (#908) — the box [`beyond`] raises past the
-/// plane through the axis square to the edge's run off the axis, where
-/// each long edge that meets the cylinder stands midway through it, the
-/// fill's end then buried in the pillar and short of its far side —
-/// [`round::outside_cylinder`] would start its cut where the first edge
-/// leaves the pillar, on that far side, and leave a corner on its foot
-/// where the fill crosses it there; on a sphere the edge runs out of at
-/// `point` — a rib cut from a ball (#805) — what [`ball::outside_sphere`]
-/// cuts. Declined `Unsupported` on a plane along the edge, a cylinder the
-/// edge runs into with its matter outside, a cone or a sphere the edge runs
-/// into, or another surface; otherwise as those declines.
+/// matter inside — a pillar (#908), a boss with a bore inside that cylinder
+/// (#915) — what [`round::inside_cylinder`] cuts, flush on the cylinder; on
+/// a sphere the edge runs out of at `point` — a rib cut from a ball (#805)
+/// — what [`ball::outside_sphere`] cuts. Declined `Unsupported` on a plane
+/// along the edge, a cylinder the edge runs into with its matter outside — a
+/// slot's round end, or a bore breaking out of a boss's round where the edge
+/// ends — a cone or a sphere the edge runs into, or another surface;
+/// otherwise as those declines.
 fn past_the_end(
     body: &brep::Body,
     id: FaceId,
@@ -233,9 +230,7 @@ fn past_the_end(
             Ok(vec![round::outside_cylinder(prism, cylinder, past)?])
         }
         Surface::Cylinder(cylinder) if !face.flipped && normal.dot(past) < 0.0 => {
-            let towards = past - cylinder.axis * cylinder.axis.dot(past);
-            let (plane, _) = Plane::through(cylinder.origin, towards);
-            Ok(vec![beyond(prism, &plane, towards.normalize())?])
+            round::inside_cylinder(prism, cylinder, past)
         }
         Surface::Cone(cone) => round::outside_cone(prism, cone, point, past, body.scale().reach()),
         Surface::Sphere(sphere) if normal.dot(past) > 0.0 => Ok(vec![ball::outside_sphere(
