@@ -12,7 +12,8 @@ pub(crate) struct KeptSections {
     /// It, as the part stands now; nothing while it is broken and cuts nothing.
     shown: Option<Section>,
     /// Which was on before a drawing laid on a section was opened, to be put
-    /// back once it is left.
+    /// back once it is left: something only while that drawing is open, the
+    /// section under it then the one on.
     before_the_sketch: Option<Option<usize>>,
     /// The kept sections past the step the part is read to, by id: none of
     /// them is cut with, whether it is on or not.
@@ -35,10 +36,11 @@ impl KeptSections {
     }
 
     /// The section switched on, as the frame cuts with it; nothing while the
-    /// part is read to a step before it.
+    /// part is read to a step before it, unless a drawing laid on it is open.
     pub(crate) fn shown(&self) -> Option<&Section> {
+        let under_the_sketch = self.before_the_sketch.is_some();
         let read = self.on.is_some_and(|on| !self.unread.contains(&on));
-        self.shown.as_ref().filter(|_| read)
+        self.shown.as_ref().filter(|_| under_the_sketch || read)
     }
 
     /// The id of the section switched on, when it cuts anything.

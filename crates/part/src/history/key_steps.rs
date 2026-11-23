@@ -19,13 +19,16 @@ impl History {
             })
     }
 
-    /// Whether a deletion in effect is recorded under that step: its section
-    /// is gone from the part.
+    /// Whether that step is a section's with a deletion in effect recorded
+    /// under it: the section is gone from the part.
     fn is_deleted(&self, step: &Step) -> bool {
-        step.operations()
-            .iter()
-            .filter(|number| self.in_effect(**number))
-            .any(|number| matches!(self.at(*number), Some(Operation::DeleteSection { .. })))
+        step.kind() == StepKind::Section
+            && step.operations().iter().any(|number| {
+                self.position_of(*number)
+                    .filter(|at| *at < self.applied)
+                    .and_then(|at| self.operations.get(at))
+                    .is_some_and(|operation| matches!(operation, Operation::DeleteSection { .. }))
+            })
     }
 
     /// Where the `key_step`th key step in effect stands among the steps,

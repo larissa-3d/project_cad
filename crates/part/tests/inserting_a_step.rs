@@ -80,6 +80,17 @@
 //!   is the same part — its steps in the order of the part, read through each
 //!   the same, its sketches numbered as before, its undo walking the same —
 //!   `a_part_with_an_insertion_saved_and_reopened_is_the_same_part`
+//!
+//! Closes #968 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests/reader.rs`; this bullet is
+//! the part's half of one found on the way.
+//! - found on the way: a section saved while the part is read to an earlier
+//!   box takes the next number, the sections made before it keep theirs, and
+//!   a sketch laid on one of them stays on its cut — the part's half: a
+//!   section put in among the steps is numbered after every section made
+//!   before it, and a sketch laid on a section, a section edited and a section
+//!   deleted each find the section they name —
+//!   `a_section_put_in_among_the_steps_takes_the_next_number_and_each_operation_finds_its_own`
 
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
@@ -466,6 +477,104 @@ fn a_sketch_inserted_between_the_second_and_the_third_takes_the_next_number() {
         ),
         "the sketch put in on XZ between the second and the third, sketch {inserted}, does \
          not bear 4, the next number, or one of the three before it was renumbered",
+    );
+}
+
+/// A section kept along `plane`, `offset` from it, nothing tilted.
+fn a_section_along(plane: WorkPlane, offset: f64) -> SectionAsked {
+    SectionAsked {
+        plane,
+        on: None,
+        offset,
+        behind: SideDrawing::SeeThrough,
+        in_front: SideDrawing::Opaque,
+        tilt_about_u_degrees: 0.0,
+        tilt_about_v_degrees: 0.0,
+        pivot: DVec3::ZERO,
+    }
+}
+
+/// A section kept, by the number it bears: the plane it starts from and how
+/// far from it it cuts.
+type Kept = (usize, WorkPlane, f64);
+
+/// Each section the part keeps, in the order of their numbers.
+fn the_sections(document: &PartDocument) -> Vec<Kept> {
+    document
+        .sections()
+        .iter()
+        .map(|kept| (kept.id, kept.plane, kept.offset))
+        .collect()
+}
+
+/// Whether the sections kept are those wanted: the same numbers, on the same
+/// planes, as far from them.
+fn alike(kept: &[Kept], wanted: &[Kept]) -> bool {
+    const APART: f64 = 1e-9;
+    kept.len() == wanted.len()
+        && kept.iter().zip(wanted).all(|(one, other)| {
+            one.0 == other.0
+                && (one.1.origin - other.1.origin).length() < APART
+                && (one.1.normal() - other.1.normal()).length() < APART
+                && (one.2 - other.2).abs() < APART
+        })
+}
+
+#[test]
+fn a_section_put_in_among_the_steps_takes_the_next_number_and_each_operation_finds_its_own() {
+    let mut document = a_part_of_six_steps();
+    document.apply(Operation::SaveSection(a_section_along(WorkPlane::YZ, 5.0)));
+    let on_the_cut = WorkPlane {
+        origin: DVec3::new(5.0, 0.0, 0.0),
+        u: DVec3::Y,
+        v: DVec3::Z,
+    };
+    document.apply(Operation::CreateSketchOnSection {
+        section: 0,
+        plane: on_the_cut,
+    });
+
+    document.insert_after(
+        THE_THIRD_STEP,
+        Operation::SaveSection(a_section_along(WorkPlane::XZ, 5.0)),
+    );
+    use StepKind::{Extrusion, Section, Sketch};
+    assert_eq!(
+        kinds_of_the_steps(&document),
+        [
+            Sketch, Extrusion, Sketch, Section, Extrusion, Sketch, Extrusion, Section, Sketch
+        ],
+        "the fixture wants the section along XZ put in after the second sketch, before the \
+         one along YZ kept at the end",
+    );
+    let put_in = the_sections(&document);
+    let laid = document.sketches()[3].plane;
+    document.apply(Operation::EditSection {
+        section: 1,
+        to: a_section_along(WorkPlane::XZ, 7.0),
+    });
+    let edited = the_sections(&document);
+    document.apply(Operation::DeleteSection { section: 0 });
+    let deleted = the_sections(&document);
+
+    assert!(
+        alike(&put_in, &[(0, WorkPlane::YZ, 5.0), (1, WorkPlane::XZ, 5.0)]),
+        "the section along XZ, put in before the one along YZ kept first, does not bear the \
+         next number, 1, or the one along YZ lost its 0: {put_in:?}, as (number, plane, \
+         offset)",
+    );
+    assert!(
+        (laid.origin - on_the_cut.origin).length() < HEIGHT
+            && (laid.normal() - on_the_cut.normal()).length() < HEIGHT,
+        "the sketch laid on the cut of section 0, along YZ, is on {laid:?} once a section is \
+         put in before it, not on {on_the_cut:?}",
+    );
+    assert!(
+        alike(&edited, &[(0, WorkPlane::YZ, 5.0), (1, WorkPlane::XZ, 7.0)])
+            && alike(&deleted, &[(1, WorkPlane::XZ, 7.0)]),
+        "section 1 edited to 7, then section 0 deleted: the edit or the deletion did not \
+         reach the section it names, once edited {edited:?}, once deleted {deleted:?}, each \
+         as (number, plane, offset)",
     );
 }
 

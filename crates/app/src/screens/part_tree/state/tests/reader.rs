@@ -103,6 +103,12 @@
 //!   after leaves its active state alone; one test per case —
 //!   `a_section_switched_on_is_not_shown_while_the_part_is_read_to_a_box_before_it`,
 //!   `reading_to_a_section_or_past_it_leaves_it_on_or_off_as_it_was`
+//! - found in review: the reading point does not hide the section under the
+//!   sketch open. A sketch laid on a section, opened while the part is read to
+//!   a box before that section, switches it on as #692 does, and the canvas
+//!   cuts with it and the title bar names it while the sketch is open; once it
+//!   is closed, the part still read before the section hides it again —
+//!   `the_section_under_an_open_sketch_is_shown_though_the_part_is_read_to_a_box_before_it`
 //! - The volume, the STL and STEP exports are those of the whole part with a
 //!   saved section; the existing tests that pin it stay green — no test: held,
 //!   untouched, by
@@ -118,7 +124,10 @@
 //! - found on the way: a section saved while the part is read to an earlier
 //!   box takes the next number, the sections made before it keep theirs, and
 //!   a sketch laid on one of them stays on its cut —
-//!   `a_section_saved_while_read_to_an_earlier_box_takes_the_next_number_and_the_others_keep_theirs`
+//!   `a_section_saved_while_read_to_an_earlier_box_takes_the_next_number_and_the_others_keep_theirs`;
+//!   the part's half, a section put in among the steps and every operation
+//!   naming a section finding its own, in `crates/part/tests/inserting_a_step.rs`
+//!   by `a_section_put_in_among_the_steps_takes_the_next_number_and_each_operation_finds_its_own`
 //! - decided in the issue: deleting a section stays what #692 made it, and its
 //!   step follows — no test: here, the reader names a box after a row of the
 //!   tree, which a section deleted has none of; held where the part is read,
@@ -613,11 +622,16 @@ fn a_part_with_a_section_between_its_sketches() -> PartDocument {
     document
 }
 
-/// The viewport as a frame leaves it, caught up with the part: where it is
-/// read to, and which kept section is on.
+/// The viewport as a frame leaves it, no sketch open, caught up with the
+/// part: where it is read to, and which kept section is on.
 fn a_frame(viewport: &mut ViewportState, document: &PartDocument) {
+    a_frame_with_open(viewport, document, None);
+}
+
+/// The same, with `sketch` open — the one the frame's editor draws on.
+fn a_frame_with_open(viewport: &mut ViewportState, document: &PartDocument, sketch: Option<usize>) {
     viewport.keep_reading_up_with(document);
-    viewport.kept_sections.keep_up_with(document, None);
+    viewport.kept_sections.keep_up_with(document, sketch);
 }
 
 /// Whether the canvas cuts with a kept section, and whether the title bar
@@ -655,6 +669,67 @@ fn a_section_switched_on_is_not_shown_while_the_part_is_read_to_a_box_before_it(
         "the section switched on, the part read to the second sketch, the block and the \
          first sketch, each before the section: the canvas still cuts with it or the title \
          bar still names it, as (cut with, named) for each",
+    );
+}
+
+/// `a_part`, then a section saved along YZ through its block and a third
+/// sketch laid on its cut: five boxes, the section the fourth and the sketch
+/// on it, sketch 2, the last.
+fn a_part_with_a_sketch_on_its_section() -> PartDocument {
+    let mut document = a_part();
+    document.apply(a_section_along(WorkPlane::YZ, 5.0));
+    document.apply(Operation::CreateSketchOnSection {
+        section: 0,
+        plane: WorkPlane {
+            origin: DVec3::new(5.0, 0.0, 0.0),
+            u: DVec3::Y,
+            v: DVec3::Z,
+        },
+    });
+    assert_eq!(
+        (
+            StepReader::of(&document, &french()).boxes.len(),
+            document.section_under(2),
+        ),
+        (5, Some(0)),
+        "the fixture wants five boxes, the last a sketch laid on the section, as (boxes, \
+         the section under sketch 2)",
+    );
+    document
+}
+
+#[test]
+fn the_section_under_an_open_sketch_is_shown_though_the_part_is_read_to_a_box_before_it() {
+    let document = a_part_with_a_sketch_on_its_section();
+    let section = document.sections()[0].id;
+    let mut viewport = ViewportState::default();
+    viewport.kept_sections.switch_on(section);
+    a_frame(&mut viewport, &document);
+    viewport.read_to(1, 5);
+    a_frame(&mut viewport, &document);
+    let read_before = cut_and_named(&viewport);
+
+    a_frame_with_open(&mut viewport, &document, Some(2));
+    let opened = cut_and_named(&viewport);
+    a_frame(&mut viewport, &document);
+    let closed = (
+        cut_and_named(&viewport),
+        viewport.kept_sections.is_on(section),
+    );
+
+    assert_eq!(
+        read_before,
+        (false, false),
+        "the fixture wants the section switched on and hidden, the part read to the block \
+         before it, as (cut with, named)",
+    );
+    assert_eq!(
+        (opened, closed),
+        ((true, true), ((false, false), true)),
+        "the part read to the block, before its section: the sketch laid on that section \
+         opened, the canvas does not cut with the section or the title bar does not name it; \
+         or, the sketch closed, the section still on is not hidden again, as ((cut with, \
+         named) while the sketch is open, ((cut with, named), on) once it is closed)",
     );
 }
 
