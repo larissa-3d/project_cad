@@ -1,5 +1,5 @@
 //! The tree as the view stands: which sketch is being drawn on, which are
-//! hidden, and how each volume is drawn.
+//! hidden, how each volume is drawn, and which section is switched on.
 
 use cao_part::PartDocument;
 use cao_part::VolumeState;
@@ -36,6 +36,9 @@ impl PartTree {
             body.visibility_button = said::visibility_button(lang, body.shown);
             body.dimmed = body.shown == VolumeState::Invisible;
             body.selected = viewport.marked_volume() == Some(body.step);
+        }
+        for kept in &mut tree.sections {
+            kept.shown = viewport.kept_sections.is_on(kept.id);
         }
         tree.make_all_opaque = (!tree.bodies.is_empty()).then(|| Offered {
             label: lang.t("part_tree.make_all_opaque"),

@@ -140,6 +140,9 @@ pub struct Kept {
     pub step: usize,
     pub name: String,
     pub badge: Option<Problem>,
+    /// Switched on, which its eye reads, whether the canvas cuts with it now
+    /// or the part is read to a step before it.
+    pub shown: bool,
 }
 
 impl Problem {
@@ -221,6 +224,7 @@ impl PartTree {
                     step: *saved.get(kept.id)?,
                     name: numbered(lang, "part_tree.section", kept.id + 1),
                     badge: kept.broken.then_some(Problem::FaceLost),
+                    shown: false,
                 })
             })
             .collect();

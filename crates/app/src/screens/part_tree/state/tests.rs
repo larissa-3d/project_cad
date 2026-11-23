@@ -227,6 +227,45 @@
 //!   volume's row reads how far it now goes and which way, as the part is
 //!   raised, and the change adds no row —
 //!   `a_volume_changed_after_it_was_raised_reads_its_new_values`
+//!
+//! Closes #969 — the whole transcription is here; the bullets only the panel
+//! drawn and clicked shows point to where they are held.
+//! - A saved section's row carries an eye that reads shown or hidden from the
+//!   section's active state; a presenter test checks it with no window —
+//!   `a_saved_section_s_eye_is_open_while_it_is_switched_on_and_shut_while_it_is_off`
+//! - decided when the work opened: the eye reads whether the section is
+//!   switched on, not whether the canvas cuts with it now — a section switched
+//!   on while the part is read to a box before it keeps its eye open, as #968
+//!   keeps its active state —
+//!   `a_section_switched_on_keeps_its_eye_open_while_the_part_is_read_to_a_box_before_it`
+//! - Clicking it switches that section on and any other off, or off; one test
+//!   per case — no test: here, a click reaches the eye only through the panel
+//!   drawn; held in `crates/app/tests/keeping_a_section.rs` by
+//!   `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off` and
+//!   `clicking_the_eye_of_the_section_on_switches_it_off`
+//! - The eye uses the existing eye control of `ui/`; none is added — no test:
+//!   settled in review, by a diff that adds nothing under `crates/app/src/ui/`
+//!   and a section's row handing its eye to `TreeRow::eye` as a sketch's row
+//!   does; which function painted a button is not something the accessibility
+//!   tree says. A screen dressing a button of its own instead is refused by
+//!   `a_screen_reaches_for_a_primitive_rather_than_dressing_a_widget`, in
+//!   `crates/app/tests/architecture.rs`
+//! - Must not break, #692: one section on at most, the part opening whole, a
+//!   section deleted from the tree, editing by double-click — no test: held,
+//!   untouched, in `crates/app/tests/keeping_a_section.rs` by
+//!   `switching_the_second_section_on_switches_the_first_off`,
+//!   `a_part_reopened_keeps_its_sections_and_opens_with_none_active`,
+//!   `deleting_a_section_a_sketch_stands_on_asks_first` and
+//!   `a_saved_section_reopened_from_the_tree_comes_back_on_its_plane_its_offset_and_its_sides`
+//! - Must not break, the sketch and volume eyes of #733 and #734 —
+//!   `a_sketch_reads_open_while_drawn_on_and_dimmed_while_its_eye_is_shut`,
+//!   `a_volume_row_reads_its_add_or_cut_icon_its_name_its_badge_and_its_state`;
+//!   clicked through the panel, in `crates/app/tests/the_part_panel.rs`, by
+//!   `a_sketch_row_s_eye_never_overlaps_its_row` and
+//!   `clicking_a_volume_s_visibility_button_writes_its_next_state_on_its_row`
+//!
+//! Out of scope, and left as it is: the view bar's « Vue en coupe » button,
+//! which makes a new section.
 
 use cao_part::VariableChange;
 use cao_part::VolumeState;
@@ -1487,5 +1526,116 @@ fn the_panel_offers_to_make_everything_opaque_while_a_volume_is_not() {
         offered(&viewport),
         Some(("Tout rendre opaque".to_string(), true)),
         "the cut see-through, as (label, live)",
+    );
+}
+
+/// `a_part` — a sketch on XY raised into a block, a second on XZ — then two
+/// sections kept through the block, along YZ then along XZ: five boxes in the
+/// step reader, the two sections the last.
+fn a_part_with_two_sections() -> PartDocument {
+    let mut document = a_part();
+    for (plane, offset) in [(WorkPlane::YZ, 5.0), (WorkPlane::XZ, 3.0)] {
+        document.apply(Operation::SaveSection(SectionAsked {
+            plane,
+            on: None,
+            offset,
+            behind: SideDrawing::SeeThrough,
+            in_front: SideDrawing::Opaque,
+            tilt_about_u_degrees: 0.0,
+            tilt_about_v_degrees: 0.0,
+            pivot: DVec3::ZERO,
+        }));
+    }
+    let ids: Vec<usize> = document.sections().iter().map(|kept| kept.id).collect();
+    assert_eq!(
+        (ids.len(), StepReader::of(&document, &french()).boxes.len()),
+        (2, 5),
+        "the fixture wants two sections kept and five boxes, as (sections, boxes)",
+    );
+    document
+}
+
+/// The viewport as a frame leaves it, no sketch open: caught up with where the
+/// part is read to, and with which kept section is on.
+fn caught_up(viewport: &mut ViewportState, document: &PartDocument) {
+    viewport.keep_reading_up_with(document);
+    viewport.kept_sections.keep_up_with(document, None);
+}
+
+/// Each section's row as the user reads it: its name, and whether its eye is
+/// open.
+fn section_eyes(document: &PartDocument, viewport: &ViewportState) -> Vec<(String, bool)> {
+    PartTree::seen(document, &SketchEditor::default(), viewport, &french())
+        .sections
+        .into_iter()
+        .map(|kept| (kept.name, kept.shown))
+        .collect()
+}
+
+fn eyes(read: [(&str, bool); 2]) -> Vec<(String, bool)> {
+    read.into_iter()
+        .map(|(name, open)| (name.to_string(), open))
+        .collect()
+}
+
+#[test]
+fn a_saved_section_s_eye_is_open_while_it_is_switched_on_and_shut_while_it_is_off() {
+    let document = a_part_with_two_sections();
+    let sections = document.sections();
+    let (first, second) = (sections[0].id, sections[1].id);
+    let mut viewport = ViewportState::default();
+    caught_up(&mut viewport, &document);
+
+    let mut seen = vec![section_eyes(&document, &viewport)];
+    for on in [second, first] {
+        viewport.kept_sections.switch_on(on);
+        caught_up(&mut viewport, &document);
+        seen.push(section_eyes(&document, &viewport));
+    }
+    viewport.kept_sections.toggle(first);
+    caught_up(&mut viewport, &document);
+    seen.push(section_eyes(&document, &viewport));
+
+    assert_eq!(
+        seen,
+        [
+            eyes([("Coupe 1", false), ("Coupe 2", false)]),
+            eyes([("Coupe 1", false), ("Coupe 2", true)]),
+            eyes([("Coupe 1", true), ("Coupe 2", false)]),
+            eyes([("Coupe 1", false), ("Coupe 2", false)]),
+        ],
+        "none on, « Coupe 2 » switched on, « Coupe 1 » switched on, then « Coupe 1 » \
+         switched off: a section's eye does not read open exactly while that section is the \
+         one switched on, as (row, eye open) after each",
+    );
+}
+
+#[test]
+fn a_section_switched_on_keeps_its_eye_open_while_the_part_is_read_to_a_box_before_it() {
+    let document = a_part_with_two_sections();
+    let second = document.sections()[1].id;
+    let mut viewport = ViewportState::default();
+    viewport.kept_sections.switch_on(second);
+    caught_up(&mut viewport, &document);
+    assert!(
+        viewport.section_shown().is_some(),
+        "the fixture wants the canvas cutting with « Coupe 2 », switched on, the part read \
+         to its end",
+    );
+
+    viewport.read_to(1, 5);
+    caught_up(&mut viewport, &document);
+    assert!(
+        viewport.section_shown().is_none() && viewport.kept_sections.is_on(second),
+        "the fixture wants « Coupe 2 » still on and the canvas not cutting with it, the part \
+         read to the block before it",
+    );
+
+    assert_eq!(
+        section_eyes(&document, &viewport),
+        eyes([("Coupe 1", false), ("Coupe 2", true)]),
+        "« Coupe 2 » switched on, the part read to the block before it: its eye shut with \
+         the cut the canvas no longer shows, or « Coupe 1 », off, reads open, as (row, eye \
+         open)",
     );
 }

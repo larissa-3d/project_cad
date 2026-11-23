@@ -195,26 +195,28 @@ fn variables(ui: &mut egui::Ui, variables: &[Variable], asked: &mut Asked<'_>, l
     }
 }
 
-/// One kept section: a click switches it on or off, a double-click reopens it,
-/// and its menu deletes it.
+/// One kept section: a click on it or on its eye switches it on or off, a
+/// double-click reopens it, and its menu deletes it.
 fn section(ui: &mut egui::Ui, kept: &Kept, asked: &mut Asked<'_>, lang: &Catalogue) {
     let badge = kept.badge.map(|found| said::badge(lang, found));
+    let eye = said::section_eye(lang, kept.shown);
     let row = TreeRow {
         name: &kept.name,
         selected: asked.viewport.kept_sections.is_on(kept.id),
         badge: badge
             .as_deref()
             .zip(kept.badge.map(|found| worn(asked, found))),
+        eye: Some(Eye::Open(kept.shown, &eye)),
         ..TreeRow::default()
     };
-    let response = tree_row(ui, row).row;
+    let touched = tree_row(ui, row);
     asked.ended(ui);
-    if response.double_clicked() {
+    if touched.row.double_clicked() {
         asked.action = TreeAction::EditSection(kept.id);
-    } else if response.clicked() {
+    } else if touched.row.clicked() || touched.eye {
         asked.action = TreeAction::ToggleSection(kept.id);
     }
-    response.context_menu(|ui| {
+    touched.row.context_menu(|ui| {
         if ui.button(lang.t("part_tree.delete")).clicked() {
             asked.action = TreeAction::DeleteSection(kept.id);
             ui.close();
