@@ -72,6 +72,16 @@
 //!   `crates/solid/tests/the_section_of_an_exact_part_is_filled.rs` — no test:
 //!   here; this block holds only what the view decides
 //!
+//! Closes #970.
+//! - With a section on and a sketch edited, turning the camera past the
+//!   sketch's plane does not bring back the matter the section hides; a test
+//!   on the presenter that decides what is drawn checks it —
+//!   `turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_section_hides`
+//! - Without a section, #319's behaviour is unchanged; the existing tests stay
+//!   green — `orbiting_out_of_the_plane_view_draws_the_whole_part_again`,
+//!   `orbited_out_of_the_plane_view_nothing_is_drawn_see_through`, and the rest
+//!   of #319's block above, none of which turns a section on
+//!
 //! Closes #356 — the whole transcription is in
 //! `crates/app/src/screens/part_tree/state/tests/reader.rs`; this bullet is
 //! the half of a criterion the canvas draws.
@@ -927,5 +937,107 @@ fn the_last_box_clicked_reads_the_part_as_unread() {
         "read to the box of rank {copied:?} of four, the last or past it, the canvas draws a \
          copy of the part read through every step rather than the part itself, as it does \
          unread",
+    );
+}
+
+const HALF_HEIGHT: f64 = 5.0;
+
+/// A square of side 10 drawn on XY and raised 10 into a block, a section kept
+/// across it at half its height that draws what lies under its cut opaque and
+/// hides what stands over it, then a second sketch laid on that cut.
+fn a_block_and_a_sketch_on_the_cut_of_its_kept_section() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::ZERO),
+        opposite: PointRef::New(DVec2::splat(10.0)),
+        construction: false,
+    });
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas: document.areas_at(0, &[DVec2::splat(5.0)]),
+        distance: 10.0_f64.into(),
+        mode: ExtrusionMode::Add,
+    });
+    document.apply(Operation::SaveSection(SectionAsked {
+        plane: WorkPlane::XY,
+        on: None,
+        offset: HALF_HEIGHT,
+        behind: SideDrawing::Opaque,
+        in_front: SideDrawing::Hidden,
+        tilt_about_u_degrees: 0.0,
+        tilt_about_v_degrees: 0.0,
+        pivot: DVec3::ZERO,
+    }));
+    document.apply(Operation::CreateSketchOnSection {
+        section: 0,
+        plane: WorkPlane {
+            origin: DVec3::Z * HALF_HEIGHT,
+            ..WorkPlane::XY
+        },
+    });
+    document
+}
+
+#[test]
+fn turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_section_hides() {
+    let document = a_block_and_a_sketch_on_the_cut_of_its_kept_section();
+    let on_the_cut = document.sketches()[1].plane;
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(1, on_the_cut);
+    let mut viewport = ViewportState::default();
+    viewport
+        .kept_sections
+        .keep_up_with(&document, editor.active_sketch());
+    assert!(
+        viewport.section_shown().is_some(),
+        "the fixture wants the sketch laid on the cut to switch its section on",
+    );
+    viewport.look_at_plane(on_the_cut, DVec3::new(5.0, 5.0, HALF_HEIGHT), 10.0);
+    if let Some(mut turn) = viewport.transition.take() {
+        while turn.advance(&mut viewport.camera, 1.0) {}
+    }
+
+    let mut wrong = Vec::new();
+    for step in 0..=8 {
+        if step > 0 {
+            viewport.orbit(Vec2::new(0.0, -0.4), 1.0);
+        }
+        let height = f64::from(viewport.camera.eye().z);
+        let side = if height > HALF_HEIGHT {
+            "over"
+        } else {
+            "under"
+        };
+        let drawn = seen(&viewport, &editor, &document);
+        let highest = drawn
+            .iter()
+            .flat_map(Drawn::pieces)
+            .flat_map(Body::triangles)
+            .flatten()
+            .map(|at| at.z)
+            .fold(f64::NEG_INFINITY, f64::max);
+        if highest > HALF_HEIGHT + 1e-9 {
+            wrong.push(format!(
+                "turned down {step} times, the eye {side} the cut at z = {height:.1}: matter is \
+                 drawn up to z = {highest:.1}",
+            ));
+        }
+        if !drawn.is_some_and(|drawn| lies_on(&drawn.opaque, 0.0)) {
+            wrong.push(format!(
+                "turned down {step} times, the eye {side} the cut at z = {height:.1}: the base \
+                 of the block, under the cut, is not drawn opaque",
+            ));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "the section hides what stands over z = {HALF_HEIGHT}; the camera turned down from \
+         face-on on the sketch laid on its cut, 0.4 rad at a time, past the sketch's plane:\n{}",
+        wrong.join("\n"),
     );
 }

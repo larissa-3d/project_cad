@@ -24,7 +24,10 @@ use crate::screens::sketch::SketchEditor;
 /// what one draws against, an edge to line up with, a hole to centre on.
 ///
 /// The cut holds only while the view sits on that plane or on one parallel to
-/// it: orbited off it, or landed on a plane across it, the part is seen whole.
+/// it: orbited off it, or landed on a plane across it, the part is seen whole —
+/// or, while a section is shown, as the section draws it. What a section hides
+/// stays hidden whichever way the camera turns, until it is switched off; the
+/// sketch's own cut comes on top of what it leaves.
 ///
 /// A volume shown see-through is drawn as its raw block, its ghost, cut the
 /// same way and drawn see-through whatever side of the cut it stands on.
@@ -63,16 +66,18 @@ pub(crate) fn drawn<'a>(
     }
 }
 
-/// What a frame draws of the part: the sketch's own cut while a sketch is
-/// edited, the section's while one is on, the part whole otherwise.
+/// What a frame draws of the part: the section's while one is on, with the
+/// sketch's own cut on top of it; the sketch's cut alone without a section;
+/// the part whole otherwise.
 pub(crate) fn shown<'a>(state: &ViewportState, editor: &SketchEditor, body: &'a Body) -> Drawn<'a> {
-    match state.section_shown() {
-        Some(section) if editor.active_sketch().is_none() => {
-            state.sections.sectioned(section, body)
-        }
-        _ => state
-            .sections
-            .drawn(editor, state.mode, body, state.camera.eye()),
+    let (mode, eye) = (state.mode, state.camera.eye());
+    let Some(section) = state.section_shown() else {
+        return state.sections.drawn(editor, mode, body, eye);
+    };
+    let sectioned = state.sections.sectioned(section, body);
+    match Cut::asked(editor, mode, eye) {
+        Some((cut, see_through)) => state.sections.cut_on_top(sectioned, cut, see_through),
+        None => sectioned,
     }
 }
 
@@ -105,20 +110,27 @@ pub(crate) fn seen<'a>(
     let Some(part) = state.part_shown(document) else {
         return Some(shown(state, editor, document.body()));
     };
-    let drawn = shown(state, editor, &part.body);
+    let Drawn {
+        opaque,
+        see_through,
+        ghosts: veiled,
+    } = shown(state, editor, &part.body);
     let ghosts = part
         .ghosts
         .iter()
         .flat_map(|ghost| {
             let cut = shown(state, editor, &ghost.body);
             [Some(cut.opaque.into_owned()), cut.see_through]
+                .into_iter()
+                .flatten()
+                .chain(cut.ghosts)
         })
-        .flatten()
+        .chain(veiled)
         .filter(|piece| !piece.is_empty())
         .collect();
     let drawn = Drawn {
-        opaque: Cow::Owned(drawn.opaque.into_owned()),
-        see_through: drawn.see_through,
+        opaque: Cow::Owned(opaque.into_owned()),
+        see_through,
         ghosts,
     };
     let empty = drawn.opaque.is_empty() && drawn.see_through.is_none() && drawn.ghosts.is_empty();
@@ -142,8 +154,9 @@ impl ViewportState {
 
 /// The halves last cut, each handed to every frame until the part, the plane
 /// or the side the eye is on changes: a cut costs the kernel a boolean, which
-/// no frame can afford. Kept for each body a frame cuts — the part, and the
-/// ghost of each volume shown see-through — the last asked for last.
+/// no frame can afford. Kept for each body a frame cuts — the part, the ghost
+/// of each volume shown see-through, and what a section leaves of either for
+/// the sketch's cut — the last asked for last.
 #[derive(Default)]
 pub(crate) struct Sections {
     last: RefCell<Vec<Halves>>,
@@ -216,6 +229,24 @@ impl Sections {
             }
         }
         drawn
+    }
+
+    /// The sketch's own cut of what a section leaves, each piece cut as the
+    /// part alone would be: what stands in front of the plane is dropped, or
+    /// handed over see-through; what the section shows see-through stays so.
+    /// A piece see-through beyond the first is handed over with the ghosts.
+    fn cut_on_top<'a>(&self, sectioned: Drawn<'a>, cut: Cut, see_through: bool) -> Drawn<'a> {
+        let (behind, in_front) = self.halves(cut, &sectioned.opaque, true, see_through);
+        let veiled = sectioned.see_through.map(|veiled| match see_through {
+            true => veiled,
+            false => self.halves(cut, &veiled, true, false).0.unwrap_or_default(),
+        });
+        let mut veiled = in_front.into_iter().chain(veiled);
+        Drawn {
+            opaque: Cow::Owned(behind.unwrap_or_default()),
+            see_through: veiled.next(),
+            ghosts: veiled.collect(),
+        }
     }
 
     /// The halves of `body` asked for, each cut only the first time it is.
