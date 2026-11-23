@@ -321,7 +321,7 @@ impl Exact {
     /// faces then left apart are told apart once. A face one cut parts and
     /// a later one takes a piece of whole keeps its number, as it does in
     /// the order that never parts it (#954).
-    pub(super) fn parted_as_one(self, before: &Exact) -> Exact {
+    fn parted_as_one(self, before: &Exact) -> Exact {
         let first = PIECES + before.pieces;
         let roots = &self.roots;
         let brep = self.brep.renamed_by(|number| {
