@@ -15,6 +15,12 @@
 //! laid against that as alone, and a piece of torus replaces what the filling
 //! left, as [`super::torus`] lays it; the top of an L's inner corner, the
 //! mirror, is propped, laid, cleared and closed by a piece of torus cut out.
+//! Where the convex odd edge leans on the face the two others share — a
+//! pyramid's hip above its two feet on the plate it stands on (#944) — no
+//! piece of torus touches that face: the two others are laid first, each
+//! stopping short of the odd edge's round on a flat end of its own, and the
+//! odd edge then on what they leave, as [`leaning`] lays it; a step mixing
+//! such a corner with one a piece of torus closes is declined.
 //! An odd edge whose other end closes a corner of one sense with edges of
 //! the list, an upright with its block's top edges, is laid with them, that
 //! corner closed as #699 closes it. Either way each named edge's face is
@@ -32,6 +38,7 @@
 //! chamfer's end is.
 
 mod edge;
+mod leaning;
 
 use std::collections::BTreeMap;
 
@@ -75,7 +82,9 @@ pub(in crate::body::exact) enum Around {
     /// [`Exact::through_a_torus`] lays it: a fillet's round, whose edge there
     /// is curved. At a concave odd edge, the mirror: the corner propped, every
     /// edge laid, the sector cut away and a piece of torus cut out about the
-    /// fill's axis.
+    /// fill's axis. Where every corner's odd edge is convex and leans on the
+    /// face its two others share, the two others laid first instead, each
+    /// held short of its round, as [`Exact::short_of_the_round`] lays them.
     Torus,
 }
 
@@ -195,8 +204,10 @@ impl Exact {
     /// mixed sense `odd` holds gone round its odd edge as the kind's
     /// `meeting` says: by the edge of the face it laid, as
     /// [`Exact::round_the_edge`] lays it, or through a piece of torus, as
-    /// [`Exact::through_a_torus`] lays it, `step` what the names find on this
-    /// body. The pairs laid as
+    /// [`Exact::through_a_torus`] lays it — or, where every corner's odd edge
+    /// leans on the face its two others share, short of its round, as
+    /// [`Exact::short_of_the_round`] lays it — `step` what the names find on
+    /// this body. The pairs laid as
     /// one are handed back through a piece of torus alone, where the fillet
     /// reads them; the chamfer, which goes round by that edge, reads none, and
     /// none is handed back that way. Declined as those decline.
@@ -208,9 +219,13 @@ impl Exact {
         taken: f64,
         kind: &Kind,
     ) -> Result<(Exact, f64, Vec<Pair>), Declined> {
+        let scale = self.brep.scale();
+        let leans = (odd.iter()).all(|corner| leaning::leans(corner, &step.wedges, scale));
         match kind.meeting.around {
             Around::Edge => (self.round_the_edge(names, step, odd, taken, kind))
                 .map(|(round, taken)| (round, taken, Vec::new())),
+            Around::Torus if leans => (self.short_of_the_round(names, step, odd, taken, kind))
+                .map(|round| (round, taken, Vec::new())),
             Around::Torus => self.through_a_torus(names, &step.wedges, odd, taken, kind),
         }
     }

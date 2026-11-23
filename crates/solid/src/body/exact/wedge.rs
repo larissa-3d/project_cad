@@ -154,8 +154,9 @@ impl Exact {
     /// below them — is gone round its odd edge as `meeting` says, as
     /// [`Exact::round_the_odd`] lays it — the two others following the outline
     /// it leaves, with the edge of its face on the face they share or through
-    /// a piece of torus about its round — what closes it numbered past the
-    /// edges'. The wall an edge's
+    /// a piece of torus about its round, or, where its round leans on that
+    /// face, laid before it and stopping short of it (#944) — what closes it
+    /// numbered past the edges'. The wall an edge's
     /// prism lays is numbered where the steps' numbers ended, plus the edge's
     /// rank in the list; a pair is laid at its later edge's turn, so
     /// that every number laid before stands below those a prism lays, as

@@ -61,8 +61,15 @@ impl Body {
     /// face laid there, and two filled in beside a convex edge left sharp — two
     /// feet of a block standing on another — are mitred outside it the same
     /// way, and two filled in beside a concave edge left sharp, at a pocket's
-    /// bottom corner, meet in a valley; at any other corner where an edge meets
-    /// inwards they are declined `Unsupported`. The edge at the end of a full
+    /// bottom corner, meet in a valley. The three at a corner of mixed sense —
+    /// two feet and the upright above them, or the mirror, two top edges at an
+    /// L's inner corner and the upright below them — go round the upright's
+    /// round, closed by a piece of torus about its axis (#829); where the upright
+    /// leans on the face the feet share, a pyramid's hip above its two feet on
+    /// a plate, the two fills stop short of its round instead, each on a flat
+    /// end of its own, and the round runs on down to the plate (#944). At any
+    /// other corner where an edge meets inwards they are declined
+    /// `Unsupported`. The edge at the end of a full
     /// round, bounding the face that is gone and meeting both its edges at a
     /// corner, is rounded at the full round's own radius and mitred against it
     /// on two ellipses up to the crown, as against any round at a convex

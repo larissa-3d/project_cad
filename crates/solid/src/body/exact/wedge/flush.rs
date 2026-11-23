@@ -85,14 +85,20 @@ pub(super) struct Flush<'a> {
 }
 
 /// An end a cut or a fill stops at on a plane of its own (#846), whatever
-/// face its edge runs into there: the corner it ends at, and the way square
-/// to the plane through it the prism is trimmed off towards — the way along
-/// the edge left sharp at a corner of mixed sense, where its wall begins. A
-/// fill's end stands there in the air, a cut's end digs into the matter.
+/// face its edge runs into there: the corner it ends at, the way its edge
+/// runs there, the way square to the plane the prism is trimmed off
+/// towards, and a point of that plane — the corner itself, where the plane
+/// stands square to the edge left sharp at a corner of mixed sense, where
+/// its wall begins, or a point of the odd edge's round's axis, where the
+/// plane runs through that axis square to the face the odd edge shares with
+/// the edge held, short of the corner (#944). A fill's end stands there in
+/// the air, a cut's end digs into the matter.
 #[derive(Clone, Copy)]
 pub(super) struct Held {
     pub at: DVec3,
+    pub along: DVec3,
     pub away: DVec3,
+    pub through: DVec3,
 }
 
 impl Held {
@@ -102,7 +108,7 @@ impl Held {
     /// is told apart from a face of the prism until the step numbers it.
     /// Declined as [`beyond`] declines.
     pub fn beyond(&self, prism: &Prism, number: u32) -> Result<Exact, Declined> {
-        let (plane, _) = Plane::through(self.at, self.away);
+        let (plane, _) = Plane::through(self.through, self.away);
         let solid = beyond(prism, &plane, self.away)?;
         Ok(Exact::of(
             solid.brep.renumbered_by(|_| number),
@@ -113,11 +119,16 @@ impl Held {
     }
 }
 
-/// Where among `held` the end of a prism at `point` is held, and the number
-/// the end it leaves there takes, past [`ENDS`] by its rank among them.
-pub(super) fn holding(held: &[Held], point: DVec3, eps: f64) -> Option<(&Held, u32)> {
+/// Where among `held` the end of a prism at `point`, its edge running on
+/// `past` there, is held, and the number the end it leaves there takes, past
+/// [`ENDS`] by its rank among them: of the ends held at that corner, the one
+/// whose edge runs most nearly along `past`, so that two edges ending at one
+/// corner, each held on a plane of its own, are each trimmed on their own.
+pub(super) fn holding(held: &[Held], point: DVec3, past: DVec3, eps: f64) -> Option<(&Held, u32)> {
+    let along = |end: &Held| end.along.dot(past).abs();
     (held.iter().enumerate())
-        .find(|(_, end)| end.at.distance(point) <= eps)
+        .filter(|(_, end)| end.at.distance(point) <= eps)
+        .max_by(|(_, one), (_, other)| along(one).total_cmp(&along(other)))
         .map(|(index, end)| (end, ENDS + index as u32 * STRIDE))
 }
 
@@ -187,7 +198,7 @@ impl<'a> Flush<'a> {
         let ends = self.on.edge(self.edge).ends.into_iter().flatten();
         (ends.zip([-wedge.along, wedge.along]))
             .map(|(end, past)| {
-                let trim = match holding(&self.held, self.on.vertex(end).point, eps) {
+                let trim = match holding(&self.held, self.on.vertex(end).point, past, eps) {
                     Some((held, number)) => Some(Trim::Held(held, number)),
                     None => (stopping.iter().position(|stop| stop.end == end))
                         .map(|at| Trim::Stopped(stopping.swap_remove(at))),
