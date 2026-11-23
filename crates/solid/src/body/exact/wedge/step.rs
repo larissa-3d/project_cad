@@ -266,7 +266,14 @@ impl Exact {
                             .holding(&held);
                     let laid = cut.laid_as(&flush, &wedges[rank], value, &tool, met)?;
                     if sharing.iter().any(|&[earlier, _]| earlier == rank) {
-                        let unshared = completing(rank, &given, &crossing, &[]);
+                        let unshared = completing(
+                            rank,
+                            &given,
+                            &crossing,
+                            &pairs,
+                            |member| meet(member, rank),
+                            &[],
+                        );
                         let sides: Vec<&Wedge> =
                             [&wedges[rank]].into_iter().chain(unshared).collect();
                         let made = start + rank as u32;
