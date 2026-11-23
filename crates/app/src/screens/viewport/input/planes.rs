@@ -244,17 +244,25 @@ fn what_is_drawn_offers(
                 Some(PlaneChoice::Curved(hit.face)),
                 piece.triangles_of(hit.face).collect(),
             ),
-            Met::Drawn(..) => {
-                let section = state.section_shown().map(|section| {
-                    let cut = section.cutting_plane();
-                    match direction.dot(cut.normal()) < 0.0 {
-                        true => PlaneChoice::Section(cut),
-                        false => {
-                            PlaneChoice::Section(WorkPlane::from_normal(cut.origin, -cut.normal()))
-                        }
-                    }
-                });
-                (section, Vec::new())
+            Met::Drawn(piece, hit) => {
+                let Some(cut) = state.section_shown().map(Section::cutting_plane) else {
+                    return Some((None, Vec::new()));
+                };
+                let facing = match direction.dot(cut.normal()) < 0.0 {
+                    true => cut,
+                    false => WorkPlane::from_normal(cut.origin, -cut.normal()),
+                };
+                // The side in front of the cut is drawn a hair off its plane,
+                // so that a sketch there is not buried in it: its cut is lit
+                // laid back on the plane.
+                let laid = |corner| cut.to_world(cut.to_local(corner));
+                (
+                    Some(PlaneChoice::Section(facing)),
+                    piece
+                        .triangles_of(hit.face)
+                        .map(|triangle| triangle.map(laid))
+                        .collect(),
+                )
             }
             Met::Nothing => (None, Vec::new()),
         },

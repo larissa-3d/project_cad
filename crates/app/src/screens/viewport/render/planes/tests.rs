@@ -16,9 +16,26 @@
 //!   lights the ghost's wall, not the hole's wall in the part that carries
 //!   the same number —
 //!   `a_ghost_s_curved_wall_under_the_cursor_lights_itself_not_the_part_s_face_of_its_number`
+//!
+//! Closes #972.
+//! - with the section hiding the matter and a sketch edited, the sketch's
+//!   plane is in the list of things lit; a test on the presenter checks it
+//!   with no window — reworded: the sketch is being started, and its plane is
+//!   the cut offered under the cursor while the plane of a new sketch is
+//!   chosen. It is lit in the highlight, as a face of the part is, whether the
+//!   section hides the matter over it or draws it see-through, and whether the
+//!   section is the one open or one the part keeps —
+//!   `the_cut_under_the_cursor_is_lit_as_a_face_is_while_the_section_hides_or_veils_the_matter_over_it`.
+//!   The plane of a sketch already open is lit on the orientation cube
+//!   whatever the section does, and is not what the issue found missing.
+//! - without a section, nothing changes; the existing tests stay green — a
+//!   face under the cursor is lit in the highlight as it was, with no section
+//!   and under one that draws it opaque —
+//!   `a_face_under_the_cursor_is_lit_in_the_highlight_with_no_section_as_under_one_showing_it`
 
 use cao_part::PartDocument;
-use cao_part::history::{ExtrusionMode, Operation, PointRef};
+use cao_part::history::{ExtrusionMode, Operation, PointRef, SectionAsked, SideDrawing};
+use cao_render::MatterInFront;
 use chrono::Utc;
 use glam::{DVec2, DVec3, Vec3};
 
@@ -28,6 +45,7 @@ use crate::screens::extrusion::ExtrusionState;
 use crate::screens::sketch::SketchEditor;
 use crate::screens::viewport::ViewScale;
 use crate::screens::viewport::input::handle_sketch_input;
+use crate::screens::viewport::section::Section;
 
 /// What the three planes are painted, when one of them is being pointed at.
 fn offered(hovered: Option<PlaneChoice>) -> (Vec<cao_render::Vertex>, Vec<cao_render::Vertex>) {
@@ -318,11 +336,26 @@ fn lit_with_the_pointer_over(at: Vec3, clicks: usize) -> (Vec<[Vec3; 3]>, Option
 /// being chosen for a new sketch on `document`, seen as `state` says from the
 /// side `from` points to — and what was offered there.
 fn lit_while_choosing_a_plane(
+    document: PartDocument,
+    state: ViewportState,
+    from: Vec3,
+    at: Vec3,
+) -> (Vec<[Vec3; 3]>, Option<PlaneChoice>) {
+    let (painted, offered) = painted_while_choosing_a_plane(document, state, from, at);
+    let lit = painted
+        .chunks(3)
+        .map(|corners| std::array::from_fn(|rank| Vec3::from(corners[rank].position)))
+        .collect();
+    (lit, offered)
+}
+
+/// The same, each corner painted with its colour.
+fn painted_while_choosing_a_plane(
     mut document: PartDocument,
     mut state: ViewportState,
     from: Vec3,
     at: Vec3,
-) -> (Vec<[Vec3; 3]>, Option<PlaneChoice>) {
+) -> (Vec<cao_render::Vertex>, Option<PlaneChoice>) {
     let (yaw, pitch) = cao_render::camera::view_angles_towards(from);
     state.camera.set_view_angles(yaw, pitch);
     let pointer = on_the_screen(&state, at);
@@ -365,11 +398,7 @@ fn lit_while_choosing_a_plane(
 
     let (mut surfaces, mut lines) = (Vec::new(), Vec::new());
     push_choosable_planes(&mut surfaces, &mut lines, &state, &context);
-    let lit = surfaces
-        .chunks(3)
-        .map(|corners| std::array::from_fn(|rank| Vec3::from(corners[rank].position)))
-        .collect();
-    (lit, context.editor.hovered_plane)
+    (surfaces, context.editor.hovered_plane)
 }
 
 /// Whether what is lit holds each of these places.
@@ -490,5 +519,203 @@ fn a_ghost_s_curved_wall_under_the_cursor_lights_itself_not_the_part_s_face_of_i
         highest > 9.999,
         "pointed at the ghost's wall above the block, what is lit on the hole's circle reaches \
          {highest} high, not the ghost's top at 10: something other than the ghost's wall is lit",
+    );
+}
+
+/// A block 10 by 10 and 4 high at the origin.
+fn a_block() -> PartDocument {
+    let mut document = PartDocument::new("part", Utc::now());
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch: 0,
+        corner: PointRef::New(DVec2::ZERO),
+        opposite: PointRef::New(DVec2::splat(10.0)),
+        construction: false,
+    });
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas: document.areas_at(0, &[DVec2::splat(5.0)]),
+        distance: 4.0.into(),
+        mode: ExtrusionMode::Add,
+    });
+    document
+}
+
+/// Where the sections below cut the block: across it, at mid-height.
+const THE_CUT: f32 = 2.0;
+
+/// The block under the section view open across it at mid-height, the side
+/// under the cut drawn `behind` and the side over it `in_front`.
+fn the_block_under_the_section_view(
+    behind: MatterInFront,
+    in_front: MatterInFront,
+) -> (PartDocument, ViewportState) {
+    let mut section = Section::new(WorkPlane::XY);
+    section.offset = f64::from(THE_CUT);
+    section.behind = behind;
+    section.in_front = in_front;
+    let mut state = ViewportState::default();
+    state.section = Some(section);
+    (a_block(), state)
+}
+
+/// The block keeping a section across it at mid-height, switched on, the side
+/// under the cut drawn `behind` and the side over it `in_front`.
+fn the_block_under_its_kept_section(
+    behind: SideDrawing,
+    in_front: SideDrawing,
+) -> (PartDocument, ViewportState) {
+    let mut document = a_block();
+    document.apply(Operation::SaveSection(SectionAsked {
+        plane: WorkPlane::XY,
+        on: None,
+        offset: f64::from(THE_CUT),
+        behind,
+        in_front,
+        tilt_about_u_degrees: 0.0,
+        tilt_about_v_degrees: 0.0,
+        pivot: DVec3::ZERO,
+    }));
+    let kept = document.sections().first().expect("the section is kept").id;
+    let mut state = ViewportState::default();
+    state.kept_sections.switch_on(kept);
+    state.kept_sections.keep_up_with(&document, None);
+    assert!(
+        state.section_shown().is_some(),
+        "the fixture wants the section the block keeps switched on and cutting it",
+    );
+    (document, state)
+}
+
+/// Every triangle painted in the highlight once the pointer has rested over
+/// `at` while the plane of a new sketch is chosen, seen from the side `from`
+/// points to — and what was offered there.
+fn lit_in_the_highlight(
+    (document, state): (PartDocument, ViewportState),
+    from: Vec3,
+    at: Vec3,
+) -> (Vec<[Vec3; 3]>, Option<PlaneChoice>) {
+    let highlight = tint(state.theme.highlight);
+    let (painted, offered) = painted_while_choosing_a_plane(document, state, from, at);
+    let lit = painted
+        .chunks(3)
+        .filter(|corners| corners.iter().all(|corner| corner.color == highlight))
+        .map(|corners| std::array::from_fn(|rank| Vec3::from(corners[rank].position)))
+        .collect();
+    (lit, offered)
+}
+
+/// What is wrong with the light lying flat at `height` over the block, had it
+/// lit there the block's face as it is drawn: a place of the face it leaves
+/// dark, or a place off the block it lights.
+fn lit_wrong_over_the_block_at(lit: &[[Vec3; 3]], height: f32) -> Option<String> {
+    let lights = |x: f32, y: f32| {
+        let place = Vec3::new(x, y, height);
+        lit.iter().any(|triangle| holds(triangle, place))
+    };
+    let dark: Vec<(f32, f32)> = [(1.0, 1.0), (5.0, 5.0), (9.0, 9.0)]
+        .into_iter()
+        .filter(|&(x, y)| !lights(x, y))
+        .collect();
+    if !dark.is_empty() {
+        return Some(format!(
+            "of {} triangles lit in the highlight, none lies at z = {height} over {dark:?} of the \
+             block",
+            lit.len(),
+        ));
+    }
+    lights(15.0, 5.0)
+        .then(|| format!("the highlight at z = {height} runs past the block, out to (15, 5)"))
+}
+
+#[test]
+fn the_cut_under_the_cursor_is_lit_as_a_face_is_while_the_section_hides_or_veils_the_matter_over_it()
+ {
+    use MatterInFront::{Hidden, Opaque, SeeThrough};
+
+    let over_the_cut = Vec3::new(5.0, 5.0, THE_CUT);
+    let mut wrong = Vec::new();
+    for (what, seen, from) in [
+        (
+            "the section view hiding the side over the cut, seen from above",
+            the_block_under_the_section_view(Opaque, Hidden),
+            Vec3::Z,
+        ),
+        (
+            "the section view drawing the side over the cut see-through, seen from above",
+            the_block_under_the_section_view(Opaque, SeeThrough),
+            Vec3::Z,
+        ),
+        (
+            "the section view hiding the side under the cut, seen from below",
+            the_block_under_the_section_view(Hidden, Opaque),
+            Vec3::NEG_Z,
+        ),
+        (
+            "a kept section hiding the side over the cut, seen from above",
+            the_block_under_its_kept_section(SideDrawing::Opaque, SideDrawing::Hidden),
+            Vec3::Z,
+        ),
+        (
+            "a kept section drawing the side over the cut see-through, seen from above",
+            the_block_under_its_kept_section(SideDrawing::Opaque, SideDrawing::SeeThrough),
+            Vec3::Z,
+        ),
+    ] {
+        let (lit, offered) = lit_in_the_highlight(seen, from, over_the_cut);
+
+        assert!(
+            matches!(offered, Some(PlaneChoice::Section(_))),
+            "{what}, the fixture wants the cut offered under the pointer, not {offered:?}",
+        );
+        if let Some(why) = lit_wrong_over_the_block_at(&lit, THE_CUT) {
+            wrong.push(format!("{what}: {why}"));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "pointed at the cut while the plane of a new sketch is chosen, the cut is not lit in the \
+         highlight as a face of the part is:\n{}",
+        wrong.join("\n"),
+    );
+}
+
+#[test]
+fn a_face_under_the_cursor_is_lit_in_the_highlight_with_no_section_as_under_one_showing_it() {
+    use MatterInFront::{Hidden, Opaque};
+
+    const THE_TOP: f32 = 4.0;
+    let on_the_top = Vec3::new(5.0, 5.0, THE_TOP);
+    let mut wrong = Vec::new();
+    for (what, seen) in [
+        ("with no section", (a_block(), ViewportState::default())),
+        (
+            "under the section view drawing both sides opaque",
+            the_block_under_the_section_view(Opaque, Opaque),
+        ),
+        (
+            "under the section view drawing the side over the cut opaque and hiding the one \
+             under it",
+            the_block_under_the_section_view(Hidden, Opaque),
+        ),
+    ] {
+        let (lit, offered) = lit_in_the_highlight(seen, Vec3::Z, on_the_top);
+
+        assert!(
+            matches!(offered, Some(PlaneChoice::Face { .. })),
+            "{what}, the fixture wants the block's top offered under the pointer, not {offered:?}",
+        );
+        if let Some(why) = lit_wrong_over_the_block_at(&lit, THE_TOP) {
+            wrong.push(format!("{what}: {why}"));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "pointed at the block's top while the plane of a new sketch is chosen, the top is not lit \
+         in the highlight as it was:\n{}",
+        wrong.join("\n"),
     );
 }
