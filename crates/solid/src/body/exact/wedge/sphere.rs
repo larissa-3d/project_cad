@@ -25,7 +25,10 @@
 //! are all one radius from one centre: the corner cut back to the planes
 //! through it square to the edges before any round is laid, so that each
 //! round, carried past the corner, meets air there, and the faces that leaves
-//! replaced once all are laid.
+//! replaced once all are laid. That cut takes nothing farther out than an
+//! eighth of the value past the corner's own faces, as a concave corner's
+//! filling sinks no deeper past them: matter standing past that is kept, and
+//! a block within it, which the cut would take whole, declined (#948).
 
 mod chart;
 
@@ -86,16 +89,26 @@ pub(in crate::body::exact) fn hollowed_across(
 
 /// What of a corner four or more rounds meet at is cut from the body before
 /// any of them is laid: what [`short_of`] holds about the centre one radius
-/// in from the first crossing's face, and the faces it leaves there, one on
-/// each plane through the centre square to an edge. Declined as
-/// [`rounded_across`] declines a sphere at or behind the corner.
+/// in from the first crossing's face, kept [`Corner::snug`] to the corner's
+/// faces, and the faces it leaves there, one on each plane through the
+/// centre square to an edge. Declined as [`rounded_across`] declines a sphere
+/// at or behind the corner. A point `c + q` inside the corner, `at` and some
+/// of each edge's way `t · along`, and on its side of those planes,
+/// `q · along ≤ 0` for each, holds
+/// `|q|² = q · (at − c) + Σ t q · along ≤ |q| |at − c|`: all the cut must take
+/// lies within the way from the centre to the corner, well inside the cube,
+/// and the faces pushed out are what bound it, so that matter standing past
+/// them is left whole (#948). They are cut five times that way about the
+/// corner, past every corner of the cube, `1 + 2√3` times it out.
 pub(in crate::body::exact) fn cell(
     body: &Exact,
     corner: &Corner,
 ) -> Result<(Exact, usize), Declined> {
     let centre = corner.crossings[0] - corner.facing[0] * corner.value;
     ahead(body, corner, centre)?;
-    Ok((short_of(corner, centre)?, corner.along.len()))
+    let reach = 5.0 * centre.distance(corner.at);
+    let cell = corner.snug(short_of(corner, centre)?, reach)?;
+    Ok((cell, corner.along.len()))
 }
 
 /// The body with the corner [`cell`] cleared closed once its rounds are laid:
@@ -238,7 +251,10 @@ fn inward(along: &[DVec3]) -> DVec3 {
 /// `centre` square to its edges: a cube about the centre, turned by the way
 /// its edges run on the whole, [`inward`], whatever the order they come in,
 /// its half side twice the way from the centre to the corner, less what of
-/// it stands past each plane.
+/// it stands past each plane. Twice, for room: what of the corner stands on
+/// its side of the planes lies within once the way of the centre, as
+/// [`cell`] reads it, and a cube of once the way would hold a regular apex,
+/// the way to it along [`inward`], on its face.
 fn short_of(corner: &Corner, centre: DVec3) -> Result<Exact, Declined> {
     let half = 2.0 * centre.distance(corner.at);
     let way = inward(&corner.along);

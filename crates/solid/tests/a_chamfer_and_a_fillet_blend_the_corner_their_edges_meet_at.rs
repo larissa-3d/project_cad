@@ -615,13 +615,20 @@
 //!   holding 166.205785298069 —
 //!   `a_fillet_on_the_four_hips_of_a_pyramid_at_half_a_unit_closes_its_apex_on_the_sphere_of_that_radius_whatever_the_order`.
 //!   The one that turns `&&` into `||` where a clearing is taken, letting
-//!   through a clearing that takes a face of the body away whole, dies on a
+//!   through a clearing that takes a face of the body away whole, died on a
 //!   cube of side 0.1 on the axis 1.3 above the apex, inside what the fillet
-//!   clears about the sphere's centre and out of every round's reach: the
+//!   cleared about the sphere's centre and out of every round's reach: the
 //!   fillet declined `Unsupported` in every order, a broken step rather than
 //!   a body short of the cube, and the chamfer, whose clearing stops at the
-//!   apex, keeping the cube whole in every order, 152.89241154 —
-//!   `a_fillet_whose_clearing_would_take_whole_a_cube_standing_just_above_the_apex_is_declined_and_a_chamfer_keeps_the_cube_whatever_the_order`.
+//!   apex, keeping the cube whole in every order, 152.89241154. #948 turned
+//!   the fillet there into a body keeping the cube whole, and the test, named
+//!   for the decline until then, is held in its block below —
+//!   `a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_keep_whole_a_cube_standing_just_above_its_apex_whatever_the_order`.
+//!   The mutant dies since on a cube of the same side nearly touching the
+//!   apex, its floor 0.02 above it, which the clearing still takes whole: the
+//!   fillet declined `Unsupported` in every order, and built with the
+//!   mutant, checked by hand in a scratch copy at e9297203 —
+//!   `a_fillet_whose_clearing_would_take_whole_a_cube_nearly_touching_the_apex_is_declined_as_unsupported_whatever_the_order`.
 //!   Written while seeking a step where ends held on a plane meet a clearing,
 //!   and kept as a pin of what the chamfer builds there, though `CLEARED`
 //!   moved down onto `ENDS` leaves it alike: the four hips of the pyramid on
@@ -711,6 +718,106 @@
 //!   after them, each on the sphere about one corner of the shrunk pyramid,
 //!   and every order laying the body the first lays. Both pass on main at
 //!   54317165, the test as #947 left it, this branch touching neither
+//!
+//! Closes #948.
+//! - The pinned decline above flips: the fillet built in every order, the
+//!   cube whole, the volume the pyramid's plus the cube's —
+//!   `a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_keep_whole_a_cube_standing_just_above_its_apex_whatever_the_order`,
+//!   the test #804 wrote declining the fillet there, renamed for the body it
+//!   holds now, its chamfer half left as it was. Read as: the square pyramid
+//!   on its base, `pyramid_on_its_base` 10 by 10, joined in one body to a
+//!   cube of side 0.1 about (5, 5, 6.3), on the axis 1.3 above the apex;
+//!   before the step, the two holding `500/3` and 0.001, the cube's six faces
+//!   squares whose corners are its eight, 0.05 from its centre every way,
+//!   each corner inside the cube #804 cleared about the sphere's centre
+//!   (5, 5, 5 − √2) — within `2|c − at|` of it every way, on the apex's side
+//!   of the four planes through it square to the hips — and over 0.9 from
+//!   every hip's line, out of every round's reach. Then the fillet at 1 on
+//!   the four hips, in each of the 24 orders: the value taken whole; the body
+//!   exact, closed, uncrossed, holding 164.84262207554385, the figure #804
+//!   holds the same pyramid filleted without the cube to, 164.84162207554385,
+//!   with the cube's 0.001 added, and its triangles enclosing that within the
+//!   drawing's tolerance; one round for each hip by its rank and the piece of
+//!   sphere after them, every face of the pyramid and of the cube kept; each
+//!   of the cube's six faces with the corners it had and meeting the cube's
+//!   other faces only; the apex closed as #804 reads it, the piece curved,
+//!   drawn on the sphere of radius 1 about (5, 5, 5 − √2) and on the apex's
+//!   side of every round's end section, touching each slope at the centre's
+//!   foot on it, met first from outside on rays toward its centre, each
+//!   starting in the air between the apex and the cube's floor, half a unit
+//!   out from the piece rather than 10, where the ray up the axis would meet
+//!   the cube first, and meeting the four rounds, one side each, and nothing
+//!   else; each round meeting its two slopes, the base and the piece, one
+//!   edge each; and every order laying the body the first lays. The chamfer
+//!   half as #804 held it, 152.89241154 in every order, the cube's faces kept,
+//!   one body, and held besides, as the chamfer below is, to one flat for
+//!   each hip by its rank and the square after them, and each of the cube's
+//!   faces meeting the cube's other faces only
+//! - Decided on the way (2026-11-22), in the comment on the issue after the
+//!   review of the first fix: the clearing becomes the cell the issue
+//!   suggested, the cut bounded by the corner's own face planes, each pushed
+//!   out by a small margin, within the cube about the sphere's centre. The
+//!   first fix cut that cube's half side from `2|c − at|` to `1.5|c − at|`,
+//!   which met the first criterion at the cube 1.3 above the apex but not the
+//!   title: a cube of side 0.1 standing 0.3, 0.5, 0.65 or 0.72 above the apex
+//!   was still declined in every order. Matter standing just above the apex,
+//!   past that margin, is kept: cubes of side 0.1 centred 0.3 and 0.5 above
+//!   it, built in every order, whole, at the pyramid's volume plus theirs —
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_centred_0_3_above_its_apex_whatever_the_order`,
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_centred_0_5_above_its_apex_whatever_the_order`.
+//!   Read as: before the step, the two holding `500/3` and 0.001, the cube's
+//!   faces squares whose corners are its eight; its floor 0.25 or 0.45 above
+//!   the apex, every point of it farther out from the plane of one slope
+//!   than its floor's middle, which stands `|z − 5|/√2` out from all four,
+//!   0.1768 or 0.3182, past a margin of 0.125, the kernel's `SUNK` times the
+//!   value; then the fillet at 1 on the four hips, in each of the 24 orders,
+//!   read as the first criterion reads it at the cube 1.3 above. Red at
+//!   e9297203, both declined `Unsupported` in each of the 24 orders
+//! - The chamfer on the same two parts, measured at e9297203 and pinned as
+//!   it builds there, its clearing stopping at the apex: in each of the 24
+//!   orders the value taken whole, the body exact, closed, uncrossed, holding
+//!   152.89241153805824, the pyramid's figure closed by its square with the
+//!   cube's 0.001; one flat for each hip by its rank and the square after
+//!   them; each of the cube's six faces with the corners it had, meeting the
+//!   cube's other faces only; and one body in every order —
+//!   `a_chamfer_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_centred_0_3_or_0_5_above_its_apex_whatever_the_order`.
+//!   Green before the change and after, a pin rather than a red test
+//! - Decided on the way, by the same comment: a cube within the margin,
+//!   nearly touching the apex, stays declined in every order, which pins
+//!   again the guard of `Exact::cleared` that refuses a clearing taking a
+//!   face of the body away whole. That guard had lost its last test once the
+//!   cube 1.3 above stood outside the clearing, and its `&&` turned into `||`
+//!   lived, building such a cube's step short of the cube —
+//!   `a_fillet_whose_clearing_would_take_whole_a_cube_nearly_touching_the_apex_is_declined_as_unsupported_whatever_the_order`.
+//!   Read as: a cube of side 0.1 centred 0.07 above the apex, on its axis;
+//!   before the step, the two holding `500/3` and 0.001, the cube's faces
+//!   squares whose corners are its eight, its floor 0.02 above the apex, and
+//!   no corner farther than 0.1202 out from any slope's plane, inside the
+//!   margin of 0.125; then the fillet at 1 on the four hips declined
+//!   `Unsupported` in each of the 24 orders. Green at e9297203; with the
+//!   guard's `&&` turned into `||` in a scratch copy, the fillet is built
+//!   there, and so are the cubes 0.3 and 0.5 above, short of their cube,
+//!   holding 164.84162207554 where 164.84262207554 is promised. The margin
+//!   is the implementer's to set: the near cube needs it at 0.1202 at least,
+//!   the cube 0.3 above under 0.1768, or the cubes move
+//! - Every #699 and #804 corner keeps its body — no test: each is held by its
+//!   own test, left as it was, #699's and #804's named in their blocks above,
+//!   but for the decline the first criterion turns into a body. Read as: the
+//!   clearing #804 lays before the rounds, `cell`, is where this issue acts,
+//!   and the corners it reaches are the apexes of four rounds —
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_piece_of_sphere_one_radius_from_its_four_faces_whatever_the_order`,
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_at_half_a_unit_closes_its_apex_on_the_sphere_of_that_radius_whatever_the_order`,
+//!   `a_fillet_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_standing_apart_above_its_apex_whatever_the_order`,
+//!   `a_fillet_on_the_hips_of_two_pyramids_in_one_step_closes_both_apexes_in_one_body_whatever_the_order`,
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_close_its_apex_and_its_four_base_corners_in_one_body_whatever_the_order`,
+//!   the campaign's
+//!   `a_fillet_on_the_hips_and_the_base_edges_of_a_pyramid_closes_its_apex_and_its_four_base_corners_in_one_body_in_each_of_48_orders`
+//!   run by hand, and the pins of the apexes declined until #942 and #944;
+//!   the cube about the sphere's centre it is cut from, `short_of`, also
+//!   clears #699's corners of three rounds before their piece of sphere is
+//!   laid —
+//!   `a_fillet_on_the_three_edges_of_a_corner_closes_it_with_a_piece_of_sphere_one_radius_from_its_three_faces`
+//!   and the other corners #699's block names
 //!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
@@ -6531,29 +6638,314 @@ fn a_chamfer_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_standing_apart_abo
 
 /// Where the cube of the next test stands, and its side: on the pyramid's
 /// axis 1.3 above its apex, inside the cube about the sphere's centre the
-/// fillet clears there, twice the way from the centre to the apex on every
-/// side, and on the apex's side of the planes through the centre square to the
-/// hips, so that the clearing would take it whole; out of every round's reach.
+/// fillet cleared there until #948, twice the way from the centre to the apex
+/// on every side, and on the apex's side of the planes through the centre
+/// square to the hips, so that that clearing took it whole; out of every
+/// round's reach.
 const LOW_CUBE_CENTRE: DVec3 = DVec3::new(5.0, 5.0, 6.3);
 const LOW_CUBE_SIDE: f64 = 0.1;
 
+/// The eight corners of the cube of side `side` about `centre`.
+fn corners_of_a_cube(centre: DVec3, side: f64) -> Vec<DVec3> {
+    let half = side / 2.0;
+    [-half, half]
+        .into_iter()
+        .flat_map(|x| {
+            [-half, half]
+                .into_iter()
+                .flat_map(move |y| [-half, half].map(|z| centre + DVec3::new(x, y, z)))
+        })
+        .collect()
+}
+
+/// The point of the square pyramid's axis `height` above its apex.
+fn above_the_apex(height: f64) -> DVec3 {
+    apex_over(SQUARE).at + DVec3::Z * height
+}
+
+/// The square pyramid on its base with a cube of side [`LOW_CUBE_SIDE`] about
+/// `centre`, standing apart above its apex, joined to it in one body as
+/// [`pyramid_with_a_cube`] joins it, and the corners of the cube's six faces,
+/// face by face: the two held first to hold the pyramid's `500/3` and the
+/// cube's own, and each face of the cube to be a square whose corners are
+/// four of its eight, at its place and size.
+fn a_cube_above_the_apex(centre: DVec3) -> (Body, Vec<Vec<DVec3>>) {
+    let part = pyramid_with_a_cube(centre, LOW_CUBE_SIDE);
+    let cube_volume = LOW_CUBE_SIDE.powi(3);
+    assert!(
+        (part.volume() - (PYRAMID_VOLUME + cube_volume)).abs() < EXACT * part.volume(),
+        "the pyramid and the cube about {centre} hold {}",
+        part.volume()
+    );
+    let corners = cube_corners(&part);
+    let placed = corners_of_a_cube(centre, LOW_CUBE_SIDE);
+    for (face, kept) in (30..36).zip(&corners) {
+        let reached = placed
+            .iter()
+            .filter(|point| kept.iter().any(|corner| corner.distance(**point) < PLACE))
+            .count();
+        assert!(
+            reached == 4
+                && kept
+                    .iter()
+                    .all(|corner| placed.iter().any(|point| point.distance(*corner) < PLACE)),
+            "face {face} of the cube is a square with its corners among the cube's eight, \
+             {LOW_CUBE_SIDE} on a side about {centre}: {kept:?}"
+        );
+    }
+    assert!(
+        placed.iter().all(|point| corners
+            .iter()
+            .flatten()
+            .any(|corner| corner.distance(*point) < PLACE)),
+        "the cube's six faces reach its eight corners, {LOW_CUBE_SIDE} on a side about \
+         {centre}: {corners:?}"
+    );
+    (part, corners)
+}
+
+/// How high the cube whose faces have `corners` stands: the height of its
+/// floor.
+fn floor_of(corners: &[Vec<DVec3>]) -> f64 {
+    (corners.iter().flatten())
+        .map(|corner| corner.z)
+        .fold(f64::INFINITY, f64::min)
+}
+
+/// Holds that the fillet at 1 on the four hips of `part`, the square pyramid
+/// with a cube above its apex whose faces thirty to thirty-five have
+/// `corners`, closes the apex in every order as #804 closes it and keeps the
+/// cube whole: the value taken whole; the body exact, closed and uncrossed,
+/// holding the pyramid's figure with the cube's added; one round for each
+/// hip by its rank and the piece of sphere after them; each of the cube's six
+/// faces with the corners it had, meeting the cube's other faces only; the
+/// piece on its sphere, touching the four slopes, met first from outside and
+/// meeting the four rounds only; each round meeting its two slopes, the base
+/// and the piece; and one body in every order.
+fn the_fillet_keeps_the_cube_whole(part: &Body, corners: &[Vec<DVec3>], cube: &str) {
+    let apex = apex_over(SQUARE);
+    let r = 1.0;
+    let centre = apex.at - DVec3::Z * 2f64.sqrt() * r;
+    let orders = every_order(4);
+    let start = part.faces_end();
+    let piece = start + 4;
+    let cube_floor = floor_of(corners);
+
+    let rounds = [0, 1, 2, 3].map(|hip| Round {
+        start: centre,
+        along: apex.hips[hip].down,
+        length: apex.hips[hip].foot.distance(apex.at),
+        radius: r,
+        facing: apex.facing(hip),
+    });
+    let spread = 4.0 * (1.0f64 / 3.0).asin();
+    let area = rounds.iter().map(Round::area).sum::<f64>() + spread * r * r;
+    let drawn_within = DRAWN * pyramid_reach(SQUARE) * area;
+    let promised = pyramid_closed_by_a_sphere(r) + LOW_CUBE_SIDE.powi(3);
+    let laid = laid_in_every_order(
+        &apex,
+        &orders,
+        laid_on_the_hips(part, &apex, &orders, Cut::Round, r),
+        &format!(
+            "the fillet at 1 on the pyramid's four hips, {cube}, closes the apex and keeps the cube"
+        ),
+    );
+    let mut bodies = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the fillet on {}, {cube}", hips_called(&apex, order));
+        taken_as_asked(asked, taken, r, &what);
+        sound_drawn_within(&body, promised, drawn_within, &what);
+        let round_of = |hip: usize| start + rank_in(order, hip);
+        assert_eq!(
+            faces_made(part, &body),
+            (start..=piece).collect::<Vec<_>>(),
+            "{what}: one round for each hip by its rank, and the piece of sphere after them: {:?}",
+            numbers(&body)
+        );
+        assert!(
+            numbers(part).is_subset(&numbers(&body)),
+            "{what}: a face of the pyramid or of the cube went: {:?}",
+            numbers(&body)
+        );
+        for (face, kept) in (30..36).zip(corners) {
+            corners_are(
+                &body,
+                face,
+                kept,
+                &format!("{what}: face {face} of the cube, kept whole"),
+            );
+            assert_eq!(
+                sides_met(&body, face),
+                sides_met(part, face),
+                "{what}: face {face} of the cube meets the cube's other faces only"
+            );
+        }
+
+        let which = format!("{what}: the piece of sphere");
+        assert!(
+            !body.is_flat(piece) && body.plane_of(piece).is_none(),
+            "{which} is curved, and offers no plane to draw on"
+        );
+        let drawn: Vec<DVec3> = body.triangles_of(piece).flatten().collect();
+        assert!(!drawn.is_empty(), "{which} is drawn");
+        for point in &drawn {
+            assert!(
+                (point.distance(centre) - r).abs() < PLACE,
+                "{which} is drawn through {point}, off the sphere of {r} about {centre}, one \
+                 radius from each of the four slopes"
+            );
+            for hip in &apex.hips {
+                assert!(
+                    (*point - centre).dot(hip.down) <= PLACE,
+                    "{which} is drawn through {point}, past the end section of the round on {}",
+                    hip.called
+                );
+            }
+        }
+        for slope in &apex.slopes {
+            let foot = centre + slope.outward * r;
+            assert!(
+                drawn.iter().any(|point| point.distance(foot) < PLACE),
+                "{which}: a corner at {foot}, where it touches {}",
+                slope.called
+            );
+        }
+        for weights in [
+            [1.0, 1.0, 1.0, 1.0],
+            [2.0, 1.0, 1.0, 1.0],
+            [1.0, 2.0, 1.0, 1.0],
+            [1.0, 1.0, 2.0, 1.0],
+            [1.0, 1.0, 1.0, 2.0],
+        ] {
+            let facing = apex
+                .slopes
+                .iter()
+                .zip(weights)
+                .map(|(slope, weight)| slope.outward * weight)
+                .sum::<DVec3>()
+                .normalize();
+            let from = centre + facing * (r + 0.5);
+            assert!(
+                from.z > apex.at.z && from.z < cube_floor,
+                "a ray toward the piece's centre starts from {from}, in the air above the apex \
+                 and under the cube's floor at {cube_floor}"
+            );
+            let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
+                panic!("{which}: a ray from {from} toward its centre meets nothing")
+            });
+            assert_eq!(
+                hit.face, piece,
+                "{which}: a ray from {from} toward its centre meets face {} before it",
+                hit.face
+            );
+            assert!(
+                hit.normal.distance(facing) < PLACE,
+                "{which}: where a ray from {from} meets it, it faces {}, not {facing}, away from \
+                 its centre",
+                hit.normal
+            );
+        }
+        assert_eq!(
+            sides_met(&body, piece),
+            sides(&[0, 1, 2, 3].map(round_of)),
+            "{which} meets the four rounds, one side each, and nothing else"
+        );
+        for hip in 0..4 {
+            let [one, other] = apex.hips[hip].slopes.map(|slope| apex.slopes[slope].face);
+            assert_eq!(
+                sides_met(&body, round_of(hip)),
+                sides(&[one, other, FLOOR, piece]),
+                "{what}: the round of {} meets its two slopes along its sides, the base at its \
+                 foot and the piece of sphere along its end section, by one edge each, and no \
+                 other round",
+                apex.hips[hip].called
+            );
+        }
+        bodies.push(body);
+    }
+    lays_one_body_whatever_the_order(
+        &orders,
+        &bodies,
+        start,
+        piece,
+        &format!("the fillet on the four hips, {cube}"),
+    );
+}
+
+/// Holds that the chamfer at 1 on the four hips of `part`, the square
+/// pyramid with a cube above its apex whose faces thirty to thirty-five have
+/// `corners`, closes the apex in every order with its square and keeps the
+/// cube whole: the value taken whole; the body exact, closed and uncrossed,
+/// holding the pyramid's figure with the cube's added; one flat for each hip
+/// by its rank and the square after them; each of the cube's six faces with
+/// the corners it had, meeting the cube's other faces only; and one body in
+/// every order.
+fn the_chamfer_keeps_the_cube_whole(part: &Body, corners: &[Vec<DVec3>], cube: &str) {
+    let apex = apex_over(SQUARE);
+    let orders = every_order(4);
+    let start = part.faces_end();
+    let patch = start + 4;
+    let promised = pyramid_closed_by_a_square(1.0) + LOW_CUBE_SIDE.powi(3);
+    let laid = laid_in_every_order(
+        &apex,
+        &orders,
+        laid_on_the_hips(part, &apex, &orders, Cut::Flat, 1.0),
+        &format!(
+            "the chamfer at 1 on the pyramid's four hips, {cube}, closes the apex and keeps the \
+             cube"
+        ),
+    );
+    let mut bodies = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the chamfer on {}, {cube}", hips_called(&apex, order));
+        taken_as_asked(asked, taken, 1.0, &what);
+        sound_drawn_within(&body, promised, EXACT * promised, &what);
+        assert_eq!(
+            faces_made(part, &body),
+            (start..=patch).collect::<Vec<_>>(),
+            "{what}: one flat for each hip by its rank, and the square after them: {:?}",
+            numbers(&body)
+        );
+        for (face, kept) in (30..36).zip(corners) {
+            corners_are(
+                &body,
+                face,
+                kept,
+                &format!("{what}: face {face} of the cube, kept whole"),
+            );
+            assert_eq!(
+                sides_met(&body, face),
+                sides_met(part, face),
+                "{what}: face {face} of the cube meets the cube's other faces only"
+            );
+        }
+        bodies.push(body);
+    }
+    lays_one_body_whatever_the_order(
+        &orders,
+        &bodies,
+        start,
+        patch,
+        &format!("the chamfer on the four hips, {cube}"),
+    );
+}
+
 #[test]
-fn a_fillet_whose_clearing_would_take_whole_a_cube_standing_just_above_the_apex_is_declined_and_a_chamfer_keeps_the_cube_whatever_the_order()
+fn a_fillet_and_a_chamfer_on_the_four_hips_of_a_pyramid_keep_whole_a_cube_standing_just_above_its_apex_whatever_the_order()
  {
-    let part = pyramid_with_a_cube(LOW_CUBE_CENTRE, LOW_CUBE_SIDE);
+    let (part, corners) = a_cube_above_the_apex(LOW_CUBE_CENTRE);
     let apex = apex_over(SQUARE);
     let centre = apex.at - DVec3::Z * 2f64.sqrt();
     let half = 2.0 * centre.distance(apex.at);
-    let corners = cube_corners(&part);
     for corner in corners.iter().flatten() {
         let off = *corner - centre;
         assert!(
             off.z.abs() < half
                 && off.truncate().length() < half
                 && apex.hips.iter().all(|hip| off.dot(hip.down) < 0.0),
-            "the cube's corner {corner} stands inside what the fillet at 1 clears about the \
-             sphere's centre {centre}: within {half} of it every way, on the apex's side of the \
-             four planes square to the hips"
+            "the cube's corner {corner} stands inside what the fillet at 1 cleared about the \
+             sphere's centre {centre} until #948: within {half} of it every way, on the apex's \
+             side of the four planes square to the hips"
         );
         for hip in &apex.hips {
             let from_line = (*corner - apex.at).reject_from(hip.down).length();
@@ -6565,9 +6957,109 @@ fn a_fillet_whose_clearing_would_take_whole_a_cube_standing_just_above_the_apex_
             );
         }
     }
-    let orders = every_order(4);
-    let start = part.faces_end();
+    the_fillet_keeps_the_cube_whole(&part, &corners, "a cube 1.3 above its apex");
+    the_chamfer_keeps_the_cube_whole(&part, &corners, "a cube 1.3 above its apex");
+}
 
+/// How far a point stands out from the planes of the square pyramid's four
+/// slopes where it stands farthest out from one of them: how far the slopes'
+/// planes, each pushed out by the same margin, must be pushed to leave it
+/// outside one of them.
+fn out_from_the_slopes(point: DVec3) -> f64 {
+    let apex = apex_over(SQUARE);
+    (apex.slopes.iter())
+        .map(|slope| (point - apex.at).dot(slope.outward))
+        .fold(f64::NEG_INFINITY, f64::max)
+}
+
+/// Holds that a cube of side [`LOW_CUBE_SIDE`] centred `height` above the
+/// square pyramid's apex, on its axis, stands in the air past the apex and
+/// past `out` of the slopes' planes: every point of its floor, and so of the
+/// cube, farther out from the plane of one slope than its floor's middle,
+/// which stands as far from all four.
+fn stands_past_the_slopes(corners: &[Vec<DVec3>], height: f64, out: f64) {
+    let apex = apex_over(SQUARE);
+    let floor = floor_of(corners) - apex.at.z;
+    assert!(
+        (floor - (height - LOW_CUBE_SIDE / 2.0)).abs() < PLACE && floor > 0.0,
+        "the cube's floor stands {floor} above the apex, in the air over it"
+    );
+    let middle = out_from_the_slopes(above_the_apex(floor));
+    assert!(
+        (middle - floor / 2f64.sqrt()).abs() < PLACE && middle > out,
+        "the middle of the cube's floor stands {middle} out from each slope's plane, a point of \
+         the axis |z − 5|/√2 out from each: past {out}"
+    );
+    for corner in corners.iter().flatten() {
+        assert!(
+            out_from_the_slopes(*corner) >= middle - PLACE,
+            "the cube's corner {corner} stands {} out from the slopes, nearer than its floor's \
+             middle, {middle}",
+            out_from_the_slopes(*corner)
+        );
+    }
+}
+
+/// The margin the decision of #948 on the way pushes the slopes' planes out
+/// by, where the clearing at the apex stops: of the order of the kernel's
+/// `SUNK` times the value, an eighth at 1. The cubes kept above the apex stand
+/// past it, the cube declined there within it.
+const CLEARING_MARGIN: f64 = 0.125;
+
+#[test]
+fn a_fillet_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_centred_0_3_above_its_apex_whatever_the_order()
+ {
+    let (part, corners) = a_cube_above_the_apex(above_the_apex(0.3));
+    stands_past_the_slopes(&corners, 0.3, CLEARING_MARGIN);
+    the_fillet_keeps_the_cube_whole(&part, &corners, "a cube centred 0.3 above its apex");
+}
+
+#[test]
+fn a_fillet_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_centred_0_5_above_its_apex_whatever_the_order()
+ {
+    let (part, corners) = a_cube_above_the_apex(above_the_apex(0.5));
+    stands_past_the_slopes(&corners, 0.5, CLEARING_MARGIN);
+    the_fillet_keeps_the_cube_whole(&part, &corners, "a cube centred 0.5 above its apex");
+}
+
+#[test]
+fn a_chamfer_on_the_four_hips_of_a_pyramid_keeps_whole_a_cube_centred_0_3_or_0_5_above_its_apex_whatever_the_order()
+ {
+    for height in [0.3, 0.5] {
+        let (part, corners) = a_cube_above_the_apex(above_the_apex(height));
+        stands_past_the_slopes(&corners, height, CLEARING_MARGIN);
+        the_chamfer_keeps_the_cube_whole(
+            &part,
+            &corners,
+            &format!("a cube centred {height} above its apex"),
+        );
+    }
+}
+
+/// How high above the square pyramid's apex the cube of the next test is
+/// centred, on its axis: its floor 0.02 above the apex, its top 0.12, each of
+/// its points within [`CLEARING_MARGIN`] of the planes of the four slopes.
+const NEAR_CUBE_HEIGHT: f64 = 0.07;
+
+#[test]
+fn a_fillet_whose_clearing_would_take_whole_a_cube_nearly_touching_the_apex_is_declined_as_unsupported_whatever_the_order()
+ {
+    let (part, corners) = a_cube_above_the_apex(above_the_apex(NEAR_CUBE_HEIGHT));
+    let apex = apex_over(SQUARE);
+    let floor = floor_of(&corners) - apex.at.z;
+    assert!(
+        (floor - (NEAR_CUBE_HEIGHT - LOW_CUBE_SIDE / 2.0)).abs() < PLACE && floor > 0.0,
+        "the cube's floor stands {floor} above the apex, in the air over it"
+    );
+    let farthest = (corners.iter().flatten())
+        .map(|corner| out_from_the_slopes(*corner))
+        .fold(f64::NEG_INFINITY, f64::max);
+    assert!(
+        farthest < CLEARING_MARGIN,
+        "no corner of the cube stands farther than {farthest} out from any slope's plane, within \
+         {CLEARING_MARGIN}: the whole cube inside the four planes pushed out by that margin"
+    );
+    let orders = every_order(4);
     for (order, laid) in orders
         .iter()
         .zip(laid_on_the_hips(&part, &apex, &orders, Cut::Round, 1.0))
@@ -6575,42 +7067,11 @@ fn a_fillet_whose_clearing_would_take_whole_a_cube_standing_just_above_the_apex_
         assert_eq!(
             laid.err(),
             Some(Declined::Unsupported),
-            "the fillet on {}: its clearing about the sphere's centre would take the cube whole, \
-             a broken step and its reason rather than a body short of the cube, until #948",
+            "the fillet on {}: its clearing at the apex would take the cube nearly touching it \
+             whole, a broken step and its reason rather than a body short of the cube",
             hips_called(&apex, order)
         );
     }
-
-    let promised = pyramid_closed_by_a_square(1.0) + LOW_CUBE_SIDE.powi(3);
-    let laid = laid_in_every_order(
-        &apex,
-        &orders,
-        laid_on_the_hips(&part, &apex, &orders, Cut::Flat, 1.0),
-        "the chamfer at 1 on the pyramid's four hips, a cube just above its apex, closes the \
-         apex and keeps the cube",
-    );
-    let mut bodies = Vec::new();
-    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
-        let what = format!("the chamfer on {}", hips_called(&apex, order));
-        taken_as_asked(asked, taken, 1.0, &what);
-        sound_drawn_within(&body, promised, EXACT * promised, &what);
-        for (face, kept) in (30..36).zip(&corners) {
-            corners_are(
-                &body,
-                face,
-                kept,
-                &format!("{what}: face {face} of the cube, kept whole"),
-            );
-        }
-        bodies.push(body);
-    }
-    lays_one_body_whatever_the_order(
-        &orders,
-        &bodies,
-        start,
-        start + 4,
-        "the chamfer on the four hips, a cube just above the apex",
-    );
 }
 
 /// What [`pyramid_on_a_plate`] keeps once its four hips and its front foot
