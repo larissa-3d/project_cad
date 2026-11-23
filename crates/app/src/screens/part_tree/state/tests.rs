@@ -243,6 +243,10 @@
 //!   drawn; held in `crates/app/tests/keeping_a_section.rs` by
 //!   `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off` and
 //!   `clicking_the_eye_of_the_section_on_switches_it_off`
+//! - decided when the eye was wired: it is called what a click on it does,
+//!   « Ne plus afficher la coupe » while its section is on, « Afficher la
+//!   coupe » while it is off — no test: here, the words are the view's; held
+//!   by the same two tests in `crates/app/tests/keeping_a_section.rs`
 //! - The eye uses the existing eye control of `ui/`; none is added — no test:
 //!   settled in review, by a diff that adds nothing under `crates/app/src/ui/`
 //!   and a section's row handing its eye to `TreeRow::eye` as a sketch's row
