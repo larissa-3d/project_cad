@@ -19,6 +19,7 @@ mod reading;
 mod ring;
 mod section;
 mod set_backs;
+mod sides;
 mod slope;
 mod sphere;
 mod step;
@@ -31,11 +32,10 @@ use glam::DVec3;
 
 use super::{Exact, PIECES, lineage, root};
 use crate::body::caught::caught;
-use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale, VertexId};
+use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale};
 use crate::profile::{Contour, Frame};
 
 pub(super) use closing::{Apex, Closing};
-use corners::lies_on;
 use flush::{Flush, Stop};
 pub(super) use odd::Around;
 use overlap::OVERLAPS;
@@ -54,8 +54,8 @@ pub(super) use triangle::{cut_across, joined_across, polygon_across, tip};
 /// cut's prism must reach, whether the faces meet inwards, the way into
 /// either running the way the other faces: a corner to fill in rather than
 /// cut off — and the edges its cut's face crosses at the convex corners it
-/// ends at alone, as [`corners::crossed`] reads them once a step has its
-/// list, none until then.
+/// ends at, as [`corners::crossed`] reads them once a step has its list,
+/// none until then.
 pub(super) struct Wedge {
     pub point: DVec3,
     pub along: DVec3,
@@ -144,7 +144,11 @@ impl Exact {
     /// four or more of them meet at, all convex and every edge ending there
     /// named, is cleared before any edge is laid, as [`Exact::cleared`] clears
     /// it, so that no cut carried past it takes the matter of a face its edge
-    /// does not lie on, and closed the same way once all are laid. A corner
+    /// does not lie on, and closed the same way once all are laid; some of
+    /// them named and not all, each is laid in turn where `meeting` opens such
+    /// a corner, nothing closing it, and an earlier edge's face may end on a
+    /// later one's walls there, which its cut is to take away, the step
+    /// declined where it does not (#942, #1083). A corner
     /// three of them meet at, two of one sense and the odd one of the other —
     /// two feet and the upright above them, two top edges and the upright
     /// below them — is gone round its odd edge as `meeting` says, as
@@ -163,8 +167,8 @@ impl Exact {
     /// outwards — nor two of one sense beside an edge of the other left out of
     /// the list, nor two concave beside a third concave, nor three of mixed
     /// sense, three or more meeting at a corner where another edge ends too,
-    /// four or more that `meeting` closes on no one surface, where `meeting`
-    /// raises two together an edge
+    /// unless `meeting` opens such a corner, four or more that `meeting`
+    /// closes on no one surface, where `meeting` raises two together an edge
     /// meeting two others but in a closed chain, cut down to one cylinder as
     /// [`Exact::closed_round`] cuts it, or one of two laid together that meets another
     /// edge of the list at a corner any other way — a notch's two edges among
@@ -273,7 +277,7 @@ impl Exact {
     /// steps' numbers of `before` ended and answering to the `laid` numbers
     /// from there, in one piece, every corner of it on one of the edges' faces
     /// — where the faces met at the edges' ends trim it — or on an edge one of
-    /// them crosses where it ends alone at a convex corner, as its `crossed`
+    /// them crosses where it ends at a convex corner, as its `crossed`
     /// holds them, the face ending there across the faces round it, or a
     /// corner of a face numbered in `mitred`, where a mitre with it ends — at
     /// a corner that is not square, on a face of the other edge, short of the
@@ -294,7 +298,6 @@ impl Exact {
         taken: &[u32],
     ) -> bool {
         let made = before.next;
-        let eps = self.brep.scale().eps();
         let numbers = |body: &brep::Body, face: FaceId| body.numbers(face).to_vec();
         let stray = self
             .brep
@@ -305,23 +308,7 @@ impl Exact {
             .roots
             .values()
             .any(|replaced| (made..PIECES).contains(replaced));
-        let corners = |number: u32| {
-            self.named(number as usize)
-                .flat_map(|face| self.brep.face(face).loops.iter().flatten())
-                .flat_map(|coedge| self.brep.edge(coedge.edge).ends.into_iter().flatten())
-        };
-        let mitres: BTreeSet<VertexId> =
-            mitred.iter().flat_map(|&number| corners(number)).collect();
-        let on_a_side = corners(made).all(|corner| {
-            let point = self.brep.vertex(corner).point;
-            mitres.contains(&corner)
-                || open.iter().any(|stop| stop.holds(point, eps))
-                || wedges.iter().any(|wedge| {
-                    let at = point - wedge.point;
-                    wedge.outward.iter().any(|side| side.dot(at).abs() <= eps)
-                        || (wedge.crossed.iter()).any(|&edge| lies_on(edge, point, eps))
-                })
-        });
+        let on_a_side = (self.off_its_sides(made, wedges, mitred, open)).is_empty();
         let consumable: BTreeSet<u32> = (wedges.iter())
             .flat_map(|wedge| wedge.numbers.iter().flatten().copied())
             .chain(taken.iter().copied())
@@ -380,7 +367,7 @@ struct Met<'a> {
     /// [`flush::open`] reads them.
     open: &'a [Stop],
     /// The wedges of the listed edges laid after it whose walls its cut may
-    /// reach, or take whole, since their own cuts take that away.
+    /// reach, or take whole, since their own cuts take that away (#822, #942).
     completed: &'a [&'a Wedge],
 }
 

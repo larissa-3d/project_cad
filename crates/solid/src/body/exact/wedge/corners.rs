@@ -16,7 +16,10 @@
 //! other corner is declined. Four or more convex edges at a corner, every
 //! edge ending there named — a pyramid's apex — are closed as three are
 //! (#804). An edge ending alone at a convex corner, of three edges or more,
-//! is carried past it, its face ending across the faces round it (#943).
+//! is carried past it, its face ending across the faces round it (#943), and
+//! so are some of the edges ending at a convex corner of four or more, not
+//! all, mitred where they meet and nothing closing the corner (#942): two of
+//! them, chamfered or rounded, and three or more chamfered.
 
 use std::collections::BTreeMap;
 
@@ -127,14 +130,22 @@ pub(super) type Closed = (DVec3, Vec<usize>, Vec<DVec3>);
 /// The corners three or more of `edges` meet at, each where it stands, with
 /// the edges' ranks in the list, from the lowest, and the way each edge runs
 /// from the corner to its other end, in the order of those ranks: by the
-/// lowest, then the next. Declined `Unsupported` where they meet where
-/// another edge ends too: some of a corner's edges named, not all.
-pub(super) fn closed(body: &brep::Body, edges: &[EdgeId]) -> Result<Vec<Closed>, Declined> {
+/// lowest, then the next. A corner where another edge ends too, some of its
+/// edges named and not all, is left out where `opens_partly_named` holds,
+/// each edge laid in turn and nothing closing it — three chamfered at a
+/// convex vertex of four or more (#942) — and declined `Unsupported`
+/// otherwise.
+pub(super) fn closed(
+    body: &brep::Body,
+    edges: &[EdgeId],
+    opens_partly_named: bool,
+) -> Result<Vec<Closed>, Declined> {
+    let every = |corner: VertexId, ranks: &[usize]| ending(body, corner).count() == ranks.len();
     let mut corners = ranked(body, edges)
         .into_iter()
-        .filter(|(_, ranks)| ranks.len() > 2)
+        .filter(|(corner, ranks)| ranks.len() > 2 && (!opens_partly_named || every(*corner, ranks)))
         .map(|(corner, ranks)| {
-            if ending(body, corner).count() != ranks.len() {
+            if !every(corner, &ranks) {
                 return Err(Declined::Unsupported);
             }
             let at = body.vertex(corner).point;
@@ -168,25 +179,45 @@ fn ranked(body: &brep::Body, edges: &[EdgeId]) -> BTreeMap<VertexId, Vec<usize>>
 }
 
 /// The straight edges, each by its two ends, ending at an end of the edge of
-/// rank `rank` in `edges` where no other of them ends and every edge ending
-/// there is straight between two flat faces meeting outwards: a convex
-/// corner, where the edge's cut, carried past it alone, keeps each line of
-/// its prism up to the last face round the corner it meets, so that the
-/// cut's face ends across those faces, crossing from one to the next on the
-/// edge between them — at a hip's foot on a box, or at a pyramid's apex,
-/// where four edges end (#943). At a corner of three the other two lie on
-/// the edge's own faces.
+/// rank `rank` in `edges` where every edge ending there is straight between
+/// two flat faces meeting outwards and not every one of them is in the list:
+/// a convex corner, where the edge's cut, carried past it alone, keeps each
+/// line of its prism up to the last face round the corner it meets, so that
+/// the cut's face ends across those faces, crossing from one to the next on
+/// the edge between them — at a hip's foot on a box, or at a pyramid's
+/// apex, where four edges end (#943) — and carried past it with others of
+/// the list, ends across what of those faces their mitres leave it: two at
+/// a hip's foot, three of an apex's four hips (#942). At a corner of three
+/// the others lie on the edge's own faces.
 pub(super) fn crossed(body: &brep::Body, edges: &[EdgeId], rank: usize) -> Vec<[DVec3; 2]> {
     let edge = edges[rank];
     let ranks = ranked(body, edges);
     let convex = |other| Wedge::faced(body, other).is_ok_and(|wedge| !wedge.inwards);
     (body.edge(edge).ends.into_iter().flatten())
-        .filter(|end| ranks.get(end).is_some_and(|at| at.len() == 1))
+        .filter(|end| ranks[end].len() < ending(body, *end).count())
         .filter(|&end| ending(body, end).all(convex))
         .flat_map(|end| ending(body, end).filter(move |&other| other != edge))
         .filter_map(|other| body.edge(other).ends)
         .map(|ends| ends.map(|end| body.vertex(end).point))
         .collect()
+}
+
+/// Each two of `edges` ending together at a convex corner where four or
+/// more edges end, not every one of them in the list, by their ranks, the
+/// lower first: the earlier's cut, carried past the corner, may end on the
+/// walls of the later, whose own cut takes that away (#942).
+pub(super) fn sharing(body: &brep::Body, edges: &[EdgeId]) -> Vec<[usize; 2]> {
+    let convex = |other| Wedge::faced(body, other).is_ok_and(|wedge| !wedge.inwards);
+    let mut pairs = Vec::new();
+    for (corner, ranks) in ranked(body, edges) {
+        let count = ending(body, corner).count();
+        if count > 3 && ranks.len() < count && ending(body, corner).all(convex) {
+            for (index, &earlier) in ranks.iter().enumerate() {
+                pairs.extend(ranks[index + 1..].iter().map(|&later| [earlier, later]));
+            }
+        }
+    }
+    pairs
 }
 
 /// Whether `point` lies on the straight edge from `ends[0]` to `ends[1]`,

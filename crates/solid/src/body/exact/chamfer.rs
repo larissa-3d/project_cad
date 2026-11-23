@@ -44,7 +44,24 @@ impl Exact {
     /// round the corner it meets, so its flat ends across those faces, a
     /// corner on each edge between two of them (#943). Two edges meeting at a
     /// convex corner are mitred there, from where their flats cross on the
-    /// face they share down to the corner's third edge, left sharp. Two cut
+    /// face they share down to the corner's third edge, left sharp. At a
+    /// convex vertex of four or more, some of the edges ending there named and
+    /// not all — two or three at a hip's foot, the hip, an eave or the
+    /// upright under it, three hips of an apex of four whether its flats would
+    /// cross on one plane or not, three or four of five — each flat is a
+    /// plane the part is cut by, mitred against those laid before, the others
+    /// left sharp and no face laid at the corner (#942). Laid before a later
+    /// one there, a flat may end on that one's walls where its cut takes that
+    /// away, and the step is declined where it does not, so that every order
+    /// lays one body or none: the upright and the hip above it on a slab so
+    /// thin that the hip's flat, carried past the foot, reaches the floor
+    /// beyond what the upright's takes (#1083). On a slab thinner still, where
+    /// the hip's flat takes all of the upright's, the pair is declined in
+    /// every order before that, by the check of each cut as it is laid, as
+    /// [`Exact::cut_off`] reads it: the hip laid first, the upright's cut
+    /// leaves no face of its own; the upright laid first, the hip's takes the
+    /// upright's face away whole (#1083).
+    /// Two cut
     /// off where they meet beside a concave edge left sharp — the L's two top edges
     /// at its inner corner, two edges of a pocket's rim — each stop flush there
     /// and run on past the corner into a mitre, from where their flats cross on
@@ -106,9 +123,8 @@ impl Exact {
     /// list of no edge, an edge that is not straight between two flat faces,
     /// one running on tangentially into the next edge of a face, one edge named
     /// twice, two edges meeting at any other corner where an edge meets inwards
-    /// — a cut and a fill —, three or more edges meeting at a corner where
-    /// another edge, left out of the list, ends too, four or more whose
-    /// flats cross on no one plane there, an edge
+    /// — a cut and a fill —, four or more meeting at a corner, every edge
+    /// ending there named, whose flats cross on no one plane there, an edge
     /// of a chain holding a crease whose other flats stand a hair off one
     /// plane or meet in a second crease — a leaning flight's whose top rises
     /// (#985) — or whose crease would leave a sliver of the face its two flats
@@ -122,8 +138,10 @@ impl Exact {
     /// or is not one face but at a convex corner the edge ends at alone — seen
     /// as a face of the prism but its chamfer left on the body, the chamfer in
     /// two pieces or with a corner on neither of the edge's faces nor on an
-    /// edge ending at a convex corner it ends at alone, or a face the body
-    /// held, but the edge's two, taken away whole.
+    /// edge ending at a convex corner it ends at alone, or with some of the
+    /// edges there and not all, or, laid before another edge there, on that
+    /// one's walls where its cut does not take that corner away (#1083), or
+    /// a face the body held, but the edge's two, taken away whole.
     pub fn chamfered(&self, names: &[EdgeName], distance: f64) -> Result<(Exact, f64), Declined> {
         let (cut, taken, _) = self.cut_off(
             names,
@@ -143,6 +161,7 @@ impl Exact {
                     apex: Apex {
                         clear: tip,
                         close: polygon_across,
+                        opens_partly_named: true,
                     },
                 },
                 around: Around::Edge,

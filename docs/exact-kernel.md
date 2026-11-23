@@ -265,7 +265,37 @@ It can:
   nothing beyond: each of its lines stops on the last face round the
   corner it meets, so the flat or the round ends across those faces, its
   end kinked where it crosses from one to the next, a corner on the edge
-  between them, which the check takes as on a side. A round leaving
+  between them, which the check takes as on a side. Some of the edges
+  ending at such a corner named and not all are carried past it the same
+  way (#942), each laid in turn, the later mitred against the earlier as at
+  a corner of three, the others left sharp and no face laid at the corner.
+  Two of them are built chamfered or rounded — at a hip's foot, the hip, an
+  eave or the upright under it, on a box, or on a slab so thin that the hip
+  alone would cross the upright below the floor, as long as the slab stands
+  above the windows below. Three or more are built chamfered at any convex
+  vertex of four or more — three of the four edges at a hip's foot, three
+  hips of an apex of four whether or not its four flats would cross on one
+  plane, three or four of a five-sided apex — each flat a plane the part is
+  cut by, since what two flats both take needs no face of its own. The
+  earlier edge's face, carried past the corner, may end on the walls of a
+  later one there (`corners::sharing`), and once every edge is laid each
+  corner it kept on them is to be gone, taken by the later cut
+  (`Exact::keeps_a_corner_at` in `wedge/sides.rs`), or the step is
+  declined: every order lays the booleans' body or none. Declined so, in
+  every order, until #1083 builds it: the chamfer on the upright and the
+  hip above it on a slab between `0.0606·d` and `0.1837·d` under the
+  pyramid 10 by 6, where the upright's flat takes one of the two corners the
+  hip's leaves on the floor and not the other. On a slab thinner still —
+  under `(√6/4 − 1/2)·d`, about `0.1124·d`, beneath the square pyramid, and
+  under `0.0606·d` beneath the pyramid 10 by 6 — the hip's flat takes all
+  of the upright's, and the same pair is declined in every order before
+  that check is reached, by the check each cut has as it is laid
+  (`Exact::cut_along` in `body/exact/wedge.rs`): the hip laid first, the
+  upright's cut leaves no face of its own; the upright laid first, the
+  hip's cut takes the upright's face away whole. That too waits on #1083.
+  Three or more rounds there
+  are declined: the kernel has no surface yet for where they meet beside a
+  sharp edge (#1031). A round leaving
   the edge's end at a few degrees inwards trims the chamfer like any other
   end face; one leaving it outwards dips outside the edge's face past the
   end corner, by `r·(1 − cos θ)` for a round of radius `r` leaving at `θ`.
@@ -548,8 +578,9 @@ Left, in the order #497 set:
 - an exact STEP;
 - a chamfer and a fillet on a curved edge: on straight edges both are done
   — one edge (#696, #697), one ending alone at a convex corner of four or
-  more edges (#943), several at once (#698), edges meeting at a convex
-  corner (#699), and stopping at the wall of a concave corner (#801);
+  more edges (#943), and some of those ending there (#942), several at once
+  (#698), edges meeting at a convex corner (#699), and stopping at the wall
+  of a concave corner (#801);
 - draft, shell, loft.
 
 Known and still open:
