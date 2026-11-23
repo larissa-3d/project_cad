@@ -117,6 +117,18 @@
 //!   `a_pick_over_a_hidden_side_of_the_section_offers_the_cut_behind_it`
 //! - with a side opaque, a pick returns the matter's face as today —
 //!   `a_pick_on_an_opaque_side_of_the_section_offers_the_matter_s_face`
+//! - found in review: while the section waits for a face, a click on the
+//!   outer face of a see-through side still takes the part's face to cut
+//!   along, and follows it, as before — the cut behind it is not taken with
+//!   its sides swapped —
+//!   `a_see_through_side_s_face_clicked_while_the_section_waits_is_still_the_cutting_face`
+//! - found in review: a see-through side lets the click through only where
+//!   something behind it receives it. Both sides see-through, the part is
+//!   drawn whole and nothing stands behind its faces, so a click on its top or
+//!   its bottom still offers that face rather than a plane of the origin
+//!   through the part — `with_both_sides_see_through_a_pick_on_the_part_still_offers_its_face`
+//!   — and the section waiting for a face takes it —
+//!   `a_see_through_side_s_face_clicked_while_the_section_waits_is_still_the_cutting_face`
 
 use glam::{DVec2, DVec3};
 
@@ -2019,19 +2031,103 @@ fn a_pick_on_an_opaque_side_of_the_section_offers_the_matter_s_face() {
     ] {
         let started = a_sketch_started_across_the_sides(behind, in_front, ray);
 
-        assert!(
-            matches!(started.offered, Some(PlaneChoice::Face { .. })),
-            "{what}, the matter's face is offered as {:?}",
-            started.offered,
+        assert_the_block_s_face_is_offered(&started, height, what);
+    }
+}
+
+/// That the face of the block lying flat at `height` was offered, and a click
+/// on it started a sketch anchored to it.
+fn assert_the_block_s_face_is_offered(started: &Started, height: f64, what: &str) {
+    assert!(
+        matches!(started.offered, Some(PlaneChoice::Face { .. })),
+        "{what}, the matter's face is offered as {:?}",
+        started.offered,
+    );
+    assert!(
+        started.started,
+        "{what}, a click on the matter starts no sketch"
+    );
+    let face = anchored_face(&started.document);
+    assert!(
+        lies_flat_at(&started.document, face, height, (0.0, 10.0)),
+        "{what}, the sketch is anchored to face {face}, not the block's face at z = {height}",
+    );
+}
+
+#[test]
+fn with_both_sides_see_through_a_pick_on_the_part_still_offers_its_face() {
+    use MatterInFront::SeeThrough;
+
+    for (what, ray, height) in [
+        ("both sides see-through, seen from above", FROM_ABOVE, 4.0),
+        ("both sides see-through, seen from below", FROM_BELOW, 0.0),
+    ] {
+        let started = a_sketch_started_across_the_sides(SeeThrough, SeeThrough, ray);
+
+        assert_the_block_s_face_is_offered(&started, height, what);
+    }
+}
+
+/// The view with the block's section through XY at mid-height waiting for a
+/// face, the side below the cut drawn `behind` and the side above it
+/// `in_front`.
+fn the_section_waiting_across_the_sides(
+    behind: MatterInFront,
+    in_front: MatterInFront,
+) -> ViewportState {
+    let mut section = Section::new(WorkPlane::XY);
+    section.offset = 2.0;
+    section.behind = behind;
+    section.in_front = in_front;
+    section.wait_for_a_face();
+    let mut state = ViewportState::default();
+    state.section = Some(section);
+    state
+}
+
+#[test]
+fn a_see_through_side_s_face_clicked_while_the_section_waits_is_still_the_cutting_face() {
+    use MatterInFront::{Hidden, Opaque, SeeThrough};
+
+    for (what, behind, in_front) in [
+        (
+            "the side above the cut see-through over an opaque one",
+            Opaque,
+            SeeThrough,
+        ),
+        (
+            "the side above the cut see-through over a hidden one",
+            Hidden,
+            SeeThrough,
+        ),
+        ("both sides see-through", SeeThrough, SeeThrough),
+    ] {
+        let after = a_click_from_above_while_the_section_waits(
+            a_part_holding_a_block(),
+            the_section_waiting_across_the_sides(behind, in_front),
+            DVec3::new(5.0, 5.0, 4.0),
         );
+
+        let section = after.section.as_ref().expect("the section stays on");
         assert!(
-            started.started,
-            "{what}, a click on the matter starts no sketch"
+            !section.is_waiting_for_a_face(),
+            "{what}, a click on the block's top lays no cutting plane",
         );
-        let face = anchored_face(&started.document);
+        let cut = section.cutting_plane();
         assert!(
-            lies_flat_at(&started.document, face, height, (0.0, 10.0)),
-            "{what}, the sketch is anchored to face {face}, not the block's face at z = {height}",
+            cut.normal().z > 1.0 - 1e-9 && (cut.origin.z - 4.0).abs() < 1e-9,
+            "{what}, a click on the block's top lays the section on {cut:?}, not on the top \
+             facing up",
+        );
+        let followed = section.on.map(|anchor| anchor.face);
+        assert!(
+            followed.is_some_and(|face| lies_flat_at(
+                &a_part_holding_a_block(),
+                face,
+                4.0,
+                (0.0, 10.0)
+            )),
+            "{what}, the section laid on the block's top follows face {followed:?}, not the top",
         );
     }
 }

@@ -12,7 +12,7 @@ use crate::screens::SketchContext;
 use crate::screens::sketch::PlaneChoice;
 
 use super::{PICK_PIXELS, ViewScale, ViewportState, plane_half_size, to_ndc};
-use crate::screens::viewport::matter::{Met, met_on_the_part, nearness, seen};
+use crate::screens::viewport::matter::{Met, SeeThroughSide, met_on_the_part, nearness, seen};
 use crate::screens::viewport::navigation::drag_asked;
 use crate::screens::viewport::{DEFAULT_SKETCH_RADIUS, section::Section};
 
@@ -137,12 +137,13 @@ pub(crate) fn point_the_section(
             return true;
         };
         let on_the_cut = |at, normal| lies_on_the_cut(state, at, normal);
-        let (piece, hit, own) = match met_on_the_part(&drawn, body, (origin, direction), on_the_cut)
-        {
-            Some(Met::Part { own, .. }) => (body, own, true),
-            Some(Met::Drawn(piece, hit) | Met::Curved(piece, hit)) => (piece, hit, false),
-            Some(Met::Nothing) | None => return true,
-        };
+        let side = SeeThroughSide::TakesThePick;
+        let (piece, hit, own) =
+            match met_on_the_part(&drawn, body, (origin, direction), on_the_cut, side) {
+                Some(Met::Part { own, .. }) => (body, own, true),
+                Some(Met::Drawn(piece, hit) | Met::Curved(piece, hit)) => (piece, hit, false),
+                Some(Met::Nothing) | None => return true,
+            };
         // From a hair short of where the face was met, so that the ray meets
         // it first, whatever of the piece stands before it.
         let from = origin + direction * (hit.distance - nearness(body));
@@ -219,7 +220,9 @@ fn plane_under(
 /// from inside it; a curved face, refused. A see-through face the part has
 /// nothing of — a ghost's — lets the ray go on; an opaque one — the top an
 /// invisible cut fills in, where it stood — offers nothing and hides what is
-/// behind it.
+/// behind it. A face of the section's see-through side lets the ray go on to
+/// the cut or a face behind it, and is offered itself when nothing behind it
+/// takes the pick.
 fn what_is_drawn_offers(
     state: &ViewportState,
     context: &SketchContext<'_>,
@@ -230,8 +233,9 @@ fn what_is_drawn_offers(
     let drawn = seen(state, context.editor, context.document)?;
     let on_the_cut = |at, normal| lies_on_the_cut(state, at, normal);
     let up = |normal| once_facing(state, normal);
+    let side = SeeThroughSide::LetsThePickThrough;
     Some(
-        match met_on_the_part(&drawn, part, (origin, direction), on_the_cut)? {
+        match met_on_the_part(&drawn, part, (origin, direction), on_the_cut, side)? {
             Met::Part { own, piece, drawn } => (
                 offered_by(part, own.face, own.normal, up),
                 piece.triangles_of(drawn.face).collect(),

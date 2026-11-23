@@ -347,4 +347,4 @@ mod on_the_part;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use on_the_part::{Met, met_on_the_part, nearness};
+pub(crate) use on_the_part::{Met, SeeThroughSide, met_on_the_part, nearness};

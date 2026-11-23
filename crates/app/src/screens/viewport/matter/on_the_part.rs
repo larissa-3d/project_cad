@@ -5,9 +5,10 @@
 //! is cut into triangles — is found on the part by where the ray meets it. A
 //! see-through face the part has nothing of — a ghost's, or what stands in
 //! front of a sketch or a section drawn see-through — lets the ray go on; an
-//! opaque one stops it on nothing. The side a sketch or a section draws
-//! see-through takes no pick even where the part has a face: the ray goes on
-//! to what is behind it. A curved face stops the ray where it is met.
+//! opaque one stops it on nothing. Where the part has a face, the side a
+//! sketch or a section draws see-through either takes the pick or lets it go
+//! on to what is behind it, as the caller asks. A curved face stops the ray
+//! where it is met.
 
 use cao_solid::{Body, FaceHit};
 use glam::DVec3;
@@ -47,37 +48,57 @@ pub(crate) fn nearness(part: &Body) -> f64 {
     reach.max(10.0) * 1e-5
 }
 
-/// The first place along the ray where what is drawn, but for the see-through
-/// side, lies on a face of the part, or where `stops`, told where and facing
-/// which way, says the ray stops on a drawn face the part has nothing of, or
-/// where an opaque face the part has nothing of hides the rest.
+/// What the side a sketch or a section draws see-through does with a ray that
+/// meets it where the part has a face.
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum SeeThroughSide {
+    /// Its face is the part's, whatever lies behind it.
+    TakesThePick,
+    /// The ray goes on to what lies behind it, and comes back to the first
+    /// face of it met when nothing behind takes the pick.
+    LetsThePickThrough,
+}
+
+/// The first place along the ray where what is drawn lies on a face of the
+/// part, or where `stops`, told where and facing which way, says the ray
+/// stops on a drawn face the part has nothing of, or where an opaque face
+/// the part has nothing of hides the rest. The see-through side, where the
+/// part has a face, does as `side` says.
 pub(crate) fn met_on_the_part<'a>(
     drawn: &'a Drawn<'_>,
     part: &Body,
     (origin, direction): (DVec3, DVec3),
     stops: impl Fn(DVec3, DVec3) -> bool,
+    side: SeeThroughSide,
 ) -> Option<Met<'a>> {
     let near = nearness(part);
+    let mut veiled = None;
     let mut travelled = 0.0;
     for _ in 0..FACES_GONE_THROUGH {
         let from = origin + direction * travelled;
-        let (piece, mut hit) = drawn_under(drawn, from, direction)?;
+        let Some((piece, mut hit)) = drawn_under(drawn, from, direction) else {
+            break;
+        };
         hit.distance += travelled;
         if !piece.is_flat(hit.face) {
             return Some(Met::Curved(piece, hit));
         }
         let at = origin + direction * hit.distance;
-        let veiled = drawn
-            .see_through
-            .as_ref()
-            .is_some_and(|veiled| std::ptr::eq(piece, veiled));
-        if !veiled && let Some(mut own) = the_part_s_face_at(part, at, hit.normal, near) {
+        if let Some(mut own) = the_part_s_face_at(part, at, hit.normal, near) {
             own.distance = hit.distance;
-            return Some(Met::Part {
+            let met = Met::Part {
                 own,
                 piece,
                 drawn: hit,
-            });
+            };
+            let see_through = drawn
+                .see_through
+                .as_ref()
+                .is_some_and(|see_through| std::ptr::eq(piece, see_through));
+            if !see_through || side == SeeThroughSide::TakesThePick {
+                return Some(met);
+            }
+            veiled.get_or_insert(met);
         }
         if stops(at, hit.normal) {
             return Some(Met::Drawn(piece, hit));
@@ -87,7 +108,7 @@ pub(crate) fn met_on_the_part<'a>(
         }
         travelled = hit.distance + 10.0 * near;
     }
-    None
+    veiled
 }
 
 /// The part's own face lying at `at`, square to `normal` one way or the
