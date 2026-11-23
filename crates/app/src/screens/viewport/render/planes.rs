@@ -1,5 +1,6 @@
 //! The surfaces a new sketch can be started on: the three planes through the
-//! world origin, and the face of the part under the cursor.
+//! world origin, and the face of the part or the section's cut under the
+//! cursor.
 
 use cao_sketch::WorkPlane;
 
@@ -23,7 +24,7 @@ pub(crate) fn push_choosable_planes(
     let faded = if has_body { 0.35 } else { 1.0 };
 
     match context.editor.hovered_plane {
-        Some(PlaneChoice::Face { .. }) => {
+        Some(PlaneChoice::Face { .. } | PlaneChoice::Section(_)) => {
             push_under_the_cursor(surfaces, tint(theme.highlight), context);
         }
         Some(PlaneChoice::Curved(_)) => {

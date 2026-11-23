@@ -85,7 +85,7 @@ pub struct SketchEditor {
     pub plane: Option<WorkPlane>,
     pub hovered_plane: Option<PlaneChoice>,
     /// The triangles of the drawn face under the cursor, lit while the face
-    /// of the part it lies on is offered to draw on.
+    /// of the part it lies on, or the section's cut, is offered to draw on.
     pub hovered_face_drawn: Vec<[DVec3; 3]>,
     /// Point under the cursor, highlighted so it is clear what a click takes.
     pub hovered_point: Option<PointId>,
