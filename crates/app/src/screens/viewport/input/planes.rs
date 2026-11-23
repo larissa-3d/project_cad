@@ -215,10 +215,11 @@ fn plane_under(
 /// face drawn there, to light as it is drawn, or nothing when the ray meets
 /// nothing drawn. Where what is drawn lies on a face of the part, that face,
 /// found by where the ray meets it; where the ray meets the cut of the section,
-/// its plane, turned the way the face met looks; a curved face, refused. A
-/// see-through face the part has nothing of — a ghost's — lets the ray go on;
-/// an opaque one — the top an invisible cut fills in, where it stood — offers
-/// nothing and hides what is behind it.
+/// its plane, turned to face the eye — the cut of a see-through side may be met
+/// from inside it; a curved face, refused. A see-through face the part has
+/// nothing of — a ghost's — lets the ray go on; an opaque one — the top an
+/// invisible cut fills in, where it stood — offers nothing and hides what is
+/// behind it.
 fn what_is_drawn_offers(
     state: &ViewportState,
     context: &SketchContext<'_>,
@@ -239,10 +240,10 @@ fn what_is_drawn_offers(
                 Some(PlaneChoice::Curved(hit.face)),
                 piece.triangles_of(hit.face).collect(),
             ),
-            Met::Drawn(_, hit) => {
+            Met::Drawn(..) => {
                 let section = state.section_shown().map(|section| {
                     let cut = section.cutting_plane();
-                    match hit.normal.dot(cut.normal()) > 0.0 {
+                    match direction.dot(cut.normal()) < 0.0 {
                         true => PlaneChoice::Section(cut),
                         false => {
                             PlaneChoice::Section(WorkPlane::from_normal(cut.origin, -cut.normal()))

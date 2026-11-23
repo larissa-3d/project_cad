@@ -5,8 +5,9 @@
 //! is cut into triangles — is found on the part by where the ray meets it. A
 //! see-through face the part has nothing of — a ghost's, or what stands in
 //! front of a sketch or a section drawn see-through — lets the ray go on; an
-//! opaque one stops it on nothing. A curved face stops the ray where it is
-//! met.
+//! opaque one stops it on nothing. The side a sketch or a section draws
+//! see-through takes no pick even where the part has a face: the ray goes on
+//! to what is behind it. A curved face stops the ray where it is met.
 
 use cao_solid::{Body, FaceHit};
 use glam::DVec3;
@@ -46,10 +47,10 @@ pub(crate) fn nearness(part: &Body) -> f64 {
     reach.max(10.0) * 1e-5
 }
 
-/// The first place along the ray where what is drawn lies on a face of the
-/// part, or where `stops`, told where and facing which way, says the ray
-/// stops on a drawn face the part has nothing of, or where an opaque face
-/// the part has nothing of hides the rest.
+/// The first place along the ray where what is drawn, but for the see-through
+/// side, lies on a face of the part, or where `stops`, told where and facing
+/// which way, says the ray stops on a drawn face the part has nothing of, or
+/// where an opaque face the part has nothing of hides the rest.
 pub(crate) fn met_on_the_part<'a>(
     drawn: &'a Drawn<'_>,
     part: &Body,
@@ -66,7 +67,11 @@ pub(crate) fn met_on_the_part<'a>(
             return Some(Met::Curved(piece, hit));
         }
         let at = origin + direction * hit.distance;
-        if let Some(mut own) = the_part_s_face_at(part, at, hit.normal, near) {
+        let veiled = drawn
+            .see_through
+            .as_ref()
+            .is_some_and(|veiled| std::ptr::eq(piece, veiled));
+        if !veiled && let Some(mut own) = the_part_s_face_at(part, at, hit.normal, near) {
             own.distance = hit.distance;
             return Some(Met::Part {
                 own,

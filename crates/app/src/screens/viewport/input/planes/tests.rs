@@ -108,6 +108,15 @@
 //! - found in review: a section laid from a face the part has nothing of — a
 //!   see-through cut's ghost, cut by the section — is kept on no face of the
 //!   part — `a_section_laid_on_the_cut_of_a_ghost_follows_no_face_of_the_part`
+//!
+//! Closes #971.
+//! - with a side see-through, a pick at a point over it returns the plane
+//!   behind it, not the matter; a test on the picking presenter checks it with
+//!   no window — `a_pick_over_a_see_through_side_of_the_section_offers_the_cut_behind_it`
+//! - with a side hidden, the same —
+//!   `a_pick_over_a_hidden_side_of_the_section_offers_the_cut_behind_it`
+//! - with a side opaque, a pick returns the matter's face as today —
+//!   `a_pick_on_an_opaque_side_of_the_section_offers_the_matter_s_face`
 
 use glam::{DVec2, DVec3};
 
@@ -118,7 +127,7 @@ use crate::screens::sketch::SketchEditor;
 use crate::screens::viewport::matter::shown;
 use crate::screens::viewport::section::Section;
 use cao_part::{PartDocument, VolumeState};
-use cao_render::OrbitCamera;
+use cao_render::{MatterInFront, OrbitCamera};
 use cao_solid::profile::{Contour, Run};
 
 /// Which way is up on screen once the view has swung onto a face — the same
@@ -1864,4 +1873,165 @@ fn where_an_invisible_boss_stood_a_section_waiting_for_a_face_lays_nothing() {
         section.tilted(),
         section.offset,
     );
+}
+
+/// A ray straight down onto the middle of the block's top.
+const FROM_ABOVE: (DVec3, DVec3) = (DVec3::new(5.0, 5.0, 50.0), DVec3::NEG_Z);
+
+/// A ray straight up onto the middle of the block's bottom.
+const FROM_BELOW: (DVec3, DVec3) = (DVec3::new(5.0, 5.0, -50.0), DVec3::Z);
+
+/// The cursor brought over a place, then a click there, on the block of
+/// `a_part_holding_a_block` cut through XY at mid-height, the side below the
+/// cut drawn `behind` and the side above it `in_front`.
+fn a_sketch_started_across_the_sides(
+    behind: MatterInFront,
+    in_front: MatterInFront,
+    (origin, direction): (DVec3, DVec3),
+) -> Started {
+    let mut section = Section::new(WorkPlane::XY);
+    section.offset = 2.0;
+    section.behind = behind;
+    section.in_front = in_front;
+    a_sketch_started(a_part_holding_a_block(), section, origin, direction)
+}
+
+/// That the cut of the section at mid-height was offered under a ray along
+/// `direction`, facing the eye, and a click on it started a sketch held by no
+/// face of the part.
+fn assert_the_cut_is_offered(started: &Started, direction: DVec3, what: &str) {
+    let Some(PlaneChoice::Section(plane)) = started.offered else {
+        panic!(
+            "{what}, the click is offered {:?}, not the cut of the section behind it",
+            started.offered,
+        );
+    };
+    assert!(
+        plane.normal().z.abs() > 1.0 - 1e-9 && (plane.origin.z - 2.0).abs() < 1e-9,
+        "{what}, the cut is offered as {plane:?}, off the plane at mid-height",
+    );
+    assert!(
+        plane.normal().dot(-direction) > 0.0,
+        "{what}, the cut is offered facing {}, away from the eye",
+        plane.normal(),
+    );
+    assert!(
+        started.started,
+        "{what}, a click on the cut starts no sketch"
+    );
+    assert!(
+        matches!(
+            started.document.history.operations().last(),
+            Some(Operation::CreateSketch { on: None, .. })
+        ),
+        "{what}, the click recorded {:?}, not a sketch on the cut held by no face",
+        started.document.history.operations().last(),
+    );
+}
+
+#[test]
+fn a_pick_over_a_see_through_side_of_the_section_offers_the_cut_behind_it() {
+    use MatterInFront::{Opaque, SeeThrough};
+
+    for (what, behind, in_front, (origin, direction)) in [
+        (
+            "the side above the cut see-through over an opaque one, seen from above",
+            Opaque,
+            SeeThrough,
+            FROM_ABOVE,
+        ),
+        (
+            "the side below the cut see-through under an opaque one, seen from below",
+            SeeThrough,
+            Opaque,
+            FROM_BELOW,
+        ),
+    ] {
+        let started = a_sketch_started_across_the_sides(behind, in_front, (origin, direction));
+
+        assert_the_cut_is_offered(&started, direction, what);
+    }
+}
+
+#[test]
+fn a_pick_over_a_hidden_side_of_the_section_offers_the_cut_behind_it() {
+    use MatterInFront::{Hidden, Opaque, SeeThrough};
+
+    for (what, behind, in_front, (origin, direction)) in [
+        (
+            "the side above the cut hidden over an opaque one, seen from above",
+            Opaque,
+            Hidden,
+            FROM_ABOVE,
+        ),
+        (
+            "the side below the cut hidden under an opaque one, seen from below",
+            Hidden,
+            Opaque,
+            FROM_BELOW,
+        ),
+        (
+            "the side below the cut hidden under a see-through one, seen from below",
+            Hidden,
+            SeeThrough,
+            FROM_BELOW,
+        ),
+    ] {
+        let started = a_sketch_started_across_the_sides(behind, in_front, (origin, direction));
+
+        assert_the_cut_is_offered(&started, direction, what);
+    }
+}
+
+#[test]
+fn a_pick_on_an_opaque_side_of_the_section_offers_the_matter_s_face() {
+    use MatterInFront::{Hidden, Opaque, SeeThrough};
+
+    for (what, behind, in_front, ray, height) in [
+        (
+            "the side above the cut opaque over a hidden one, seen from above",
+            Hidden,
+            Opaque,
+            FROM_ABOVE,
+            4.0,
+        ),
+        (
+            "the side above the cut opaque over a see-through one, seen from above",
+            SeeThrough,
+            Opaque,
+            FROM_ABOVE,
+            4.0,
+        ),
+        (
+            "the side below the cut opaque under a see-through one, seen from below",
+            Opaque,
+            SeeThrough,
+            FROM_BELOW,
+            0.0,
+        ),
+        (
+            "both sides opaque, seen from above",
+            Opaque,
+            Opaque,
+            FROM_ABOVE,
+            4.0,
+        ),
+    ] {
+        let started = a_sketch_started_across_the_sides(behind, in_front, ray);
+
+        assert!(
+            matches!(started.offered, Some(PlaneChoice::Face { .. })),
+            "{what}, the matter's face is offered as {:?}",
+            started.offered,
+        );
+        assert!(
+            started.started,
+            "{what}, a click on the matter starts no sketch"
+        );
+        let face = anchored_face(&started.document);
+        assert!(
+            lies_flat_at(&started.document, face, height, (0.0, 10.0)),
+            "{what}, the sketch is anchored to face {face}, not the block's face at z = {height}",
+        );
+    }
 }
