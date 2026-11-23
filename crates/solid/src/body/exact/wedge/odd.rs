@@ -15,12 +15,13 @@
 //! laid against that as alone, and a piece of torus replaces what the filling
 //! left, as [`super::torus`] lays it; the top of an L's inner corner, the
 //! mirror, is propped, laid, cleared and closed by a piece of torus cut out.
-//! Where the convex odd edge leans on the face the two others share — a
-//! pyramid's hip above its two feet on the plate it stands on (#944) — no
-//! piece of torus touches that face: the two others are laid first, each
-//! stopping short of the odd edge's round on a flat end of its own, and the
-//! odd edge then on what they leave, as [`leaning`] lays it; a step mixing
-//! such a corner with one a piece of torus closes is declined.
+//! Where the convex odd edge leans on the face the two others share past
+//! the sketch's noise — a pyramid's hip above its two feet on the plate it
+//! stands on (#944) — no piece of torus touches that face: the two others
+//! are laid first, each stopping short of the odd edge's round on a flat end
+//! of its own, and the odd edge then on what they leave, as [`leaning`] lays
+//! it; a step mixing such a corner with one that does not lean, or holding
+//! one with a foot left sharp, is declined before any torus is tried.
 //! An odd edge whose other end closes a corner of one sense with edges of
 //! the list, an upright with its block's top edges, is laid with them, that
 //! corner closed as #699 closes it. Either way each named edge's face is
@@ -205,12 +206,16 @@ impl Exact {
     /// `meeting` says: by the edge of the face it laid, as
     /// [`Exact::round_the_edge`] lays it, or through a piece of torus, as
     /// [`Exact::through_a_torus`] lays it — or, where every corner's odd edge
-    /// leans on the face its two others share, short of its round, as
+    /// is convex and leans on the face its two others share, as
+    /// [`leaning::leans`] reads it, short of its round, as
     /// [`Exact::short_of_the_round`] lays it — `step` what the names find on
     /// this body. The pairs laid as
     /// one are handed back through a piece of torus alone, where the fillet
     /// reads them; the chamfer, which goes round by that edge, reads none, and
-    /// none is handed back that way. Declined as those decline.
+    /// none is handed back that way. Declined `Unsupported`, where the kind
+    /// goes through a piece of torus, before any is tried, where some corners
+    /// lean and some do not, or a corner that leans has one of its two others
+    /// left sharp; otherwise as those decline.
     pub(super) fn round_the_odd(
         &self,
         names: &[EdgeName],
@@ -219,14 +224,19 @@ impl Exact {
         taken: f64,
         kind: &Kind,
     ) -> Result<(Exact, f64, Vec<Pair>), Declined> {
-        let scale = self.brep.scale();
-        let leans = (odd.iter()).all(|corner| leaning::leans(corner, &step.wedges, scale));
+        let leaning: Vec<&Odd> = (odd.iter())
+            .filter(|corner| leaning::leans(corner, &step.wedges))
+            .collect();
+        let sharp = leaning.iter().any(|corner| corner.sharp.is_some());
         match kind.meeting.around {
             Around::Edge => (self.round_the_edge(names, step, odd, taken, kind))
                 .map(|(round, taken)| (round, taken, Vec::new())),
-            Around::Torus if leans => (self.short_of_the_round(names, step, odd, taken, kind))
+            Around::Torus if leaning.is_empty() => {
+                self.through_a_torus(names, &step.wedges, odd, taken, kind)
+            }
+            Around::Torus if sharp || leaning.len() < odd.len() => Err(Declined::Unsupported),
+            Around::Torus => (self.short_of_the_round(names, step, odd, taken, kind))
                 .map(|round| (round, taken, Vec::new())),
-            Around::Torus => self.through_a_torus(names, &step.wedges, odd, taken, kind),
         }
     }
 

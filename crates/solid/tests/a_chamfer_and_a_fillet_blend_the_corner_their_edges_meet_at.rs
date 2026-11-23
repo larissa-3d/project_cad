@@ -939,6 +939,45 @@
 //!   their blocks above and #829's in
 //!   `a_chamfer_and_a_fillet_go_round_the_odd_edge_at_a_corner_of_mixed_sense.rs`.
 //!   The one test this issue changes is the pin the first criterion flips
+//! - Decided on the way, after the review (2026-11-23), in the issue's comment
+//!   "Decided after the review": a lean within the sketch's noise, `TANGENT`,
+//!   a millionth of a radian, reads as upright, and goes to #829's piece of
+//!   torus rather than to this issue's creased foot, which the step took from
+//!   a lean of some 5e-10 radians on. A block on a plate whose walls all lean
+//!   in by a hair, filleted on its uprights and feet, is declined in every
+//!   order, never creased, until #1095 lets the torus take an upright a hair
+//!   off plumb —
+//!   `a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_walls_lean_by_a_hair_is_declined_as_unsupported_whatever_the_order_rather_than_creased`.
+//!   Read as: `block_on_a_plate`, 10 by 10 by 5 on the plate of
+//!   `pyramid_on_a_plate`, each wall leaning in 1e-6 over its height; before
+//!   the step, the part exact and holding 1300 less each wall's wedge,
+//!   `10 · 5 · 1e-6/2`, with the corner two wedges share at each upright
+//!   given back, and each upright leaning between 1e-7 and a millionth of a
+//!   radian; then its four uprights and four feet at 1, in the 48 orders of
+//!   `spread_orders_of_eight`, declined `Unsupported` in each. The step builds
+//!   them before this decision, the creased foot of this issue, holding
+//!   1302.575 in 27 faces in each of the 48 orders, where the block exactly
+//!   upright gets #829's torus, 1304.225 in 23: red until the step reads such
+//!   a lean as upright
+//! - Decided on the way, after the review (2026-11-23), by the same comment: a
+//!   fillet step mixing corners whose upright leans past `TANGENT` with
+//!   corners whose upright stands is declined `Unsupported` before any torus
+//!   is tried, until #1096 rounds each corner its own way in one body. A ramp
+//!   block on a plate, its front wall leaning, so that its two front uprights
+//!   lean and its two back ones stand, filleted on its uprights and feet, is
+//!   declined in every order —
+//!   `a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_front_wall_leans_is_declined_as_unsupported_whatever_the_order_two_uprights_leaning_and_two_upright`.
+//!   Read as: `block_on_a_plate` with its front wall leaning in 2 over its
+//!   height of 5, its other three upright; before the step, the part exact
+//!   and holding 1250, and its two front uprights leaning past `TANGENT`,
+//!   its two back ones not at all; then its four uprights and four feet at 1,
+//!   in the 48 orders of `spread_orders_of_eight`, declined `Unsupported` in
+//!   each. The comment reads the block as having two leaning side walls; the
+//!   review's fixture, held here, has one leaning wall, which is what makes
+//!   two of its uprights lean. Green before the decision and after, a pin
+//!   rather than a red test. The other decline the comment makes explicit, a
+//!   leaning corner with a foot left sharp, #1093's, is the one the paragraph
+//!   on `CLEARED` above names
 //!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
@@ -7245,6 +7284,214 @@ fn a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its
         8,
         |(_, first), (_, body), which| fillet_patches_alike(first, body, &patches, centre, which),
         "the fillet on the four hips and the four feet",
+    );
+}
+
+/// How high [`block_on_a_plate`] stands over the plate's top.
+const BLOCK_HEIGHT: f64 = 5.0;
+
+/// How far in each wall of the block that leans by a hair leans over the
+/// block's height, so that its uprights lean some 2.8e-7 radians: far past
+/// the 5e-10 from which #944's step read an upright as leaning, and short of
+/// the millionth of a radian the sketch's noise stays within.
+const HAIR: f64 = 1e-6;
+
+/// The lean, in radians, under which an edge reads as upright: the
+/// kernel's `TANGENT`, the band of the sketch's noise.
+const SKETCH_NOISE: f64 = 1e-6;
+
+/// How far in the front wall of the ramp block leans over the block's
+/// height.
+const RAMP: f64 = 2.0;
+
+/// Where wall `wall` of [`block_on_a_plate`] — front, right, back or left —
+/// stands at its foot on the plate's top, and the way it faces, leaning in
+/// by `lean` over the block's height.
+fn block_wall(wall: usize, lean: f64) -> (DVec3, DVec3) {
+    let out = [DVec3::NEG_Y, DVec3::X, DVec3::Y, DVec3::NEG_X][wall];
+    let [x, y] = [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]][wall];
+    (
+        DVec3::new(x, y, PLATE_THICKNESS),
+        (out * BLOCK_HEIGHT + DVec3::Z * lean).normalize(),
+    )
+}
+
+/// A block 10 by 10 by [`BLOCK_HEIGHT`] standing on the plate of
+/// [`pyramid_on_a_plate`], over the square from (0, 0) to (10, 10) on the
+/// plate's top: a prism raised over that square, each of its walls cut by the
+/// plane through its foot leaning in by `leans[wall]`, front, right, back
+/// and left, or left upright where that is nought, then joined to the plate.
+fn block_on_a_plate(leans: [f64; 4]) -> Body {
+    let plate = raised(
+        Contour::rectangle(
+            DVec2::splat(-PLATE_MARGIN),
+            DVec2::splat(SQUARE[0] + PLATE_MARGIN),
+        ),
+        PLATE_THICKNESS,
+    );
+    let prism = plate
+        .tool_raised(
+            &profile(Contour::rectangle(DVec2::ZERO, DVec2::splat(SQUARE[0]))),
+            Frame {
+                origin: DVec3::Z * PLATE_THICKNESS,
+                ..ground()
+            },
+            DVec3::Z * BLOCK_HEIGHT,
+        )
+        .expect("the prism raises");
+    let block = (0..4)
+        .filter(|&wall| leans[wall] != 0.0)
+        .fold(prism, |part, wall| {
+            let (foot, facing) = block_wall(wall, leans[wall]);
+            part.difference(&beyond(&part, foot, facing, 50.0))
+                .expect("a leaning plane cuts the prism")
+        });
+    plate.union(&block).expect("the block stands on the plate")
+}
+
+/// The number of the one flat face of `body` facing `facing` on the plane
+/// through `through`.
+fn face_on_the_plane(body: &Body, facing: DVec3, through: DVec3) -> usize {
+    let found: Vec<usize> = (numbers(body).into_iter())
+        .filter(|&face| {
+            body.plane_of(face).is_some_and(|plane| {
+                plane.normal.distance(facing) < PLACE
+                    && (plane.corners.iter())
+                        .all(|corner| (*corner - through).dot(facing).abs() < PLACE)
+            })
+        })
+        .collect();
+    assert_eq!(
+        found.len(),
+        1,
+        "one face facing {facing} through {through}: {found:?}"
+    );
+    found[0]
+}
+
+/// The four uprights of [`block_on_a_plate`] leaning in by `leans`, front
+/// right, back right, back left and front left, then its four feet, front,
+/// right, back and left, by their names on `part`, and how far from upright
+/// each upright leans, in radians.
+fn uprights_and_feet(part: &Body, leans: [f64; 4]) -> (Vec<EdgeName>, [f64; 4]) {
+    let walls = [0, 1, 2, 3].map(|wall| block_wall(wall, leans[wall]));
+    let faces = walls.map(|(foot, facing)| face_on_the_plane(part, facing, foot));
+    let uprights = (0..4).map(|wall| edge_between(part, faces[wall], faces[(wall + 1) % 4]));
+    let feet = faces.map(|face| edge_between(part, TOP, face));
+    let leaning = [0, 1, 2, 3].map(|wall| {
+        let along = walls[wall].1.cross(walls[(wall + 1) % 4].1).normalize();
+        along.cross(DVec3::Z).length()
+    });
+    (uprights.chain(feet).collect(), leaning)
+}
+
+/// What [`block_on_a_plate`] holds, each wall leaning in by `leans`: the
+/// plate's 800 and the block's 500, less what each leaning wall cuts away
+/// along its foot, the wedge `10 · BLOCK_HEIGHT · lean / 2`, and given back
+/// at each upright between two leaning walls the corner both wedges took,
+/// `lean² · BLOCK_HEIGHT / 3`.
+fn block_on_a_plate_holds(leans: [f64; 4]) -> f64 {
+    let wedges: f64 = leans
+        .iter()
+        .map(|lean| SQUARE[0] * BLOCK_HEIGHT * lean / 2.0)
+        .sum();
+    let corners: f64 = (0..4)
+        .map(|wall| leans[wall] * leans[(wall + 1) % 4] * BLOCK_HEIGHT / 3.0)
+        .sum();
+    20.0 * 20.0 * PLATE_THICKNESS + SQUARE[0] * SQUARE[0] * BLOCK_HEIGHT - wedges + corners
+}
+
+/// Holds that a fillet at 1 on `edges` of `part`, in each of the spread
+/// orders of eight, is declined `Unsupported`, never built: `what` says what
+/// is filleted, `why` why it is declined and what lifts the decline.
+fn declined_whatever_the_order(part: &Body, edges: &[EdgeName], what: &str, why: &str) {
+    let mut otherwise: Vec<String> = Vec::new();
+    let orders = spread_orders_of_eight();
+    for order in &orders {
+        let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+        match part.fillet_edges(&names, 1.0) {
+            Err(Declined::Unsupported) => {}
+            Err(declined) => otherwise.push(format!("named {order:?}: declined {declined:?}")),
+            Ok(filleted) => otherwise.push(format!(
+                "named {order:?}: built, holding {} in {} faces",
+                filleted.body.volume(),
+                numbers(&filleted.body).len()
+            )),
+        }
+    }
+    assert!(
+        otherwise.is_empty(),
+        "the fillet at 1 on {what}: declined `Unsupported` in every order, {why}; in {} of {} \
+         orders it was not:\n{}",
+        otherwise.len(),
+        orders.len(),
+        otherwise.join("\n")
+    );
+}
+
+#[test]
+fn a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_walls_lean_by_a_hair_is_declined_as_unsupported_whatever_the_order_rather_than_creased()
+ {
+    let leans = [HAIR; 4];
+    let part = block_on_a_plate(leans);
+    let holds = block_on_a_plate_holds(leans);
+    assert!(
+        part.is_exact() && (part.volume() - holds).abs() < EXACT * holds,
+        "the block on its plate, each wall leaning in {HAIR} over its height, holds {}, where \
+         the arithmetic gives {holds}",
+        part.volume()
+    );
+    let (edges, leaning) = uprights_and_feet(&part, leans);
+    for lean in leaning {
+        assert!(
+            lean > 1e-7 && lean < SKETCH_NOISE,
+            "each upright leans {lean} from upright: past what #944's step read as a lean, and \
+             within the sketch's noise, {SKETCH_NOISE}"
+        );
+    }
+
+    declined_whatever_the_order(
+        &part,
+        &edges,
+        "the four uprights and the four feet of the block whose walls lean by a hair",
+        "each upright leaning within the sketch's noise and read as upright, which #829's \
+         piece of torus does not take a hair off plumb, until #1095 — never the crease #944 \
+         lays at the foot of a leaning hip",
+    );
+}
+
+#[test]
+fn a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_front_wall_leans_is_declined_as_unsupported_whatever_the_order_two_uprights_leaning_and_two_upright()
+ {
+    let leans = [RAMP, 0.0, 0.0, 0.0];
+    let part = block_on_a_plate(leans);
+    let holds = block_on_a_plate_holds(leans);
+    assert!(
+        part.is_exact() && (part.volume() - holds).abs() < EXACT * holds,
+        "the block on its plate, its front wall leaning in {RAMP} over its height, holds {}, \
+         where the arithmetic gives {holds}",
+        part.volume()
+    );
+    let (edges, leaning) = uprights_and_feet(&part, leans);
+    assert!(
+        leaning[0] > SKETCH_NOISE
+            && leaning[3] > SKETCH_NOISE
+            && leaning[1] < PLACE
+            && leaning[2] < PLACE,
+        "the two front uprights lean, {} and {}, past the sketch's noise, and the two back ones \
+         stand upright, {} and {}",
+        leaning[0],
+        leaning[3],
+        leaning[1],
+        leaning[2]
+    );
+
+    declined_whatever_the_order(
+        &part,
+        &edges,
+        "the four uprights and the four feet of the block whose front wall leans",
+        "the step mixing corners whose upright leans past the sketch's noise with corners \
+         whose upright stands, each of which alone would go its own way, until #1096",
     );
 }
 

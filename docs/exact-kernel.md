@@ -583,11 +583,15 @@ Left, in the order #497 set:
   concave corner (#801), and the three at a corner of mixed sense, gone round
   the odd edge (#829): a fillet closes the corner by a piece of torus about
   an upright's round, and where the odd edge leans on the face the two
-  others share — a pyramid's hip above its two feet on a plate — lays the
-  two others first, each stopping flush on a flat end of its own on the
-  plane through the round's axis square to its slope, the round then
-  running on down to the plate between them, which it meets along one sharp
-  edge (`wedge/odd/leaning.rs`, #944);
+  others share past the sketch's noise, a sine of a millionth — a pyramid's
+  hip above its two feet on a plate — lays the two others first, each
+  stopping flush on a flat end of its own on the plane through the round's
+  axis square to its slope, the round then running on down to the plate
+  between them, which it meets along one sharp edge
+  (`wedge/odd/leaning.rs`, #944). An upright a hair off plumb, within that
+  noise, reads as upright, and the torus declines it (#1095); a step mixing
+  leaning corners with upright ones (#1096), or a leaning corner with a
+  foot left sharp (#1093), is declined;
 - draft, shell, loft.
 
 Known and still open:

@@ -5,39 +5,41 @@
 //! the round instead: each is laid first, alone, held at that corner on the
 //! plane through the round's axis square to the face it shares with the odd
 //! edge — the plane the round leaves that face along — its end a flat face
-//! of its own; the odd edges, and every edge closing a corner of one sense
-//! with them, are then laid on what that leaves, each round running on
-//! between the two ends down to the face the two others share, which it
-//! meets along one sharp edge.
+//! of its own; every other edge of the list, the odd edges and those closing
+//! a corner of one sense with them among them, is then laid on what that
+//! leaves, each round running on between the two ends down to the face the
+//! two others share, which it meets along one sharp edge. An odd edge leans
+//! only past [`TANGENT`], the band of the sketch's noise: within it, it reads
+//! as upright, as the part it was drawn as stands.
 
-use super::{Odd, ranked_patches};
+use super::{NONE, Odd, ranked_patches};
 use crate::body::exact::Exact;
 use crate::body::exact::wedge::Wedge;
+use crate::body::exact::wedge::chain::TANGENT;
 use crate::body::exact::wedge::corners;
 use crate::body::exact::wedge::flush::Held;
 use crate::body::exact::wedge::overlap::{ENDS, STRIDE};
 use crate::body::exact::wedge::step::{Kind, Step};
 use crate::body::exact::wedge::torus::axis_at;
-use crate::brep::{Declined, EdgeName, Scale};
+use crate::brep::{Declined, EdgeName};
 
-/// Whether the odd edge of `corner`, read among `wedges` with its two
-/// others, both named, is convex and leans on the face the two others share:
-/// its way parts from that face's normal by more than the tolerance across
-/// the whole box at `scale`.
-pub(super) fn leans(corner: &Odd, wedges: &[Wedge], scale: Scale) -> bool {
-    if corner.sharp.is_some() || wedges[corner.lone].inwards {
+/// Whether the odd edge of `corner`, read among `wedges` with the other
+/// named there, is convex and leans on the face the two others share — one
+/// of them left sharp or not: its way parts from that face's normal by a
+/// sine past [`TANGENT`], so that an upright a hair off plumb, within the
+/// sketch's noise, reads as upright.
+pub(super) fn leans(corner: &Odd, wedges: &[Wedge]) -> bool {
+    if wedges[corner.lone].inwards {
         return false;
     }
-    let Some(&other) = (corner.ranks.iter()).find(|&&rank| rank != corner.lone) else {
+    let named = (corner.ranks.iter()).find(|&&rank| rank != corner.lone && rank != NONE);
+    let Some(&other) = named else {
         return false;
     };
     let other = &wedges[other];
     (0..2)
         .find(|&side| other.numbers[side] == corner.on)
-        .is_some_and(|side| {
-            let parting = corner.up.cross(other.outward[side]).length();
-            parting * 2.0 * scale.reach() > scale.eps()
-        })
+        .is_some_and(|side| corner.up.cross(other.outward[side]).length() > TANGENT)
 }
 
 /// Where the two others of each of `odd`'s corners end, read as `wedges`

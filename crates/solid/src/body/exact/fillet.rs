@@ -144,8 +144,11 @@ impl Exact {
     /// hip's axis square to its slope, on a flat end of its own section
     /// numbered after the patches, and the hip's round, laid on that, runs on
     /// between the two ends down to the plate, meeting it along one sharp
-    /// edge; a foot left sharp there, or a step mixing such a corner with one
-    /// a piece of torus closes, is declined `Unsupported`. An upright named
+    /// edge. It leans only past a sine of a millionth, the sketch's noise:
+    /// within it, an upright a hair off plumb goes round by the piece of
+    /// torus, which declines it. A foot left sharp at a leaning corner, or a
+    /// step mixing a leaning corner with one that does not lean, is declined
+    /// `Unsupported` before any piece of torus is tried. An upright named
     /// with its block's top edges closes its top corner with them by a piece
     /// of sphere, as above: every edge of a standing block in one step. A
     /// post's upright between a floor plate and a ceiling plate goes round at
