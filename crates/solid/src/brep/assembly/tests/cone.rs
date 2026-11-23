@@ -14,15 +14,16 @@
 //!   `brep/combine/tests/conical.rs`, `soundness/listed`, and the points
 //!   `cao_part` turns — passing unedited under `cargo test --workspace`
 //!
-//! No step reaches such a face today, and the test builds it by hand. A conic
-//! a cone carries is always traced on it, whichever cone it was cut on: as its
+//! No step is known to reach such a face, and the test builds it by hand. A
+//! conic a cone carries is traced on it whichever cone it was cut on: as its
 //! own, or as the conic that cone cuts the conic's plane along; and a curve a
 //! cone meets another wall along names the cone first, and is read on either.
-//! What a cone cannot trace is a loop it does not carry, so the tip's wall is
-//! laid again on a cone of the same apex its ellipse does not lie on — which
-//! no step lays: a boolean lays a face on the surface its curves were cut on,
-//! and a step laying a face of its own checks it on its surface first
-//! (`replaced_by`).
+//! The one path left is decision 6 (`laid_once` in `combine/identified.rs`):
+//! arcs within the tolerance of each other are kept as one curve — a line or
+//! a circle before a conic — and it is laid on every surface either arc lay
+//! on, with no check that each of them traces it. Short of that path, what a
+//! cone cannot trace is a loop it does not carry, so the tip's wall is laid
+//! again on a cone of the same apex its ellipse does not lie on.
 
 use super::*;
 use crate::brep::surface::Cone;
@@ -46,7 +47,7 @@ fn the_cone_of(body: &Body) -> usize {
 }
 
 /// The point's tip cut off by `z = 12 + 0.3·x`, its wall laid again on the
-/// cone of the same apex and axis opening wider, 12 across at the point's
+/// cone of the same apex and axis opening wider, of radius 12 at the point's
 /// foot rather than 10: the ellipse bounding the wall still goes round that
 /// apex, and lies on the plane alone. Taken as built, the tip holds what the
 /// arithmetic says, its wall holding the apex; laid again, its wall's loop is
