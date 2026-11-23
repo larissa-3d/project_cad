@@ -252,9 +252,8 @@ fn what_is_drawn_offers(
                     true => cut,
                     false => WorkPlane::from_normal(cut.origin, -cut.normal()),
                 };
-                // The side in front of the cut is drawn a hair off its plane,
-                // so that a sketch there is not buried in it: its cut is lit
-                // laid back on the plane.
+                // The side in front of the cut is drawn a hair off its plane;
+                // the light lies on the plane the sketch will be laid on.
                 let laid = |corner| cut.to_world(cut.to_local(corner));
                 (
                     Some(PlaneChoice::Section(facing)),
