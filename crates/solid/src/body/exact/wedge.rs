@@ -35,6 +35,7 @@ use crate::brep::{self, Declined, EdgeId, EdgeName, FaceId, Scale, VertexId};
 use crate::profile::{Contour, Frame};
 
 pub(super) use closing::{Apex, Closing};
+use corners::lies_on;
 use flush::{Flush, Stop};
 pub(super) use odd::Around;
 use overlap::OVERLAPS;
@@ -50,9 +51,11 @@ pub(super) use triangle::{cut_across, joined_across, polygon_across, tip};
 /// nearer face runs that way from the edge where its blend runs — the most a
 /// chamfer can set back, as a step reads it, endless until then — how far a
 /// curved face one of its ends runs into stands out past its faces, which a
-/// cut's prism must reach, and whether the faces meet inwards, the way into
+/// cut's prism must reach, whether the faces meet inwards, the way into
 /// either running the way the other faces: a corner to fill in rather than
-/// cut off.
+/// cut off — and the edges its cut's face crosses at the convex corners it
+/// ends at alone, as [`corners::crossed`] reads them once a step has its
+/// list, none until then.
 pub(super) struct Wedge {
     pub point: DVec3,
     pub along: DVec3,
@@ -63,6 +66,7 @@ pub(super) struct Wedge {
     pub reach: f64,
     pub dip: f64,
     pub inwards: bool,
+    pub crossed: Vec<[DVec3; 2]>,
 }
 
 /// What a step raises to cut an edge off or fill it in: the section, square
@@ -268,16 +272,18 @@ impl Exact {
     /// Whether the prism left its face alone on the body, numbered where the
     /// steps' numbers of `before` ended and answering to the `laid` numbers
     /// from there, in one piece, every corner of it on one of the edges' faces
-    /// — where the faces met at the edges' ends trim it — or a corner of a
-    /// face numbered in `mitred`, where a mitre with it ends — at a corner
-    /// that is not square, on a face of the other edge, short of the third —
-    /// or on the plane of one of `open`, where an edge laid after it completes
-    /// it, and every face `before` held but the edges' and those numbered in
-    /// `taken` — or a piece an earlier cut parted from one of them, which the
-    /// edge takes as it would have taken it unparted — still there: no face,
-    /// nor piece of a face, of the prism but that one — but an overlap's,
-    /// numbered from [`OVERLAPS`], which an edge laid after it may cover, and
-    /// [`Exact::overlaps_covered`] holds once every edge is laid.
+    /// — where the faces met at the edges' ends trim it — or on an edge one of
+    /// them crosses where it ends alone at a convex corner, as its `crossed`
+    /// holds them, the face ending there across the faces round it, or a
+    /// corner of a face numbered in `mitred`, where a mitre with it ends — at
+    /// a corner that is not square, on a face of the other edge, short of the
+    /// third — or on the plane of one of `open`, where an edge laid after it
+    /// completes it, and every face `before` held but the edges' and those
+    /// numbered in `taken` — or a piece an earlier cut parted from one of
+    /// them, which the edge takes as it would have taken it unparted — still
+    /// there: no face, nor piece of a face, of the prism but that one — but an
+    /// overlap's, numbered from [`OVERLAPS`], which an edge laid after it may
+    /// cover, and [`Exact::overlaps_covered`] holds once every edge is laid.
     fn cut_along(
         &self,
         wedges: &[&Wedge],
@@ -313,6 +319,7 @@ impl Exact {
                 || wedges.iter().any(|wedge| {
                     let at = point - wedge.point;
                     wedge.outward.iter().any(|side| side.dot(at).abs() <= eps)
+                        || (wedge.crossed.iter()).any(|&edge| lies_on(edge, point, eps))
                 })
         });
         let consumable: BTreeSet<u32> = (wedges.iter())

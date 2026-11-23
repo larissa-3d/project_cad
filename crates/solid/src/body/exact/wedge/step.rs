@@ -40,7 +40,8 @@ impl Exact {
     /// where its blend runs laid before any other edge of the list, whatever
     /// its rank, as [`runs`] holds it for the kind's `set_back`, with
     /// [`reach_within`]: the least any edge takes alone bounds the step in
-    /// every order (#877).
+    /// every order (#877), and the edges its face crosses where it ends alone
+    /// at a convex corner, as [`corners::crossed`] reads them (#943).
     /// Declined `Lost` where a name no longer finds its edge, and
     /// `Unsupported` where an edge is not a wedge, two names find one edge,
     /// or the corners are declined as [`corners::admit`] and
@@ -75,8 +76,9 @@ impl Exact {
             .map(|rank| Some(reached(rank, 0)?.min(reached(rank, 1)?)))
             .collect::<Option<Vec<f64>>>()
             .ok_or(Declined::Unsupported)?;
-        for (wedge, reach) in wedges.iter_mut().zip(reaches) {
+        for ((rank, wedge), reach) in wedges.iter_mut().enumerate().zip(reaches) {
             wedge.reach = reach;
+            wedge.crossed = corners::crossed(&self.brep, &edges, rank);
         }
         let facing = pairs::facing(&self.brep, &edges, &wedges);
         Ok(Step {

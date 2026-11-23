@@ -179,8 +179,9 @@
 //!   box, whose hips' feet are vertices where four edges end too; since #804
 //!   it is held on a pyramid standing on its own base, each hip's foot a
 //!   corner of three edges, so that only the apex declines it. The pyramid on
-//!   the box waits on #943, which takes a cut ending alone at a vertex of four
-//!   edges
+//!   the box waited on #943, which takes a cut ending alone at a vertex of four
+//!   edges, held since in
+//!   `a_lone_edge_ending_at_a_vertex_of_four_or_more_edges_is_chamfered_or_rounded.rs`
 //! - A later edge the step's own earlier cut takes whole at their corner is
 //!   laid even so, as the body given reads it, so that the step lays both
 //!   cuts whole whichever edge the list names first, as every mitre here
@@ -460,10 +461,12 @@
 //!   `a_fillet_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_piece_of_sphere_one_radius_from_its_four_faces_whatever_the_order`,
 //!   `a_chamfer_on_the_four_hips_of_a_pyramid_closes_its_apex_with_a_square_where_the_flats_edges_cross_whatever_the_order`
 //! - A hip cut alone, on either pyramid, ends at the apex at a vertex of four
-//!   edges, and is declined there before any corner is read; so is any edge
-//!   of `pyramid()`'s box ending at a hip's foot — no test: not this issue's,
-//!   a cut ending alone at a vertex of four edges is #943's, whose scope takes
-//!   the apex in. Set aside by the same decision, on this branch
+//!   edges, and was declined there; so was any edge of `pyramid()`'s box
+//!   ending at a hip's foot — no test: not this issue's, a cut ending alone
+//!   at a vertex of four edges is #943's, whose scope takes the apex in,
+//!   built since and held in
+//!   `a_lone_edge_ending_at_a_vertex_of_four_or_more_edges_is_chamfered_or_rounded.rs`.
+//!   Set aside by the same decision, on this branch
 //! - Decided on the way, after the green (2026-11-13): the chamfer's guard
 //!   that the crossings lie on one plane is held on its own, which the pin
 //!   above does not do: on the base 10 by 6 a later check declines the
@@ -5171,9 +5174,9 @@ fn block_under([length, breadth]: [f64; 2]) -> Body {
 /// #699 held its decline on a pyramid standing on a box, the block 10 by 10 by
 /// 10 cut down to its walls' halfway. Each hip's foot there is a vertex where
 /// four edges end, the hip, two eaves and the box's upright, and a cut ending
-/// at such a vertex, alone in its list, is declined before any corner is read:
-/// a behaviour of one edge, #943's. The pyramid on the box waits on that
-/// issue; the apex is held here on pyramids standing on their own base.
+/// at such a vertex, alone in its list, was declined: a behaviour of one edge,
+/// #943's, which builds it since. The apex is held here on pyramids standing
+/// on their own base.
 fn pyramid_on_its_base(footprint: [f64; 2]) -> Body {
     let apex = apex_over(footprint);
     apex.slopes

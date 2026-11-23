@@ -38,7 +38,11 @@ impl Exact {
     /// — the inner corner of an L, a pocket's rim, the foot of a block
     /// standing on another — its flat stops flush on that face, which grows
     /// by the flat's end and keeps its number, as [`Exact::laid_flush`] stops
-    /// it. Two edges meeting at a
+    /// it. An edge ending alone at a convex corner where four or more edges
+    /// end — a hip's foot on a box, a pyramid's apex — is carried past it as
+    /// past a corner of three: each line of its prism stops on the last face
+    /// round the corner it meets, so its flat ends across those faces, a
+    /// corner on each edge between two of them (#943). Two edges meeting at a
     /// convex corner are mitred there, from where their flats cross on the
     /// face they share down to the corner's third edge, left sharp. Two cut
     /// off where they meet beside a concave edge left sharp — the L's two top edges
@@ -115,10 +119,11 @@ impl Exact {
     /// with the chamfer's plane that the prism cannot stand off it, and a cut
     /// that, carried along the edge's line, takes matter beyond the faces it
     /// meets there — past an end where the face the edge runs into is curved,
-    /// or is not one face — seen as a face of the prism but its chamfer left on
-    /// the body, the chamfer in two pieces or with a corner on neither of the
-    /// edge's faces, or a face the body held, but the edge's two, taken away
-    /// whole.
+    /// or is not one face but at a convex corner the edge ends at alone — seen
+    /// as a face of the prism but its chamfer left on the body, the chamfer in
+    /// two pieces or with a corner on neither of the edge's faces nor on an
+    /// edge ending at a convex corner it ends at alone, or a face the body
+    /// held, but the edge's two, taken away whole.
     pub fn chamfered(&self, names: &[EdgeName], distance: f64) -> Result<(Exact, f64), Declined> {
         let (cut, taken, _) = self.cut_off(
             names,
