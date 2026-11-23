@@ -565,7 +565,10 @@
 //!   back to the rib's back; one face more, flat for the chamfer and curved
 //!   for the fillet; the sphere one face still, drawn on its sphere; and the
 //!   eps the body decides at, read through `Body::on_a_plane` as #941 reads
-//!   it, the same to the bit as before the step
+//!   it, the same to the bit as before the step. Held the same way at nine
+//!   and a half, the one fill here at which the bound the issue names stands
+//!   past the part's reach —
+//!   `a_chamfer_and_a_fillet_of_nine_and_a_half_at_the_foot_of_the_rib_ending_on_a_dome_trimmed_just_inside_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step`
 //! - #941's, #788's and #805's tests keep their bodies — no test: they are
 //!   the tests of their blocks above in this file, left as they were, and
 //!   running them is the answer
@@ -574,16 +577,20 @@
 //! what the code does. The bound it names, the profile's corners' place plus
 //! their furthest from the axis, only sets the tolerance `Straight::of` lays
 //! the profile at; the solid turned from it carries its own reach, read off
-//! its corners, edges and bulges. On this fixture the bound stands under the
-//! part's own reach at a fill of 6, and a laying much coarser than either
-//! lays the ball's piece the same. What does grow the part's reach is the
-//! piece's real extent: its sector stands out past the plate's side once the
-//! fill nears the rib's height, at 9.9 and at 10, the most the rib takes —
-//! the piece's shape, neither the bound nor the fill's prism, followed in
-//! #1023. Just short of that, at nine and a half, the piece still stands
-//! inside the part's box, and the tolerance is held there too, which is what
-//! kills the snug mutants #941 left alive —
+//! its corners, edges and bulges. At a fill of 6 the bound stands under the
+//! part's own reach, so that test alone cannot tell the two readings apart,
+//! and a laying much coarser than either lays the ball's piece the same. At
+//! nine and a half the bound stands past the part's reach while the piece
+//! itself still stands inside the part's box, and the tolerance holds: that
+//! pin is the one that would go red were the issue's premise true, and it
+//! also kills the snug mutants #941 left alive, so a change of its value
+//! for the mutants' sake has to keep the bound past the part's reach and
+//! the piece inside its box —
 //! `a_chamfer_and_a_fillet_of_nine_and_a_half_at_the_foot_of_the_rib_ending_on_a_dome_trimmed_just_inside_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step`.
+//! What does grow the part's reach is the piece's real extent: its sector
+//! stands out past the plate's side once the fill nears the rib's height,
+//! at 9.9 and at 10, the most the rib takes — the piece's shape, neither the
+//! bound nor the fill's prism, followed in #1023.
 
 mod step_reader;
 
@@ -3277,8 +3284,8 @@ fn a_chamfer_trimmed_flush_on_a_sphere_ten_times_the_part_s_size_leaves_the_part
 
 /// Holds that a chamfer and a fillet of `value` at the foot of the
 /// [`rib_ending_on_a_dome`]'s right side are each taken whole and built
-/// flush on the sphere, and leave the tolerance the part decides at, its
-/// own box's before the step, the same to the bit.
+/// flush on the sphere, the sphere one face still, and leave the tolerance
+/// the part decides at, its own box's before the step, the same to the bit.
 fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64) {
     let part = rib_ending_on_a_dome();
     let before = part.on_a_plane(0.0);
@@ -3319,6 +3326,11 @@ fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64) {
         );
         one_more(&part, &body, &what);
         drawn_on_the_dome(&body, DOME, &what);
+        let itself = [vec![DOME as u32], vec![DOME as u32]];
+        assert!(
+            !body.edge_names().iter().any(|name| name.between == itself),
+            "{what}: the sphere is one face, with no edge between it and itself"
+        );
         let after = body.on_a_plane(0.0);
         assert_eq!(
             after,
@@ -3340,8 +3352,9 @@ fn a_chamfer_and_a_fillet_of_six_at_the_foot_of_the_rib_ending_on_a_dome_leave_t
 }
 
 /// Nine and a half, just short of the rib's height of 10: the piece of the
-/// ball the fill is trimmed by stands just inside the part's box, and a
-/// piece a larger snug turned would stand past it.
+/// ball the fill is trimmed by stands just inside the part's box, while the
+/// bound of its corners' place plus their furthest from the axis stands past
+/// the part's reach, and so would a piece a larger snug turned.
 #[test]
 fn a_chamfer_and_a_fillet_of_nine_and_a_half_at_the_foot_of_the_rib_ending_on_a_dome_trimmed_just_inside_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step()
  {
