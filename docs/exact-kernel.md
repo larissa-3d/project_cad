@@ -62,7 +62,10 @@ It can:
   (#805), through a pole of its chart too, the sphere read about the
   circle's axis (#938), or at the one point it touches within the
   tolerance (#939), and a ball cut by flats whose planes are not
-  parallel, whatever poles of its chart the sphere left holds (#940) —
+  parallel, whatever poles of its chart the sphere left holds (#940);
+  a sphere against a cylinder, a cone or a round whose axis holds its
+  centre, and two spheres of one centre and radius, whatever axes each
+  was turned about (#956) —
   short of a circle passing within some 3° of a pole of its chart
   (#962); a plane against a cylinder or a cone at any angle (#552);
   elliptic cylinders (#571)
@@ -563,7 +566,7 @@ Left, in the order #497 set:
   axis (#533), slanted (#536), and an arc into a sphere or a torus (#576);
 - a torus against a plane at a slant or off its axis, a torus against a
   wall or a round of another axis, a sphere against a cone or a round of
-  another axis, either against an elliptic wall: declined as unsupported
+  another axis off its centre, either against an elliptic wall: declined as unsupported
   where the faces may cross — a sphere and a cylinder of another axis meet
   along the loops its rulings pierce it in, and are built (#805);
 - a few pairs of walls at any angle that the kernel still declines (see
@@ -653,11 +656,11 @@ Known and still open:
   touches at the ends of a half-axis beside a third wall, a third surface
   through a node of a meet, and a round bar touching an elliptic hole at a
   point, named in `exact-kernel-failures.md`, "#571: elliptic walls";
-- a sphere read about a circle's axis (#938) keeps that axis: a ball cut at
-  a slant through its pole and then given a knob or a bore coaxial with the
-  axis it was turned about is declined at that later step, the two spheres
-  of one centre and radius, read about two axes, not one surface, and no
-  axis laying both the slanted circle and the old one off its poles (#956);
+- a ball bored along its axis and then cut at a slant through a pole of
+  its chart is declined, as is any part whose sphere a plane cuts through
+  a pole of its chart where another surface of the part meets the sphere
+  too: it is read about no other axis then (#938). The other order, the
+  cut and then the bore, is built (#956);
 - a cut at a slant a few tolerances off a pole, past where the sphere is
   read again, is built along the tilted circle, its volume off by up to a
   few units of 1e-7 there, held to 1e-6, where elsewhere it is good to a
@@ -699,8 +702,8 @@ Known and still open:
   of each other, a cone pair of the few kinds "A cone against another
   wall" names (#577), a plane at a slant
   through a torus, a wall of another axis against a torus, a cone or a
-  round of another axis against a round, and an elliptic wall against a
-  round, are declined where
+  round of another axis against a round, off a sphere's centre, and an
+  elliptic wall against a round, are declined where
   their faces may cross: the operation gives no answer, which
   the harness counts as such rather than as a wrong solid. Where the faces stand clear of each other — a
   bore square into one side of a hexagonal prism, beside the next side, or
@@ -935,7 +938,13 @@ The decisions, in the order taken, once per operation:
    `Relation::Meridians`, one great circle for a sphere, two tube circles
    for a torus — with the poles it crosses at as corners, as a cone's apex
    is. Two rounds within `EPS` all round are `Same`, and unsupported where
-   no meridian tells them apart. Any other plane cuts a sphere (#805) along
+   no meridian tells them apart. A sphere is round about every line through
+   its centre: against a cylinder, a cone or a round whose axis holds its
+   centre within `EPS` it is read about that axis, and a round against a
+   sphere whose centre its axis holds reads the sphere about its own
+   (#956), so that the two meet along circles of that axis, a circle of
+   another axis on a sphere turned about another, and two spheres of one
+   centre and radius are `Same` whatever axes they were turned about. Any other plane cuts a sphere (#805) along
    the circle about the foot of its centre on the plane, square to the
    plane, of radius `√(r² − d²)`, `d` the centre's distance from the plane,
    written as a product — `Relation::Circle`, a circle of another axis than
@@ -960,9 +969,15 @@ The decisions, in the order taken, once per operation:
    top — leaves the ball's axis to the bore along it. It is read so only
    where every circle on its faces and every circle the other operand's
    planes cut it along stands clear of the new poles, and no surface but a
-   plane, in either operand, meets it along curves its axis decides — a
-   coaxial knob keeps the axis, and the step declines; the result carries
-   the sphere so read (#956). A face of a sphere or
+   plane, in either operand, meets it — a coaxial knob keeps the axis, and
+   the step declines; the result carries the sphere so read, and a later
+   bore or knob along the old axis meets it along circles of that axis, a
+   circle of another axis on the sphere so read (#956). Two spheres of one
+   centre and radius are one surface whatever axes they were turned about
+   (#956): before the boolean, the second operand's sphere is read about
+   the first's axis and laid again, or the first's about the second's
+   where a circle on the second's faces runs through a pole of the first's
+   chart, so that the two share one chart. A face of a sphere or
    a torus whose loops cannot be traced is declined when the body is
    verified rather than read as holding no pole, which lost the cap of the
    pole it held from its volume (#945, `assembly.rs`). A sphere carries
@@ -978,13 +993,13 @@ The decisions, in the order taken, once per operation:
    (`meet/pierced.rs`): on the cylinder `(z − e)² = 2d (y − y₀)`, a root
    vanishing at the low end of the span alone; apart where it misses the
    ball or holds it inside; within `EPS` of a touch from outside or inside,
-   of a figure of eight, or of its axis holding the centre, unsupported. On
+   or of a figure of eight, unsupported. On
    the sphere the curve is seen in its `(θ, φ)`, its angle about the axis
    unwrapped once along each loop (`meet/seen/ball.rs`), and a loop that
    passes too near a pole to be read so is declined. A plane at a slant to
    a torus or off its axis, a wall or a round of another axis against a
-   torus, a cone or a round of another axis against a sphere, and an
-   elliptic wall are unsupported, and decline unless `clear` stands the two
+   torus, a cone or a round of another axis off a sphere's centre against
+   it, and an elliptic wall are unsupported, and decline unless `clear` stands the two
    faces apart; none of them asks for a conic, so `at_a_slant` answers
    false.
    A plane at a slant to a wall (#552) — neither square to a cylinder's
@@ -2110,7 +2125,9 @@ covered once from each side.
    square to, or along, a wall's axis, or parallel to a plane, it leans a
    hair off (decision 11),
    moved onto a wall of its radius a hair off (decision 8), and onto a round
-   it stands a hair from touching, or a rim on it (decision 12). A boolean
+   it stands a hair from touching, or a rim on it (decision 12). Before
+   them, a sphere the two operands share, read about two axes, is read
+   about one (#956, `combine/charted.rs`). A boolean
    declined unsupported is asked once more with either operand's sphere
    that a plane of the other cuts through a pole of its chart read about
    that circle's axis (#938, `combine/charted.rs`).

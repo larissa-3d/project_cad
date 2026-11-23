@@ -4,16 +4,20 @@
 //! of the meridian half-plane (`revolved/arc.rs`), read in the round's own
 //! frame, or in the first of two rounds' by an order read off their bits; a
 //! plane holding its axis as the meridian circles it cuts, with the poles
-//! they cross at. Any other plane cuts a sphere along the circle about the
-//! foot of its centre (#805), a circle of another axis than the sphere's,
-//! or touches it at that foot alone within the tolerance (#939), and a
-//! cylinder whose axis does not hold its centre pierces it along one or two
-//! loops (#805, `meet/pierced.rs`). Anything else — such a plane against a
-//! torus, a cone or a round of another axis, a cylinder of another axis
-//! against a torus or through a sphere's centre, an elliptic wall — is
-//! unsupported, which declines a boolean unless the two faces stand clear
-//! of each other; none of it is a conic's, so `at_a_slant` answers false
-//! and `clear` may pass the faces by.
+//! they cross at. A sphere is round about every line through its centre: a
+//! cylinder, a cone or a round whose axis holds the centre meets it as it
+//! meets the sphere read about that axis (#956), along circles of it, so that
+//! two spheres of one centre and radius are one surface whatever axes they
+//! were turned about. Any other plane cuts a sphere along the circle about
+//! the foot of its centre (#805), a circle of another axis than the
+//! sphere's, or touches it at that foot alone within the tolerance (#939),
+//! and a cylinder whose axis does not hold its centre pierces it along one
+//! or two loops (#805, `meet/pierced.rs`). Anything else — such a plane
+//! against a torus, a cone or a round of another axis off a sphere's
+//! centre, a cylinder of another axis against a torus, an elliptic wall —
+//! is unsupported, which declines a boolean unless the two faces stand
+//! clear of each other; none of it is a conic's, so `at_a_slant` answers
+//! false and `clear` may pass the faces by.
 //!
 //! How far a coaxial plane, cylinder or cone stands from touching a round,
 //! or from passing through a rim on it, is read here too, in the same
@@ -176,8 +180,10 @@ fn goes_first(one: &Surface, other: &Surface) -> bool {
 
 /// The round `surface` against `other`: a plane square to its axis or
 /// holding it, or a surface of revolution about its axis, each read in the
-/// round's frame; any other plane, or a cylinder of another axis, against a
-/// sphere.
+/// round's frame; a sphere read about the axis of a surface of revolution
+/// holding its centre, or the round against a sphere whose centre its axis
+/// holds read about that axis (#956); any other plane, or a cylinder of
+/// another axis, against a sphere.
 fn against(
     surface: &Surface,
     (frame, center, radius): (Frame, DVec2, f64),
@@ -194,16 +200,34 @@ fn against(
         | Surface::Torus(Torus { origin, axis, .. }) => (*origin, *axis),
         Surface::Elliptic(_) => return Relation::Unsupported,
     };
-    if !coaxial(&frame, origin, axis, scale) {
-        return match (surface, other) {
-            (Surface::Sphere(sphere), Surface::Cylinder(cylinder)) => {
-                pierced(sphere, cylinder, scale)
-            }
-            _ => Relation::Unsupported,
-        };
+    if coaxial(&frame, origin, axis, scale) {
+        return about_the_axis(&frame, (center, radius), other, scale);
     }
-    match Meridian::of_surface(&frame, other) {
-        Some(meridian) => met_round(&frame, center, radius, meridian, scale),
+    match (surface, other) {
+        (Surface::Sphere(sphere), _) if holds(origin, axis, sphere.middle(), scale) => {
+            let about = sphere.about(axis);
+            let center = DVec2::new(about.center, 0.0);
+            about_the_axis(&Frame::of_sphere(&about), (center, radius), other, scale)
+        }
+        (_, Surface::Sphere(sphere)) if holds(frame.origin, frame.axis, sphere.middle(), scale) => {
+            let about = Surface::Sphere(sphere.about(frame.axis));
+            about_the_axis(&frame, (center, radius), &about, scale)
+        }
+        (Surface::Sphere(sphere), Surface::Cylinder(cylinder)) => pierced(sphere, cylinder, scale),
+        _ => Relation::Unsupported,
+    }
+}
+
+/// The round of meridian circle `(center, radius)` in `frame` against
+/// `other`, a surface of the frame's axis.
+fn about_the_axis(
+    frame: &Frame,
+    (center, radius): (DVec2, f64),
+    other: &Surface,
+    scale: Scale,
+) -> Relation {
+    match Meridian::of_surface(frame, other) {
+        Some(meridian) => met_round(frame, center, radius, meridian, scale),
         None => Relation::Unsupported,
     }
 }
@@ -216,6 +240,13 @@ fn coaxial(frame: &Frame, origin: DVec3, axis: DVec3, scale: Scale) -> bool {
     let between = origin - frame.origin;
     parallel(axis, frame.axis, scale)
         && (between - frame.axis * frame.axis.dot(between)).length() <= scale.eps()
+}
+
+/// Whether the line through `origin` along `axis` passes within the
+/// tolerance of `point`.
+fn holds(origin: DVec3, axis: DVec3, point: DVec3, scale: Scale) -> bool {
+    let between = point - origin;
+    (between - axis * axis.dot(between)).length() <= scale.eps()
 }
 
 /// Square to the axis, the circles at the plane's height, from the formula a
@@ -277,9 +308,9 @@ fn section(sphere: &Sphere, plane: &Plane, scale: Scale) -> Relation {
 /// takes in part of the ball, two where it passes right through it — and
 /// apart where it misses the ball or holds it inside, each gap measured
 /// where the two surfaces come nearest. Within the tolerance of touching the
-/// ball from outside or from inside, of a figure of eight — the cylinder
-/// through it touching it from inside along its far side — or of its axis
-/// holding the centre: unsupported.
+/// ball from outside or from inside, or of a figure of eight — the cylinder
+/// through it touching it from inside along its far side: unsupported. An
+/// axis holding the centre never comes here: the sphere is read about it.
 fn pierced(sphere: &Sphere, cylinder: &Cylinder, scale: Scale) -> Relation {
     let eps = scale.eps();
     let between = sphere.middle() - cylinder.origin;
@@ -290,7 +321,7 @@ fn pierced(sphere: &Sphere, cylinder: &Cylinder, scale: Scale) -> Relation {
         return Relation::Apart;
     }
     let through = ball - (off + wall);
-    if off <= eps || outside >= -eps || through.abs() <= eps {
+    if outside >= -eps || through.abs() <= eps {
         return Relation::Unsupported;
     }
     let meeting = Meeting::of(&Wall::Cylinder(*cylinder), &Wall::Sphere(*sphere), scale);
