@@ -8,10 +8,12 @@
 //! piece no longer carries the sphere's size, but it is not held inside the
 //! box: a sector's arc bulges past it between its planes, a whole turn's
 //! disc stands all round the axis, each by no more than about the box's
-//! furthest distance from the axis, and the reach its profile is laid at —
-//! its corners' place plus their furthest from the axis — is larger still.
-//! A large fill near its part's edge may so widen the part's reach a
-//! little; never by the dome's size.
+//! furthest distance from the axis. That reach is the piece's own, read off
+//! its corners, edges and bulges; the bound its profile is laid at — its
+//! corners' place plus their furthest from the axis — sets only the
+//! tolerance it is laid to, never the reach it carries (#977). A large fill
+//! near its part's edge may so widen the part's reach a little (followed in
+//! #1023); never by the dome's size.
 
 use std::f64::consts::{PI, TAU};
 

@@ -281,7 +281,9 @@ fn previous(ring: &Range<usize>, corner: usize) -> usize {
 
 /// The kernel's scale over what the turn can reach, the part's included: no
 /// corner of the profile stands further from the origin than its place in
-/// the frame and its distance from the axis.
+/// the frame and its distance from the axis. It sets only the tolerance the
+/// profile is laid at; the turned solid's reach is read off its own corners,
+/// edges and bulges (#977).
 fn scale(contours: &[&Contour], frame: Frame, read: &[DVec2], part_reach: f64) -> Scale {
     let furthest = read.iter().map(|corner| corner.y).fold(0.0, f64::max);
     let placed = contours
