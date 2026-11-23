@@ -302,3 +302,5 @@ fn a_face_whose_corners_lie_on_its_surface_but_whose_edges_bow_away_from_it_is_u
         "the top laid on the sphere through its four corners, its edges' middles 8.3 inside it"
     );
 }
+
+mod cone;

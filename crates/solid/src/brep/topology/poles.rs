@@ -74,7 +74,10 @@ impl Body {
     /// axis and its conics and meets go round it once, net, either by the
     /// angle its trace on the cone turns through — the tip a plane at a slant cuts off
     /// a point, held by an ellipse alone. A ruling goes round nothing. A face
-    /// with a corner at its apex is held by that corner already.
+    /// with a corner at its apex is held by that corner already. A conic or a
+    /// meet its cone cannot trace goes round nothing here, and its face is
+    /// declined when its body is verified (`assembly.rs`): its volume would
+    /// lose the apex's share (#957).
     fn apex_within(&self, face: &Face) -> Option<DVec3> {
         let surface = *self.surface(face.surface);
         let Surface::Cone(cone) = surface else {
