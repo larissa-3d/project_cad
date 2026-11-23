@@ -154,9 +154,9 @@ impl ViewportState {
 
 /// The halves last cut, each handed to every frame until the part, the plane
 /// or the side the eye is on changes: a cut costs the kernel a boolean, which
-/// no frame can afford. Kept for each body a frame cuts — the part, the ghost
-/// of each volume shown see-through, and what a section leaves of either for
-/// the sketch's cut — the last asked for last.
+/// no frame can afford. Kept for each body a frame cuts and each plane it cuts
+/// it along — the part, the ghost of each volume shown see-through, and what
+/// a section leaves of either for the sketch's cut — the last asked for last.
 #[derive(Default)]
 pub(crate) struct Sections {
     last: RefCell<Vec<Halves>>,
@@ -166,9 +166,13 @@ pub(crate) struct Sections {
     front_cuts: std::cell::Cell<usize>,
 }
 
-/// How many bodies' halves are kept: the part's and as many ghosts as anyone
-/// makes see-through at once.
-const BODIES_KEPT_CUT: usize = 16;
+/// How many cuts' halves are kept, one for each body and plane. A section with
+/// a sketch face-on over it cuts each body up to three times — the body, what
+/// the section leaves opaque, what it leaves see-through — and this holds the
+/// part and eight volumes shown see-through cut so. Each keeps a copy of the
+/// body it was cut from beside its halves; a plane that keeps moving, as the
+/// section's handle pulled, fills them with its last places.
+const CUTS_KEPT: usize = 3 * 9;
 
 struct Halves {
     cut: Cut,
@@ -260,10 +264,14 @@ impl Sections {
         let mut last = self.last.borrow_mut();
         // Compared by value: the document keeps no revision of its body, and
         // reading two bodies through costs a fraction of cutting one.
-        let kept = last.iter().position(|halves| halves.body == *body);
+        // By its plane too: a section that misses the part leaves a copy of
+        // it, which the sketch's cut then asks for along another plane.
+        let kept = last
+            .iter()
+            .position(|halves| halves.cut == cut && halves.body == *body);
         let mut halves = match kept.map(|rank| last.remove(rank)) {
-            Some(halves) if halves.cut == cut => halves,
-            _ => Halves {
+            Some(halves) => halves,
+            None => Halves {
                 cut,
                 body: body.clone(),
                 behind: None,
@@ -291,7 +299,7 @@ impl Sections {
                 .clone()
         });
         last.push(halves);
-        let stale = last.len().saturating_sub(BODIES_KEPT_CUT);
+        let stale = last.len().saturating_sub(CUTS_KEPT);
         last.drain(..stale);
         (behind, in_front)
     }

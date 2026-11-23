@@ -370,6 +370,18 @@
 //! The first answer to #990 sent the light through the world's lines, and
 //! rendered frames set it aside: their constant nudge thinned an inside edge
 //! to a dotted hairline. The decision is a comment on the issue.
+//!
+//! Closes #970 — the whole transcription is in
+//! `crates/app/src/screens/viewport/matter/tests.rs`; these bullets are what a
+//! frame hands the painter while a sketch sits face-on over a section.
+//! - found in review: the sketch's own cut comes on top of what the section
+//!   draws opaque, as it would on the part alone — Hidden draws nothing in
+//!   front of the sketch, See-through draws it see-through, Opaque draws it as
+//!   the section does, and what the section hides stays hidden in all three —
+//!   `a_face_on_sketch_under_a_section_cuts_what_the_section_draws_as_it_would_cut_the_part`
+//! - found in review: what the section draws see-through is cut by the sketch
+//!   while the matter in front is hidden, and stays see-through otherwise —
+//!   `the_side_a_section_draws_see_through_is_cut_by_a_face_on_sketch_only_while_its_matter_in_front_is_hidden`
 
 use cao_part::{ExtrusionMode, Operation, PartDocument, PointRef, VolumeState};
 use cao_prefs::config::ViewportConfig;
@@ -1575,6 +1587,92 @@ fn an_invisible_body_draws_nothing_whatever_the_section_or_the_sketch_shows() {
              (behind, in front)",
         );
     }
+}
+
+const THREE_QUARTERS_UP: f32 = 3.0;
+
+/// One frame of the block, seen onto a sketch opened at `sketched_at` across
+/// it after `clicks` on its matter-in-front button, with the section view open
+/// along XY at `cut_at`, its sides as `prepare` leaves them. Of the surfaces,
+/// only the matter seen through is kept: the section view's square, see-through
+/// on its cutting plane, stands over a sketch under it and is no matter.
+fn a_frame_through_a_block_and_a_section(
+    sketched_at: f32,
+    cut_at: f32,
+    clicks: usize,
+    prepare: impl FnOnce(&mut Section),
+) -> SceneFrame {
+    let mut frame = a_frame_through_a_block_seen(sketched_at, clicks, |state| {
+        let mut section = Section::new(WorkPlane::XY);
+        section.offset = f64::from(cut_at);
+        prepare(&mut section);
+        state.section = Some(section);
+    });
+    frame.scene_surfaces = frame.scene_surfaces[frame.scene_veiled_matter.clone()].to_vec();
+    frame.scene_veiled_matter = 0..frame.scene_surfaces.len();
+    frame
+}
+
+#[test]
+fn a_face_on_sketch_under_a_section_cuts_what_the_section_draws_as_it_would_cut_the_part() {
+    let drawn: Vec<(Seen, Seen, Seen)> = (0..3)
+        .map(|clicks| {
+            let frame =
+                a_frame_through_a_block_and_a_section(HALFWAY, THREE_QUARTERS_UP, clicks, |_| {});
+            (
+                under(&frame, HALFWAY),
+                over(&frame, HALFWAY),
+                over(&frame, THREE_QUARTERS_UP),
+            )
+        })
+        .collect();
+
+    assert_eq!(
+        drawn,
+        [
+            (Seen::Opaque, Seen::Hidden, Seen::Hidden),
+            (Seen::Opaque, Seen::SeeThrough, Seen::Hidden),
+            (Seen::Opaque, Seen::Opaque, Seen::Hidden),
+        ],
+        "a sketch face-on at z = {HALFWAY}, under a section at z = {THREE_QUARTERS_UP} drawing \
+         what lies under it opaque and hiding what stands over it, its matter in front Hidden, \
+         See-through then Opaque, as (under the sketch, over the sketch, over the section)",
+    );
+}
+
+#[test]
+fn the_side_a_section_draws_see_through_is_cut_by_a_face_on_sketch_only_while_its_matter_in_front_is_hidden()
+ {
+    let drawn: Vec<(Seen, Seen, Seen)> = (0..3)
+        .map(|clicks| {
+            let frame = a_frame_through_a_block_and_a_section(
+                THREE_QUARTERS_UP,
+                HALFWAY,
+                clicks,
+                |section| {
+                    section.in_front = MatterInFront::SeeThrough;
+                },
+            );
+            (
+                under(&frame, HALFWAY),
+                over(&frame, HALFWAY),
+                over(&frame, THREE_QUARTERS_UP),
+            )
+        })
+        .collect();
+
+    assert_eq!(
+        drawn,
+        [
+            (Seen::Opaque, Seen::SeeThrough, Seen::Hidden),
+            (Seen::Opaque, Seen::SeeThrough, Seen::SeeThrough),
+            (Seen::Opaque, Seen::SeeThrough, Seen::SeeThrough),
+        ],
+        "a sketch face-on at z = {THREE_QUARTERS_UP}, over a section at z = {HALFWAY} drawing \
+         what lies under it opaque and what stands over it see-through, its matter in front \
+         Hidden, See-through then Opaque, as (under the section, over the section, over the \
+         sketch)",
+    );
 }
 
 #[test]

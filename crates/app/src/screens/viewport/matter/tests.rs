@@ -81,6 +81,18 @@
 //!   green — `orbiting_out_of_the_plane_view_draws_the_whole_part_again`,
 //!   `orbited_out_of_the_plane_view_nothing_is_drawn_see_through`, and the rest
 //!   of #319's block above, none of which turns a section on
+//! - found in review: the section view open in its panel, and not only a kept
+//!   section, keeps what it hides hidden as the camera turns —
+//!   `turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_section_view_hides`
+//! - found in review: a section and a face-on sketch cut each body once, not
+//!   every frame — a section missing the part by
+//!   `a_face_on_sketch_over_a_section_missing_the_part_cuts_it_once_not_every_frame`,
+//!   and the part with eight volumes shown see-through beside it by
+//!   `a_face_on_sketch_over_a_section_cuts_the_part_and_eight_see_through_volumes_once_not_every_frame`
+//! - found in review: a sketch face-on over a section cuts what the section
+//!   draws as it would cut the part — no test: here; what reaches the painter
+//!   is read under its own `Closes #970` in
+//!   `crates/app/src/screens/viewport/render/tests.rs`
 //!
 //! Closes #356 — the whole transcription is in
 //! `crates/app/src/screens/part_tree/state/tests/reader.rs`; this bullet is
@@ -942,27 +954,41 @@ fn the_last_box_clicked_reads_the_part_as_unread() {
 
 const HALF_HEIGHT: f64 = 5.0;
 
-/// A square of side 10 drawn on XY and raised 10 into a block, a section kept
-/// across it at half its height that draws what lies under its cut opaque and
-/// hides what stands over it, then a second sketch laid on that cut.
-fn a_block_and_a_sketch_on_the_cut_of_its_kept_section() -> PartDocument {
-    let mut document = PartDocument::new("part", chrono::Utc::now());
+/// A square of side 10 drawn on XY at `corner` and raised 10 into a block, as
+/// `sketch`: three steps of the history.
+fn a_square_raised_into_a_block(document: &mut PartDocument, sketch: usize, corner: DVec2) {
     document.apply(Operation::CreateSketch {
         plane: WorkPlane::XY,
         on: None,
     });
     document.apply(Operation::AddRectangle {
-        sketch: 0,
-        corner: PointRef::New(DVec2::ZERO),
-        opposite: PointRef::New(DVec2::splat(10.0)),
+        sketch,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(corner + DVec2::splat(10.0)),
         construction: false,
     });
     document.apply(Operation::Extrude {
-        sketch: 0,
-        areas: document.areas_at(0, &[DVec2::splat(5.0)]),
+        sketch,
+        areas: document.areas_at(sketch, &[corner + DVec2::splat(5.0)]),
         distance: 10.0_f64.into(),
         mode: ExtrusionMode::Add,
     });
+}
+
+/// The plane parallel to XY at `height`.
+fn across_at(height: f64) -> WorkPlane {
+    WorkPlane {
+        origin: DVec3::Z * height,
+        ..WorkPlane::XY
+    }
+}
+
+/// A block 10 across raised 10 from XY, a section kept across it at half its
+/// height that draws what lies under its cut opaque and hides what stands over
+/// it, then a second sketch laid on that cut.
+fn a_block_and_a_sketch_on_the_cut_of_its_kept_section() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    a_square_raised_into_a_block(&mut document, 0, DVec2::ZERO);
     document.apply(Operation::SaveSection(SectionAsked {
         plane: WorkPlane::XY,
         on: None,
@@ -975,33 +1001,43 @@ fn a_block_and_a_sketch_on_the_cut_of_its_kept_section() -> PartDocument {
     }));
     document.apply(Operation::CreateSketchOnSection {
         section: 0,
-        plane: WorkPlane {
-            origin: DVec3::Z * HALF_HEIGHT,
-            ..WorkPlane::XY
-        },
+        plane: across_at(HALF_HEIGHT),
     });
     document
 }
 
-#[test]
-fn turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_section_hides() {
-    let document = a_block_and_a_sketch_on_the_cut_of_its_kept_section();
-    let on_the_cut = document.sketches()[1].plane;
-    let mut editor = SketchEditor::default();
-    editor.begin_editing(1, on_the_cut);
-    let mut viewport = ViewportState::default();
-    viewport
-        .kept_sections
-        .keep_up_with(&document, editor.active_sketch());
-    assert!(
-        viewport.section_shown().is_some(),
-        "the fixture wants the sketch laid on the cut to switch its section on",
-    );
-    viewport.look_at_plane(on_the_cut, DVec3::new(5.0, 5.0, HALF_HEIGHT), 10.0);
+/// A block 10 across raised 10 from XY, then a second sketch across it at
+/// `height`.
+fn a_block_and_a_sketch_across_it_at(height: f64) -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    a_square_raised_into_a_block(&mut document, 0, DVec2::ZERO);
+    document.apply(Operation::CreateSketch {
+        plane: across_at(height),
+        on: None,
+    });
+    document
+}
+
+/// The view as starting a sketch on `plane` leaves it once its turn is over:
+/// sitting on the plane, the eye on the side its normal points to.
+fn face_on(viewport: &mut ViewportState, plane: WorkPlane) {
+    viewport.look_at_plane(plane, DVec3::new(5.0, 5.0, HALF_HEIGHT), 10.0);
     if let Some(mut turn) = viewport.transition.take() {
         while turn.advance(&mut viewport.camera, 1.0) {}
     }
+}
 
+/// What goes wrong as the camera turns down from face-on on `plane`, 0.4 rad
+/// at a time until it looks up at the block from under it: matter drawn over
+/// `HALF_HEIGHT`, which the section hides, or the base of the block no longer
+/// drawn opaque.
+fn turning_down_from_face_on(
+    viewport: &mut ViewportState,
+    editor: &SketchEditor,
+    document: &PartDocument,
+    plane: WorkPlane,
+) -> Vec<String> {
+    face_on(viewport, plane);
     let mut wrong = Vec::new();
     for step in 0..=8 {
         if step > 0 {
@@ -1013,7 +1049,7 @@ fn turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_
         } else {
             "under"
         };
-        let drawn = seen(&viewport, &editor, &document);
+        let drawn = seen(viewport, editor, document);
         let highest = drawn
             .iter()
             .flat_map(Drawn::pieces)
@@ -1034,10 +1070,146 @@ fn turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_
             ));
         }
     }
+    wrong
+}
+
+#[test]
+fn turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_section_hides() {
+    let document = a_block_and_a_sketch_on_the_cut_of_its_kept_section();
+    let on_the_cut = document.sketches()[1].plane;
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(1, on_the_cut);
+    let mut viewport = ViewportState::default();
+    viewport
+        .kept_sections
+        .keep_up_with(&document, editor.active_sketch());
+    assert!(
+        viewport.section_shown().is_some(),
+        "the fixture wants the sketch laid on the cut to switch its section on",
+    );
+
+    let wrong = turning_down_from_face_on(&mut viewport, &editor, &document, on_the_cut);
+
     assert!(
         wrong.is_empty(),
         "the section hides what stands over z = {HALF_HEIGHT}; the camera turned down from \
          face-on on the sketch laid on its cut, 0.4 rad at a time, past the sketch's plane:\n{}",
         wrong.join("\n"),
+    );
+}
+
+#[test]
+fn turning_the_camera_while_a_sketch_is_edited_never_brings_back_the_matter_the_section_view_hides()
+{
+    let document = a_block_and_a_sketch_across_it_at(2.0);
+    let across = document.sketches()[1].plane;
+    let mut viewport = ViewportState::default();
+    viewport.toggle_section(document.body());
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(1, across);
+
+    let wrong = turning_down_from_face_on(&mut viewport, &editor, &document, across);
+
+    assert!(
+        wrong.is_empty(),
+        "the section view open through the middle of the block hides what stands over \
+         z = {HALF_HEIGHT}; the camera turned down from face-on on a sketch at z = 2, 0.4 rad \
+         at a time, past the sketch's plane:\n{}",
+        wrong.join("\n"),
+    );
+}
+
+fn cuts(viewport: &ViewportState) -> usize {
+    viewport.sections.behind_cuts() + viewport.sections.front_cuts()
+}
+
+#[test]
+fn a_face_on_sketch_over_a_section_missing_the_part_cuts_it_once_not_every_frame() {
+    let document = a_block_and_a_sketch_across_it_at(HALF_HEIGHT);
+    let across = document.sketches()[1].plane;
+    let mut viewport = ViewportState::default();
+    let mut over_the_part = Section::new(WorkPlane::XY);
+    over_the_part.offset = 20.0;
+    viewport.section = Some(over_the_part);
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(1, across);
+    face_on(&mut viewport, across);
+
+    let first = seen(&viewport, &editor, &document).expect("the block is drawn");
+    assert!(
+        !first.pieces().any(reaches_over_half_height) && lies_on(&first.opaque, 0.0),
+        "the fixture wants the sketch's own cut drawn, the block under it opaque",
+    );
+    let after_the_first_frame = cuts(&viewport);
+    for _ in 0..3 {
+        seen(&viewport, &editor, &document);
+    }
+
+    assert_eq!(
+        cuts(&viewport),
+        after_the_first_frame,
+        "a section over the block and a sketch face-on across it: three frames more with \
+         nothing changed cut the block again",
+    );
+}
+
+fn reaches_over_half_height(body: &Body) -> bool {
+    body.triangles()
+        .iter()
+        .flatten()
+        .any(|at| at.z > HALF_HEIGHT + 1e-9)
+}
+
+/// The history steps one block takes: its sketch, its square, its raise.
+const STEPS_PER_BLOCK: usize = 3;
+
+/// Nine blocks 10 across raised 10 from XY side by side, 20 apart along X,
+/// then a sketch across them all at `height`.
+fn nine_blocks_and_a_sketch_across_them_at(height: f64) -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    for block in 0..9 {
+        a_square_raised_into_a_block(&mut document, block, DVec2::X * 20.0 * block as f64);
+    }
+    document.apply(Operation::CreateSketch {
+        plane: across_at(height),
+        on: None,
+    });
+    document
+}
+
+#[test]
+fn a_face_on_sketch_over_a_section_cuts_the_part_and_eight_see_through_volumes_once_not_every_frame()
+ {
+    let document = nine_blocks_and_a_sketch_across_them_at(2.0);
+    let across = document.sketches()[9].plane;
+    let mut viewport = ViewportState::default();
+    for block in 1..9 {
+        viewport.next_volume_mode(&document, STEPS_PER_BLOCK * block + 2);
+    }
+    assert_eq!(
+        viewport.part_shown(&document).map(|part| part.ghosts.len()),
+        Some(8),
+        "the fixture wants eight volumes shown see-through beside the part",
+    );
+    let mut through_the_middle = Section::new(WorkPlane::XY);
+    through_the_middle.offset = HALF_HEIGHT;
+    viewport.section = Some(through_the_middle);
+    let mut editor = SketchEditor::default();
+    editor.begin_editing(9, across);
+    face_on(&mut viewport, across);
+
+    seen(&viewport, &editor, &document);
+    let after_the_first_frame = cuts(&viewport);
+    seen(&viewport, &editor, &document);
+
+    assert!(
+        after_the_first_frame > 0,
+        "the fixture wants the section and the sketch to cut something",
+    );
+    assert_eq!(
+        cuts(&viewport),
+        after_the_first_frame,
+        "the part and eight see-through volumes under a section and a face-on sketch: the \
+         second frame, with nothing changed, cut again",
     );
 }
