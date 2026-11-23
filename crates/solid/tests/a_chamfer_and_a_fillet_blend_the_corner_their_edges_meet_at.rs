@@ -978,6 +978,66 @@
 //!   rather than a red test. The other decline the comment makes explicit, a
 //!   leaning corner with a foot left sharp, #1093's, is the one the paragraph
 //!   on `CLEARED` above names
+//! - Decided on the way, after the mutants (2026-11-23): the faces the second
+//!   pass of `short_of_the_round` closes corners with are numbered by their
+//!   corners' ranks, however many it closes; with the pyramid's one apex the
+//!   number it read each closing face by, turned from `+` to `−`, went
+//!   unseen. A frustum on a plate, its hips, feet and top edges filleted at
+//!   1, closes four #699 corners in that pass, built in every order, one body
+//!   face for face —
+//!   `a_fillet_on_the_hips_feet_and_top_edges_of_a_frustum_on_a_plate_closes_its_four_top_corners_after_stopping_each_fill_where_a_hip_s_round_begins_in_one_body_whatever_the_order`.
+//!   Read as: `block_on_a_plate` with every wall leaning in 3 over its 5, a
+//!   frustum 10 by 10 at its foot and 4 by 4 at its top, holding 1060; before
+//!   the step, each top corner's centre 1 in from its top and its two walls;
+//!   then its four hips, four feet and four top edges at 1, in 12 of their
+//!   orders, the first two as listed and reversed, the rest shuffled from a
+//!   fixed seed: the value taken whole; the body exact, closed, uncrossed,
+//!   holding `frustum_filleted`, 1058.088034412097, the arithmetic of the
+//!   pyramid on its plate with each top corner's cell and sector, the figure
+//!   the review measured; one face for each edge by its rank, then the four
+//!   pieces of sphere, numbered by the lowest ranks of their corners' three
+//!   edges as #699 numbers corners closed in one step, each on the sphere
+//!   about its own corner's centre and meeting the rounds of that corner's
+//!   three edges and nothing else, then the eight flat ends, each facing
+//!   along its wall square to its hip, toward it; the plate's top with a
+//!   corner where each hip's round comes down to it beside each fill's end;
+//!   and every order laying the body the first lays, face for face, each
+//!   flat face's corners compared off the hips' rounds. Off them, because the
+//!   plate's top lists points along the curve each hip's round meets it on,
+//!   and in six of the eleven later orders lists them at other places and in
+//!   other numbers, 80 to 82 where the first lists 78, every face meeting
+//!   what it meets there. Checked in a scratch copy with its own target, the
+//!   `+` turned to `−`: the test fails, the pieces of sphere numbered apart
+//!   from the edges' faces
+//! - Decided on the way, after the mutants (2026-11-23): an end held flush is
+//!   trimmed toward its corner whatever the side of the ground the round's
+//!   axis passes; the sign it is read by survived with `corner.at − through`
+//!   turned into `corner.at / through`, the two agreeing wherever the axis
+//!   stands above the ground as the foot does. The pyramid on its plate
+//!   lowered until each hip's round's axis passes under the ground at its
+//!   foot, the foot above it, lays the same body lowered —
+//!   `a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_lowered_until_the_hips_rounds_axes_pass_under_the_ground_lays_the_same_body_lowered`.
+//!   Read as: `pyramid_on_a_plate_lowered` by 1.5, its plate's top at 0.5,
+//!   above the ground and under the 0.94 by which each hip's round's axis
+//!   passes under its foot; before the step, the part holding what the
+//!   unlowered one does in the same faces; then, in every twelfth of the 48
+//!   orders, the fillet at 1 on the four hips and four feet: the value taken
+//!   whole, the body exact, closed, uncrossed, holding `plate_filleted`, and
+//!   the unlowered step's faces, numbered alike, each meeting what it meets
+//!   there and each flat face with its corners lowered by 1.5. Checked in a
+//!   scratch copy, the `−` turned to `/`: the step is declined `Unsupported`.
+//!   The `*` turned to `/` on the same line divides by a sign of ±1 and is
+//!   equivalent
+//! - Decided on the way, after the mutants (2026-11-23): the counter the
+//!   step leaves for the next one, `next`, set again at its end, survived
+//!   deleted — no test: the body the second pass lays already carries that
+//!   number. Each edge laid alone in the first pass moves the count by one,
+//!   the ends held take `count` numbers past them, and the second pass ends
+//!   past its edges and the corners it closes, one each: where the steps'
+//!   numbers began, plus the edges, the ends and the closings, which is the
+//!   number set again. Read in a scratch copy on the frustum and the
+//!   triangular pyramid, both alike, 60 and 42, in every order; the
+//!   implementer may keep the line as the number's statement or drop it
 //!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
@@ -7493,6 +7553,544 @@ fn a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_front_wall_lean
         "the step mixing corners whose upright leans past the sketch's noise with corners \
          whose upright stands, each of which alone would go its own way, until #1096",
     );
+}
+
+/// How far in each wall of the frustum on a plate leans over its height of
+/// [`BLOCK_HEIGHT`]: [`block_on_a_plate`] with every wall leaning in 3 is a
+/// frustum, its base 10 by 10 on the plate's top, its top 4 by 4.
+const FRUSTUM: f64 = 3.0;
+
+/// The area of the triangle `corners` and the sums of its two coordinates
+/// over it.
+fn triangle_moments([a, b, c]: [DVec2; 3]) -> [f64; 3] {
+    let area = ((b - a).perp_dot(c - a) / 2.0).abs();
+    let centroid = (a + b + c) / 3.0;
+    [area, area * centroid.x, area * centroid.y]
+}
+
+/// The area of the section a round or a fill of `radius` lays between two
+/// faces meeting at `angle`, seen along the edge, and the sums over it of
+/// each point's two coordinates: the kite from the edge to where the arc
+/// touches each face and its centre, less the arc's sector. The edge stands
+/// at the origin, the first face along the first axis, the second at `angle`
+/// from it.
+fn section_moments(angle: f64, radius: f64) -> [f64; 3] {
+    let set_back = radius / (angle / 2.0).tan();
+    let centre = DVec2::new(set_back, radius);
+    let on_first = DVec2::new(set_back, 0.0);
+    let on_second = DVec2::new(angle.cos(), angle.sin()) * set_back;
+    let turn = PI - angle;
+    let halfway = ((on_first - centre).normalize() + (on_second - centre).normalize()).normalize();
+    let sector = turn * radius * radius / 2.0;
+    let sector_centroid = centre + halfway * 4.0 * radius * (turn / 2.0).sin() / (3.0 * turn);
+    let [one, two] = [
+        triangle_moments([DVec2::ZERO, on_first, centre]),
+        triangle_moments([DVec2::ZERO, centre, on_second]),
+    ];
+    [
+        one[0] + two[0] - sector,
+        one[1] + two[1] - sector * sector_centroid.x,
+        one[2] + two[2] - sector * sector_centroid.y,
+    ]
+}
+
+/// The corners of the frustum's top, front left, front right, back right
+/// and back left, each above the corner of the base of the same name.
+fn frustum_top() -> [DVec3; 4] {
+    let top = PLATE_THICKNESS + BLOCK_HEIGHT;
+    let [near, far] = [FRUSTUM, SQUARE[0] - FRUSTUM];
+    [[near, near], [far, near], [far, far], [near, far]].map(|[x, y]| DVec3::new(x, y, top))
+}
+
+/// The ways the frustum's walls face, front, right, back and left.
+fn frustum_walls() -> [DVec3; 4] {
+    [0, 1, 2, 3].map(|wall| block_wall(wall, FRUSTUM).1)
+}
+
+/// The centre of the piece of sphere of `r` closing the frustum's top corner
+/// `corner`: `r` in from its top and from the two walls meeting there, the
+/// wall before it and its own.
+fn frustum_centre(corner: usize, r: f64) -> DVec3 {
+    let walls = frustum_walls();
+    let faces = DMat3::from_cols(DVec3::Z, walls[(corner + 3) % 4], walls[corner]).transpose();
+    frustum_top()[corner] + faces.inverse() * DVec3::splat(-r)
+}
+
+/// What [`block_on_a_plate`] leaning in [`FRUSTUM`] all round — a frustum —
+/// keeps once its four hips, its four feet and its four top edges are
+/// filleted at `r` in one step, each foot's fill stopped flush where the
+/// hips' rounds begin as this issue lays them, and each top corner closed by
+/// its piece of sphere as #699 closes a convex corner of three rounds.
+/// Derived as the pyramid on its plate is in the module's documentation:
+/// the plate and the frustum, less each hip's round's section along it from
+/// its top corner's end section to the plane square to it at its foot, less
+/// what the plate spares of that prism there; less each top edge's round's
+/// section between its two corners' end sections; less at each top corner
+/// the cell the three end sections bound, and the ball's sector in it given
+/// back; and plus each fill's section taken along its foot between the two
+/// planes it stops on. The cell is star-shaped from the sphere's centre,
+/// `r` from each of the corner's three faces, over a quadrilateral on each
+/// whose sides along the edges run from the corner to where the end sections
+/// meet them, `ℓ = (c − v)·e` along each edge `e` from the corner `v`, square
+/// to the round's line of touch, its set-back `t` from the edge: `r/3` times
+/// `Σ t·ℓ` over the corner's three edges — `r³` at a square corner, #699's
+/// cube. 1058.088034412097 at 1, which #944's review measured.
+fn frustum_filleted(r: f64) -> f64 {
+    let walls = frustum_walls();
+    let top = frustum_top();
+    let base = [0, 1, 2, 3].map(|wall| block_wall(wall, FRUSTUM).0);
+    let centres = [0, 1, 2, 3].map(|corner| frustum_centre(corner, r));
+    let hip = |corner: usize| (base[corner] - top[corner]).normalize();
+    let mut kept = block_on_a_plate_holds([FRUSTUM; 4]);
+    for corner in 0..4 {
+        let [before, own] = [walls[(corner + 3) % 4], walls[corner]];
+        let edges = [
+            (hip(corner), before, own),
+            (
+                (top[(corner + 3) % 4] - top[corner]).normalize(),
+                DVec3::Z,
+                before,
+            ),
+            (
+                (top[(corner + 1) % 4] - top[corner]).normalize(),
+                DVec3::Z,
+                own,
+            ),
+        ];
+        let cell: f64 = (edges.iter())
+            .map(|&(along, one, other)| {
+                let angle = PI - one.angle_between(other);
+                r / (angle / 2.0).tan() * (centres[corner] - top[corner]).dot(along)
+            })
+            .sum::<f64>()
+            * r
+            / 3.0;
+        let spread = DVec3::Z.dot(before.cross(own)).abs();
+        let sector = 2.0
+            * spread.atan2(1.0 + DVec3::Z.dot(before) + before.dot(own) + own.dot(DVec3::Z))
+            * r.powi(3)
+            / 3.0;
+        kept += sector - cell;
+
+        let angle = PI - before.angle_between(own);
+        let [section, across, up] = section_moments(angle, r);
+        let along_the_halfway = across * (angle / 2.0).cos() + up * (angle / 2.0).sin();
+        let into_the_matter = -(before + own).normalize();
+        kept -= section * (base[corner] - centres[corner]).dot(hip(corner))
+            + along_the_halfway * into_the_matter.z / hip(corner).z.abs();
+
+        let angle = PI - DVec3::Z.angle_between(own);
+        let [section, _, _] = section_moments(angle, r);
+        let along = (top[(corner + 1) % 4] - top[corner]).normalize();
+        kept -= section * (centres[(corner + 1) % 4] - centres[corner]).dot(along);
+
+        let rise = own.z.acos();
+        let [section, out_sum, up_sum] = section_moments(PI - rise, r);
+        let out = DVec3::new(own.x, own.y, 0.0).normalize();
+        let along = (base[(corner + 1) % 4] - base[corner]).normalize();
+        let touch = centres[corner] + own * r;
+        let at_the_foot = touch - hip(corner) * (touch.z - PLATE_THICKNESS) / hip(corner).z;
+        let square = hip(corner).cross(own);
+        let from_the_corner = (at_the_foot - base[corner]).dot(square) / along.dot(square);
+        kept += (SQUARE[0] - 2.0 * from_the_corner) * section
+            + 2.0 * (out.dot(square) * out_sum + DVec3::Z.dot(square) * up_sum) / along.dot(square);
+    }
+    kept
+}
+
+/// `count` of the orders `edges` things can be named in: as listed,
+/// reversed, and shuffled by a generator of fixed seed.
+fn shuffled_orders(edges: usize, count: usize) -> Vec<Vec<usize>> {
+    let mut orders: Vec<Vec<usize>> = vec![(0..edges).collect(), (0..edges).rev().collect()];
+    let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+    while orders.len() < count {
+        let mut order: Vec<usize> = (0..edges).collect();
+        for at in (1..edges).rev() {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            order.swap(at, (state >> 33) as usize % (at + 1));
+        }
+        if !orders.contains(&order) {
+            orders.push(order);
+        }
+    }
+    orders
+}
+
+/// The corner of the frustum's base under its top corner `corner`.
+fn base_of_the_frustum(corner: usize) -> DVec3 {
+    block_wall(corner, FRUSTUM).0
+}
+
+/// How far a point stands from the line through `through` along `along`.
+fn off_the_line(point: DVec3, through: DVec3, along: DVec3) -> f64 {
+    let off = point - through;
+    (off - along * off.dot(along)).length()
+}
+
+#[test]
+fn a_fillet_on_the_hips_feet_and_top_edges_of_a_frustum_on_a_plate_closes_its_four_top_corners_after_stopping_each_fill_where_a_hip_s_round_begins_in_one_body_whatever_the_order()
+ {
+    let leans = [FRUSTUM; 4];
+    let part = block_on_a_plate(leans);
+    let holds = block_on_a_plate_holds(leans);
+    assert!(
+        part.is_exact() && (part.volume() - holds).abs() < EXACT * holds,
+        "the frustum on its plate holds {}, where the plate's 800 and the frustum's \
+         5/3·(100 + 16 + 40) give {holds}",
+        part.volume()
+    );
+    let (uprights_and_feet, leaning) = uprights_and_feet(&part, leans);
+    assert!(
+        leaning.iter().all(|&lean| lean > 0.5),
+        "each hip leans far past the sketch's noise: {leaning:?}"
+    );
+    let walls = frustum_walls();
+    let lid = face_on_the_plane(&part, DVec3::Z, frustum_top()[0]);
+    let top_edges = [0, 1, 2, 3].map(|wall| {
+        let (foot, facing) = block_wall(wall, FRUSTUM);
+        edge_between(&part, lid, face_on_the_plane(&part, facing, foot))
+    });
+    let edges: Vec<EdgeName> = uprights_and_feet
+        .iter()
+        .chain(&top_edges)
+        .cloned()
+        .collect();
+    let corner_edges =
+        [0, 1, 2, 3].map(|corner| [(corner + 3) % 4, 8 + (corner + 3) % 4, 8 + corner]);
+    let centres = [0, 1, 2, 3].map(|corner| frustum_centre(corner, 1.0));
+    for (corner, centre) in centres.iter().enumerate() {
+        let before = walls[(corner + 3) % 4];
+        let own = walls[corner];
+        let top = frustum_top()[corner];
+        for (facing, called) in [(DVec3::Z, "the top"), (before, "a wall"), (own, "a wall")] {
+            assert!(
+                ((top - *centre).dot(facing) - 1.0).abs() < PLACE,
+                "the centre {centre} stands 1 in from {called} at the top corner {top}"
+            );
+        }
+    }
+
+    let start = part.faces_end();
+    let made = start + 12 + 4 + 8;
+    let curved = 4.0 * PI / 2.0 * 7.0 + 8.0 * PI / 2.0 * 10.0 + 4.0 * PI;
+    let reach = (0..4)
+        .map(|wall| {
+            let (foot, facing) = block_wall(wall, FRUSTUM);
+            reach_of(&beyond(&part, foot, facing, 50.0))
+        })
+        .fold(reach_of(&part), f64::max);
+    let orders = shuffled_orders(12, 12);
+    let laid = laid_in_every_listed_order(
+        &orders,
+        laid_on_the_edges(&part, &edges, &orders, Cut::Round, 1.0),
+        "the fillet at 1 on the frustum's four hips, four feet and four top edges is built",
+    );
+    let mut bodies: Vec<(Vec<usize>, Body)> = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!(
+            "the fillet on the frustum's four hips, four feet and four top edges, named {order:?}"
+        );
+        taken_as_asked(asked, taken, 1.0, &what);
+        sound_drawn_within(&body, frustum_filleted(1.0), DRAWN * reach * curved, &what);
+        assert_eq!(
+            faces_made(&part, &body),
+            (start..made).collect::<Vec<_>>(),
+            "{what}: one face for each edge by its rank, then a piece of sphere at each top \
+             corner, then the flat end of each fill at each hip's round: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            made,
+            "{what}: the next step numbers its own faces past the patches"
+        );
+        let mut by_ranks: Vec<([usize; 3], usize)> = (0..4)
+            .map(|corner| {
+                let mut ranks = corner_edges[corner].map(|edge| rank_in(order, edge));
+                ranks.sort();
+                (ranks, corner)
+            })
+            .collect();
+        by_ranks.sort();
+        for (place, (_, corner)) in by_ranks.iter().enumerate() {
+            let patch = start + 12 + place;
+            assert_eq!(
+                sphere_of(&body, patch, &centres),
+                Some(*corner),
+                "{what}: patch {patch}, the {}th after the edges' faces by the lowest ranks of \
+                 its corner's three edges, is the piece of sphere about {}, at the top corner \
+                 {}",
+                place + 1,
+                centres[*corner],
+                frustum_top()[*corner]
+            );
+            let [hip, before, own] = corner_edges[*corner].map(|edge| start + rank_in(order, edge));
+            assert_eq!(
+                sides_met(&body, patch),
+                sides(&[hip, before, own]),
+                "{what}: the piece of sphere at the top corner {} meets the rounds of the hip \
+                 and the two top edges there, and nothing else",
+                frustum_top()[*corner]
+            );
+        }
+        let ends: Vec<DVec3> = (0..4)
+            .flat_map(|corner| {
+                let [before, own] = [walls[(corner + 3) % 4], walls[corner]];
+                let hip = before.cross(own).normalize();
+                [(before, own), (own, before)].map(|(on, beside)| {
+                    let square = hip.cross(on).normalize();
+                    if square.dot(beside) > 0.0 {
+                        square
+                    } else {
+                        -square
+                    }
+                })
+            })
+            .collect();
+        for way in &ends {
+            let found: Vec<usize> = (start + 16..made)
+                .filter(|&patch| {
+                    body.plane_of(patch)
+                        .is_some_and(|plane| plane.normal.distance(*way) < PLACE)
+                })
+                .collect();
+            assert_eq!(
+                found.len(),
+                1,
+                "{what}: one flat end facing {way}, along its wall square to the hip there, \
+                 toward it, among the eight patches after the pieces of sphere: {found:?}"
+            );
+        }
+        for corner in 0..4 {
+            let hip = (base_of_the_frustum(corner) - frustum_top()[corner]).normalize();
+            for wall in [walls[(corner + 3) % 4], walls[corner]] {
+                let touch = centres[corner] + wall;
+                let at_the_foot = touch - hip * (touch.z - PLATE_THICKNESS) / hip.z;
+                assert!(
+                    (body
+                        .plane_of(TOP)
+                        .expect("the plate's top is flat")
+                        .corners
+                        .iter())
+                    .any(|point| point.distance(at_the_foot) < PLACE),
+                    "{what}: the plate's top has a corner at {at_the_foot}, where the round of \
+                     the hip at {} comes down to it beside the end of a fill",
+                    base_of_the_frustum(corner)
+                );
+            }
+        }
+        bodies.push((order.clone(), body));
+    }
+    let hips = [0, 1, 2, 3]
+        .map(|corner| (base_of_the_frustum(corner) - frustum_top()[corner]).normalize());
+    let on_a_hip_s_round = |point: &DVec3| {
+        (0..4)
+            .any(|corner| (off_the_line(*point, centres[corner], hips[corner]) - 1.0).abs() < PLACE)
+    };
+    let off_the_rounds = |corners: &[DVec3]| -> Vec<DVec3> {
+        corners
+            .iter()
+            .copied()
+            .filter(|point| !on_a_hip_s_round(point))
+            .collect()
+    };
+    let patches: Vec<usize> = (start + 12..made).collect();
+    let (first_order, first) = &bodies[0];
+    for (order, body) in bodies.iter().skip(1) {
+        let which = format!(
+            "the fillet on the frustum's hips, feet and top edges, named {order:?}, against the \
+             same named {first_order:?}"
+        );
+        let patch_here: Vec<usize> = patches
+            .iter()
+            .map(|&patch| match first.plane_of(patch) {
+                Some(plane) => *patches
+                    .iter()
+                    .find(|&&here| {
+                        body.plane_of(here).is_some_and(|laid| {
+                            laid.normal.distance(plane.normal) < PLACE
+                                && same_points(&laid.corners, &plane.corners)
+                        })
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("{which}: no patch where the first order lays one at {plane:?}")
+                    }),
+                None => {
+                    let corner = sphere_of(first, patch, &centres)
+                        .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
+                    *patches
+                        .iter()
+                        .find(|&&here| sphere_of(body, here, &centres) == Some(corner))
+                        .unwrap_or_else(|| {
+                            panic!("{which}: no patch on the sphere about {}", centres[corner])
+                        })
+                }
+            })
+            .collect();
+        let to_this = |number: usize| {
+            if number < start || number >= made {
+                number
+            } else if number < start + 12 {
+                start + rank_in(order, first_order[number - start])
+            } else {
+                patch_here[number - start - 12]
+            }
+        };
+        for face in numbers(first) {
+            assert_eq!(
+                sides_renumbered(first, face, to_this),
+                sides_met(body, to_this(face)),
+                "{which}: face {face} meets what it meets in the first order"
+            );
+            if let Some(plane) = first.plane_of(face) {
+                let here = body
+                    .plane_of(to_this(face))
+                    .unwrap_or_else(|| panic!("{which}: face {face} is flat in the first order"));
+                assert!(
+                    same_points(
+                        &off_the_rounds(&plane.corners),
+                        &off_the_rounds(&here.corners)
+                    ),
+                    "{which}: face {face} has the corners off the hips' rounds it has in the \
+                     first order, {:?}, where it has {:?}",
+                    off_the_rounds(&plane.corners),
+                    off_the_rounds(&here.corners)
+                );
+            }
+        }
+    }
+}
+
+/// How far [`pyramid_on_a_plate_lowered`] stands below
+/// [`pyramid_on_a_plate`]: its plate's top at 0.5, under the depth, 0.94,
+/// at which each hip's round's axis passes under its foot, so that the axis
+/// there stands below the ground and the foot above it.
+const LOWERED: f64 = 1.5;
+
+/// [`pyramid_on_a_plate`] built `by` lower, face for face: the plate raised
+/// from `−by`, the prism from its top, the slopes through the apex `by`
+/// lower.
+fn pyramid_on_a_plate_lowered(by: f64) -> Body {
+    let [length, breadth] = SQUARE;
+    let empty = Body::default();
+    let slab = empty
+        .tool_raised(
+            &profile(Contour::rectangle(
+                DVec2::splat(-PLATE_MARGIN),
+                DVec2::new(length + PLATE_MARGIN, breadth + PLATE_MARGIN),
+            )),
+            Frame {
+                origin: DVec3::Z * -by,
+                ..ground()
+            },
+            DVec3::Z * PLATE_THICKNESS,
+        )
+        .expect("the plate raises");
+    let plate = empty.union(&slab).expect("the plate is built");
+    let apex = apex_on_a_plate();
+    let prism = plate
+        .tool_raised(
+            &profile(Contour::rectangle(DVec2::ZERO, DVec2::new(length, breadth))),
+            Frame {
+                origin: DVec3::Z * (PLATE_THICKNESS - by),
+                ..ground()
+            },
+            DVec3::Z * (APEX_HEIGHT + 1.0),
+        )
+        .expect("the prism raises");
+    let pyramid = apex.slopes.iter().fold(prism, |part, slope| {
+        part.difference(&beyond(&part, apex.at - DVec3::Z * by, slope.outward, 50.0))
+            .expect("a plane through the apex cuts the prism")
+    });
+    plate
+        .union(&pyramid)
+        .expect("the pyramid stands on the plate")
+}
+
+#[test]
+fn a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_lowered_until_the_hips_rounds_axes_pass_under_the_ground_lays_the_same_body_lowered()
+ {
+    let part = pyramid_on_a_plate();
+    let lowered = pyramid_on_a_plate_lowered(LOWERED);
+    let apex = apex_on_a_plate();
+    let plate_top = PLATE_THICKNESS - LOWERED;
+    let depth = 2f64.sqrt() * 2.0 / 3.0;
+    assert!(
+        plate_top > 0.0 && plate_top < depth,
+        "the lowered plate's top stands at {plate_top}, above the ground and less than the \
+         depth, {depth}, at which each hip's round's axis passes under its foot"
+    );
+    assert!(
+        lowered.is_exact()
+            && (lowered.volume() - part.volume()).abs() < EXACT * part.volume()
+            && numbers(&lowered) == numbers(&part),
+        "the lowered pyramid on its plate holds what the pyramid on its plate does, {}, in the \
+         same faces",
+        lowered.volume()
+    );
+    let name_on = |body: &Body| -> Vec<EdgeName> {
+        let hips = (0..4).map(|hip| apex.name(body, hip));
+        let feet = (apex.slopes.iter()).map(|slope| edge_between(body, TOP, slope.face));
+        hips.chain(feet).collect()
+    };
+    let [edges, edges_lowered] = [name_on(&part), name_on(&lowered)];
+    let start = part.faces_end();
+    let area = 4.0 * PI / 3.0 * 5.0 * 3f64.sqrt() + 4.0 * (1.0f64 / 3.0).asin() + 10.0 * PI;
+    let down = DVec3::Z * LOWERED;
+    for order in spread_orders_of_eight().into_iter().step_by(12) {
+        let what = format!(
+            "the fillet on the four hips and the four feet of the pyramid on its plate lowered \
+             {LOWERED}, named {order:?}"
+        );
+        let [names, names_lowered] = [&edges, &edges_lowered].map(|all| {
+            order
+                .iter()
+                .map(|&edge| all[edge].clone())
+                .collect::<Vec<_>>()
+        });
+        let standing = part
+            .fillet_edges(&names, 1.0)
+            .unwrap_or_else(|declined| panic!("{what}, unlowered: declined, {declined:?}"))
+            .body;
+        let filleted = lowered
+            .fillet_edges(&names_lowered, 1.0)
+            .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        taken_as_asked(filleted.asked, filleted.taken, 1.0, &what);
+        let body = filleted.body;
+        sound_drawn_within(
+            &body,
+            plate_filleted(),
+            DRAWN * plate_reach(&part) * area,
+            &what,
+        );
+        assert_eq!(
+            numbers(&body),
+            numbers(&standing),
+            "{what}: the faces the fillet lays unlowered, numbered alike"
+        );
+        for face in numbers(&standing) {
+            assert_eq!(
+                sides_met(&body, face),
+                sides_met(&standing, face),
+                "{what}: face {face} meets what it meets unlowered"
+            );
+            if let Some(plane) = standing.plane_of(face) {
+                let moved: Vec<DVec3> = plane.corners.iter().map(|corner| *corner - down).collect();
+                corners_are(
+                    &body,
+                    face,
+                    &moved,
+                    &format!("{what}: face {face}, lowered"),
+                );
+            }
+        }
+        assert!(
+            (start..start + 17).all(|face| body.has_face(face)),
+            "{what}: every face the step lays"
+        );
+    }
 }
 
 /// What a step of `cut` at `value` on `names` leaves on `part`: the value

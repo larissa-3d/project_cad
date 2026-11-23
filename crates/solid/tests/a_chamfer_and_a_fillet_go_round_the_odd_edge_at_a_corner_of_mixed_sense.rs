@@ -599,6 +599,26 @@
 //!   `a_fillet_on_a_triangular_pyramid_s_slanted_edges_and_feet_closes_its_apex_and_stops_each_fill_flush_where_a_slanted_edge_s_round_begins_in_one_body_whatever_the_order`.
 //!   Read as in the block below, which is #1094's, folded into #944 and
 //!   closed by the same pull request
+//! - Decided on the way, after the mutants (2026-11-23): an edge laid first
+//!   that meets another of the list at a corner of no mixed sense — two feet
+//!   meeting under a slanted edge left sharp — is declined, in every order.
+//!   The guard that says so in `short_of_the_round` survived both mutants
+//!   that blind it, `&&` turned to `||` where a corner holds both edges, and
+//!   `!=` to `==` where an edge is kept from meeting itself, no test reaching
+//!   it. This one does, and holds the decline —
+//!   `a_fillet_on_two_of_a_triangular_pyramid_s_slanted_edges_and_its_three_feet_is_declined_as_unsupported_whatever_the_order_two_feet_meeting_under_the_slanted_edge_left_sharp`.
+//!   Read as: `pyramid_on_a_plate`, its front right and left front slanted
+//!   edges and its three feet, the right left slanted edge left out, so that
+//!   the right and the left feet, each laid first from the foot of a named
+//!   slanted edge, meet at the foot of the one left sharp; the fillet at 1 on
+//!   those five declined `Unsupported` in each of the 120 orders. It does
+//!   not kill those mutants: checked in a scratch copy, the guard fires on
+//!   every one of the 120, and with either mutant the step is declined
+//!   later, laying the first pass's feet, and so on every other part found
+//!   to reach the guard — feet meeting under an upright left sharp on blocks
+//!   on a plate whose walls lean, one, three or four of them, declined later
+//!   following or laying the second pass. No part found tells the guard from
+//!   those later declines; it states the reason they do not
 //!
 //! Closes #1094.
 //! - The fillet on the triangular pyramid's three slanted edges and three
@@ -4790,6 +4810,52 @@ fn a_fillet_on_a_triangular_pyramid_s_slanted_edges_and_feet_closes_its_apex_and
                 }
             }
         }
+    }
+}
+
+/// Every order `count` things can be named in.
+fn every_order_of(count: usize) -> Vec<Vec<usize>> {
+    if count == 0 {
+        return vec![Vec::new()];
+    }
+    (every_order_of(count - 1).into_iter())
+        .flat_map(|shorter| {
+            (0..count).map(move |at| {
+                let mut order = shorter.clone();
+                order.insert(at, count - 1);
+                order
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn a_fillet_on_two_of_a_triangular_pyramid_s_slanted_edges_and_its_three_feet_is_declined_as_unsupported_whatever_the_order_two_feet_meeting_under_the_slanted_edge_left_sharp()
+ {
+    let part = pyramid_on_a_plate();
+    let named = [0, 2, 3, 4, 5].map(|edge| {
+        let [first, second] = PYRAMID_EDGES[edge];
+        edge_between(&part, first, second)
+    });
+    let left_sharp = PYRAMID_EDGES[1];
+    assert!(
+        named.iter().all(|name| {
+            let sides = [vec![left_sharp[0] as u32], vec![left_sharp[1] as u32]];
+            name.between != sides && name.between != [sides[1].clone(), sides[0].clone()]
+        }),
+        "the slanted edge between the right and the left faces, over the corner the right and \
+         left feet meet at, is the one left out"
+    );
+    for order in every_order_of(named.len()) {
+        let list: Vec<EdgeName> = order.iter().map(|&edge| named[edge].clone()).collect();
+        assert_eq!(
+            Cut::Round.laid_on(&part, &list, 1.0).err(),
+            Some(Declined::Unsupported),
+            "the fillet of 1 on the pyramid's front right and left front slanted edges and its \
+             three feet, named {order:?}: the right and the left feet, each laid first where it \
+             runs from a slanted edge's foot, meet at the foot of the slanted edge left sharp, a \
+             corner of no mixed sense — a broken step and its reason, and no body"
+        );
     }
 }
 
