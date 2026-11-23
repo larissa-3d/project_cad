@@ -52,7 +52,7 @@ pub(super) fn keep_as_drawn(
 /// The operations of one sketch in effect, in the order they replay, the
 /// opening one left out: it has been laid already.
 fn operations_of(history: &History, sketch: usize) -> Vec<(u32, &Operation)> {
-    let made = history.sketches_made();
+    let made = history.made(StepKind::Sketch);
     let mut current = None;
     let mut held = Vec::new();
     for (number, operation) in history.replay_order() {

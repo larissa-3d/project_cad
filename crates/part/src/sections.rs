@@ -87,11 +87,24 @@ impl PartState {
     /// touches the matter.
     pub(crate) fn apply_to_sections(&mut self, operation: &Operation) {
         match operation {
-            Operation::SaveSection(asked) => self.sections.push(Kept {
-                asked: *asked,
-                deleted: false,
-                asked_by: self.replaying,
-            }),
+            Operation::SaveSection(asked) => {
+                let kept = Kept {
+                    asked: *asked,
+                    deleted: false,
+                    asked_by: self.replaying,
+                };
+                let at = self.section_being_made();
+                // Sections made earlier and replayed later stand for nothing
+                // until they come.
+                let blank = Kept {
+                    deleted: true,
+                    ..kept
+                };
+                if self.sections.len() <= at {
+                    self.sections.resize(at + 1, blank);
+                }
+                self.sections[at] = kept;
+            }
             Operation::EditSection { section, to } => {
                 let by = self.replaying;
                 if let Some(kept) = self.sections.get_mut(*section).filter(|kept| !kept.deleted) {

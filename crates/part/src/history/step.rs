@@ -56,10 +56,10 @@ impl StepKind {
     }
 
     /// Whether a step of this kind is a key step of the part — a sketch, an
-    /// extrusion, a revolution — which a section, raising nothing, is not, nor
-    /// yet a blend, which the reader has no row for.
+    /// extrusion, a revolution, a section kept — which a blend is not yet, the
+    /// reader having no row for it.
     pub fn is_key(self) -> bool {
-        !matches!(self, Self::Section | Self::Blend)
+        self != Self::Blend
     }
 
     /// Which of these steps an operation that opens none is recorded under:

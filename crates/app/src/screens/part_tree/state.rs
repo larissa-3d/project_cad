@@ -136,6 +136,8 @@ pub struct PartTree {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Kept {
     pub id: usize,
+    /// Where it sits in the design.
+    pub step: usize,
     pub name: String,
     pub badge: Option<Problem>,
 }
@@ -175,6 +177,7 @@ impl PartTree {
             ..Self::default()
         };
         let mut sketches = 0;
+        let mut saved = Vec::new();
         let changed = document.history.changes_in_effect();
 
         for (step, operation) in document.history.applied_operations().iter().enumerate() {
@@ -205,16 +208,20 @@ impl PartTree {
                     let made = volume(lang, document, (step, rank), operation, problems);
                     tree.bodies.extend(made);
                 }
+                Operation::SaveSection(_) => saved.push(step),
                 _ => {}
             }
         }
         tree.sections = document
             .sections()
             .into_iter()
-            .map(|kept| Kept {
-                id: kept.id,
-                name: numbered(lang, "part_tree.section", kept.id + 1),
-                badge: kept.broken.then_some(Problem::FaceLost),
+            .filter_map(|kept| {
+                Some(Kept {
+                    id: kept.id,
+                    step: *saved.get(kept.id)?,
+                    name: numbered(lang, "part_tree.section", kept.id + 1),
+                    badge: kept.broken.then_some(Problem::FaceLost),
+                })
             })
             .collect();
         tree

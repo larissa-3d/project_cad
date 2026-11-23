@@ -9,6 +9,7 @@ use cao_part::PartDocument;
 use super::Section;
 use crate::lang::Catalogue;
 use crate::screens::sketch::StepState;
+use crate::screens::viewport::reading::Reading;
 use crate::wording::section::{self as said, Asked};
 
 /// A numbered step of the section view's panel, top to bottom. « Enregistrer
@@ -109,7 +110,17 @@ impl Section {
     /// section is kept, as « Enregistrer la coupe » keeps it — or, while the
     /// face is still to be clicked, the face is asked for again and nothing
     /// is kept. True when the section was kept.
+    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn enter(&mut self, document: &mut PartDocument) -> bool {
+        self.enter_where_read(document, &mut Reading::default())
+    }
+
+    /// The same, the section kept where the part is read.
+    pub(in crate::screens::viewport) fn enter_where_read(
+        &mut self,
+        document: &mut PartDocument,
+        reading: &mut Reading,
+    ) -> bool {
         match self.field.below() {
             Some(below) => {
                 self.field = below;
@@ -120,7 +131,7 @@ impl Section {
                 false
             }
             None => {
-                self.keep_in(document);
+                self.keep_where_read(document, reading);
                 true
             }
         }

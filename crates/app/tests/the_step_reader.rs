@@ -47,8 +47,9 @@
 //!   the tree and raised, is raised by a step after it, never before it —
 //!   `a_sketch_opened_past_the_reading_point_is_raised_after_itself`
 //! - decided with the insertion: a sketch laid on a kept section's cut is not
-//!   put in at the reading point, which a section always stands after: it goes
-//!   at the end, and the reading point with it —
+//!   put in at the reading point, which a section always stood after until
+//!   #968 put a section in at the reading point itself: it goes at the end,
+//!   and the reading point with it —
 //!   `a_sketch_laid_on_a_kept_section_while_read_to_a_box_goes_at_the_end`
 //! - decided with the insertion: « L'extrusion n'a rien ajouté » judges a step
 //!   put in on the part read through it, which the canvas shows, not on the
@@ -65,6 +66,20 @@
 //! précédente » and « Étape suivante », as `docs/redesign/icons.md` names
 //! them. Not by the step's own name: the tree's row already answers to it,
 //! and a gesture that finds a row by a part of its name would find two.
+//!
+//! Closes #968 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests/reader.rs`; these are the
+//! bullets only the whole application holds, the section being kept from its
+//! panel.
+//! - decided in the issue: « Enregistrer la coupe » adds that step at the
+//!   reading point, as an extrusion does (#737), and the part stays read to
+//!   it — `a_section_saved_while_read_to_a_box_goes_in_after_it_and_is_read_to`
+//! - decided with the issue: a sketch laid on the cut of a section saved
+//!   while the part is read to a box still goes at the end, and the reading
+//!   point with it, as #737 decided —
+//!   `a_sketch_laid_on_a_kept_section_while_read_to_a_box_goes_at_the_end`
+//! - A section left unsaved adds no step; a test checks it —
+//!   `the_section_view_closed_without_saving_adds_no_box`
 
 use egui_kittest::kittest::{NodeT, Queryable};
 use glam::DVec2;
@@ -1005,10 +1020,72 @@ fn a_sketch_laid_on_a_kept_section_while_read_to_a_box_goes_at_the_end() {
             the_counter(&app),
             driver::shows_or_says(&app, "face perdue")
         ),
-        (Some((4, 4)), false),
-        "a sketch laid on a kept section's cut while the part was read to « Extrusion 1 » \
-         does not go at the end, the reading point with it, or it lost the section it was \
-         laid on, as (the counter, « face perdue » shown)",
+        (Some((5, 5)), false),
+        "a section saved while the part was read to « Extrusion 1 », then a sketch laid on \
+         its cut: the sketch does not go at the end, the reading point with it, after the \
+         four boxes the section made, or it lost the section it was laid on, as (the \
+         counter, « face perdue » shown)",
+    );
+}
+
+#[test]
+fn a_section_saved_while_read_to_a_box_goes_in_after_it_and_is_read_to() {
+    let mut app = a_block_and_sketches("a_section_saved_while_read_to_a_box", 1);
+    driver::click_the_button(&mut app, "Étape 2");
+    assert_eq!(
+        where_the_reader_stands(&app),
+        stands("2 / 3", Some("Extrusion")),
+        "the fixture wants the part read to its block, the sketch after it hidden",
+    );
+
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+    driver::click_the_button(&mut app, "Enregistrer la coupe");
+    let saved = where_the_reader_stands(&app);
+    driver::click_the_button(&mut app, "Étape suivante");
+    let played = where_the_reader_stands(&app);
+
+    assert_eq!(
+        (saved, played),
+        (stands("3 / 4", Some("Coupe")), stands("4 / 4", None)),
+        "read to its block of three boxes, the part keeps a section from its panel: the \
+         reader does not put its box in right after the block and stay on it, the sketch \
+         after it dashed, nor play that sketch from ▶, as (once saved, after ▶), each \
+         (counter, the kind of the step read to while the rest is hidden)",
+    );
+}
+
+#[test]
+fn the_section_view_closed_without_saving_adds_no_box() {
+    let mut app = a_block_and_sketches("the_section_view_closed_without_saving", 1);
+    driver::click_the_button(&mut app, "Étape 2");
+
+    let mut read = vec![("read to the block", where_the_reader_stands(&app))];
+    driver::click_in_the_bar(&mut app, "Vue en coupe");
+    driver::click(&mut app, "Plan YZ");
+    read.push(("the section view on YZ", where_the_reader_stands(&app)));
+    driver::click_the_button(&mut app, "Fermer");
+    read.push(("its panel closed", where_the_reader_stands(&app)));
+    driver::click_the_button(&mut app, "Étape suivante");
+    read.push(("▶", where_the_reader_stands(&app)));
+
+    assert_eq!(
+        read,
+        [
+            ("read to the block", stands("2 / 3", Some("Extrusion"))),
+            ("the section view on YZ", stands("2 / 3", Some("Extrusion"))),
+            ("its panel closed", stands("2 / 3", Some("Extrusion"))),
+            ("▶", stands("3 / 3", None)),
+        ],
+        "read to its block of three boxes, the part had the section view opened on YZ then \
+         closed without « Enregistrer la coupe »: the reader did not stay on the block among \
+         its three boxes, as (gesture, (counter, the kind of the step read to while the rest \
+         is hidden))",
+    );
+    assert!(
+        !driver::in_the_tree(&app, "Coupe 1"),
+        "a section never saved is in the tree: {:?}",
+        driver::on_screen(&app),
     );
 }
 

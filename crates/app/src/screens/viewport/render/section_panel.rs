@@ -60,14 +60,15 @@ pub(crate) fn paint_section_panel(
     }
     let asked = floated.inner;
     if asked.keep {
-        section.keep_in(context.document);
+        section.keep_where_read(context.document, &mut state.reading);
     }
     // A sketch edited under the section has the message and `Entrée` to
     // itself.
     let sketching = context.editor.active_sketch().is_some();
     let bare_enter = !sketching && ui.input(|input| input.key_pressed(egui::Key::Enter));
     let entered = !sketching && (asked.enter || bare_enter);
-    let kept = asked.keep || (entered && section.enter(context.document));
+    let kept =
+        asked.keep || (entered && section.enter_where_read(context.document, &mut state.reading));
     // A section kept, its panel closes as Échap closes it.
     if kept {
         state.section = None;

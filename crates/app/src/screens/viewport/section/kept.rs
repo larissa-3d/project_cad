@@ -7,6 +7,7 @@ use cao_part::{PartDocument, SavedSection};
 use cao_render::MatterInFront;
 
 use super::Section;
+use crate::screens::viewport::reading::Reading;
 
 impl Section {
     /// The section view on a kept section, as the part holds it now.
@@ -37,10 +38,22 @@ impl Section {
         }
     }
 
-    /// Keeps the section in the part: a new one, or the one it was reopened
-    /// from, changed. Kept again later, it changes the same one — while the
-    /// part still has it: undone or deleted, keeping it makes a new one.
+    /// Keeps the section in the part read whole, as
+    /// [`Self::keep_where_read`] does.
+    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn keep_in(&mut self, document: &mut PartDocument) {
+        self.keep_where_read(document, &mut Reading::default());
+    }
+
+    /// Keeps the section in the part: a new one, put in where the part is
+    /// read as any key step is, or the one it was reopened from, changed.
+    /// Kept again later, it changes the same one — while the part still has
+    /// it: undone or deleted, keeping it makes a new one.
+    pub(in crate::screens::viewport) fn keep_where_read(
+        &mut self,
+        document: &mut PartDocument,
+        reading: &mut Reading,
+    ) {
         let to = self.asked();
         let standing = document.sections();
         let editing = self
@@ -48,10 +61,10 @@ impl Section {
             .filter(|section| standing.iter().any(|kept| kept.id == *section));
         match editing {
             Some(section) => {
-                document.apply(Operation::EditSection { section, to });
+                reading.record(document, Operation::EditSection { section, to });
             }
             None => {
-                document.apply(Operation::SaveSection(to));
+                reading.record(document, Operation::SaveSection(to));
                 self.editing = document.sections().last().map(|kept| kept.id);
             }
         }
