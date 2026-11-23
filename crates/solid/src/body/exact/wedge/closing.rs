@@ -56,7 +56,10 @@ pub(in crate::body::exact) struct Apex {
 /// corner's three faces, and what clears a convex one out of it past its
 /// faces, as a share of the value: far enough that no face of it lies nearly
 /// flush with theirs, near enough to stay inside a wall or a floor thicker
-/// than that, or to leave whole matter standing farther out (#948).
+/// than that, or to leave whole matter standing farther out (#948). At a
+/// value of 1, #948's tests hold it at no less than 0.1202, so that the cube
+/// nearly touching the apex is still taken whole and `cleared`'s guard keeps
+/// its test, and under 0.1768, so that the cube 0.3 above is left whole.
 const SUNK: f64 = 0.125;
 
 /// A corner edges of a step meet at, read on the body as given: where it
