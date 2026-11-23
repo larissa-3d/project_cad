@@ -88,7 +88,7 @@ impl Exact {
                 let theirs = end_face(on, far, other.faces)?;
                 (theirs != face).then(|| (theirs, other, on.vertex(far).point))
             });
-            let beyond_the_end = match (holding(held, point, eps), elsewhere) {
+            let beyond_the_end = match (holding(held, point, past, eps), elsewhere) {
                 (Some((end, number)), _) => vec![end.beyond(prism, number)?],
                 (None, Some((theirs, other, at))) => {
                     end_faces.push(theirs);

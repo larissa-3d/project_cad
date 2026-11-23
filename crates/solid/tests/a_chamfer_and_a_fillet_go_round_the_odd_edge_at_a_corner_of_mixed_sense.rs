@@ -588,6 +588,67 @@
 //!   `a_chamfer_and_a_fillet_on_the_top_of_an_l_s_inner_corner_bored_behind_it_take_the_value_whole_short_of_where_the_fill_s_cut_reaches_the_hole_and_never_cut_the_hole_past_it`
 //! - What must not break: #801's, #792's and #829's tests — no test: each is
 //!   held by its own test, the one above gaining 1.1, 1.2 and 1.4
+//!
+//! Closes #944.
+//! - Decided on the way, after the review (2026-11-23), in the issue's comment
+//!   "Decided after the review": the triangular pyramid on a plate, which
+//!   #944's path builds, is held in this pull request, beside its chamfer
+//!   twin, one body in every order, its six end faces each facing hip ×
+//!   slope normal; the one shape where the step picks between ends that are
+//!   not square to each other —
+//!   `a_fillet_on_a_triangular_pyramid_s_slanted_edges_and_feet_closes_its_apex_and_stops_each_fill_flush_where_a_slanted_edge_s_round_begins_in_one_body_whatever_the_order`.
+//!   Read as in the block below, which is #1094's, folded into #944 and
+//!   closed by the same pull request
+//! - Decided on the way, after the mutants (2026-11-23): an edge laid first
+//!   that meets another of the list at a corner of no mixed sense — two feet
+//!   meeting under a slanted edge left sharp — is declined, in every order.
+//!   The guard that says so in `short_of_the_round` survived both mutants
+//!   that blind it, `&&` turned to `||` where a corner holds both edges, and
+//!   `!=` to `==` where an edge is kept from meeting itself, no test reaching
+//!   it. This one does, and holds the decline —
+//!   `a_fillet_on_two_of_a_triangular_pyramid_s_slanted_edges_and_its_three_feet_is_declined_as_unsupported_whatever_the_order_two_feet_meeting_under_the_slanted_edge_left_sharp`.
+//!   Read as: `pyramid_on_a_plate`, its front right and left front slanted
+//!   edges and its three feet, the right left slanted edge left out, so that
+//!   the right and the left feet, each laid first from the foot of a named
+//!   slanted edge, meet at the foot of the one left sharp; the fillet at 1 on
+//!   those five declined `Unsupported` in each of the 120 orders. It does
+//!   not kill those mutants: checked in a scratch copy, the guard fires on
+//!   every one of the 120, and with either mutant the step is declined
+//!   later, laying the first pass's feet, and so on every other part found
+//!   to reach the guard — feet meeting under an upright left sharp on blocks
+//!   on a plate whose walls lean, one, three or four of them, declined later
+//!   following or laying the second pass. No part found tells the guard from
+//!   those later declines; it states the reason they do not
+//!
+//! Closes #1094.
+//! - The fillet on the triangular pyramid's three slanted edges and three
+//!   feet, at 0.5 and at 1, is held in one body in every order of its chamfer
+//!   twin's spread, exact, closed and uncrossed, each edge's face by its rank,
+//!   its volume pinned with how it was got —
+//!   `a_fillet_on_a_triangular_pyramid_s_slanted_edges_and_feet_closes_its_apex_and_stops_each_fill_flush_where_a_slanted_edge_s_round_begins_in_one_body_whatever_the_order`,
+//!   beside its twin
+//!   `a_chamfer_on_a_triangular_pyramid_s_slanted_edges_and_feet_numbers_each_face_by_its_rank_the_apex_s_triangle_among_the_patches`.
+//!   Read as: `pyramid_on_a_plate`, its six edges at 0.5 and at 1 in each of
+//!   the four `PYRAMID_ORDERS`; the value taken whole; the body exact,
+//!   closed, uncrossed, holding `pyramid_filleted`, the arithmetic, and its
+//!   triangles enclosing that within the drawing's tolerance; one face for
+//!   each edge by its rank, curved and drawn on its own cylinder — a slanted
+//!   edge's about the line through the sphere's centre along the edge, a
+//!   foot's about the line the value over the plate and out from the slope —
+//!   then seven patches, the step ending past them; one of them curved, the
+//!   apex's piece of the sphere of the value one value in from the three
+//!   slopes, and one flat for each of the six ends, facing along its slope
+//!   square to the slanted edge there, toward it, the cross of the edge's way
+//!   and the slope's normal; and every order the same body as the first,
+//!   face for face, each edge's face by its rank and each patch by its plane
+//!   or its sphere. "Pinned with how it was got": derived, not measured, by
+//!   the method of the pyramid-on-a-plate paragraph of
+//!   `a_chamfer_and_a_fillet_blend_the_corner_their_edges_meet_at.rs`, the
+//!   slanted edges' rounds and the cell at the apex as #804 reads the square
+//!   pyramid's, 9105.316339396762 at 1, which #944's review measured, and
+//!   9112.864575519026 at 0.5. Green when written, the step built by #944
+//! - "`cargo test --workspace` is green." — no test: the gate's run, which
+//!   holds every test of the workspace, this one among them
 
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
@@ -4441,6 +4502,360 @@ fn a_chamfer_on_a_triangular_pyramid_s_slanted_edges_and_feet_numbers_each_face_
                 ),
             );
         }
+    }
+}
+
+/// The area of the triangle `corners` and the sums of its two coordinates
+/// over it.
+fn triangle_moments([a, b, c]: [DVec2; 3]) -> [f64; 3] {
+    let area = ((b - a).perp_dot(c - a) / 2.0).abs();
+    let centroid = (a + b + c) / 3.0;
+    [area, area * centroid.x, area * centroid.y]
+}
+
+/// The area of the section a round or a fill of `radius` lays between two
+/// faces meeting at `angle`, seen from the edge, and the sums over it of how
+/// far each point stands along the line halfway between the faces and across
+/// the first face: the kite from the edge to where the arc touches each face
+/// and its centre, less the arc's sector. The edge stands at the origin, the
+/// first face along the first axis, the second at `angle` from it.
+fn section_moments(angle: f64, radius: f64) -> [f64; 3] {
+    let set_back = radius / (angle / 2.0).tan();
+    let centre = DVec2::new(set_back, radius);
+    let on_first = DVec2::new(set_back, 0.0);
+    let on_second = DVec2::new(angle.cos(), angle.sin()) * set_back;
+    let turn = PI - angle;
+    let halfway = ((on_first - centre).normalize() + (on_second - centre).normalize()).normalize();
+    let sector = turn * radius * radius / 2.0;
+    let reach = 4.0 * radius * (turn / 2.0).sin() / (3.0 * turn);
+    let sector_centroid = centre + halfway * reach;
+    let [one, two] = [
+        triangle_moments([DVec2::ZERO, on_first, centre]),
+        triangle_moments([DVec2::ZERO, centre, on_second]),
+    ];
+    [
+        one[0] + two[0] - sector,
+        one[1] + two[1] - sector * sector_centroid.x,
+        one[2] + two[2] - sector * sector_centroid.y,
+    ]
+}
+
+/// What [`pyramid_on_a_plate`] keeps once its three slanted edges and its
+/// three feet are filleted at `r` in one step, each foot's fill stopped flush
+/// on the plane through the round of the slanted edge at each of its ends,
+/// square to its slope, as #944 lays them, and the apex closed by the piece
+/// of the sphere of `r` one `r` in from the three slopes. Derived as the
+/// pyramid-on-a-plate paragraph of
+/// `a_chamfer_and_a_fillet_blend_the_corner_their_edges_meet_at.rs` derives
+/// the square pyramid's, the three slopes alike by the base's symmetry: the
+/// plate and the pyramid, less each slanted edge's round's section along its
+/// edge from its end section to the plane square to the edge at its foot,
+/// less what the plate spares of that prism there — each line of it `w` off
+/// the edge reaching the plate `w_z/|d_z|` short of that plane, the edge
+/// running down along `d` —, less the cell the three end sections bound at
+/// the apex, the cone from the sphere's centre along the ways the slopes face,
+/// within `r` of each, the ball's sector in it given back, and plus each
+/// fill's section taken along its foot between the two planes it stops on.
+/// The cell, written `λ` along the three ways the slopes face, `g` the
+/// cosine between two of them, is `λ ≥ 0` with `λ_k + g(Σλ − λ_k) ≤ 1` for
+/// each: sliced where `Σλ = s`, the triangle `√3s²/2`, less past `s = 1` a
+/// corner of `√3(s − 1)²/(2(1 − g)²)` at each way, and from `s = 2/(1 + g)`
+/// the triangle `√3(3 − (1 + 2g)s)²/(2(1 − g)²)`, up to `s = 3/(1 + 2g)`; the
+/// slices `1/√3` apart for each unit of `s`, and the volume taken through the
+/// three ways' spread, `|n₁·(n₂ × n₃)|`. 9105.316339396762 at 1, the figure
+/// #944's review measured on its branch, and 9112.864575519026 at 0.5.
+fn pyramid_filleted(r: f64) -> f64 {
+    let base = PYRAMID_BASE.map(|[x, y]| DVec3::new(x, y, LOWER_TOP));
+    let middle = (base[0] + base[1] + base[2]) / 3.0;
+    let apex = middle + DVec3::Z * PYRAMID_HEIGHT;
+    let ways = [0, 1, 2].map(|side| {
+        let along = (base[(side + 1) % 3] - base[side]).normalize();
+        let out = DVec3::new(along.y, -along.x, 0.0);
+        let inradius = (base[side] - middle).dot(out);
+        (
+            along,
+            out,
+            (out * PYRAMID_HEIGHT + DVec3::Z * inradius).normalize(),
+        )
+    });
+    let facing = ways.map(|(_, _, facing)| facing);
+    let centre = apex - DVec3::Z * r / facing[0].z;
+    let down = base.map(|foot| (foot - apex).normalize());
+
+    let taken: f64 = (0..3)
+        .map(|corner| {
+            let [one, other] = [facing[(corner + 2) % 3], facing[corner]];
+            let angle = PI - one.angle_between(other);
+            let [section, across, up] = section_moments(angle, r);
+            let along_the_halfway = across * (angle / 2.0).cos() + up * (angle / 2.0).sin();
+            let into_the_matter = -(one + other).normalize();
+            section * (base[corner] - centre).dot(down[corner])
+                + along_the_halfway * into_the_matter.z / down[corner].z.abs()
+        })
+        .sum();
+
+    let alike = facing[0].dot(facing[1]);
+    let spread = facing[0].dot(facing[1].cross(facing[2])).abs();
+    let corners_cut = 2.0 / (1.0 + alike);
+    let squeeze = (1.0 - alike).powi(2);
+    let cell = (1.0 / 3.0 + (corners_cut.powi(3) - 1.0) / 3.0
+        - (corners_cut - 1.0).powi(3) / squeeze
+        + (3.0 - corners_cut * (1.0 + 2.0 * alike)).powi(3)
+            / (3.0 * (1.0 + 2.0 * alike) * squeeze))
+        / 2.0
+        * spread
+        * r.powi(3);
+    let sector = 2.0 * spread.atan2(1.0 + 3.0 * alike) * r.powi(3) / 3.0;
+
+    let added: f64 = (0..3)
+        .map(|side| {
+            let (along, out, slope) = ways[side];
+            let rise = slope.z.acos();
+            let [section, out_sum, up_sum] = section_moments(PI - rise, r);
+            let touch = centre + slope * r;
+            let at_the_foot = touch - down[side] * (touch.z - LOWER_TOP) / down[side].z;
+            let square = down[side].cross(slope);
+            let from_the_corner = (at_the_foot - base[side]).dot(square) / along.dot(square);
+            let length = base[(side + 1) % 3].distance(base[side]);
+            (length - 2.0 * from_the_corner) * section
+                + 2.0 * (out.dot(square) * out_sum + DVec3::Z.dot(square) * up_sum)
+                    / along.dot(square)
+        })
+        .sum();
+
+    let plate = 30.0 * 30.0 * LOWER_TOP;
+    let pyramid = 100.0 * 3f64.sqrt() / 4.0 * PYRAMID_HEIGHT / 3.0;
+    plate + pyramid - taken - cell + sector + added
+}
+
+/// How far a point stands from the line through `through` along `along`.
+fn off_the_line(point: DVec3, through: DVec3, along: DVec3) -> f64 {
+    let off = point - through;
+    (off - along * off.dot(along)).length()
+}
+
+#[test]
+fn a_fillet_on_a_triangular_pyramid_s_slanted_edges_and_feet_closes_its_apex_and_stops_each_fill_flush_where_a_slanted_edge_s_round_begins_in_one_body_whatever_the_order()
+ {
+    let part = pyramid_on_a_plate();
+    let start = part.faces_end();
+    let base = PYRAMID_BASE.map(|[x, y]| DVec3::new(x, y, LOWER_TOP));
+    let middle = (base[0] + base[1] + base[2]) / 3.0;
+    let apex = middle + DVec3::Z * PYRAMID_HEIGHT;
+    let facing = PYRAMID_FACES.map(|face| {
+        part.plane_of(face)
+            .unwrap_or_else(|| panic!("the pyramid's slanted face {face} is flat"))
+            .normal
+    });
+    let foot_of_slanted = [base[1], base[2], base[0]];
+    let ends: Vec<DVec3> = (0..3)
+        .flat_map(|edge| {
+            let [one, other] = [facing[edge], facing[(edge + 1) % 3]];
+            let hip = one.cross(other).normalize();
+            [(one, other), (other, one)].map(|(on, beside)| {
+                let square = hip.cross(on).normalize();
+                if square.dot(beside) > 0.0 {
+                    square
+                } else {
+                    -square
+                }
+            })
+        })
+        .collect();
+    let names = PYRAMID_EDGES.map(|[first, second]| edge_between(&part, first, second));
+    for value in [0.5, 1.0] {
+        let centre = apex - DVec3::Z * value / facing[0].z;
+        let set_back = |slope: DVec3| value / ((PI - slope.z.acos()) / 2.0).tan();
+        let curved = 3.0 * (PI / 3.0) * value * base[0].distance(apex)
+            + 3.0 * PI / 2.0 * value * 10.0
+            + 4.0 * PI * value * value;
+        let mut first: Option<(Vec<usize>, Body)> = None;
+        for order in PYRAMID_ORDERS {
+            let what = format!(
+                "the fillet of {value} on the pyramid's three slanted edges and three feet, \
+                 named {order:?}"
+            );
+            let list: Vec<EdgeName> = order.iter().map(|&edge| names[edge].clone()).collect();
+            let step = Cut::Round
+                .laid_on(&part, &list, value)
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            let case = Case {
+                order: order.to_vec(),
+                cut: Cut::Round,
+                value,
+                step,
+                what,
+            };
+            let Case { step, what, .. } = &case;
+            let body = &step.body;
+            taken_as_asked(step.asked, step.taken, value, what);
+            sound_drawn_within(
+                body,
+                pyramid_filleted(value),
+                DRAWN * reach_of(&part) * curved,
+                what,
+            );
+            assert_eq!(
+                faces_made(&part, body),
+                (start..start + 13).collect::<Vec<_>>(),
+                "{what}: one face for each edge by its rank, then seven patches, the apex's \
+                 piece of sphere and the flat end of each fill at each slanted edge's round: \
+                 {:?}",
+                numbers(body)
+            );
+            assert_eq!(
+                body.faces_end(),
+                start + 13,
+                "{what}: the next step numbers its own faces past the patches"
+            );
+            for edge in 0..6 {
+                let face = case.laid_on(&part, edge);
+                let (through, along, why) = if edge < 3 {
+                    (
+                        centre,
+                        (foot_of_slanted[edge] - apex).normalize(),
+                        "its cylinder about the line through the sphere's centre along the edge",
+                    )
+                } else {
+                    let slope = facing[edge - 3];
+                    let out = DVec3::new(slope.x, slope.y, 0.0).normalize();
+                    let [from, to] = [base[edge - 3], base[(edge - 2) % 3]];
+                    (
+                        from + out * set_back(slope) + DVec3::Z * value,
+                        (to - from).normalize(),
+                        "its cylinder about the line the value over the plate and out from the \
+                         slope",
+                    )
+                };
+                let drawn: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+                assert!(
+                    !body.is_flat(face)
+                        && !drawn.is_empty()
+                        && drawn
+                            .iter()
+                            .all(|point| (off_the_line(*point, through, along) - value).abs()
+                                < PLACE),
+                    "{what}: the face laid on {:?}, numbered by its rank, is curved and drawn on \
+                     {why}",
+                    PYRAMID_EDGES[edge]
+                );
+            }
+            let patches: Vec<usize> = (start + 6..start + 13).collect();
+            let rounded: Vec<usize> = (patches.iter().copied())
+                .filter(|&patch| body.plane_of(patch).is_none())
+                .collect();
+            assert!(
+                rounded.len() == 1
+                    && body.triangles_of(rounded[0]).flatten().all(|point| (point
+                        .distance(centre)
+                        - value)
+                        .abs()
+                        < PLACE),
+                "{what}: one curved patch, the apex's piece of the sphere of {value} about \
+                 {centre}: {rounded:?}"
+            );
+            for way in &ends {
+                let found: Vec<usize> = (patches.iter().copied())
+                    .filter(|&patch| {
+                        body.plane_of(patch)
+                            .is_some_and(|plane| plane.normal.distance(*way) < PLACE)
+                    })
+                    .collect();
+                assert_eq!(
+                    found.len(),
+                    1,
+                    "{what}: one flat end facing {way}, along the slope square to its slanted \
+                     edge, toward it: {found:?}"
+                );
+            }
+            match &first {
+                None => first = Some((order.to_vec(), body.clone())),
+                Some((first_order, first_body)) => {
+                    let first_case = Case {
+                        order: first_order.clone(),
+                        cut: Cut::Round,
+                        value,
+                        step: Laid {
+                            body: first_body.clone(),
+                            asked: value,
+                            taken: value,
+                        },
+                        what: String::new(),
+                    };
+                    let to_first: Vec<(usize, usize)> = (0..6)
+                        .map(|edge| (case.laid_on(&part, edge), first_case.laid_on(&part, edge)))
+                        .chain(patches.iter().map(|&patch| {
+                            let here = body.plane_of(patch).map(|plane| plane.normal);
+                            let there = (patches.iter().copied())
+                                .find(|&theirs| {
+                                    first_body
+                                        .plane_of(theirs)
+                                        .map(|plane| plane.normal)
+                                        .map_or(here.is_none(), |normal| {
+                                            here.is_some_and(|way| way.distance(normal) < PLACE)
+                                        })
+                                })
+                                .unwrap_or_else(|| {
+                                    panic!("{what}: no patch of the first order's like {patch}")
+                                });
+                            (patch, there)
+                        }))
+                        .collect();
+                    the_same_bodies(
+                        first_body,
+                        body,
+                        &to_first,
+                        &format!("{what}, and the same named {first_order:?}"),
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Every order `count` things can be named in.
+fn every_order_of(count: usize) -> Vec<Vec<usize>> {
+    if count == 0 {
+        return vec![Vec::new()];
+    }
+    (every_order_of(count - 1).into_iter())
+        .flat_map(|shorter| {
+            (0..count).map(move |at| {
+                let mut order = shorter.clone();
+                order.insert(at, count - 1);
+                order
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn a_fillet_on_two_of_a_triangular_pyramid_s_slanted_edges_and_its_three_feet_is_declined_as_unsupported_whatever_the_order_two_feet_meeting_under_the_slanted_edge_left_sharp()
+ {
+    let part = pyramid_on_a_plate();
+    let named = [0, 2, 3, 4, 5].map(|edge| {
+        let [first, second] = PYRAMID_EDGES[edge];
+        edge_between(&part, first, second)
+    });
+    let left_sharp = PYRAMID_EDGES[1];
+    assert!(
+        named.iter().all(|name| {
+            let sides = [vec![left_sharp[0] as u32], vec![left_sharp[1] as u32]];
+            name.between != sides && name.between != [sides[1].clone(), sides[0].clone()]
+        }),
+        "the slanted edge between the right and the left faces, over the corner the right and \
+         left feet meet at, is the one left out"
+    );
+    for order in every_order_of(named.len()) {
+        let list: Vec<EdgeName> = order.iter().map(|&edge| named[edge].clone()).collect();
+        assert_eq!(
+            Cut::Round.laid_on(&part, &list, 1.0).err(),
+            Some(Declined::Unsupported),
+            "the fillet of 1 on the pyramid's front right and left front slanted edges and its \
+             three feet, named {order:?}: the right and the left feet, each laid first where it \
+             runs from a slanted edge's foot, meet at the foot of the slanted edge left sharp, a \
+             corner of no mixed sense — a broken step and its reason, and no body"
+        );
     }
 }
 

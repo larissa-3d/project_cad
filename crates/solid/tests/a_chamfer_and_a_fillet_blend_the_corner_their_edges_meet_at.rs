@@ -510,7 +510,10 @@
 //!   reads such a corner — chamfered at 1, goes round each hip at its foot and
 //!   closes the apex with its square, one body in every order; filleted at 1,
 //!   it is declined in every order —
-//!   `a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order`.
+//!   `a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order`,
+//!   named so until #944 built the fillet there, and held now in #944's
+//!   block below, renamed
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`.
 //!   Read as: the four hips alone, filleted and chamfered at 1, keep the
 //!   plate's 800 with the pyramid's figures above, 964.84162207554385 and
 //!   952.89141153805824, the apex closed on the plate as on the pyramid's own
@@ -652,7 +655,9 @@
 //!   pyramid on a plate chamfered at its four hips and three feet, the back
 //!   one left out, ends held at its back corners and odd corners at its front
 //!   ones, builds the same body either way; the fillet there, where the order
-//!   could tell, is declined until #944
+//!   could tell, is declined, and stays declined after #944, `Unsupported` in
+//!   the three orders tried on its branch: a leaning hip beside a foot left
+//!   sharp is not a corner #944 goes round. Until #1093
 //!
 //! Closes #946.
 //! - First a smaller fixture: a body with an edge whose faces meet at an
@@ -818,6 +823,221 @@
 //!   laid —
 //!   `a_fillet_on_the_three_edges_of_a_corner_closes_it_with_a_piece_of_sphere_one_radius_from_its_three_faces`
 //!   and the other corners #699's block names
+//!
+//! Closes #944. The criteria are the issue's comment "Picked up 2026-11-23",
+//! its fifth replaced by the comment "Correction to the decided Done when",
+//! whose volume and order are given their own criteria here.
+//! - "The square pyramid on its plate (base 10 × 10, 5 high, plate 20 × 20 ×
+//!   2), its four hips and four feet filleted at 1, is built in every order
+//!   (the test's spread of orders), one body. The pinned decline in
+//!   `a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order`
+//!   flips to that build." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`,
+//!   the pin renamed for what it holds, its chamfer half left as it was.
+//!   Read as: `pyramid_on_a_plate`, its four hips then its four feet, in the
+//!   48 orders of `spread_orders_of_eight`, 48 of the 40320 the eight edges
+//!   can be named in, spread over them all, as the chamfer half reads every
+//!   order; the fillet at 1 built in each, the value taken whole; and "one
+//!   body" read as every order laying the body the first lays, face for
+//!   face: each edge's face taken by its rank, the piece of sphere found by
+//!   its sphere and each flat end by its plane and its corners, each face
+//!   meeting what it meets in the first order and each flat face keeping its
+//!   corners. Beyond the issue's wording, #699's numbering carried over: one
+//!   face for each edge by its rank, a round on each hip and a fill on each
+//!   foot, then nine patches, the piece and the eight flat ends, the step
+//!   ending past them and every face of the part kept; which of the nine
+//!   numbers each patch takes is left to the step. Red at 5b44c902: the
+//!   fillet declined `Unsupported` in each of the 48 orders, the chamfer
+//!   half and every check before the step passing
+//! - "The body is exact, closed and uncrossed." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`.
+//!   Read as: in each order, the body exact, closed and uncrossed, and its
+//!   triangles enclosing its volume within the drawing's tolerance
+//! - "Its volume is the booleans' (the plate and pyramid, less the hips'
+//!   prisms, plus the feet's fill prisms, laid as the kernel lays them),
+//!   cross-checked by arithmetic where it reaches." And, from the
+//!   correction: "The body holds 965.5774639983673: the four-hip filleted
+//!   pyramid on its plate (964.84162207554385) plus four fill prisms. Each
+//!   fill prism is (10 − √2)·A − Iy − Iz = 0.18396048070588064, with A = √2 −
+//!   1 − π/8. The kernel's booleans agree to 1e-14." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`.
+//!   Read as: in each order the body holding `plate_filleted`, the arithmetic
+//!   below; and before the step, the booleans giving it too,
+//!   `plate_filleted_by_booleans`: the four hips filleted alone, which the
+//!   test holds to #804's arithmetic on the plate, plus each foot's prism
+//!   stopped where the rounds begin, measured by the booleans, the booleans
+//!   finding the four prisms joining the part without overlap, in its air,
+//!   and the hips' prisms, cut flush on the plate and level at 5 under their
+//!   end sections, leaving the same whether they are cut before the fills
+//!   are joined or after. "Laid as the kernel lays them" is read through
+//!   that agreement: #829 lays the odd edge first, and here the order leaves
+//!   the same. The booleans hold the volume and not the body: the kernel
+//!   does not join the fills to the hips filleted alone, declined
+//!   `Unsupported`, the fill and the round touching at one point
+//! - "The apex is closed on its piece of sphere, as #804 reads it." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`.
+//!   Read as #804's first criterion reads it on the pyramid's own base,
+//!   raised onto the plate: one patch drawn on the sphere of 1 about
+//!   (5, 5, 7 − √2), one in from each slope, curved, on the apex's side of
+//!   every round's end section, a corner where it touches each slope, met
+//!   first on rays from outside toward its centre, and meeting the four
+//!   rounds, one side each, and nothing else; each round curved, drawn on its
+//!   cylinder of 1 about the line through the centre along its hip, its end
+//!   section drawn along its arc between its feet on its two slopes, and met
+//!   first from outside past its end section; no face left with a corner at
+//!   the apex
+//! - "each foot's fill stops flush on the plane through the hip round's axis,
+//!   square to its slope, as #829's feet stop at the plane through an upright
+//!   round's axis. At each fill's end there is a flat face of its own
+//!   section. At the front left corner it faces (−2, 1, 1)/√6, with corners
+//!   (1/2, 1 − √2, 2), (1/√2, 0, 2) and P, and the fill's arc between them.
+//!   That end face meets the hip's round at 90° along the round's tangent
+//!   line, from (1/√2, 0, 2) to P. The round meets the plate along a sharp
+//!   elliptic edge between the two fills' ends. There is no hollow." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`,
+//!   P being (1, 1 − 1/√2, 3 − 1/√2). Read as: before the step,
+//!   each fill's two ends where the arithmetic below puts them, the images of
+//!   the front left one about the axis: the three corners on one plane square
+//!   to the slope and running along the hip, two on the plate's top and P on
+//!   the slope, the round's line of touch through the second and P and the
+//!   fill's lines of touch through the first and P. Then, in each order:
+//!   each fill curved, drawn on its cylinder of 1 about the line 1 over the
+//!   plate and 1 out from the slope and never past the plane it stops on at
+//!   either end, with a corner at the first corner and at P of each end, met
+//!   first on rays from its axis, and meeting the plate's top, its slope and
+//!   its two ends, one edge each, and no round; each end flat, facing toward
+//!   the hip as derived, its corners the three and points of the fill's arc
+//!   between the first and P, and meeting the plate's top, its fill and the
+//!   round, one edge each — "at 90° along the round's tangent line" read as
+//!   that edge, from the second corner to P, the end's facing square to the
+//!   slope the round is tangent to there; each round drawn down to the
+//!   plate's top along the curve the plate cuts from its cylinder, from the
+//!   second corner of one fill's end to the other's, a corner at each end's
+//!   P, and meeting its two slopes, the piece, the plate's top and the two
+//!   ends at its foot, one edge each, and no fill; each slope a triangle from
+//!   where the piece touches it down along its two hips' rounds to their two
+//!   P, meeting its fill and those two rounds; the plate's top meeting the
+//!   plate's four walls, the four fills, the eight ends and the four rounds,
+//!   and no slope; "no hollow" read as a ray straight down onto each corner
+//!   of the base a hip ran down to meeting the plate's top first, facing up,
+//!   and no face left with a corner at those corners
+//! - From the correction: "The body does not depend on the order: the hips'
+//!   prisms lie on the matter side of the slopes and the fills' on the air
+//!   side, so they never overlap." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`.
+//!   Read as the booleans' check of the third criterion, the hips' prisms
+//!   cut before the fills or after leaving the same, and the step's bodies
+//!   of the first criterion laid the same in every order
+//! - "The chamfer keeps its body." —
+//!   `a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins`,
+//!   its chamfer half, left as #804 wrote it: 965.567266914305 in each of
+//!   the 48 orders, one flat for each edge and five patches after them, the
+//!   apex's square among them, one body face for face
+//! - "What must not break: #804's apexes, #829's mixed corners, #699's
+//!   corners, #942's and #943's pins, #948's clearing." — no test: each held
+//!   by its own test, left as it was, #699's, #804's, #942's and #948's in
+//!   their blocks above and #829's in
+//!   `a_chamfer_and_a_fillet_go_round_the_odd_edge_at_a_corner_of_mixed_sense.rs`.
+//!   The one test this issue changes is the pin the first criterion flips
+//! - Decided on the way, after the review (2026-11-23), in the issue's comment
+//!   "Decided after the review": a lean within the sketch's noise, `TANGENT`,
+//!   a millionth of a radian, reads as upright, and goes to #829's piece of
+//!   torus rather than to this issue's creased foot, which the step took from
+//!   a lean of some 5e-10 radians on. A block on a plate whose walls all lean
+//!   in by a hair, filleted on its uprights and feet, is declined in every
+//!   order, never creased, until #1095 lets the torus take an upright a hair
+//!   off plumb —
+//!   `a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_walls_lean_by_a_hair_is_declined_as_unsupported_whatever_the_order_rather_than_creased`.
+//!   Read as: `block_on_a_plate`, 10 by 10 by 5 on the plate of
+//!   `pyramid_on_a_plate`, each wall leaning in 1e-6 over its height; before
+//!   the step, the part exact and holding 1300 less each wall's wedge,
+//!   `10 · 5 · 1e-6/2`, with the corner two wedges share at each upright
+//!   given back, and each upright leaning between 1e-7 and a millionth of a
+//!   radian; then its four uprights and four feet at 1, in the 48 orders of
+//!   `spread_orders_of_eight`, declined `Unsupported` in each. The step builds
+//!   them before this decision, the creased foot of this issue, holding
+//!   1302.575 in 27 faces in each of the 48 orders, where the block exactly
+//!   upright gets #829's torus, 1304.225 in 23: red until the step reads such
+//!   a lean as upright
+//! - Decided on the way, after the review (2026-11-23), by the same comment: a
+//!   fillet step mixing corners whose upright leans past `TANGENT` with
+//!   corners whose upright stands is declined `Unsupported` before any torus
+//!   is tried, until #1096 rounds each corner its own way in one body. A ramp
+//!   block on a plate, its front wall leaning, so that its two front uprights
+//!   lean and its two back ones stand, filleted on its uprights and feet, is
+//!   declined in every order —
+//!   `a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_front_wall_leans_is_declined_as_unsupported_whatever_the_order_two_uprights_leaning_and_two_upright`.
+//!   Read as: `block_on_a_plate` with its front wall leaning in 2 over its
+//!   height of 5, its other three upright; before the step, the part exact
+//!   and holding 1250, and its two front uprights leaning past `TANGENT`,
+//!   its two back ones not at all; then its four uprights and four feet at 1,
+//!   in the 48 orders of `spread_orders_of_eight`, declined `Unsupported` in
+//!   each. The comment reads the block as having two leaning side walls; the
+//!   review's fixture, held here, has one leaning wall, which is what makes
+//!   two of its uprights lean. Green before the decision and after, a pin
+//!   rather than a red test. The other decline the comment makes explicit, a
+//!   leaning corner with a foot left sharp, #1093's, is the one the paragraph
+//!   on `CLEARED` above names
+//! - Decided on the way, after the mutants (2026-11-23): the faces the second
+//!   pass of `short_of_the_round` closes corners with are numbered by their
+//!   corners' ranks, however many it closes; with the pyramid's one apex the
+//!   number it read each closing face by, turned from `+` to `−`, went
+//!   unseen. A frustum on a plate, its hips, feet and top edges filleted at
+//!   1, closes four #699 corners in that pass, built in every order, one body
+//!   face for face —
+//!   `a_fillet_on_the_hips_feet_and_top_edges_of_a_frustum_on_a_plate_closes_its_four_top_corners_after_stopping_each_fill_where_a_hip_s_round_begins_in_one_body_whatever_the_order`.
+//!   Read as: `block_on_a_plate` with every wall leaning in 3 over its 5, a
+//!   frustum 10 by 10 at its foot and 4 by 4 at its top, holding 1060; before
+//!   the step, each top corner's centre 1 in from its top and its two walls;
+//!   then its four hips, four feet and four top edges at 1, in 12 of their
+//!   orders, the first two as listed and reversed, the rest shuffled from a
+//!   fixed seed: the value taken whole; the body exact, closed, uncrossed,
+//!   holding `frustum_filleted`, 1058.088034412097, the arithmetic of the
+//!   pyramid on its plate with each top corner's cell and sector, the figure
+//!   the review measured; one face for each edge by its rank, then the four
+//!   pieces of sphere, numbered by the lowest ranks of their corners' three
+//!   edges as #699 numbers corners closed in one step, each on the sphere
+//!   about its own corner's centre and meeting the rounds of that corner's
+//!   three edges and nothing else, then the eight flat ends, each facing
+//!   along its wall square to its hip, toward it; the plate's top with a
+//!   corner where each hip's round comes down to it beside each fill's end;
+//!   and every order laying the body the first lays, face for face, each
+//!   flat face's corners compared off the hips' rounds. Off them, because the
+//!   plate's top lists points along the curve each hip's round meets it on,
+//!   and in six of the eleven later orders lists them at other places and in
+//!   other numbers, 80 to 82 where the first lists 78, every face meeting
+//!   what it meets there. Checked in a scratch copy with its own target, the
+//!   `+` turned to `−`: the test fails, the pieces of sphere numbered apart
+//!   from the edges' faces
+//! - Decided on the way, after the mutants (2026-11-23): an end held flush is
+//!   trimmed toward its corner whatever the side of the ground the round's
+//!   axis passes; the sign it is read by survived with `corner.at − through`
+//!   turned into `corner.at / through`, the two agreeing wherever the axis
+//!   stands above the ground as the foot does. The pyramid on its plate
+//!   lowered until each hip's round's axis passes under the ground at its
+//!   foot, the foot above it, lays the same body lowered —
+//!   `a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_lowered_until_the_hips_rounds_axes_pass_under_the_ground_lays_the_same_body_lowered`.
+//!   Read as: `pyramid_on_a_plate_lowered` by 1.5, its plate's top at 0.5,
+//!   above the ground and under the 0.94 by which each hip's round's axis
+//!   passes under its foot; before the step, the part holding what the
+//!   unlowered one does in the same faces; then, in every twelfth of the 48
+//!   orders, the fillet at 1 on the four hips and four feet: the value taken
+//!   whole, the body exact, closed, uncrossed, holding `plate_filleted`, and
+//!   the unlowered step's faces, numbered alike, each meeting what it meets
+//!   there and each flat face with its corners lowered by 1.5. Checked in a
+//!   scratch copy, the `−` turned to `/`: the step is declined `Unsupported`.
+//!   The `*` turned to `/` on the same line divides by a sign of ±1 and is
+//!   equivalent
+//! - Decided on the way, after the mutants (2026-11-23): the counter the
+//!   step leaves for the next one, `next`, set again at its end, survived
+//!   deleted — no test: the body the second pass lays already carries that
+//!   number. Each edge laid alone in the first pass moves the count by one,
+//!   the ends held take `count` numbers past them, and the second pass ends
+//!   past its edges and the corners it closes, one each: where the steps'
+//!   numbers began, plus the edges, the ends and the closings, which is the
+//!   number set again. Read in a scratch copy on the frustum and the
+//!   triangular pyramid, both alike, 60 and 42, in every order; the
+//!   implementer may keep the line as the number's statement or drop it
 //!
 //! The volumes are arithmetic, measured from the corner along its three
 //! edges: a point stands `(a, b, c)` from it, `a` along the edge whose length
@@ -1150,6 +1370,35 @@
 //! `9500/3 − d²(15 + 35/√2) + d³(2 + 5√2)/6`, 3128.429773960448 at 1, which
 //! the booleans give to the last digits — the five flats' prisms cut away,
 //! then the slab beyond each triangle's plane.
+//!
+//! The pyramid on its plate, `pyramid_on_a_plate`, is the square pyramid
+//! raised 2 onto a plate 20 by 20 by 2, its apex at (5, 5, 7): `800 + 500/3`.
+//! Its hips meet at 120 degrees inside the matter, as on its own base, and
+//! its feet at 225, 135 in the air. Each hip's round is cut flush on the
+//! plate's top as on the base, so that the four hips filleted alone keep
+//! `800 + 164.84162207554385`. At the corner on (0, 0, 2) the front slope is
+//! the plane `y = z − 2`. The hip's round lies on the cylinder of 1 about the
+//! line through (√2/3, √2/3, 2 − 2√2/3) along (1, 1, 1)/√3, tangent to that
+//! plane along the line through (1/√2, 0, 2) along the hip and wholly on the
+//! matter's side of it; the front foot's fill on the cylinder of 1 about the
+//! line `y = 1 − √2`, `z = 3`, tangent to it along the level line
+//! `z = 3 − 1/√2` and wholly on the air's side. The two share only the point
+//! where those lines cross, P = (1, 1 − 1/√2, 3 − 1/√2), and no fill reaching
+//! the round can meet it along a curve. The plane through the round's axis
+//! square to the slope, `2x − y − (z − 2) = √2`, meets the fill's section,
+//! measured from the foot `s` out along the plate and `h` up from it, at
+//! `x = (√2 − s + h)/2`, and its image at the other end at `10 − x`: the fill
+//! runs `10 − √2 + s − h` between its ends. The section is the kite from the
+//! foot to where the fill touches the plate, (√2 − 1, 0), its axis,
+//! (√2 − 1, 1), and where it touches the slope, (1/√2 − 1, 1 − 1/√2), less
+//! the arc's sector of 45 degrees about the axis: `A = √2 − 1 − π/8`, over
+//! which `s` sums to 0.000536167733710 and `h` to 0.001294423414431 — the
+//! correction's `−Iy` and `Iz`, its `y` measured toward the pyramid. The
+//! prism holds `(10 − √2)A + ∫s − ∫h`, 0.18396048070588. The hips' prisms lie
+//! on the matter's side of the slopes and the fills' on the air's, so that
+//! neither meets the other, and the body keeps
+//! `800 + 164.84162207554385 + 4 × 0.18396048070588`, 965.5774639983673, which
+//! the booleans give to the last digits.
 //!
 //! The campaigns are run by hand, out of the gate, compiled only under the
 //! `campaigns` feature: the fillet on the square pyramid's four hips and the
@@ -6153,8 +6402,705 @@ fn distinct_points(points: &[&DVec3]) -> usize {
         .count()
 }
 
+/// A foot of [`pyramid_on_a_plate`], where slope `slope` of
+/// [`apex_on_a_plate`] meets the plate's top: the two hips at its ends, as
+/// indices into the apex's, the foot of the first, where it runs from, the
+/// way it runs to the second's, and the way out along the plate from under
+/// its slope.
+struct Foot {
+    slope: usize,
+    hips: [usize; 2],
+    from: DVec3,
+    along: DVec3,
+    out: DVec3,
+}
+
+/// One end of a foot's fill of 1, stopped flush on the plane through the
+/// round of the hip there, square to the foot's slope: the way that flat end
+/// faces, toward the hip, and its three corners — where it meets the line
+/// the fill touches the plate along, where the round's line of touch on the
+/// slope comes down to the plate, and where that line crosses the line the
+/// fill touches the slope along, the one point the fill and the round share.
+struct FillEnd {
+    hip: usize,
+    facing: DVec3,
+    corners: [DVec3; 3],
+}
+
+/// The four feet of [`pyramid_on_a_plate`], in the order of its slopes, as
+/// the test names them after the hips.
+fn feet_of(apex: &Apex) -> [Foot; 4] {
+    [0, 1, 2, 3].map(|slope| {
+        let hips = apex.hips_on(slope);
+        let [from, to] = hips.map(|hip| apex.hips[hip].foot);
+        let outward = apex.slopes[slope].outward;
+        Foot {
+            slope,
+            hips,
+            from,
+            along: (to - from).normalize(),
+            out: DVec3::new(outward.x, outward.y, 0.0).normalize(),
+        }
+    })
+}
+
+/// The centre of the piece of sphere a fillet of 1 closes the apex of
+/// [`pyramid_on_a_plate`] on: one in from each of the four slopes, √2 under
+/// the apex.
+fn plate_sphere_centre(apex: &Apex) -> DVec3 {
+    apex.at - DVec3::Z * 2f64.sqrt()
+}
+
+/// How high the line a foot's fill of 1 touches its slope along stands over
+/// the plate's top: `1 − 1/√2`, where the fill's arc, about an axis 1 over the
+/// plate, turns 45 degrees from the plate to the slope.
+fn fill_touches_the_slope_at() -> f64 {
+    PLATE_THICKNESS + 1.0 - 1.0 / 2f64.sqrt()
+}
+
+impl Foot {
+    /// The fill of 1 a fillet lays on the foot, whole between its two
+    /// corners: its axis 1 over the plate and 1 out from the slope, turning
+    /// from facing down onto the plate to facing in onto the slope.
+    fn fill(&self, apex: &Apex) -> Round {
+        let set_back = 2f64.sqrt() - 1.0;
+        Round {
+            start: self.from + self.out * set_back + DVec3::Z,
+            along: self.along,
+            length: SQUARE[0],
+            radius: 1.0,
+            facing: [-DVec3::Z, -apex.slopes[self.slope].outward],
+        }
+    }
+
+    /// The fill's two ends, at the first hip and at the second.
+    fn ends(&self, apex: &Apex) -> [FillEnd; 2] {
+        let slope = &apex.slopes[self.slope];
+        let touch = plate_sphere_centre(apex) + slope.outward;
+        let on_the_plate = self.from + self.out * (2f64.sqrt() - 1.0);
+        self.hips.map(|hip| {
+            let at_the_foot = along_the_hip_to(apex, hip, touch, PLATE_THICKNESS);
+            let crossing = along_the_hip_to(apex, hip, touch, fill_touches_the_slope_at());
+            let square = apex.hips[hip].down.cross(slope.outward).normalize();
+            let middle = self.from + self.along * SQUARE[0] / 2.0;
+            let facing = if square.dot(apex.hips[hip].foot - middle) > 0.0 {
+                square
+            } else {
+                -square
+            };
+            let reached = (at_the_foot - on_the_plate).dot(facing) / self.along.dot(facing);
+            FillEnd {
+                hip,
+                facing,
+                corners: [on_the_plate + self.along * reached, at_the_foot, crossing],
+            }
+        })
+    }
+
+    /// The prism over the fill's section, the plate's top, the slope and the
+    /// arc between, raised along the foot well past both its corners and
+    /// stopped flush at each end on the plane through the round of the hip
+    /// there, square to the slope, for `part` to number its faces after its
+    /// own.
+    fn fill_prism(&self, part: &Body, apex: &Apex) -> Body {
+        let angle = 3.0 * PI / 4.0;
+        let set_back = 2f64.sqrt() - 1.0;
+        let outline = Contour {
+            corners: vec![
+                DVec2::ZERO,
+                DVec2::new(set_back, 0.0),
+                DVec2::new(angle.cos(), angle.sin()) * set_back,
+            ],
+            runs: vec![
+                Run::Straight,
+                Run::Round {
+                    center: DVec2::new(set_back, 1.0),
+                    turn: angle - PI,
+                },
+                Run::Straight,
+            ],
+        };
+        let [start, stop] = [
+            self.from - self.along * 2.0,
+            self.from + self.along * (SQUARE[0] + 2.0),
+        ];
+        let (origin, travel) = if self.out.cross(DVec3::Z).dot(self.along) > 0.0 {
+            (start, stop - start)
+        } else {
+            (stop, start - stop)
+        };
+        let prism = part
+            .tool_raised(
+                &profile(outline),
+                Frame {
+                    origin,
+                    u: self.out,
+                    v: DVec3::Z,
+                },
+                travel,
+            )
+            .expect("the fill's prism raises");
+        self.ends(apex).iter().fold(prism, |prism, end| {
+            prism
+                .difference(&beyond(&prism, end.corners[1], end.facing, 12.0))
+                .expect("the fill's prism stops where the hip's round begins")
+        })
+    }
+}
+
+/// What a foot's fill of 1 adds, stopped at both ends where the hips' rounds
+/// begin: its section, measured from the foot `s` out along the plate and
+/// `h` up from it, runs `10 − √2 + s − h` between the two planes it stops
+/// on, so the prism holds that length taken over the section — the kite from
+/// the foot to where the fill touches the plate, its axis and where it
+/// touches the slope, less the arc's sector of 45 degrees about the axis.
+fn foot_filled_between_the_rounds() -> f64 {
+    let root = 2f64.sqrt();
+    let between = SQUARE[0] - root;
+    let foot = DVec2::ZERO;
+    let on_the_plate = DVec2::new(root - 1.0, 0.0);
+    let axis = DVec2::new(root - 1.0, 1.0);
+    let on_the_slope = DVec2::new(1.0 / root - 1.0, 1.0 - 1.0 / root);
+    let taken = |area: f64, centroid: DVec2| area * (between + centroid.x - centroid.y);
+    let triangle =
+        |[a, b, c]: [DVec2; 3]| taken(((b - a).perp_dot(c - a) / 2.0).abs(), (a + b + c) / 3.0);
+    let halfway = (DVec2::NEG_Y + (on_the_slope - axis).normalize()).normalize();
+    let half_turn = PI / 8.0;
+    let sector = taken(
+        half_turn,
+        axis + halfway * 2.0 * half_turn.sin() / (3.0 * half_turn),
+    );
+    triangle([foot, on_the_plate, axis]) + triangle([foot, axis, on_the_slope]) - sector
+}
+
+/// What [`pyramid_on_a_plate`] keeps once its four hips and its four feet are
+/// filleted at 1, each foot's fill stopped flush where the hips' rounds
+/// begin: the plate, the pyramid closed by its piece of sphere as on its own
+/// base, and the four fills, 965.5774639983673. The hips' rounds take only
+/// what lies on the matter's side of the slopes and the fills add only what
+/// lies on the air's, so that neither touches the other's prism.
+fn plate_filleted() -> f64 {
+    20.0 * 20.0 * PLATE_THICKNESS
+        + pyramid_closed_by_a_sphere(1.0)
+        + 4.0 * foot_filled_between_the_rounds()
+}
+
+/// The prism a round of 1 on hip `hip` of [`pyramid_on_a_plate`] takes,
+/// its section between the hip's two slopes and its arc, raised along the hip
+/// from under the plate, cut flush on the plate's top and level at the height
+/// `up_to`, under the round's end section, for `part` to number its faces
+/// after its own.
+fn hip_round_prism(part: &Body, apex: &Apex, hip: usize, up_to: f64) -> Body {
+    let foot = apex.hips[hip].foot;
+    let up = -apex.hips[hip].down;
+    let [one, other] = apex.facing(hip);
+    let into = |facing: DVec3, beside: DVec3| {
+        let way = up.cross(facing).normalize();
+        if way.dot(beside) < 0.0 { way } else { -way }
+    };
+    let u = into(one, other);
+    let second = into(other, one);
+    let v = (second - u * u.dot(second)).normalize();
+    let angle = u.dot(second).acos();
+    let set_back = 1.0 / (angle / 2.0).tan();
+    let outline = Contour {
+        corners: vec![
+            DVec2::ZERO,
+            DVec2::new(set_back, 0.0),
+            DVec2::new(angle.cos(), angle.sin()) * set_back,
+        ],
+        runs: vec![
+            Run::Straight,
+            Run::Round {
+                center: DVec2::new(set_back, 1.0),
+                turn: angle - PI,
+            },
+            Run::Straight,
+        ],
+    };
+    let [start, stop] = [foot - up * 2.0, foot + up * 6.0];
+    let (origin, travel) = if u.cross(v).dot(up) > 0.0 {
+        (start, stop - start)
+    } else {
+        (stop, start - stop)
+    };
+    let prism = part
+        .tool_raised(&profile(outline), Frame { origin, u, v }, travel)
+        .expect("the hip's prism raises");
+    let flush = prism
+        .difference(&beyond(&prism, foot, DVec3::NEG_Z, 12.0))
+        .expect("the hip's prism is cut flush on the plate");
+    flush
+        .difference(&beyond(&flush, DVec3::Z * up_to, DVec3::Z, 30.0))
+        .expect("the hip's prism is cut level under its end section")
+}
+
+/// How high the hips' prisms of [`plate_filleted_by_booleans`] are cut level:
+/// under every round's end section, which stands over 5.8 high near its hip.
+const UNDER_THE_END_SECTIONS: f64 = 5.0;
+
+/// What [`pyramid_on_a_plate`] keeps once its four hips and its four feet are
+/// filleted at 1, held another way, by the booleans: the four hips filleted
+/// alone, which the first check of the test holds to #804's arithmetic, and
+/// each foot's prism stopped where the rounds begin, [`Foot::fill_prism`],
+/// measured by the booleans and added whole. Added whole because the
+/// booleans find that the four prisms lie in the part's air, joining it
+/// without overlap, and clear of every hip's round's prism, cut flush on the
+/// plate and level under its end section: cutting those prisms before
+/// joining the fills or after leaves the same, the part less the one and
+/// plus the other. The kernel does not join the fills to the hips filleted
+/// alone, the fill and the round touching at one point: declined
+/// `Unsupported`.
+fn plate_filleted_by_booleans(part: &Body, apex: &Apex, rounded: &Body) -> f64 {
+    let prisms: Vec<Body> = (feet_of(apex).iter())
+        .map(|foot| foot.fill_prism(part, apex))
+        .collect();
+    let fills = (prisms[1..].iter()).fold(prisms[0].clone(), |all, prism| {
+        all.union(prism).expect("the four fills' prisms join")
+    });
+    let added = prisms.iter().map(Body::volume).sum::<f64>();
+    assert!(
+        (fills.volume() - added).abs() < EXACT * part.volume(),
+        "the four fills' prisms join, {}, without overlap, {added}",
+        fills.volume()
+    );
+    let filled = part.union(&fills).expect("the fills join the part");
+    assert!(
+        (filled.volume() - (part.volume() + added)).abs() < EXACT * part.volume(),
+        "the four fills' prisms lie in the part's air: joined to it, they add {} where they hold \
+         {added}",
+        filled.volume() - part.volume()
+    );
+    let cut_after = (0..4).fold(filled, |body, hip| {
+        body.difference(&hip_round_prism(&body, apex, hip, UNDER_THE_END_SECTIONS))
+            .expect("a hip's prism is cut after the fills")
+    });
+    let mut taken = 0.0;
+    let cut_first = (0..4).fold(part.clone(), |body, hip| {
+        let prism = hip_round_prism(&body, apex, hip, UNDER_THE_END_SECTIONS);
+        taken += prism.volume();
+        body.difference(&prism)
+            .expect("a hip's prism is cut before the fills")
+    });
+    let joined_after = cut_first
+        .union(&fills)
+        .expect("the fills join after the hips' prisms are cut");
+    let apart = part.volume() - taken + added;
+    for (body, how) in [
+        (&cut_after, "the fills joined, then the hips' prisms cut"),
+        (&joined_after, "the hips' prisms cut, then the fills joined"),
+    ] {
+        assert!(
+            (body.volume() - apart).abs() < EXACT * part.volume(),
+            "{how}: {}, where the part less the hips' prisms and plus the fills holds {apart}",
+            body.volume()
+        );
+    }
+    rounded.volume() + added
+}
+
+/// The round of 1 a fillet lays on hip `hip` of [`pyramid_on_a_plate`]: its
+/// axis from the piece of sphere's centre along the hip, as far down as the
+/// hip runs, turning from facing the way its first slope does to the way its
+/// second does.
+fn plate_hip_round(apex: &Apex, hip: usize) -> Round {
+    Round {
+        start: plate_sphere_centre(apex),
+        along: apex.hips[hip].down,
+        length: apex.hips[hip].foot.distance(apex.at),
+        radius: 1.0,
+        facing: apex.facing(hip),
+    }
+}
+
+/// The number of the patch among `patches` that is the flat end of a fill at
+/// `end`: facing its way, a corner where the round's line of touch comes down
+/// to the plate.
+fn fill_end_among(body: &Body, patches: &[usize], end: &FillEnd, what: &str) -> usize {
+    let found: Vec<usize> = (patches.iter().copied())
+        .filter(|&patch| {
+            body.plane_of(patch).is_some_and(|plane| {
+                plane.normal.distance(end.facing) < PLACE
+                    && (plane.corners.iter()).any(|corner| corner.distance(end.corners[1]) < PLACE)
+            })
+        })
+        .collect();
+    assert_eq!(
+        found.len(),
+        1,
+        "{what}: one flat face facing {} with a corner at {}, among {patches:?}: {found:?}",
+        end.facing,
+        end.corners[1]
+    );
+    found[0]
+}
+
+/// Holds that `body` is [`pyramid_on_a_plate`] filleted at 1 on its four
+/// hips and its four feet as #944 decided it: its apex closed on the piece of
+/// sphere about [`plate_sphere_centre`] as #804 reads it on the pyramid's own
+/// base, and each foot's fill stopped flush at both ends on the plane
+/// through the round of the hip there, square to the slope, on a flat end of
+/// its own section that meets the round along the round's line of touch; each
+/// round run down to the plate's top between the two fills' ends; and no
+/// hollow. `round_of` and `fill_of` hand the number of the round on a hip and
+/// of the fill on a foot, and `patches` the numbers the piece and the eight
+/// ends are among.
+fn closes_the_apex_and_stops_each_fill_where_the_hip_s_round_begins(
+    body: &Body,
+    apex: &Apex,
+    round_of: impl Fn(usize) -> usize,
+    fill_of: impl Fn(usize) -> usize,
+    patches: &[usize],
+    what: &str,
+) {
+    let centre = plate_sphere_centre(apex);
+    let feet = feet_of(apex);
+    let rounds = [0, 1, 2, 3].map(|hip| plate_hip_round(apex, hip));
+    let on_the_sphere: Vec<usize> = (patches.iter().copied())
+        .filter(|&patch| sphere_of(body, patch, &[centre]) == Some(0))
+        .collect();
+    assert_eq!(
+        on_the_sphere.len(),
+        1,
+        "{what}: one patch drawn on the sphere of 1 about {centre}, one in from each slope: \
+         {on_the_sphere:?}"
+    );
+    let piece = on_the_sphere[0];
+    let ends = feet.each_ref().map(|foot| {
+        foot.ends(apex)
+            .map(|end| fill_end_among(body, patches, &end, what))
+    });
+    let ends_at = |hip: usize| -> Vec<usize> {
+        (feet.iter().zip(&ends))
+            .flat_map(|(foot, numbers)| foot.hips.iter().zip(numbers))
+            .filter(|&(&at, _)| at == hip)
+            .map(|(_, &number)| number)
+            .collect()
+    };
+
+    let which = format!("{what}: the piece of sphere");
+    assert!(
+        !body.is_flat(piece) && body.plane_of(piece).is_none(),
+        "{which} is curved, and offers no plane to draw on"
+    );
+    let drawn: Vec<DVec3> = body.triangles_of(piece).flatten().collect();
+    for point in &drawn {
+        for hip in &apex.hips {
+            assert!(
+                (*point - centre).dot(hip.down) <= PLACE,
+                "{which} is drawn through {point}, past the end section of the round on {}",
+                hip.called
+            );
+        }
+    }
+    for slope in &apex.slopes {
+        let foot = centre + slope.outward;
+        assert!(
+            drawn.iter().any(|point| point.distance(foot) < PLACE),
+            "{which}: a corner at {foot}, where it touches {}",
+            slope.called
+        );
+    }
+    for weights in [
+        [1.0, 1.0, 1.0, 1.0],
+        [2.0, 1.0, 1.0, 1.0],
+        [1.0, 2.0, 1.0, 1.0],
+        [1.0, 1.0, 2.0, 1.0],
+        [1.0, 1.0, 1.0, 2.0],
+    ] {
+        let facing = (apex.slopes.iter().zip(weights))
+            .map(|(slope, weight)| slope.outward * weight)
+            .sum::<DVec3>()
+            .normalize();
+        let from = centre + facing * 11.0;
+        let hit = body.ray_hit(from, -facing).unwrap_or_else(|| {
+            panic!("{which}: a ray from {from} toward its centre meets nothing")
+        });
+        assert_eq!(
+            hit.face, piece,
+            "{which}: a ray from {from} toward its centre meets face {} before it",
+            hit.face
+        );
+        assert!(
+            hit.normal.distance(facing) < PLACE,
+            "{which}: where a ray from {from} meets it, it faces {}, not {facing}, away from its \
+             centre",
+            hit.normal
+        );
+    }
+    assert_eq!(
+        sides_met(body, piece),
+        sides(&[0, 1, 2, 3].map(&round_of)),
+        "{which} meets the four rounds, one side each, and nothing else"
+    );
+
+    for (hip, round) in rounds.iter().enumerate() {
+        let face = round_of(hip);
+        let which = format!("{what}: the round of {}", apex.hips[hip].called);
+        assert!(
+            !body.is_flat(face) && body.plane_of(face).is_none(),
+            "{which} is curved, and offers no plane to draw on"
+        );
+        let drawn: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+        assert!(!drawn.is_empty(), "{which} is drawn");
+        for point in &drawn {
+            assert!(
+                round.holds(*point),
+                "{which} is drawn through {point}, off its cylinder of 1 about the line through \
+                 {centre} along its hip, or short of its end section there"
+            );
+        }
+        let section: Vec<&DVec3> = (drawn.iter())
+            .filter(|point| ((**point - centre).dot(round.along)).abs() < PLACE)
+            .collect();
+        for way in round.facing {
+            let foot = centre + way;
+            assert!(
+                section.iter().any(|point| point.distance(foot) < PLACE),
+                "{which}: its end section, an arc in the plane through the sphere's centre square \
+                 to its hip, ends at {foot}, among {section:?}"
+            );
+        }
+        assert!(
+            distinct_points(&section) > 2,
+            "{which}: its end section is drawn along the arc between its two ends: {section:?}"
+        );
+        let on_the_plate: Vec<&DVec3> = (drawn.iter())
+            .filter(|point| (point.z - PLATE_THICKNESS).abs() < PLACE)
+            .collect();
+        for way in round.facing {
+            let touch = centre + way;
+            let at_the_foot = along_the_hip_to(apex, hip, touch, PLATE_THICKNESS);
+            let crossing = along_the_hip_to(apex, hip, touch, fill_touches_the_slope_at());
+            assert!(
+                on_the_plate
+                    .iter()
+                    .any(|point| point.distance(at_the_foot) < PLACE),
+                "{which}: it runs down to the plate's top between the two fills' ends, from \
+                 {at_the_foot}, where its line of touch on a slope comes down to the plate, among \
+                 {on_the_plate:?}"
+            );
+            assert!(
+                drawn.iter().any(|point| point.distance(crossing) < PLACE),
+                "{which}: a corner at {crossing}, where its line of touch crosses the fill's on \
+                 the slope, the one point the round and the fill share"
+            );
+        }
+        assert!(
+            distinct_points(&on_the_plate) > 2,
+            "{which}: its foot is drawn along the curve the plate's top cuts from its cylinder: \
+             {on_the_plate:?}"
+        );
+        met_from_outside(
+            body,
+            face,
+            &round.part(1.0, 0.7 * round.length),
+            &format!("{which}, past its end section"),
+        );
+        let [one, other] = apex.hips[hip].slopes.map(|slope| apex.slopes[slope].face);
+        let mut met = vec![one, other, piece, TOP];
+        met.extend(ends_at(hip));
+        assert_eq!(
+            sides_met(body, face),
+            sides(&met),
+            "{which} meets its two slopes along its sides, the piece of sphere along its end \
+             section, the plate's top along its foot and the flat end of each fill there along \
+             its lines of touch, by one edge each, and no fill"
+        );
+        let over = apex.hips[hip].foot + DVec3::Z * 10.0;
+        let hit = body
+            .ray_hit(over, DVec3::NEG_Z)
+            .unwrap_or_else(|| panic!("{which}: a ray down from {over} meets nothing"));
+        assert!(
+            hit.face == TOP && hit.normal.distance(DVec3::Z) < PLACE,
+            "{which}: a ray down from {over} onto the corner of the base its hip ran down to \
+             meets face {} facing {}, where nothing stands over the plate's top there and no \
+             hollow is left under a fill",
+            hit.face,
+            hit.normal
+        );
+    }
+
+    for (index, foot) in feet.iter().enumerate() {
+        let slope = &apex.slopes[foot.slope];
+        let face = fill_of(index);
+        let fill = foot.fill(apex);
+        let foot_ends = foot.ends(apex);
+        let which = format!("{what}: the fill along the foot of {}", slope.called);
+        assert!(
+            !body.is_flat(face) && body.plane_of(face).is_none(),
+            "{which} is curved, and offers no plane to draw on"
+        );
+        let drawn: Vec<DVec3> = body.triangles_of(face).flatten().collect();
+        assert!(!drawn.is_empty(), "{which} is drawn");
+        for point in &drawn {
+            assert!(
+                fill.holds(*point),
+                "{which} is drawn through {point}, off its cylinder of 1 about the line 1 over \
+                 the plate and 1 out from the slope"
+            );
+            for end in &foot_ends {
+                assert!(
+                    (*point - end.corners[1]).dot(end.facing) <= PLACE,
+                    "{which} is drawn through {point}, past the plane it stops on at the round of \
+                     {}",
+                    apex.hips[end.hip].called
+                );
+            }
+        }
+        for end in &foot_ends {
+            for corner in [end.corners[0], end.corners[2]] {
+                assert!(
+                    drawn.iter().any(|point| point.distance(corner) < PLACE),
+                    "{which}: a corner at {corner}, where it stops by the round of {}",
+                    apex.hips[end.hip].called
+                );
+            }
+        }
+        for along in [0.2, 0.5, 0.8] {
+            for share in [0.1, 0.5, 0.9] {
+                let way = fill.facing_at(share);
+                let from = fill.axis_at(along);
+                let hit = body.ray_hit(from, way).unwrap_or_else(|| {
+                    panic!("{which}: a ray from its axis at {from} meets nothing")
+                });
+                assert!(
+                    hit.face == face && hit.normal.distance(-way) < PLACE,
+                    "{which}: a ray from its axis at {from} along {way} meets face {} facing {}, \
+                     where the fill faces back to its axis",
+                    hit.face,
+                    hit.normal
+                );
+            }
+        }
+        assert_eq!(
+            sides_met(body, face),
+            sides(&[TOP, slope.face, ends[index][0], ends[index][1]]),
+            "{which} meets the plate's top and the slope along its lines of touch, and its flat \
+             end at each hip's round, by one edge each, and no round"
+        );
+
+        for (end, &number) in foot_ends.iter().zip(&ends[index]) {
+            let which = format!(
+                "{which}, its end at the round of {}",
+                apex.hips[end.hip].called
+            );
+            faces_toward(body, number, end.facing, &which);
+            let plane = body.plane_of(number).expect("the end is flat");
+            let off_the_axis = |point: DVec3| {
+                let off = point - fill.start;
+                (off - fill.along * off.dot(fill.along)).length()
+            };
+            for corner in &plane.corners {
+                assert!(
+                    (*corner - end.corners[1]).dot(end.facing).abs() < PLACE
+                        && (end.corners.iter().any(|at| at.distance(*corner) < PLACE)
+                            || (off_the_axis(*corner) - 1.0).abs() < PLACE),
+                    "{which}: a corner at {corner}, off its three corners {:?} and the arc of the \
+                     fill between the first and the last",
+                    end.corners
+                );
+            }
+            for at in end.corners {
+                assert!(
+                    plane
+                        .corners
+                        .iter()
+                        .any(|corner| corner.distance(at) < PLACE),
+                    "{which}: no corner at {at}, among {:?}",
+                    plane.corners
+                );
+            }
+            assert_eq!(
+                sides_met(body, number),
+                sides(&[TOP, face, round_of(end.hip)]),
+                "{which} meets the plate's top, the fill along its arc and the round along the \
+                 round's line of touch on the slope, by one edge each"
+            );
+        }
+
+        let [first, second] = foot.hips;
+        let touch = centre + slope.outward;
+        corners_are(
+            body,
+            slope.face,
+            &[
+                touch,
+                along_the_hip_to(apex, first, touch, fill_touches_the_slope_at()),
+                along_the_hip_to(apex, second, touch, fill_touches_the_slope_at()),
+            ],
+            &format!(
+                "{what}: {}, a triangle from where the piece of sphere touches it down along the \
+                 rounds of its two hips to where they cross the fill's line of touch",
+                slope.called
+            ),
+        );
+        assert_eq!(
+            sides_met(body, slope.face),
+            sides(&[face, round_of(first), round_of(second)]),
+            "{what}: {} meets the fill along its foot and the rounds of its two hips, by one edge \
+             each, and the piece of sphere at a corner only",
+            slope.called
+        );
+    }
+
+    let mut met = vec![FRONT, RIGHT, BACK, LEFT];
+    met.extend((0..4).map(&fill_of));
+    met.extend(ends.iter().flatten());
+    met.extend((0..4).map(&round_of));
+    assert_eq!(
+        sides_met(body, TOP),
+        sides(&met),
+        "{what}: the plate's top meets the plate's four walls, each fill along its line of touch, \
+         each fill's flat end, and each round along one edge between the two fills' ends there, \
+         and no slope"
+    );
+    let corners_of_the_base: Vec<DVec3> = apex.hips.iter().map(|hip| hip.foot).collect();
+    no_corner_left_at(body, &[apex.at], what);
+    no_corner_left_at(body, &corners_of_the_base, what);
+}
+
+/// Where the line from `point` along hip `hip`'s way down reaches the height
+/// `z`: where a line on a slope beside the hip, parallel to it, does.
+fn along_the_hip_to(apex: &Apex, hip: usize, point: DVec3, z: f64) -> DVec3 {
+    let down = apex.hips[hip].down;
+    point - down * (point.z - z) / down.z
+}
+
+/// The patches `body` lays from `patches` on, one for each of `first`'s: the
+/// piece of sphere found by its sphere about `centre`, each flat end by its
+/// plane and its corners.
+fn fillet_patches_alike(
+    first: &Body,
+    body: &Body,
+    patches: &[usize],
+    centre: DVec3,
+    which: &str,
+) -> Vec<usize> {
+    patches
+        .iter()
+        .map(|&patch| match first.plane_of(patch) {
+            Some(plane) => *patches
+                .iter()
+                .find(|&&here| {
+                    body.plane_of(here).is_some_and(|laid| {
+                        laid.normal.distance(plane.normal) < PLACE
+                            && same_points(&laid.corners, &plane.corners)
+                    })
+                })
+                .unwrap_or_else(|| {
+                    panic!("{which}: no patch where the first order lays one at {plane:?}")
+                }),
+            None => *patches
+                .iter()
+                .find(|&&here| sphere_of(body, here, &[centre]) == Some(0))
+                .unwrap_or_else(|| panic!("{which}: no patch on the sphere about {centre}")),
+        })
+        .collect()
+}
+
 #[test]
-fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_goes_round_each_hip_at_its_foot_in_one_body_and_a_fillet_is_declined_whatever_the_order()
+fn a_chamfer_and_a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_close_its_apex_in_one_body_whatever_the_order_the_chamfer_going_round_each_hip_at_its_foot_and_the_fillet_stopping_each_fill_flush_where_the_hip_s_round_begins()
  {
     let part = pyramid_on_a_plate();
     let plate = 20.0 * 20.0 * PLATE_THICKNESS;
@@ -6203,6 +7149,49 @@ fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_go
          uncrossed"
     );
 
+    for foot in feet_of(&apex) {
+        let slope = &apex.slopes[foot.slope];
+        let fill = foot.fill(&apex);
+        for end in foot.ends(&apex) {
+            let which = format!(
+                "the fill along the foot of {}, its end at the round of {}",
+                slope.called, apex.hips[end.hip].called
+            );
+            let round = plate_hip_round(&apex, end.hip);
+            let [on_the_plate, at_the_foot, crossing] = end.corners;
+            assert!(
+                end.facing.dot(slope.outward).abs() < PLACE
+                    && end.facing.dot(round.along).abs() < PLACE
+                    && (end.corners.iter())
+                        .all(|corner| (*corner - at_the_foot).dot(end.facing).abs() < PLACE),
+                "{which}: its three corners on one plane, square to the slope and along the hip, \
+                 the plane through the round's axis square to the slope"
+            );
+            assert!(
+                (on_the_plate.z - PLATE_THICKNESS).abs() < PLACE
+                    && (at_the_foot.z - PLATE_THICKNESS).abs() < PLACE
+                    && (crossing - foot.from).dot(slope.outward).abs() < PLACE,
+                "{which}: two corners on the plate's top, {on_the_plate} and {at_the_foot}, and \
+                 one on the slope, {crossing}"
+            );
+            assert!(
+                round.holds(at_the_foot)
+                    && round.holds(crossing)
+                    && fill.holds(on_the_plate)
+                    && fill.holds(crossing),
+                "{which}: {at_the_foot} and {crossing} on the round's line of touch, \
+                 {on_the_plate} and {crossing} on the fill's lines of touch, {crossing} on both"
+            );
+        }
+    }
+    let by_booleans = plate_filleted_by_booleans(&part, &apex, &rounded.body);
+    assert!(
+        (by_booleans - plate_filleted()).abs() < EXACT * plate_filleted(),
+        "the booleans give the pyramid on its plate, its four hips and four feet filleted, \
+         {by_booleans}, where the arithmetic gives {}",
+        plate_filleted()
+    );
+
     let edges: Vec<EdgeName> = hips.iter().chain(&feet).cloned().collect();
     let start = part.faces_end();
     let laid_end = start + 8 + 5;
@@ -6212,18 +7201,10 @@ fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_go
         let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
         let what = format!("the four hips and the four feet, named {order:?}");
 
-        let filleted = part.fillet_edges(&names, 1.0).err();
         let chamfered = part
             .chamfer_edges(&names, 1.0)
             .unwrap_or_else(|declined| panic!("the chamfer on {what}: declined, {declined:?}"));
 
-        assert_eq!(
-            filleted,
-            Some(Declined::Unsupported),
-            "the fillet on {what}: each hip the odd edge at its foot, which the fillet does not \
-             go round on this pyramid, though its four hips alone close the apex — a broken step \
-             and its reason, and no body"
-        );
         let what = format!("the chamfer on {what}");
         taken_as_asked(chamfered.asked, chamfered.taken, 1.0, &what);
         let body = chamfered.body;
@@ -6312,6 +7293,803 @@ fn a_chamfer_on_the_hips_and_feet_of_a_pyramid_on_a_plate_closes_its_apex_and_go
                 );
             }
         }
+    }
+
+    let orders = spread_orders_of_eight();
+    let laid = laid_in_every_listed_order(
+        &orders,
+        laid_on_the_edges(&part, &edges, &orders, Cut::Round, 1.0),
+        "the fillet at 1 on the four hips and the four feet of the pyramid on its plate is built",
+    );
+    let filleted_end = start + 8 + 9;
+    let patches: Vec<usize> = (start + 8..filleted_end).collect();
+    let area = area + 10.0 * PI;
+    let mut rounded_bodies: Vec<(Vec<usize>, Body)> = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!("the fillet on the four hips and the four feet, named {order:?}");
+        taken_as_asked(asked, taken, 1.0, &what);
+        sound_drawn_within(&body, plate_filleted(), DRAWN * reach * area, &what);
+        assert_eq!(
+            faces_made(&part, &body),
+            (start..filleted_end).collect::<Vec<_>>(),
+            "{what}: one face for each edge by its rank, a round on each hip and a fill on each \
+             foot, then nine patches, the apex's piece of sphere and the flat end of each fill at \
+             each hip's round: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            filleted_end,
+            "{what}: the next step numbers its own faces past the patches"
+        );
+        assert!(
+            numbers(&part).is_subset(&numbers(&body)),
+            "{what}: a face of the part went: {:?}",
+            numbers(&body)
+        );
+        closes_the_apex_and_stops_each_fill_where_the_hip_s_round_begins(
+            &body,
+            &apex,
+            |hip| start + rank_in(order, hip),
+            |foot| start + rank_in(order, 4 + foot),
+            &patches,
+            &what,
+        );
+        rounded_bodies.push((order.clone(), body));
+    }
+    let centre = plate_sphere_centre(&apex);
+    one_body_face_for_face(
+        &rounded_bodies,
+        start,
+        8,
+        |(_, first), (_, body), which| fillet_patches_alike(first, body, &patches, centre, which),
+        "the fillet on the four hips and the four feet",
+    );
+}
+
+/// How high [`block_on_a_plate`] stands over the plate's top.
+const BLOCK_HEIGHT: f64 = 5.0;
+
+/// How far in each wall of the block that leans by a hair leans over the
+/// block's height, so that its uprights lean some 2.8e-7 radians: far past
+/// the 5e-10 from which #944's step read an upright as leaning, and short of
+/// the millionth of a radian the sketch's noise stays within.
+const HAIR: f64 = 1e-6;
+
+/// The lean, in radians, under which an edge reads as upright: the
+/// kernel's `TANGENT`, the band of the sketch's noise.
+const SKETCH_NOISE: f64 = 1e-6;
+
+/// How far in the front wall of the ramp block leans over the block's
+/// height.
+const RAMP: f64 = 2.0;
+
+/// Where wall `wall` of [`block_on_a_plate`] — front, right, back or left —
+/// stands at its foot on the plate's top, and the way it faces, leaning in
+/// by `lean` over the block's height.
+fn block_wall(wall: usize, lean: f64) -> (DVec3, DVec3) {
+    let out = [DVec3::NEG_Y, DVec3::X, DVec3::Y, DVec3::NEG_X][wall];
+    let [x, y] = [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]][wall];
+    (
+        DVec3::new(x, y, PLATE_THICKNESS),
+        (out * BLOCK_HEIGHT + DVec3::Z * lean).normalize(),
+    )
+}
+
+/// A block 10 by 10 by [`BLOCK_HEIGHT`] standing on the plate of
+/// [`pyramid_on_a_plate`], over the square from (0, 0) to (10, 10) on the
+/// plate's top: a prism raised over that square, each of its walls cut by the
+/// plane through its foot leaning in by `leans[wall]`, front, right, back
+/// and left, or left upright where that is nought, then joined to the plate.
+fn block_on_a_plate(leans: [f64; 4]) -> Body {
+    let plate = raised(
+        Contour::rectangle(
+            DVec2::splat(-PLATE_MARGIN),
+            DVec2::splat(SQUARE[0] + PLATE_MARGIN),
+        ),
+        PLATE_THICKNESS,
+    );
+    let prism = plate
+        .tool_raised(
+            &profile(Contour::rectangle(DVec2::ZERO, DVec2::splat(SQUARE[0]))),
+            Frame {
+                origin: DVec3::Z * PLATE_THICKNESS,
+                ..ground()
+            },
+            DVec3::Z * BLOCK_HEIGHT,
+        )
+        .expect("the prism raises");
+    let block = (0..4)
+        .filter(|&wall| leans[wall] != 0.0)
+        .fold(prism, |part, wall| {
+            let (foot, facing) = block_wall(wall, leans[wall]);
+            part.difference(&beyond(&part, foot, facing, 50.0))
+                .expect("a leaning plane cuts the prism")
+        });
+    plate.union(&block).expect("the block stands on the plate")
+}
+
+/// The number of the one flat face of `body` facing `facing` on the plane
+/// through `through`.
+fn face_on_the_plane(body: &Body, facing: DVec3, through: DVec3) -> usize {
+    let found: Vec<usize> = (numbers(body).into_iter())
+        .filter(|&face| {
+            body.plane_of(face).is_some_and(|plane| {
+                plane.normal.distance(facing) < PLACE
+                    && (plane.corners.iter())
+                        .all(|corner| (*corner - through).dot(facing).abs() < PLACE)
+            })
+        })
+        .collect();
+    assert_eq!(
+        found.len(),
+        1,
+        "one face facing {facing} through {through}: {found:?}"
+    );
+    found[0]
+}
+
+/// The four uprights of [`block_on_a_plate`] leaning in by `leans`, front
+/// right, back right, back left and front left, then its four feet, front,
+/// right, back and left, by their names on `part`, and how far from upright
+/// each upright leans, in radians.
+fn uprights_and_feet(part: &Body, leans: [f64; 4]) -> (Vec<EdgeName>, [f64; 4]) {
+    let walls = [0, 1, 2, 3].map(|wall| block_wall(wall, leans[wall]));
+    let faces = walls.map(|(foot, facing)| face_on_the_plane(part, facing, foot));
+    let uprights = (0..4).map(|wall| edge_between(part, faces[wall], faces[(wall + 1) % 4]));
+    let feet = faces.map(|face| edge_between(part, TOP, face));
+    let leaning = [0, 1, 2, 3].map(|wall| {
+        let along = walls[wall].1.cross(walls[(wall + 1) % 4].1).normalize();
+        along.cross(DVec3::Z).length()
+    });
+    (uprights.chain(feet).collect(), leaning)
+}
+
+/// What [`block_on_a_plate`] holds, each wall leaning in by `leans`: the
+/// plate's 800 and the block's 500, less what each leaning wall cuts away
+/// along its foot, the wedge `10 · BLOCK_HEIGHT · lean / 2`, and given back
+/// at each upright between two leaning walls the corner both wedges took,
+/// `lean² · BLOCK_HEIGHT / 3`.
+fn block_on_a_plate_holds(leans: [f64; 4]) -> f64 {
+    let wedges: f64 = leans
+        .iter()
+        .map(|lean| SQUARE[0] * BLOCK_HEIGHT * lean / 2.0)
+        .sum();
+    let corners: f64 = (0..4)
+        .map(|wall| leans[wall] * leans[(wall + 1) % 4] * BLOCK_HEIGHT / 3.0)
+        .sum();
+    20.0 * 20.0 * PLATE_THICKNESS + SQUARE[0] * SQUARE[0] * BLOCK_HEIGHT - wedges + corners
+}
+
+/// Holds that a fillet at 1 on `edges` of `part`, in each of the spread
+/// orders of eight, is declined `Unsupported`, never built: `what` says what
+/// is filleted, `why` why it is declined and what lifts the decline.
+fn declined_whatever_the_order(part: &Body, edges: &[EdgeName], what: &str, why: &str) {
+    let mut otherwise: Vec<String> = Vec::new();
+    let orders = spread_orders_of_eight();
+    for order in &orders {
+        let names: Vec<EdgeName> = order.iter().map(|&edge| edges[edge].clone()).collect();
+        match part.fillet_edges(&names, 1.0) {
+            Err(Declined::Unsupported) => {}
+            Err(declined) => otherwise.push(format!("named {order:?}: declined {declined:?}")),
+            Ok(filleted) => otherwise.push(format!(
+                "named {order:?}: built, holding {} in {} faces",
+                filleted.body.volume(),
+                numbers(&filleted.body).len()
+            )),
+        }
+    }
+    assert!(
+        otherwise.is_empty(),
+        "the fillet at 1 on {what}: declined `Unsupported` in every order, {why}; in {} of {} \
+         orders it was not:\n{}",
+        otherwise.len(),
+        orders.len(),
+        otherwise.join("\n")
+    );
+}
+
+#[test]
+fn a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_walls_lean_by_a_hair_is_declined_as_unsupported_whatever_the_order_rather_than_creased()
+ {
+    let leans = [HAIR; 4];
+    let part = block_on_a_plate(leans);
+    let holds = block_on_a_plate_holds(leans);
+    assert!(
+        part.is_exact() && (part.volume() - holds).abs() < EXACT * holds,
+        "the block on its plate, each wall leaning in {HAIR} over its height, holds {}, where \
+         the arithmetic gives {holds}",
+        part.volume()
+    );
+    let (edges, leaning) = uprights_and_feet(&part, leans);
+    for lean in leaning {
+        assert!(
+            lean > 1e-7 && lean < SKETCH_NOISE,
+            "each upright leans {lean} from upright: past what #944's step read as a lean, and \
+             within the sketch's noise, {SKETCH_NOISE}"
+        );
+    }
+
+    declined_whatever_the_order(
+        &part,
+        &edges,
+        "the four uprights and the four feet of the block whose walls lean by a hair",
+        "each upright leaning within the sketch's noise and read as upright, which #829's \
+         piece of torus does not take a hair off plumb, until #1095 — never the crease #944 \
+         lays at the foot of a leaning hip",
+    );
+}
+
+#[test]
+fn a_fillet_on_the_uprights_and_feet_of_a_block_on_a_plate_whose_front_wall_leans_is_declined_as_unsupported_whatever_the_order_two_uprights_leaning_and_two_upright()
+ {
+    let leans = [RAMP, 0.0, 0.0, 0.0];
+    let part = block_on_a_plate(leans);
+    let holds = block_on_a_plate_holds(leans);
+    assert!(
+        part.is_exact() && (part.volume() - holds).abs() < EXACT * holds,
+        "the block on its plate, its front wall leaning in {RAMP} over its height, holds {}, \
+         where the arithmetic gives {holds}",
+        part.volume()
+    );
+    let (edges, leaning) = uprights_and_feet(&part, leans);
+    assert!(
+        leaning[0] > SKETCH_NOISE
+            && leaning[3] > SKETCH_NOISE
+            && leaning[1] < PLACE
+            && leaning[2] < PLACE,
+        "the two front uprights lean, {} and {}, past the sketch's noise, and the two back ones \
+         stand upright, {} and {}",
+        leaning[0],
+        leaning[3],
+        leaning[1],
+        leaning[2]
+    );
+
+    declined_whatever_the_order(
+        &part,
+        &edges,
+        "the four uprights and the four feet of the block whose front wall leans",
+        "the step mixing corners whose upright leans past the sketch's noise with corners \
+         whose upright stands, each of which alone would go its own way, until #1096",
+    );
+}
+
+/// How far in each wall of the frustum on a plate leans over its height of
+/// [`BLOCK_HEIGHT`]: [`block_on_a_plate`] with every wall leaning in 3 is a
+/// frustum, its base 10 by 10 on the plate's top, its top 4 by 4.
+const FRUSTUM: f64 = 3.0;
+
+/// The area of the triangle `corners` and the sums of its two coordinates
+/// over it.
+fn triangle_moments([a, b, c]: [DVec2; 3]) -> [f64; 3] {
+    let area = ((b - a).perp_dot(c - a) / 2.0).abs();
+    let centroid = (a + b + c) / 3.0;
+    [area, area * centroid.x, area * centroid.y]
+}
+
+/// The area of the section a round or a fill of `radius` lays between two
+/// faces meeting at `angle`, seen along the edge, and the sums over it of
+/// each point's two coordinates: the kite from the edge to where the arc
+/// touches each face and its centre, less the arc's sector. The edge stands
+/// at the origin, the first face along the first axis, the second at `angle`
+/// from it.
+fn section_moments(angle: f64, radius: f64) -> [f64; 3] {
+    let set_back = radius / (angle / 2.0).tan();
+    let centre = DVec2::new(set_back, radius);
+    let on_first = DVec2::new(set_back, 0.0);
+    let on_second = DVec2::new(angle.cos(), angle.sin()) * set_back;
+    let turn = PI - angle;
+    let halfway = ((on_first - centre).normalize() + (on_second - centre).normalize()).normalize();
+    let sector = turn * radius * radius / 2.0;
+    let sector_centroid = centre + halfway * 4.0 * radius * (turn / 2.0).sin() / (3.0 * turn);
+    let [one, two] = [
+        triangle_moments([DVec2::ZERO, on_first, centre]),
+        triangle_moments([DVec2::ZERO, centre, on_second]),
+    ];
+    [
+        one[0] + two[0] - sector,
+        one[1] + two[1] - sector * sector_centroid.x,
+        one[2] + two[2] - sector * sector_centroid.y,
+    ]
+}
+
+/// The corners of the frustum's top, front left, front right, back right
+/// and back left, each above the corner of the base of the same name.
+fn frustum_top() -> [DVec3; 4] {
+    let top = PLATE_THICKNESS + BLOCK_HEIGHT;
+    let [near, far] = [FRUSTUM, SQUARE[0] - FRUSTUM];
+    [[near, near], [far, near], [far, far], [near, far]].map(|[x, y]| DVec3::new(x, y, top))
+}
+
+/// The ways the frustum's walls face, front, right, back and left.
+fn frustum_walls() -> [DVec3; 4] {
+    [0, 1, 2, 3].map(|wall| block_wall(wall, FRUSTUM).1)
+}
+
+/// The centre of the piece of sphere of `r` closing the frustum's top corner
+/// `corner`: `r` in from its top and from the two walls meeting there, the
+/// wall before it and its own.
+fn frustum_centre(corner: usize, r: f64) -> DVec3 {
+    let walls = frustum_walls();
+    let faces = DMat3::from_cols(DVec3::Z, walls[(corner + 3) % 4], walls[corner]).transpose();
+    frustum_top()[corner] + faces.inverse() * DVec3::splat(-r)
+}
+
+/// What [`block_on_a_plate`] leaning in [`FRUSTUM`] all round — a frustum —
+/// keeps once its four hips, its four feet and its four top edges are
+/// filleted at `r` in one step, each foot's fill stopped flush where the
+/// hips' rounds begin as this issue lays them, and each top corner closed by
+/// its piece of sphere as #699 closes a convex corner of three rounds.
+/// Derived as the pyramid on its plate is in the module's documentation:
+/// the plate and the frustum, less each hip's round's section along it from
+/// its top corner's end section to the plane square to it at its foot, less
+/// what the plate spares of that prism there; less each top edge's round's
+/// section between its two corners' end sections; less at each top corner
+/// the cell the three end sections bound, and the ball's sector in it given
+/// back; and plus each fill's section taken along its foot between the two
+/// planes it stops on. The cell is star-shaped from the sphere's centre,
+/// `r` from each of the corner's three faces, over a quadrilateral on each
+/// whose sides along the edges run from the corner to where the end sections
+/// meet them, `ℓ = (c − v)·e` along each edge `e` from the corner `v`, square
+/// to the round's line of touch, its set-back `t` from the edge: `r/3` times
+/// `Σ t·ℓ` over the corner's three edges — `r³` at a square corner, #699's
+/// cube. 1058.088034412097 at 1, which #944's review measured.
+fn frustum_filleted(r: f64) -> f64 {
+    let walls = frustum_walls();
+    let top = frustum_top();
+    let base = [0, 1, 2, 3].map(|wall| block_wall(wall, FRUSTUM).0);
+    let centres = [0, 1, 2, 3].map(|corner| frustum_centre(corner, r));
+    let hip = |corner: usize| (base[corner] - top[corner]).normalize();
+    let mut kept = block_on_a_plate_holds([FRUSTUM; 4]);
+    for corner in 0..4 {
+        let [before, own] = [walls[(corner + 3) % 4], walls[corner]];
+        let edges = [
+            (hip(corner), before, own),
+            (
+                (top[(corner + 3) % 4] - top[corner]).normalize(),
+                DVec3::Z,
+                before,
+            ),
+            (
+                (top[(corner + 1) % 4] - top[corner]).normalize(),
+                DVec3::Z,
+                own,
+            ),
+        ];
+        let cell: f64 = (edges.iter())
+            .map(|&(along, one, other)| {
+                let angle = PI - one.angle_between(other);
+                r / (angle / 2.0).tan() * (centres[corner] - top[corner]).dot(along)
+            })
+            .sum::<f64>()
+            * r
+            / 3.0;
+        let spread = DVec3::Z.dot(before.cross(own)).abs();
+        let sector = 2.0
+            * spread.atan2(1.0 + DVec3::Z.dot(before) + before.dot(own) + own.dot(DVec3::Z))
+            * r.powi(3)
+            / 3.0;
+        kept += sector - cell;
+
+        let angle = PI - before.angle_between(own);
+        let [section, across, up] = section_moments(angle, r);
+        let along_the_halfway = across * (angle / 2.0).cos() + up * (angle / 2.0).sin();
+        let into_the_matter = -(before + own).normalize();
+        kept -= section * (base[corner] - centres[corner]).dot(hip(corner))
+            + along_the_halfway * into_the_matter.z / hip(corner).z.abs();
+
+        let angle = PI - DVec3::Z.angle_between(own);
+        let [section, _, _] = section_moments(angle, r);
+        let along = (top[(corner + 1) % 4] - top[corner]).normalize();
+        kept -= section * (centres[(corner + 1) % 4] - centres[corner]).dot(along);
+
+        let rise = own.z.acos();
+        let [section, out_sum, up_sum] = section_moments(PI - rise, r);
+        let out = DVec3::new(own.x, own.y, 0.0).normalize();
+        let along = (base[(corner + 1) % 4] - base[corner]).normalize();
+        let touch = centres[corner] + own * r;
+        let at_the_foot = touch - hip(corner) * (touch.z - PLATE_THICKNESS) / hip(corner).z;
+        let square = hip(corner).cross(own);
+        let from_the_corner = (at_the_foot - base[corner]).dot(square) / along.dot(square);
+        kept += (SQUARE[0] - 2.0 * from_the_corner) * section
+            + 2.0 * (out.dot(square) * out_sum + DVec3::Z.dot(square) * up_sum) / along.dot(square);
+    }
+    kept
+}
+
+/// `count` of the orders `edges` things can be named in: as listed,
+/// reversed, and shuffled by a generator of fixed seed.
+fn shuffled_orders(edges: usize, count: usize) -> Vec<Vec<usize>> {
+    let mut orders: Vec<Vec<usize>> = vec![(0..edges).collect(), (0..edges).rev().collect()];
+    let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+    while orders.len() < count {
+        let mut order: Vec<usize> = (0..edges).collect();
+        for at in (1..edges).rev() {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            order.swap(at, (state >> 33) as usize % (at + 1));
+        }
+        if !orders.contains(&order) {
+            orders.push(order);
+        }
+    }
+    orders
+}
+
+/// The corner of the frustum's base under its top corner `corner`.
+fn base_of_the_frustum(corner: usize) -> DVec3 {
+    block_wall(corner, FRUSTUM).0
+}
+
+/// How far a point stands from the line through `through` along `along`.
+fn off_the_line(point: DVec3, through: DVec3, along: DVec3) -> f64 {
+    let off = point - through;
+    (off - along * off.dot(along)).length()
+}
+
+#[test]
+fn a_fillet_on_the_hips_feet_and_top_edges_of_a_frustum_on_a_plate_closes_its_four_top_corners_after_stopping_each_fill_where_a_hip_s_round_begins_in_one_body_whatever_the_order()
+ {
+    let leans = [FRUSTUM; 4];
+    let part = block_on_a_plate(leans);
+    let holds = block_on_a_plate_holds(leans);
+    assert!(
+        part.is_exact() && (part.volume() - holds).abs() < EXACT * holds,
+        "the frustum on its plate holds {}, where the plate's 800 and the frustum's \
+         5/3·(100 + 16 + 40) give {holds}",
+        part.volume()
+    );
+    let (uprights_and_feet, leaning) = uprights_and_feet(&part, leans);
+    assert!(
+        leaning.iter().all(|&lean| lean > 0.5),
+        "each hip leans far past the sketch's noise: {leaning:?}"
+    );
+    let walls = frustum_walls();
+    let lid = face_on_the_plane(&part, DVec3::Z, frustum_top()[0]);
+    let top_edges = [0, 1, 2, 3].map(|wall| {
+        let (foot, facing) = block_wall(wall, FRUSTUM);
+        edge_between(&part, lid, face_on_the_plane(&part, facing, foot))
+    });
+    let edges: Vec<EdgeName> = uprights_and_feet
+        .iter()
+        .chain(&top_edges)
+        .cloned()
+        .collect();
+    let corner_edges =
+        [0, 1, 2, 3].map(|corner| [(corner + 3) % 4, 8 + (corner + 3) % 4, 8 + corner]);
+    let centres = [0, 1, 2, 3].map(|corner| frustum_centre(corner, 1.0));
+    for (corner, centre) in centres.iter().enumerate() {
+        let before = walls[(corner + 3) % 4];
+        let own = walls[corner];
+        let top = frustum_top()[corner];
+        for (facing, called) in [(DVec3::Z, "the top"), (before, "a wall"), (own, "a wall")] {
+            assert!(
+                ((top - *centre).dot(facing) - 1.0).abs() < PLACE,
+                "the centre {centre} stands 1 in from {called} at the top corner {top}"
+            );
+        }
+    }
+
+    let start = part.faces_end();
+    let made = start + 12 + 4 + 8;
+    let curved = 4.0 * PI / 2.0 * 7.0 + 8.0 * PI / 2.0 * 10.0 + 4.0 * PI;
+    let reach = (0..4)
+        .map(|wall| {
+            let (foot, facing) = block_wall(wall, FRUSTUM);
+            reach_of(&beyond(&part, foot, facing, 50.0))
+        })
+        .fold(reach_of(&part), f64::max);
+    let orders = shuffled_orders(12, 12);
+    let laid = laid_in_every_listed_order(
+        &orders,
+        laid_on_the_edges(&part, &edges, &orders, Cut::Round, 1.0),
+        "the fillet at 1 on the frustum's four hips, four feet and four top edges is built",
+    );
+    let mut bodies: Vec<(Vec<usize>, Body)> = Vec::new();
+    for (order, (asked, taken, body)) in orders.iter().zip(laid) {
+        let what = format!(
+            "the fillet on the frustum's four hips, four feet and four top edges, named {order:?}"
+        );
+        taken_as_asked(asked, taken, 1.0, &what);
+        sound_drawn_within(&body, frustum_filleted(1.0), DRAWN * reach * curved, &what);
+        assert_eq!(
+            faces_made(&part, &body),
+            (start..made).collect::<Vec<_>>(),
+            "{what}: one face for each edge by its rank, then a piece of sphere at each top \
+             corner, then the flat end of each fill at each hip's round: {:?}",
+            numbers(&body)
+        );
+        assert_eq!(
+            body.faces_end(),
+            made,
+            "{what}: the next step numbers its own faces past the patches"
+        );
+        let mut by_ranks: Vec<([usize; 3], usize)> = (0..4)
+            .map(|corner| {
+                let mut ranks = corner_edges[corner].map(|edge| rank_in(order, edge));
+                ranks.sort();
+                (ranks, corner)
+            })
+            .collect();
+        by_ranks.sort();
+        for (place, (_, corner)) in by_ranks.iter().enumerate() {
+            let patch = start + 12 + place;
+            assert_eq!(
+                sphere_of(&body, patch, &centres),
+                Some(*corner),
+                "{what}: patch {patch}, the {}th after the edges' faces by the lowest ranks of \
+                 its corner's three edges, is the piece of sphere about {}, at the top corner \
+                 {}",
+                place + 1,
+                centres[*corner],
+                frustum_top()[*corner]
+            );
+            let [hip, before, own] = corner_edges[*corner].map(|edge| start + rank_in(order, edge));
+            assert_eq!(
+                sides_met(&body, patch),
+                sides(&[hip, before, own]),
+                "{what}: the piece of sphere at the top corner {} meets the rounds of the hip \
+                 and the two top edges there, and nothing else",
+                frustum_top()[*corner]
+            );
+        }
+        let ends: Vec<DVec3> = (0..4)
+            .flat_map(|corner| {
+                let [before, own] = [walls[(corner + 3) % 4], walls[corner]];
+                let hip = before.cross(own).normalize();
+                [(before, own), (own, before)].map(|(on, beside)| {
+                    let square = hip.cross(on).normalize();
+                    if square.dot(beside) > 0.0 {
+                        square
+                    } else {
+                        -square
+                    }
+                })
+            })
+            .collect();
+        for way in &ends {
+            let found: Vec<usize> = (start + 16..made)
+                .filter(|&patch| {
+                    body.plane_of(patch)
+                        .is_some_and(|plane| plane.normal.distance(*way) < PLACE)
+                })
+                .collect();
+            assert_eq!(
+                found.len(),
+                1,
+                "{what}: one flat end facing {way}, along its wall square to the hip there, \
+                 toward it, among the eight patches after the pieces of sphere: {found:?}"
+            );
+        }
+        for corner in 0..4 {
+            let hip = (base_of_the_frustum(corner) - frustum_top()[corner]).normalize();
+            for wall in [walls[(corner + 3) % 4], walls[corner]] {
+                let touch = centres[corner] + wall;
+                let at_the_foot = touch - hip * (touch.z - PLATE_THICKNESS) / hip.z;
+                assert!(
+                    (body
+                        .plane_of(TOP)
+                        .expect("the plate's top is flat")
+                        .corners
+                        .iter())
+                    .any(|point| point.distance(at_the_foot) < PLACE),
+                    "{what}: the plate's top has a corner at {at_the_foot}, where the round of \
+                     the hip at {} comes down to it beside the end of a fill",
+                    base_of_the_frustum(corner)
+                );
+            }
+        }
+        bodies.push((order.clone(), body));
+    }
+    let hips = [0, 1, 2, 3]
+        .map(|corner| (base_of_the_frustum(corner) - frustum_top()[corner]).normalize());
+    let on_a_hip_s_round = |point: &DVec3| {
+        (0..4)
+            .any(|corner| (off_the_line(*point, centres[corner], hips[corner]) - 1.0).abs() < PLACE)
+    };
+    let off_the_rounds = |corners: &[DVec3]| -> Vec<DVec3> {
+        corners
+            .iter()
+            .copied()
+            .filter(|point| !on_a_hip_s_round(point))
+            .collect()
+    };
+    let patches: Vec<usize> = (start + 12..made).collect();
+    let (first_order, first) = &bodies[0];
+    for (order, body) in bodies.iter().skip(1) {
+        let which = format!(
+            "the fillet on the frustum's hips, feet and top edges, named {order:?}, against the \
+             same named {first_order:?}"
+        );
+        let patch_here: Vec<usize> = patches
+            .iter()
+            .map(|&patch| match first.plane_of(patch) {
+                Some(plane) => *patches
+                    .iter()
+                    .find(|&&here| {
+                        body.plane_of(here).is_some_and(|laid| {
+                            laid.normal.distance(plane.normal) < PLACE
+                                && same_points(&laid.corners, &plane.corners)
+                        })
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("{which}: no patch where the first order lays one at {plane:?}")
+                    }),
+                None => {
+                    let corner = sphere_of(first, patch, &centres)
+                        .unwrap_or_else(|| panic!("{which}: the first order's patch {patch}"));
+                    *patches
+                        .iter()
+                        .find(|&&here| sphere_of(body, here, &centres) == Some(corner))
+                        .unwrap_or_else(|| {
+                            panic!("{which}: no patch on the sphere about {}", centres[corner])
+                        })
+                }
+            })
+            .collect();
+        let to_this = |number: usize| {
+            if number < start || number >= made {
+                number
+            } else if number < start + 12 {
+                start + rank_in(order, first_order[number - start])
+            } else {
+                patch_here[number - start - 12]
+            }
+        };
+        for face in numbers(first) {
+            assert_eq!(
+                sides_renumbered(first, face, to_this),
+                sides_met(body, to_this(face)),
+                "{which}: face {face} meets what it meets in the first order"
+            );
+            if let Some(plane) = first.plane_of(face) {
+                let here = body
+                    .plane_of(to_this(face))
+                    .unwrap_or_else(|| panic!("{which}: face {face} is flat in the first order"));
+                assert!(
+                    same_points(
+                        &off_the_rounds(&plane.corners),
+                        &off_the_rounds(&here.corners)
+                    ),
+                    "{which}: face {face} has the corners off the hips' rounds it has in the \
+                     first order, {:?}, where it has {:?}",
+                    off_the_rounds(&plane.corners),
+                    off_the_rounds(&here.corners)
+                );
+            }
+        }
+    }
+}
+
+/// How far [`pyramid_on_a_plate_lowered`] stands below
+/// [`pyramid_on_a_plate`]: its plate's top at 0.5, under the depth, 0.94,
+/// at which each hip's round's axis passes under its foot, so that the axis
+/// there stands below the ground and the foot above it.
+const LOWERED: f64 = 1.5;
+
+/// [`pyramid_on_a_plate`] built `by` lower, face for face: the plate raised
+/// from `−by`, the prism from its top, the slopes through the apex `by`
+/// lower.
+fn pyramid_on_a_plate_lowered(by: f64) -> Body {
+    let [length, breadth] = SQUARE;
+    let empty = Body::default();
+    let slab = empty
+        .tool_raised(
+            &profile(Contour::rectangle(
+                DVec2::splat(-PLATE_MARGIN),
+                DVec2::new(length + PLATE_MARGIN, breadth + PLATE_MARGIN),
+            )),
+            Frame {
+                origin: DVec3::Z * -by,
+                ..ground()
+            },
+            DVec3::Z * PLATE_THICKNESS,
+        )
+        .expect("the plate raises");
+    let plate = empty.union(&slab).expect("the plate is built");
+    let apex = apex_on_a_plate();
+    let prism = plate
+        .tool_raised(
+            &profile(Contour::rectangle(DVec2::ZERO, DVec2::new(length, breadth))),
+            Frame {
+                origin: DVec3::Z * (PLATE_THICKNESS - by),
+                ..ground()
+            },
+            DVec3::Z * (APEX_HEIGHT + 1.0),
+        )
+        .expect("the prism raises");
+    let pyramid = apex.slopes.iter().fold(prism, |part, slope| {
+        part.difference(&beyond(&part, apex.at - DVec3::Z * by, slope.outward, 50.0))
+            .expect("a plane through the apex cuts the prism")
+    });
+    plate
+        .union(&pyramid)
+        .expect("the pyramid stands on the plate")
+}
+
+#[test]
+fn a_fillet_on_the_hips_and_feet_of_a_pyramid_on_a_plate_lowered_until_the_hips_rounds_axes_pass_under_the_ground_lays_the_same_body_lowered()
+ {
+    let part = pyramid_on_a_plate();
+    let lowered = pyramid_on_a_plate_lowered(LOWERED);
+    let apex = apex_on_a_plate();
+    let plate_top = PLATE_THICKNESS - LOWERED;
+    let depth = 2f64.sqrt() * 2.0 / 3.0;
+    assert!(
+        plate_top > 0.0 && plate_top < depth,
+        "the lowered plate's top stands at {plate_top}, above the ground and less than the \
+         depth, {depth}, at which each hip's round's axis passes under its foot"
+    );
+    assert!(
+        lowered.is_exact()
+            && (lowered.volume() - part.volume()).abs() < EXACT * part.volume()
+            && numbers(&lowered) == numbers(&part),
+        "the lowered pyramid on its plate holds what the pyramid on its plate does, {}, in the \
+         same faces",
+        lowered.volume()
+    );
+    let name_on = |body: &Body| -> Vec<EdgeName> {
+        let hips = (0..4).map(|hip| apex.name(body, hip));
+        let feet = (apex.slopes.iter()).map(|slope| edge_between(body, TOP, slope.face));
+        hips.chain(feet).collect()
+    };
+    let [edges, edges_lowered] = [name_on(&part), name_on(&lowered)];
+    let start = part.faces_end();
+    let area = 4.0 * PI / 3.0 * 5.0 * 3f64.sqrt() + 4.0 * (1.0f64 / 3.0).asin() + 10.0 * PI;
+    let down = DVec3::Z * LOWERED;
+    for order in spread_orders_of_eight().into_iter().step_by(12) {
+        let what = format!(
+            "the fillet on the four hips and the four feet of the pyramid on its plate lowered \
+             {LOWERED}, named {order:?}"
+        );
+        let [names, names_lowered] = [&edges, &edges_lowered].map(|all| {
+            order
+                .iter()
+                .map(|&edge| all[edge].clone())
+                .collect::<Vec<_>>()
+        });
+        let standing = part
+            .fillet_edges(&names, 1.0)
+            .unwrap_or_else(|declined| panic!("{what}, unlowered: declined, {declined:?}"))
+            .body;
+        let filleted = lowered
+            .fillet_edges(&names_lowered, 1.0)
+            .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        taken_as_asked(filleted.asked, filleted.taken, 1.0, &what);
+        let body = filleted.body;
+        sound_drawn_within(
+            &body,
+            plate_filleted(),
+            DRAWN * plate_reach(&part) * area,
+            &what,
+        );
+        assert_eq!(
+            numbers(&body),
+            numbers(&standing),
+            "{what}: the faces the fillet lays unlowered, numbered alike"
+        );
+        for face in numbers(&standing) {
+            assert_eq!(
+                sides_met(&body, face),
+                sides_met(&standing, face),
+                "{what}: face {face} meets what it meets unlowered"
+            );
+            if let Some(plane) = standing.plane_of(face) {
+                let moved: Vec<DVec3> = plane.corners.iter().map(|corner| *corner - down).collect();
+                corners_are(
+                    &body,
+                    face,
+                    &moved,
+                    &format!("{what}: face {face}, lowered"),
+                );
+            }
+        }
+        assert!(
+            (start..start + 17).all(|face| body.has_face(face)),
+            "{what}: every face the step lays"
+        );
     }
 }
 

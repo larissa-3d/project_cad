@@ -269,10 +269,10 @@ impl Exact {
 }
 
 /// Where the axis of the round of value `value` on the odd edge of `corner`,
-/// read as `wedge`, crosses the face the two others share: the value from
-/// both its faces, square to the edge from the corner — inside the matter for
-/// a cut, in the air for a fill.
-fn axis_at(corner: &Odd, wedge: &Wedge, value: f64) -> DVec3 {
+/// read as `wedge`, stands square to the edge from the corner: the value from
+/// both its faces — inside the matter for a cut, in the air for a fill — on
+/// the face the two others share where the odd edge is upright on it.
+pub(super) fn axis_at(corner: &Odd, wedge: &Wedge, value: f64) -> DVec3 {
     let [first, second] = wedge.outward;
     corner.at - (first + second) * (value * wedge.off() / (1.0 + first.dot(second)))
 }

@@ -211,10 +211,17 @@ impl Exact {
     /// `edge` stands on that line.
     fn held_where(&self, edge: EdgeId, at: DVec3, away: DVec3) -> Result<Held, Declined> {
         let eps = self.brep.scale().eps();
-        let ends = self.brep.edge(edge).ends.into_iter().flatten();
-        (ends.map(|end| self.brep.vertex(end).point))
+        let ends = self.brep.edge(edge).ends.ok_or(Declined::Unsupported)?;
+        let points = ends.map(|end| self.brep.vertex(end).point);
+        let along = (points[1] - points[0]).normalize();
+        (points.into_iter())
             .find(|&point| (point - at).cross(away).length() <= eps)
-            .map(|point| Held { at: point, away })
+            .map(|point| Held {
+                at: point,
+                along,
+                away,
+                through: point,
+            })
             .ok_or(Declined::Unsupported)
     }
 
@@ -226,7 +233,7 @@ impl Exact {
     /// value was taken at, read again through a mitre, comes back a rounding
     /// short of it — what they give. Declined as [`Exact::cut_off`] declines
     /// them.
-    fn laid_at(
+    pub(super) fn laid_at(
         &self,
         names: &[EdgeName],
         taken: f64,
