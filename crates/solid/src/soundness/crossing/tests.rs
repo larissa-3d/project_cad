@@ -18,6 +18,16 @@
 //! - the gate is no slower — no test: the bounds only widen
 //! - no file of #498's branch is touched beyond these assertions and names —
 //!   no test: read off `git diff --stat origin/main`
+//!
+//! Closes #1115.
+//! - the test passes under a loaded machine (run it beside a
+//!   `cargo build -j 10` of the workspace) and still fails if the sweep goes
+//!   back to pairing faces along one axis (#502's slow path) —
+//!   `three_long_tubes_lying_along_the_three_axes_are_judged_ahead_of_a_sweep_along_any_one`,
+//!   which holds the time three tubes take to the time tubes of a tenth of
+//!   their sides take, the quickest of five judgings of each, rather than to
+//!   the clock: the pairs handed over are the same on either path, so there
+//!   is nothing to count
 
 use std::f64::consts::TAU;
 use std::time::{Duration, Instant};
@@ -684,14 +694,22 @@ fn three_bars(bar: impl Fn(DVec3, DVec3) -> Vec<Triangle>) -> Vec<Triangle> {
 #[test]
 fn three_long_tubes_lying_along_the_three_axes_are_judged_ahead_of_a_sweep_along_any_one() {
     let tubes = three_bars(|from, way| tube(10_000, from, way));
-    assert_eq!(tubes.len(), 60_000);
+    let thinner = three_bars(|from, way| tube(1_000, from, way));
+    assert_eq!((tubes.len(), thinner.len()), (60_000, 6_000));
 
-    let started = Instant::now();
-    assert_eq!(uncrossed(&tubes), Ok(()));
-    assert!(
-        started.elapsed() < Duration::from_secs(1),
-        "{:?}",
+    let judging = |triangles: &[Triangle]| {
+        let started = Instant::now();
+        assert_eq!(uncrossed(triangles), Ok(()));
         started.elapsed()
+    };
+    let (mut all, mut tenth) = (Duration::MAX, Duration::MAX);
+    for _ in 0..5 {
+        tenth = tenth.min(judging(&thinner));
+        all = all.min(judging(&tubes));
+    }
+    assert!(
+        all < tenth * 25,
+        "{all:?} for the tubes against {tenth:?} for tubes of a tenth of their sides"
     );
 }
 
