@@ -81,6 +81,43 @@
 //! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`.
 //! What the two caps share, under 1.2e-8 at half a degree, is left out of
 //! the volume: under a tenth of the billionth of it the volume is held to.
+//!
+//! The same flats turned a quarter about the ball's axis, their normals in
+//! the plane of its meridian of −Z rather than of +X, were drawn crossed,
+//! dozens to hundreds of triangles facing the centre, where the meridians of
+//! +X and −X draw them clean: caps of 30° and 50° — flats 5·cos 30° and
+//! 5·cos 50° from the centre — meeting at 60° of latitude, and caps of 45°
+//! and 45° meeting at 45°, their circles crossing at 0.1° and at 0.05°. Each
+//! step was accepted all the same, since a face drawn whole is all it asks.
+//!
+//! Closes #1110.
+//! - The four placements above, the flats cut in either order: built, sound,
+//!   drawn uncrossed, of the right volume (the caps' shared sliver is under
+//!   the tolerance) —
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first`
+//! - `touching_a_ball.rs`'s
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`
+//!   (#960) keeps passing — the test of that name above, run as it stands
+//!
+//! Read as: "built, sound, drawn uncrossed, of the right volume", what
+//! `built_whole` holds, as for #960's flats; "the right volume", the ball
+//! less both caps whole, the sliver the two share left out of it as #960's
+//! test leaves it: some 1e-11 for the caps of 30° and 50° crossing at a
+//! tenth of a degree, four orders under the billionth of the volume it is
+//! held to.
+//!
+//! Beyond the criteria, the review's placements: when the face is drawn
+//! crossed hangs on how the first circle's samples stand against the grid's
+//! angles beside the plane its cap tilts in. The same four, either flat cut
+//! first, on the mirror meridian of +Z and on the meridians 10° and 45° from
+//! +X, whose plane holds no angle of the grid, are built and drawn whole as
+//! on −Z —
+//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`
+//! — but one, older than #1110 and declined under #960's cut order as
+//! well: on +Z, the caps of 45° crossing at 0.05°, the flat about the
+//! equator cut first, which the kernel declines `Unverified` at the second
+//! cut, its own listing failing before anything is drawn. The test holds it
+//! declined so, never accepted crossed, for #1117 to turn round.
 
 use super::*;
 use crate::soundness::listed;
@@ -484,5 +521,122 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass
                 ),
             );
         }
+    }
+}
+
+/// The four placements of #1110 — caps of 30° and 50° meeting at 60° of
+/// latitude, or of 45° each meeting at 45°, their circles crossing at a tenth
+/// of a degree or a twentieth — with [`two_flats_about`]'s directions, in the
+/// plane of the meridian of +X, `turned` about Y into that of the meridian
+/// `named`. Cut by either flat first, each is built, listed sound, drawn
+/// whole and closed, uncrossed, holding the ball less both caps — but the
+/// placement `unverified`, which the kernel declines `Unverified` (#1117).
+fn cut_by_two_flats_on_the_meridian(
+    turned: impl Fn(DVec3) -> DVec3,
+    named: &str,
+    unverified: Option<Placement>,
+) {
+    for (pair, (caps, latitude)) in [([30f64, 50.0], 60f64), ([45.0, 45.0], 45.0)]
+        .into_iter()
+        .enumerate()
+    {
+        let offsets = caps.map(|cap| 5.0 * cap.to_radians().cos());
+        let [first, second] = offsets.map(|offset| 5.0 - offset);
+        for (crossing, degrees) in [0.1f64, 0.05].into_iter().enumerate() {
+            let apart = apart_crossing_at(offsets, degrees.to_radians());
+            let flats = two_flats_about(offsets, apart, latitude.to_radians()).map(&turned);
+            for [one, other] in [[0, 1], [1, 0]] {
+                let cut = ball_about_y()
+                    .difference(&slab_along(flats[one], offsets[one]))
+                    .and_then(|cut| cut.difference(&slab_along(flats[other], offsets[other])));
+                let what = format!(
+                    "the ball cut by the flat of the cap of {}° about {:.1}° of latitude, then \
+                     of {}° about {:.1}°, their circles crossing at {degrees}° at {latitude}° \
+                     of latitude on the meridian of {named}",
+                    caps[one],
+                    flats[one].y.asin().to_degrees(),
+                    caps[other],
+                    flats[other].y.asin().to_degrees()
+                );
+                let placement = Placement {
+                    caps: pair,
+                    crossing,
+                    first: one,
+                };
+                if unverified == Some(placement) {
+                    assert_eq!(
+                        cut.err(),
+                        Some(Declined::Unverified),
+                        "{what}: declined as #1117 has it"
+                    );
+                    continue;
+                }
+                built_whole(
+                    cut,
+                    BALL_OF_5 - cap_of_5(first) - cap_of_5(second),
+                    10.0 * PI * (10.0 - first - second),
+                    &what,
+                );
+            }
+        }
+    }
+}
+
+/// One of [`cut_by_two_flats_on_the_meridian`]'s placements, by rank: of
+/// its pair of caps, of the crossing, and of the flat cut first, the one
+/// about the pole being the first.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Placement {
+    caps: usize,
+    crossing: usize,
+    first: usize,
+}
+
+/// #1117's placement: the caps of 45° each, crossing at 0.05°, the flat
+/// about the equator cut first, which the kernel declines `Unverified` at
+/// the second cut on the meridian of +Z.
+const UNVERIFIED_ON_PLUS_Z: Placement = Placement {
+    caps: 1,
+    crossing: 1,
+    first: 1,
+};
+
+/// The ball cut by two flats whose circles meet in the plane of its
+/// meridian of −Z: caps of 30° and 50° meeting at 60° of latitude, or of 45°
+/// each meeting at 45°, their circles crossing at a tenth of a degree or a
+/// twentieth, the first cap's centre under half a millionth of a radian off
+/// the pole it takes in. Cut by either flat first, each is built, listed
+/// sound, drawn whole and closed, uncrossed, as on the meridians of +X and
+/// −X.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first()
+ {
+    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, -way.x), "−Z", None);
+}
+
+/// The same placements on the mirror meridian, +Z, whose plane holds the
+/// grid angles −Z's does, and on the meridians 10° and 45° from +X towards
+/// −Z, as the ball's chart turns, whose plane — the one the first cap tilts
+/// in, a hair off the pole — holds none of the grid's angles, a step of
+/// some 1.5° here: the first circle's samples stand otherwise against the
+/// angle the face is cut open at. Each is built, listed sound, drawn whole
+/// and closed, uncrossed, as on the meridian of −Z — but
+/// [`UNVERIFIED_ON_PLUS_Z`], declined `Unverified` at its second cut, as
+/// #1117 has it.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first()
+ {
+    cut_by_two_flats_on_the_meridian(
+        |way| DVec3::new(0.0, way.y, way.x),
+        "+Z",
+        Some(UNVERIFIED_ON_PLUS_Z),
+    );
+    for longitude in [10f64, 45.0] {
+        let (across, along) = longitude.to_radians().sin_cos();
+        cut_by_two_flats_on_the_meridian(
+            |way| DVec3::new(way.x * along, way.y, -way.x * across),
+            &format!("{longitude}° from +X towards −Z"),
+            None,
+        );
     }
 }

@@ -2828,7 +2828,17 @@ pointed cone's flank waits on #711.
   great-circle arcs, the flat beside them — gain those samples: on the
   tests that draw them, a few in a hundred more triangles for most, about a
   tenth more for a sector, and an extra one in a hundred over all of
-  them.
+  them. Of the angles a face going round can be cut open at, it is cut at
+  the first no other sample stands beside, within a tenth of a step, or
+  where one stands beside each at the one the nearest stands furthest from
+  (#1110): the sweep fans a sample beside a wall — a circle's own grid angle
+  a hair round from where it crosses the cut's angle, a flat leaning across
+  the meridian there — out to every point along it, in slivers all but in
+  the meridian's plane that the refinement leaves within the tolerance,
+  folded over one another. Not the clearest angle of all: where nothing
+  stands beside the first, a cut moved on changes the drawing for nothing,
+  and a ball turned about the axis of a slot's round end, its rim a hair
+  outside the end's wall, was drawn through that wall's chords.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near
