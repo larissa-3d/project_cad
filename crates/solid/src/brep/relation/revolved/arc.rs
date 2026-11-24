@@ -11,11 +11,11 @@
 //! decision 12 moves one standing a hair further off before (#626), a
 //! sphere read about the axis of a surface holding its centre as about its
 //! own (#956), but for a sphere of the second operand against a cylinder of
-//! the first, which crosses it along two circles a hair apart. Each root is written as a product, never as
-//! the difference of two squares, so that a crossing a hair from a touch is
-//! found where it stands. A plane keeps its height and a cylinder its
-//! radius to the bit, so that the circle is the one either shares with every
-//! other surface there. The crossings of a meridian circle with a coaxial
+//! the first, which crosses it along two circles a hair apart. Each root is
+//! written as a product, never as the difference of two squares, so that a
+//! crossing a hair from a touch is found where it stands. A plane keeps its
+//! height and a cylinder its radius to the bit, so that the circle is the one
+//! either shares with every other surface there. The crossings of a meridian circle with a coaxial
 //! surface (decision 4, `crossing/round.rs`) are read off the same standing,
 //! so that a corner is decided as the pair it lies on was.
 

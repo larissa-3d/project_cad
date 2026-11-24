@@ -1,9 +1,9 @@
 //! Which side of each other a sphere or a torus and a surface of its axis
 //! stand on (#576), read off the rims their pair was decided along, in the
 //! meridian half-plane of the axis: a sphere's read about the rims' axis,
-//! which holds its centre, whatever its chart's (#956). Along a rim the two only touch along,
-//! the one whose meridian bends more towards the other's normal there stands
-//! on that side of it: a shaft of a ball's radius stands outside the ball
+//! which holds its centre, whatever its chart's (#956). Along a rim the two
+//! only touch along, the one whose meridian bends more towards the other's
+//! normal there stands on that side of it: a shaft of a ball's radius stands outside the ball
 //! along its equator and the ball inside the shaft, a bore touching a
 //! groove's root stands on the groove's side. Between two rims the two cross
 //! along, or beyond them, they stand one above the other all along each

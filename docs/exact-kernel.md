@@ -616,6 +616,9 @@ Known and still open:
   a multiple of a thousandth, it is under 3 in a thousand.
   `exact-kernel-failures.md` counts them by family. A ball joined with a
   quarter shaft over its pole is left too;
+- a shaft a hair under the radius of a ball turned about another axis, its
+  end plane standing inside the band, declines `Tie` when the shaft is the
+  second operand, where the coaxial case builds (#1109);
 - a face bounded by the curve two perpendicular cylinders meet is never
   decided clear of a face at a slant, so such a pair still declines;
 - the conics (#552): a plane a hair off square to, or along, a wall's
@@ -1728,6 +1731,11 @@ The decisions, in the order taken, once per operation:
     the cone or the rim where that axis holds its centre, whatever its
     chart's (#956): a shaft through a ball turned about another axis, a
     hair under its radius, is laid onto its equator about the shaft's axis.
+    A rim is read the same way: a sphere is read about the axis of any
+    circle on it, every circle on a sphere having its axis through the
+    centre, so a plane a hair off a slanted section or a meridian face is
+    laid onto its rim as it is onto a latitude's (`off_the_rim`,
+    `relation/round/gap.rs`).
 
     The second operand moves, with what it built on the surface, as decision
     8 moves it: along the axis for a plane or a cone, whichever operand
