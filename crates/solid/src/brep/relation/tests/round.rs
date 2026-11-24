@@ -4,7 +4,11 @@
 //! the foot of the centre on the plane (#805), or, within the tolerance of
 //! touching it off its poles, at the one point it touches (#939); a sphere
 //! and a cylinder of another axis along the loops where the cylinder's
-//! rulings pierce it (#805); everything else declined.
+//! rulings pierce it (#805); a sphere and a round whose axis holds its
+//! centre as the sphere turned about that axis, so that two spheres of one
+//! centre and radius are one surface whatever their axes (#956, whose
+//! criteria are in `tests/spheres_of_one_centre_and_radius_are_one_surface_whatever_their_axes.rs`);
+//! everything else declined.
 //!
 //! Closes #805 — its second slice's relation only, a cylinder of another axis
 //! against a sphere. The slice's crossings are answered in
@@ -1031,13 +1035,13 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
             DVec3::X * 3.0,
             2.0,
         )),
-        Surface::Sphere(Sphere::through(
-            DVec3::new(0.0, 0.0, 5.0),
-            DVec3::X,
-            0.0,
-            3.0,
-        )),
     ];
+    let one_centre_about_x = Surface::Sphere(Sphere::through(
+        DVec3::new(0.0, 0.0, 5.0),
+        DVec3::X,
+        0.0,
+        3.0,
+    ));
     for (round, unsupported) in [
         (ball(), others.to_vec()),
         (
@@ -1057,9 +1061,97 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
                 "{round:?} {other:?}"
             );
         }
-        for other in planes.iter().chain(&walls).chain(&others) {
+        for other in planes
+            .iter()
+            .chain(&walls)
+            .chain(&others)
+            .chain([&one_centre_about_x])
+        {
             assert!(!at_a_slant(&round, other, scale()));
             assert!(!at_a_slant(other, &round, scale()));
+        }
+    }
+}
+
+/// The sphere about `(0, 0, h)` of `radius`, turned about `axis`: at
+/// `h = 5`, of [`ball`]'s centre.
+fn ball_on_z_about(axis: DVec3, h: f64, radius: f64) -> Surface {
+    Surface::Sphere(Sphere::through(DVec3::new(0.0, 0.0, h), axis, 0.0, radius))
+}
+
+/// Axes through a sphere's centre other than [`ball`]'s: square to it, at a
+/// slant, and square to it the other way round.
+const OTHER_AXES: [DVec3; 3] = [DVec3::X, DVec3::new(2.0, -1.0, 3.0), DVec3::NEG_Y];
+
+#[test]
+fn two_balls_of_one_centre_and_radius_are_one_surface_whatever_axes_they_were_turned_about_and_a_hair_apart_in_radius_are_not()
+ {
+    let eps = scale().eps();
+    for axis in OTHER_AXES.map(DVec3::normalize) {
+        for radius in [3.0, 3.0 + eps / 2.0] {
+            assert_eq!(
+                between(&ball(), &ball_on_z_about(axis, 5.0, radius)),
+                Relation::Same { agree: true },
+                "the ball about z and the sphere of its centre and radius {radius} about {axis}"
+            );
+        }
+        for radius in [3.0 + 3.0 * eps, 1.0] {
+            assert_eq!(
+                between(&ball(), &ball_on_z_about(axis, 5.0, radius)),
+                Relation::Apart,
+                "the ball about z and the sphere of its centre and radius {radius} about {axis}"
+            );
+        }
+    }
+}
+
+/// The [`ring`] against spheres whose centres its axis holds, turned about
+/// another axis: about the tube's height, touching its root along one
+/// circle, crossing the tube along two, and holding it inside; and
+/// [`ball`]'s, clear above it. Each meets it as the same sphere turned about
+/// the ring's axis does, in either order: apart, or along the same circles,
+/// touching where those touch, on both surfaces.
+#[test]
+fn a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_about_as_it_does_turned_about_the_ring_s()
+ {
+    let eps = scale().eps();
+    for (h, radius, circles) in [(2.0, 3.0, 1), (2.0, 3.5, 2), (2.0, 6.0, 0), (5.0, 3.0, 0)] {
+        let coaxial = between(&ring(), &ball_on_z_about(DVec3::Z, h, radius));
+        assert_eq!(
+            coaxial.curves().len(),
+            circles,
+            "the ring and the sphere about (0, 0, {h}) of {radius}, about z: {coaxial:?}"
+        );
+        for axis in OTHER_AXES.map(DVec3::normalize) {
+            let what =
+                format!("the ring and the sphere about (0, 0, {h}) of {radius}, about {axis}");
+            let other = ball_on_z_about(axis, h, radius);
+            let found = between(&ring(), &other);
+            match (&coaxial, &found) {
+                (Relation::Apart, Relation::Apart) => {}
+                (Relation::Rims(expected), Relation::Rims(_)) => {
+                    let mut found = rims(&ring(), &other, 1e-12 * REACH);
+                    let mut expected = expected.clone();
+                    for rims in [&mut found, &mut expected] {
+                        rims.sort_by(|one, other| {
+                            let height = one.circle.center.z.total_cmp(&other.circle.center.z);
+                            height.then(one.circle.radius.total_cmp(&other.circle.radius))
+                        });
+                    }
+                    assert_eq!(found.len(), expected.len(), "{what}: {found:?}");
+                    for (found, expected) in found.iter().zip(&expected) {
+                        assert_eq!(found.touching, expected.touching, "{what}: {found:?}");
+                        assert!(
+                            found.circle.center.distance(expected.circle.center) <= eps
+                                && (found.circle.radius - expected.circle.radius).abs() <= eps
+                                && found.circle.axis.cross(expected.circle.axis).length() <= 1e-12,
+                            "{what}: {found:?}, where turned about z it meets it along \
+                             {expected:?}"
+                        );
+                    }
+                }
+                _ => panic!("{what}: {found:?}, where turned about z it is {coaxial:?}"),
+            }
         }
     }
 }

@@ -22,33 +22,63 @@
 //!   and radius turned about y: the same body as for two balls turned about
 //!   one axis —
 //!   `a_ball_turned_about_x_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_y_is_the_body_two_balls_turned_about_one_axis_leave`.
-//!   Read as: each step built, never declined, and its body the one the same
-//!   step leaves between two balls turned about x — exact, of the same
-//!   volume, with as many faces of each kind, flat or on the sphere, its
-//!   triangles closed and uncrossed. The pair this answer contradicts, a
-//!   sphere and the sphere of its centre and radius about another axis, is
-//!   taken out of the declines
-//!   `every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant`
-//!   pins, in `src/brep/relation/tests/round.rs`, by the turn that writes
-//!   this criterion's test
+//!   Read as: joined either way and each cut by the other, every step built,
+//!   never declined, and its body the one the same step leaves between the
+//!   same two balls turned about one axis — exact, of the same volume and
+//!   the arithmetic's, empty where that one is, with as many faces of each
+//!   kind, flat or on the sphere, its triangles closed and uncrossed.
+//!   Answered for balls turned whole, which leave the ball or nothing, and
+//!   for balls turned half a turn, which leave three quarters of the ball and
+//!   a quarter: a ball turned about x is one turned part of the way too, and
+//!   only there is the body more than the ball or nothing. Under it, the
+//!   relation: two spheres of one centre and radius are one surface whatever
+//!   axes they were turned about, and a hair apart in radius are not —
+//!   `two_balls_of_one_centre_and_radius_are_one_surface_whatever_axes_they_were_turned_about_and_a_hair_apart_in_radius_are_not`,
+//!   in `src/brep/relation/tests/round.rs`, which takes that pair out of the
+//!   declines `every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant`
+//!   pinned; and a ring meets a sphere whose centre its axis holds, turned
+//!   about another axis, as it meets that sphere turned about its own —
+//!   `a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_about_as_it_does_turned_about_the_ring_s`,
+//!   the other pair the pin lost: the ring against the first pair's sphere
+//!   about x, which is apart from it
 //! - #938's and #805's tests still pass — no test: they are #938's in
 //!   `src/body/tests/through_a_pole.rs`, and #805's in
 //!   `a_chamfer_and_a_fillet_fill_a_concave_edge_up_to_a_curved_end.rs`,
 //!   `src/body/tests.rs`, `src/brep/relation/tests/round.rs` and
 //!   `src/brep/relation/tests/crossing/pierced.rs`, left as they were but for
-//!   the one pair the second criterion takes out of the pinned declines;
+//!   the two pairs the second criterion takes out of the pinned declines;
 //!   running them is the answer
+//!
+//! A boolean between a sphere a step read about another axis and a sphere
+//! of its centre and radius about the first — #938's cut, then a ball about
+//! the axis it was turned about — is built only by reading one about the
+//! other's axis before the boolean (`aligned`, in `brep/combine/charted.rs`):
+//! with the two spheres one surface and their charts apart, it declines
+//! `Unverified` without it. Main built it, the two spheres not yet one
+//! surface, by #938's retry, which reads the second about the cut's axis;
+//! this keeps it built —
+//! `a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_its_first_axis_is_built_sound_and_of_the_arithmetic_s_volume`.
+//!
+//! One fixture leaned on a decline #956 lifts: the turn of
+//! `a_cone_turned_at_thirty_degrees_beside_a_ball_at`, in
+//! `crates/part/tests/the_exact_kernel_turns_the_part.rs`, whose axis ran
+//! through the ball's centre — its inner wall through the centre is what
+//! declined, and its cone stood clear of the ball. Its axis now stands 1.5
+//! off the centre, so that its cone crosses the ball off its centre, which
+//! the kernel still declines, and the step after it is still numbered as if
+//! it had stood.
 //!
 //! Out of scope, and so not asked here: spheres that differ by more than the
 //! tolerance.
 
+use std::collections::BTreeSet;
 use std::f64::consts::{PI, TAU};
 
 use cao_solid::brep::Scale;
 use cao_solid::profile::{Contour, Frame, Profile, Run};
 use cao_solid::soundness::{closed, enclosed, uncrossed};
 use cao_solid::turning::{Axis, Turn};
-use cao_solid::{Body, Loop};
+use cao_solid::{Body, Declined, Loop};
 use glam::{DVec2, DVec3};
 
 /// How far the matter a body holds may stand from what the arithmetic
@@ -83,6 +113,15 @@ fn exact(outline: Contour) -> Profile<'static> {
 /// line through the origin along `axis`, its sphere's chart laid about that
 /// line, its poles 5 along it either way. #938's.
 fn ball_about(axis: DVec3) -> Body {
+    turned_about(axis, axis.any_orthonormal_vector(), TAU)
+}
+
+/// The half disc of [`RADIUS`] about the origin standing on the side of
+/// `from`, square to `axis`, turned `angle` radians about the line through
+/// the origin along `axis`, from `from` towards `axis × from`: turned half a
+/// turn, the half ball on the side of `axis × from` of the plane holding
+/// `axis` and `from`.
+fn turned_about(axis: DVec3, from: DVec3, angle: f64) -> Body {
     let sampled: &'static [DVec2] = Box::leak(
         (0..=32)
             .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * RADIUS)
@@ -107,7 +146,7 @@ fn ball_about(axis: DVec3) -> Body {
     };
     let frame = Frame {
         origin: DVec3::ZERO,
-        u: axis.any_orthonormal_vector(),
+        u: from,
         v: axis,
     };
     let along_v = Axis {
@@ -115,7 +154,7 @@ fn ball_about(axis: DVec3) -> Body {
         direction: DVec2::Y,
     };
     Body::default()
-        .tool_turned(&profile, frame, &Turn::of(along_v, TAU, 0.0, &profile))
+        .tool_turned(&profile, frame, &Turn::of(along_v, angle, 0.0, &profile))
         .expect("the exact kernel turns the ball")
 }
 
@@ -258,6 +297,34 @@ impl Side {
         }
     }
 
+    /// The side the plane leaves across from this one.
+    fn other(self) -> Side {
+        match self {
+            Side::Cap => Side::Rest,
+            Side::Rest => Side::Cap,
+        }
+    }
+
+    /// What the arithmetic says this side holds, the plane leaning `tilt`
+    /// degrees from the pole: the cap 5 (1 − cos(tilt)) high, or the ball
+    /// less it.
+    fn holds(self, tilt: f64) -> f64 {
+        let height = RADIUS * (1.0 - tilt.to_radians().cos());
+        match self {
+            Side::Cap => cap(height),
+            Side::Rest => BALL - cap(height),
+        }
+    }
+
+    /// The area of this side's piece of sphere, 2πr times its height.
+    fn sphere(self, tilt: f64) -> f64 {
+        let height = RADIUS * (1.0 - tilt.to_radians().cos());
+        match self {
+            Side::Cap => TAU * RADIUS * height,
+            Side::Rest => TAU * RADIUS * (2.0 * RADIUS - height),
+        }
+    }
+
     /// What the arithmetic says this side holds once bored along z, the
     /// plane leaning `tilt` degrees from the pole: the cap less what the bore
     /// takes of it, or the ball less the cap and less what the bore takes of
@@ -344,6 +411,166 @@ fn a_ball_turned_about_z_cut_at_a_slant_through_its_pole_then_bored_along_z_thro
                         .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
 
                     built_and_drawn(&bored, side.bored(tilt), side.curved(tilt), &what);
+                }
+            }
+        }
+    }
+}
+
+/// The four booleans of `first` and `second`: joined either way, and each
+/// cut by the other.
+fn booleans(first: &Body, second: &Body) -> [(&'static str, Result<Body, Declined>); 4] {
+    [
+        ("joined with", first.union(second)),
+        ("joined to, the other first,", second.union(first)),
+        ("cut by", first.difference(second)),
+        ("cut from", second.difference(first)),
+    ]
+}
+
+/// How many faces of `body` are flat, and how many are not, each of the
+/// latter drawn on the sphere of [`RADIUS`] about the origin.
+fn kinds(body: &Body, what: &str) -> [usize; 2] {
+    let faces: BTreeSet<usize> = (0..body.faces_end())
+        .filter(|&face| body.has_face(face))
+        .chain(body.pieces())
+        .collect();
+    let flat = faces.iter().filter(|&&face| body.is_flat(face)).count();
+    for &face in faces.iter().filter(|&&face| !body.is_flat(face)) {
+        for corner in body.triangles_of(face).flatten() {
+            assert!(
+                (corner.length() - RADIUS).abs() <= EXACT * RADIUS,
+                "{what}: face {face} is drawn through {corner}, off the sphere"
+            );
+        }
+    }
+    [flat, faces.len() - flat]
+}
+
+/// Holds that `body` is the body `reference`, the same boolean between two
+/// balls turned about one axis, is, and that both are what the arithmetic
+/// says, `kept`: each exact and holding `kept` to a billionth of the ball,
+/// its triangles closed and uncrossed; `body` empty where `reference` is,
+/// with as many flat faces and as many on the sphere.
+fn the_same_body(body: &Body, reference: &Body, kept: f64, what: &str) {
+    for (one, which) in [(reference, "about one axis"), (body, "about x and y")] {
+        assert!(
+            one.is_exact() && (one.volume() - kept).abs() <= EXACT * BALL,
+            "{what}, {which}: holds {}, where the arithmetic leaves {kept}",
+            one.volume()
+        );
+        let triangles = one.triangles();
+        assert_eq!(closed(&triangles), Ok(()), "{what}, {which}");
+        assert_eq!(uncrossed(&triangles), Ok(()), "{what}, {which}");
+    }
+    assert_eq!(
+        body.is_empty(),
+        reference.is_empty(),
+        "{what}: empty where the same boolean about one axis is, or not"
+    );
+    assert_eq!(
+        kinds(body, what),
+        kinds(reference, what),
+        "{what}: as many flat faces, and as many on the sphere, as the same boolean about one \
+         axis leaves"
+    );
+}
+
+/// A ball turned whole about x, from y, and one of its centre and radius
+/// turned whole about y, from z, joined either way and each cut by the
+/// other: the ball, the ball, nothing and nothing, as two balls turned about
+/// x leave them. Then each turned half a turn, the half ball z ≥ 0 about x
+/// and the half ball x ≥ 0 about y: three quarters of the ball, either way,
+/// and a quarter for each cut, as the half ball z ≥ 0 turned about y leaves
+/// them with the second. Each built, and the body the same boolean about one
+/// axis leaves.
+#[test]
+fn a_ball_turned_about_x_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_y_is_the_body_two_balls_turned_about_one_axis_leave()
+ {
+    for (turned, about_x_and_y, about_one_axis, [joined, x_less_y, y_less_x]) in [
+        (
+            "whole",
+            [
+                turned_about(DVec3::X, DVec3::Y, TAU),
+                turned_about(DVec3::Y, DVec3::Z, TAU),
+            ],
+            [
+                turned_about(DVec3::X, DVec3::Y, TAU),
+                turned_about(DVec3::X, DVec3::Z, TAU),
+            ],
+            [BALL, 0.0, 0.0],
+        ),
+        (
+            "half a turn",
+            [
+                turned_about(DVec3::X, DVec3::Y, PI),
+                turned_about(DVec3::Y, DVec3::Z, PI),
+            ],
+            [
+                turned_about(DVec3::Y, -DVec3::X, PI),
+                turned_about(DVec3::Y, DVec3::Z, PI),
+            ],
+            [0.75 * BALL, 0.25 * BALL, 0.25 * BALL],
+        ),
+    ] {
+        let ours = booleans(&about_x_and_y[0], &about_x_and_y[1]);
+        let theirs = booleans(&about_one_axis[0], &about_one_axis[1]);
+        let kept = [joined, joined, x_less_y, y_less_x];
+        for (((way, ours), (_, theirs)), kept) in ours.into_iter().zip(theirs).zip(kept) {
+            let what = format!(
+                "a ball turned {turned} about x {way} a ball of its centre and radius turned \
+                 {turned} about y"
+            );
+            let reference = theirs.unwrap_or_else(|declined| {
+                panic!("{what}, the two turned about one axis: declined, {declined:?}")
+            });
+
+            let body = ours.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+            the_same_body(&body, &reference, kept, &what);
+        }
+    }
+}
+
+/// The ball about z cut through its pole at (0, 0, 5) by a plane leaning
+/// 20°, 45° and 70° towards x, either side kept, as #938 builds it — its
+/// sphere then read about the cut circle's axis — then joined with a ball of
+/// its centre and radius turned about z, cut by it, and each the other way:
+/// the ball either way, nothing, and the side across the plane. Each built,
+/// sound and holding what the arithmetic leaves.
+#[test]
+fn a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_its_first_axis_is_built_sound_and_of_the_arithmetic_s_volume()
+ {
+    let ball = ball_about(DVec3::Z);
+    for tilt in TILTS {
+        let normal = leaning(DVec3::Z, tilt, DVec3::X);
+        let offset = RADIUS * normal.dot(DVec3::Z);
+        for side in SIDES {
+            let cut = ball
+                .difference(&side.slab(normal, offset))
+                .expect("the cut, which #938 builds");
+            let other = side.other();
+            for ((way, built), kept) in booleans(&cut, &ball_about(DVec3::Z)).into_iter().zip([
+                Some((BALL, 100.0 * PI)),
+                Some((BALL, 100.0 * PI)),
+                None,
+                Some((other.holds(tilt), other.sphere(tilt))),
+            ]) {
+                let what = format!(
+                    "the ball about z cut through its pole by a plane leaning {tilt}° towards x, \
+                     keeping its {side:?}, {way} a ball of its centre and radius turned about z"
+                );
+
+                let body =
+                    built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+                match kept {
+                    Some((kept, curved)) => built_and_drawn(&body, kept, curved, &what),
+                    None => assert!(
+                        body.is_exact() && body.is_empty(),
+                        "{what}: nothing left, where it holds {}",
+                        body.volume()
+                    ),
                 }
             }
         }
