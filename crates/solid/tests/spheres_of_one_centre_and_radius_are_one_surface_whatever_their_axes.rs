@@ -83,7 +83,8 @@
 //! triangles:
 //! `a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
 //! The same with a plane a hair above a rim the first criterion's bore
-//! leaves is built sound:
+//! leaves is built sound, the plane laid onto the rim as it is beside a ball
+//! turned about z:
 //! `a_ball_cut_at_a_slant_through_its_pole_and_bored_along_z_joined_with_or_cut_by_a_slab_whose_top_stands_a_hair_above_the_bore_s_rim_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
 //!
 //! #938's re-reading is refused where another surface meets the sphere along
@@ -98,7 +99,10 @@
 //!
 //! The rest is held beside the code it reaches: a cone and a cylinder whose
 //! axis runs through a sphere's centre along another, at the relation, in
-//! `src/brep/relation/tests/round.rs`; and the turn through a ball's centre
+//! `src/brep/relation/tests/round.rs`; which side of each other a sphere and
+//! such a cylinder stand on, read in the meridian half-plane of their rims'
+//! axis rather than the sphere's chart's, in
+//! `src/brep/selection/tests/round.rs`; and the turn through a ball's centre
 //! that main declined, built, in
 //! `crates/part/tests/the_exact_kernel_turns_the_part.rs`.
 
@@ -709,7 +713,11 @@ fn a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centr
 /// joined either way, the bored ball cut by it and it by the bored ball. Each
 /// built, exact, its triangles closed and uncrossed, holding what the
 /// arithmetic leaves, within the ring a few hairs wide the slab's top takes
-/// off the ball's foot — or declined; never a crossed body.
+/// off the ball's foot — or declined; never a crossed body. What it leaves
+/// is read with the slab as drawn, or with its top laid down the hair onto
+/// the rim, as decision 12 lays it beside a ball turned about z and bored
+/// so: the rim is about z whatever axis the sphere's chart was laid about,
+/// and the slab is then 20 less the hair thick.
 #[test]
 fn a_ball_cut_at_a_slant_through_its_pole_and_bored_along_z_joined_with_or_cut_by_a_slab_whose_top_stands_a_hair_above_the_bore_s_rim_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
  {
@@ -735,16 +743,18 @@ fn a_ball_cut_at_a_slant_through_its_pole_and_bored_along_z_joined_with_or_cut_b
                 DVec3::Z * 20.0,
             )
             .expect("the slab raises");
-        for ((way, built), volume) in
-            booleans(&bored, &below)
-                .into_iter()
-                .zip([kept + slab, kept + slab, kept, slab])
-        {
+        let laid = 40.0 * 40.0 * (20.0 - hair);
+        for ((way, built), volumes) in booleans(&bored, &below).into_iter().zip([
+            [kept + slab, kept + laid],
+            [kept + slab, kept + laid],
+            [kept, kept],
+            [slab, laid],
+        ]) {
             let what = format!(
                 "the ball cut at a slant through its pole and bored along z {way} a slab whose \
                  top stands {hair:e} above the bore's rim"
             );
-            sound_or_declined(built, &[volume], EXACT * volume.max(BALL), &what);
+            sound_or_declined(built, &volumes, EXACT * volumes[0].max(BALL), &what);
         }
     }
 }
