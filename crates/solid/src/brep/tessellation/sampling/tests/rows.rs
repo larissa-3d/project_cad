@@ -1,8 +1,12 @@
 //! The rows of a round's grid a face's strips are cut at, between the
 //! face's ends along the meridian and away from its levels: none within a
-//! hundredth of a step of a level, nor within the room the caller asks of a
-//! level or an end if that is wider, so that no strip beside a level is a
-//! sliver thinner than the faces across it sag (#956's ball cut by a ball).
+//! hundredth of a step of either, nor within the room the caller asks if
+//! that is wider, so that no strip beside an end or a level is a sliver
+//! thinner than the faces across it sag (#956's ball cut by a ball). A
+//! meridian arc keeps every row of the grid outside its room, the faces
+//! either side of it being cut there too; that is held through the
+//! drawing, in
+//! `tests/spheres_of_one_centre_and_radius_are_one_surface_whatever_their_axes.rs`.
 
 use std::f64::consts::TAU;
 
@@ -28,6 +32,13 @@ fn kept(low: f64, high: f64, levels: &[f64], room: f64) -> Vec<i64> {
             rank as i64
         })
         .collect()
+}
+
+#[test]
+fn a_row_half_a_hundredth_of_a_step_inside_an_end_is_left_out_and_one_two_hundredths_inside_is_kept()
+ {
+    assert_eq!(kept(2.995, 7.02, &[], 0.0), vec![4, 5, 6, 7]);
+    assert_eq!(kept(2.98, 7.005, &[], 0.0), vec![3, 4, 5, 6]);
 }
 
 #[test]

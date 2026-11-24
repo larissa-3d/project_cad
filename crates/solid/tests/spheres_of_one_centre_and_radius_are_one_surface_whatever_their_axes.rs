@@ -111,6 +111,9 @@
 //! on rather than a sliver of strip beside it —
 //! `a_ball_cut_by_a_smaller_ball_on_its_own_axis_whose_rim_falls_a_hair_from_a_row_of_its_grid_is_built_sound_and_of_the_arithmetic_s_volume`,
 //! the rule itself held in `src/brep/tessellation/sampling/tests/rows.rs`;
+//! a meridian arc keeping every row all the same, where the faces either
+//! side of it are cut —
+//! `a_half_ball_on_a_shaft_s_top_a_hair_wider_than_it_whose_meridian_arcs_end_a_hair_from_a_row_of_its_grid_is_drawn_closed`;
 //! and two charts whose axes part by a few hundred-millionths of a radian,
 //! far less than the drawing sees but more than the tolerance at the ball's
 //! radius, are read about one —
@@ -1203,5 +1206,68 @@ fn a_ball_cut_by_a_smaller_ball_on_its_own_axis_whose_rim_falls_a_hair_from_a_ro
     ]) {
         let what = format!("the ball about x {way} a ball of 3 about (3, 0, 0) turned about x");
         built_sound_holding_one_of(built, &[volume], EXACT * BALL, &what);
+    }
+}
+
+/// A shaft of `radius` along z from z = −10 up to the ball's centre, a tool
+/// of `part`.
+fn shaft_up_to_the_centre(part: &Body, radius: f64) -> Body {
+    part.tool_raised(
+        &exact(Contour {
+            corners: vec![DVec2::X * radius],
+            runs: vec![Run::Round {
+                center: DVec2::ZERO,
+                turn: TAU,
+            }],
+        }),
+        Frame {
+            origin: DVec3::Z * -10.0,
+            u: DVec3::X,
+            v: DVec3::Y,
+        },
+        DVec3::Z * 10.0,
+    )
+    .expect("the shaft raises")
+}
+
+/// A shaft up to the ball's centre, its top on the ball's equator plane,
+/// 5, 10 and 20 hundred-millionths under the ball's radius, and the ball
+/// turned half a turn about z, the half y ≥ 0: the sphere crosses the
+/// shaft's wall a thousandth or so under its equator, and the half ball's
+/// meridian arcs end there, a ten-thousandth of a radian or two from the
+/// equator's row of the sphere's grid. The arcs keep that row, which the
+/// faces either side of them are cut at. Joined either way, and each cut by
+/// the other: built, exact, its triangles closed and uncrossed, holding what
+/// the arithmetic leaves — at the shaft's radius, or at the ball's for a
+/// shaft laid onto the touch.
+#[test]
+fn a_half_ball_on_a_shaft_s_top_a_hair_wider_than_it_whose_meridian_arcs_end_a_hair_from_a_row_of_its_grid_is_drawn_closed()
+ {
+    let half = turned_about(DVec3::Z, DVec3::X, PI);
+    let leaves = |radius: f64| {
+        let [shaft, shared] = shaft_and_its_share_of_the_ball(radius, 0.0);
+        let shared = shared / 2.0;
+        [
+            shaft + BALL / 2.0 - shared,
+            shaft + BALL / 2.0 - shared,
+            shaft - shared,
+            BALL / 2.0 - shared,
+        ]
+    };
+    for hair in [5e-8, 1e-7, 2e-7] {
+        let radius = RADIUS - hair;
+        let shaft = shaft_up_to_the_centre(&half, radius);
+        let [exactly, laid] = [leaves(radius), leaves(RADIUS)];
+        for (index, (way, built)) in booleans(&shaft, &half).into_iter().enumerate() {
+            let what = format!(
+                "a shaft {hair:e} under the ball's radius up to its centre {way} the half ball"
+            );
+            built_sound_holding_one_of(
+                built,
+                &[exactly[index], laid[index]],
+                EXACT * (BALL + laid[0]),
+                &what,
+            );
+        }
     }
 }
