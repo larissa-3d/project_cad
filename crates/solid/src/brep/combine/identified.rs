@@ -20,6 +20,12 @@
 //! goes before a circle the arc is one with too: the circle's arc leans on
 //! the plane the line and the conic lie on, which sees it only as its
 //! chord, as far off it as the line is off the wall (5542125645).
+//!
+//! A sphere or a torus sees no line at all: a circle goes before a line it
+//! is one arc with where the arc lies on one. A plane a hair inside a half
+//! ball, crossing its rim, cuts the rim's plane along a line within the
+//! tolerance of the rim between the two crossings (#960); the rim's own
+//! plane and the cutting plane see the circle's arc as that very chord.
 
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
@@ -71,7 +77,7 @@ pub(super) fn identified(
     }
     members
         .into_values()
-        .map(|ranks| laid_once(&edges, &lying, &ranks, curves, eps))
+        .map(|ranks| laid_once(&edges, &lying, &ranks, curves, apart, eps))
         .unzip()
 }
 
@@ -132,8 +138,16 @@ fn laid_once(
     lying: &[Vec<SurfaceId>],
     ranks: &[usize],
     curves: &[Curve],
+    apart: &Apart,
     eps: f64,
 ) -> (Edge, Vec<SurfaceId>) {
+    let mut support: Vec<SurfaceId> = ranks
+        .iter()
+        .flat_map(|&rank| lying[rank].iter().copied())
+        .collect();
+    support.sort();
+    support.dedup();
+    let on_a_round = support.iter().any(|&surface| apart.round(surface));
     let conics: Vec<&Conic> = ranks
         .iter()
         .filter_map(|rank| match &curves[edges[*rank].curve.0 as usize] {
@@ -142,9 +156,12 @@ fn laid_once(
         })
         .collect();
     let unseen = |edge: &Edge| match &curves[edge.curve.0 as usize] {
-        Curve::Line(line) => conics
-            .iter()
-            .any(|conic| !seen_straight(conic, line, edge, eps)),
+        Curve::Line(line) => {
+            on_a_round
+                || conics
+                    .iter()
+                    .any(|conic| !seen_straight(conic, line, edge, eps))
+        }
         _ => false,
     };
     let bent = ranks.iter().any(|&rank| unseen(&edges[rank]));
@@ -161,12 +178,6 @@ fn laid_once(
         .map(|&rank| &edges[rank])
         .min_by_key(|edge| (kind(edge), edge.curve))
         .expect("a group holds an arc");
-    let mut support: Vec<SurfaceId> = ranks
-        .iter()
-        .flat_map(|&rank| lying[rank].iter().copied())
-        .collect();
-    support.sort();
-    support.dedup();
     (kept.clone(), support)
 }
 

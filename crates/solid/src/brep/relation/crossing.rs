@@ -79,18 +79,24 @@ enum Solved {
 /// crosses (decision 2): whether one of them touches it along a line — a
 /// plane touching a wall, two parallel walls touching — and the points where
 /// one of them touches it at a point, a node or the contact of two
-/// perpendicular cylinders. A double root within the tolerance of the
-/// surface, inside it or out, is a touch where it stands on such a line or
-/// within the tolerance of such a point.
+/// perpendicular cylinders, each with how far from it the two stay within
+/// the tolerance of each other — a plane touching a sphere, over a disc
+/// about the point (#960). A double root within the tolerance of the
+/// surface, inside it or out, is a touch where it stands on such a line, or
+/// within the tolerance of such a point or that reach of it.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Touches {
     pub along: bool,
-    pub at: Vec<DVec3>,
+    pub at: Vec<(DVec3, f64)>,
 }
 
 impl Touches {
     fn here(&self, point: DVec3, scale: Scale) -> bool {
-        self.along || self.at.iter().any(|at| at.distance(point) <= scale.eps())
+        self.along
+            || self
+                .at
+                .iter()
+                .any(|(at, reach)| at.distance(point) <= reach.max(scale.eps()))
     }
 }
 

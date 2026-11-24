@@ -16,6 +16,15 @@
 //! chord of its side there, which the sampling holds within the tolerance,
 //! once the cuts have brought its corner inside the circle on that side as
 //! its diameter.
+//!
+//! On the sphere's own `(θ, φ)`, a sliver narrower than the chart bends
+//! between its corners turns counterclockwise there and faces the centre on
+//! the sphere, crossing its neighbours: it is cut as a triangle sagging is,
+//! until the two agree. And a side is never cut the other way into a
+//! triangle whose corners stand in a line on the chart but for rounding —
+//! the middle of a side cut, flipped back across it — which no cut could
+//! part again: a half ball notched at its rim by the small circle of a
+//! plane a hair inside it was left so (#960).
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -129,16 +138,28 @@ struct Mesh<'a, C> {
 }
 
 impl<C: Lifted> Mesh<'_, C> {
-    /// Whether the triangle at `at` stands further from the sphere than
-    /// `tolerance`, and than the chord of any of its sides on the boundary.
+    /// Whether the triangle at `at` faces the centre, or stands further from
+    /// the sphere than `tolerance` and than the chord of any of its sides on
+    /// the boundary.
     fn sags(&self, at: usize, tolerance: f64) -> bool {
         let corners = self.triangles[at];
+        if self.inward(corners) {
+            return true;
+        }
         let allowed = (0..3)
             .map(|side| [corners[side], corners[(side + 1) % 3]])
             .filter(|&side| self.bounds.contains(&sorted(side)))
             .map(|[one, other]| self.chart.radius() - self.reach(one, other))
             .fold(tolerance, f64::max);
         self.chart.radius() - self.nearest(corners) > allowed
+    }
+
+    /// Whether the triangle on `corners` faces the centre of the sphere by
+    /// more than a [`TIE`].
+    fn inward(&self, corners: [usize; 3]) -> bool {
+        let [a, b, c] = corners.map(|id| self.places[id]);
+        let (along, across, out) = (b - a, c - a, a + b + c);
+        along.cross(across).dot(out) < -TIE * along.length() * across.length() * out.length()
     }
 
     /// How near the centre the triangle on `corners` comes.
@@ -251,8 +272,9 @@ impl<C: Lifted> Mesh<'_, C> {
 
     /// Cuts the other way every side of `stack`, and every side around one
     /// cut, where the point across it stands beyond the plane of the
-    /// triangle on this side by more than a [`TIE`]: each such cut makes the
-    /// triangles hold more volume about the centre, so the cuts end.
+    /// triangle on this side by more than a [`TIE`], and the two triangles it
+    /// makes turn clearly on the chart: each such cut makes the triangles
+    /// hold more volume about the centre, so the cuts end.
     fn legalize(&mut self, mut stack: Vec<[usize; 2]>) {
         while let Some([a, b]) = stack.pop() {
             if self.bounds.contains(&sorted([a, b])) {
@@ -268,7 +290,7 @@ impl<C: Lifted> Mesh<'_, C> {
                 continue;
             }
             let made = [[a, y, x], [y, b, x]];
-            if !made.iter().all(|&corners| self.turns(corners)) {
+            if !made.iter().all(|&corners| self.turns_clear(corners)) {
                 continue;
             }
             self.replace(one, made[0]);
@@ -287,6 +309,14 @@ impl<C: Lifted> Mesh<'_, C> {
 
     fn turns(&self, [a, b, c]: [usize; 3]) -> bool {
         turn(self.points[a], self.points[b], self.points[c]) == Ordering::Greater
+    }
+
+    /// Whether the triangle on `corners` turns counterclockwise on the chart
+    /// by more than a [`TIE`] of the product of its sides from one corner.
+    fn turns_clear(&self, corners: [usize; 3]) -> bool {
+        let [a, b, c] = corners.map(|id| self.points[id]);
+        let (along, across) = (b - a, c - a);
+        self.turns(corners) && along.perp_dot(across) > TIE * along.length() * across.length()
     }
 
     /// A point of the chart, with the point of the sphere it stands for.

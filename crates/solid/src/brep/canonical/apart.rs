@@ -22,7 +22,12 @@
 //! where two perpendicular cylinders touch — the node of the curve they meet
 //! along, or the one point they share — and a cone's apex where a plane
 //! holding its axis or a surface touching it there meets it, where a line on
-//! one passing through the point only touches the other.
+//! one passing through the point only touches the other. A plane touching
+//! a sphere within the tolerance stands within it of the sphere over a disc
+//! about its point far wider than the tolerance — of a radius near √(2rε),
+//! some 5e-4 on a ball of 5 — and a curve on either passing through that
+//! disc only touches the other (#960): the pair keeps how far its point
+//! reaches.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -40,6 +45,7 @@ pub(in crate::brep) struct Apart {
     grazing: BTreeSet<[SurfaceId; 2]>,
     pointed: BTreeSet<[SurfaceId; 2]>,
     points: BTreeMap<[SurfaceId; 2], Vec<DVec3>>,
+    reaches: BTreeMap<[SurfaceId; 2], f64>,
     surfaces: Vec<Surface>,
 }
 
@@ -54,6 +60,7 @@ impl Apart {
         let mut grazing = BTreeSet::new();
         let mut pointed = BTreeSet::new();
         let mut points = BTreeMap::new();
+        let mut reaches = BTreeMap::new();
         for (one, first) in surfaces.iter().enumerate() {
             for (other, second) in surfaces.iter().enumerate().skip(one + 1) {
                 let pair = [SurfaceId(one as u32), SurfaceId(other as u32)];
@@ -114,6 +121,9 @@ impl Apart {
                     Relation::Apex(apex) => {
                         pointed.insert(pair);
                         points.insert(pair, vec![apex]);
+                        if let Some(reach) = reach(first, second, scale) {
+                            reaches.insert(pair, reach);
+                        }
                     }
                     Relation::Rims(rims) => {
                         if rims.iter().any(|rim| rim.touching) {
@@ -140,6 +150,7 @@ impl Apart {
             grazing,
             pointed,
             points,
+            reaches,
             surfaces: surfaces.to_vec(),
         }
     }
@@ -179,6 +190,18 @@ impl Apart {
         self.points
             .get(&[one.min(other), one.max(other)])
             .map_or(&[], Vec::as_slice)
+    }
+
+    /// The points `points` gives, each with how far from it the two surfaces
+    /// stand within the tolerance of each other: a plane and a sphere over
+    /// the disc `reach` reads, any other pair within the tolerance alone.
+    pub fn reached(&self, one: SurfaceId, other: SurfaceId) -> Vec<(DVec3, f64)> {
+        let pair = [one.min(other), one.max(other)];
+        let reach = self.reaches.get(&pair).copied().unwrap_or(0.0);
+        self.points(one, other)
+            .iter()
+            .map(|point| (*point, reach))
+            .collect()
     }
 
     /// Every pair of perpendicular cylinders decided to touch at a point —
@@ -242,6 +265,14 @@ impl Apart {
         )
     }
 
+    /// Whether `surface` is a sphere or a torus, which carries no line.
+    pub fn round(&self, surface: SurfaceId) -> bool {
+        matches!(
+            self.surfaces.get(surface.0 as usize),
+            Some(Surface::Sphere(_) | Surface::Torus(_))
+        )
+    }
+
     /// Whether a place stands within `eps` of a surface.
     pub fn near(&self, surface: SurfaceId, point: DVec3, eps: f64) -> bool {
         self.surfaces
@@ -300,4 +331,21 @@ fn grazes(one: &Surface, other: &Surface, on: DVec3, eps: f64) -> bool {
     }
     let [first, second] = [one, other].map(|cylinder| cylinder.radial(cylinder.parameters(on).x));
     first.cross(second).length() <= GRAZING
+}
+
+/// How far from the point a plane touches a sphere at, within the
+/// tolerance, the two stand within it of each other: the radius of the
+/// circle the plane cuts the sphere grown by the tolerance along. A place
+/// of the plane within the tolerance of the sphere lies inside it, and so
+/// does a place of the sphere within the tolerance of the plane. None for
+/// any other pair.
+fn reach(one: &Surface, other: &Surface, scale: Scale) -> Option<f64> {
+    let ((Surface::Sphere(sphere), Surface::Plane(plane))
+    | (Surface::Plane(plane), Surface::Sphere(sphere))) = (one, other)
+    else {
+        return None;
+    };
+    let away = plane.distance(sphere.middle()).abs();
+    let grown = sphere.radius + scale.eps();
+    Some(((grown - away) * (grown + away)).max(0.0).sqrt())
 }
