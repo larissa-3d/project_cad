@@ -50,7 +50,7 @@ use glam::{DVec2, DVec3};
 
 use super::{REACH, assert_on_both, cylinder, plane, scale};
 use crate::brep::curve::{Circle, Curve};
-use crate::brep::relation::{Relation, Rim, at_a_slant, relation, untouched};
+use crate::brep::relation::{Relation, Rim, at_a_slant, off_the_rim, relation, untouched};
 use crate::brep::surface::{Cone, Cylinder, EllipticCylinder, Sphere, Surface, Torus};
 use crate::brep::tessellation::FRONT;
 
@@ -1399,4 +1399,38 @@ fn a_plane_square_to_a_ball_s_axis_through_its_centre_stands_from_touching_it_no
     let equator = plane(DVec3::new(0.0, 0.0, 5.0), DVec3::Z);
 
     assert_eq!(untouched(&ball(), &equator, scale()), None);
+}
+
+/// A cylinder and a cone parallel to [`ball`]'s axis but off it, their axes
+/// missing its centre, and a cylinder of another axis missing it too: no
+/// line of the ball's meridian half-plane, they stand from touching it, or
+/// from passing through a rim on it, as nothing decision 12 moves — where
+/// the same cylinder about the ball's axis stands its own gap off.
+#[test]
+fn a_cylinder_or_a_cone_off_a_ball_s_axis_and_missing_its_centre_stands_from_touching_it_or_its_rim_as_no_line_of_its_half_plane()
+ {
+    let eps = scale().eps();
+    let Surface::Sphere(sphere) = ball() else {
+        unreachable!()
+    };
+    let rim = sphere.circle(6.0, 8f64.sqrt());
+    let about = cylinder(DVec3::ZERO, DVec3::Z, 3.0 - 5.0 * eps);
+    let gap = untouched(&ball(), &about, scale()).expect("a coaxial cylinder stands a gap off");
+    assert!((gap.gap + 5.0 * eps).abs() <= 1e-12 * REACH, "{gap:?}");
+    for other in [
+        cylinder(DVec3::new(0.0, 4.0, 0.0), DVec3::Z, 3.0 - 5.0 * eps),
+        Surface::Cone(Cone::through(
+            DVec3::new(4.0, 0.0, 0.0),
+            DVec3::Z,
+            [DVec2::new(10.0, 0.0), DVec2::new(0.0, 5.0)],
+        )),
+        cylinder(DVec3::new(0.0, 1.0, 5.0), DVec3::X, 2.0),
+    ] {
+        assert_eq!(untouched(&ball(), &other, scale()), None, "{other:?}");
+        assert_eq!(
+            off_the_rim(&ball(), &rim, &other, scale()),
+            None,
+            "{other:?}"
+        );
+    }
 }

@@ -105,7 +105,12 @@
 //! own chart, and join and cut along the circle they cross on —
 //! `a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_one_is_cut_by_the_other_along_the_circle_they_cross_on`,
 //! the first cut by the second built sound or declined, never crossed —
-//! `a_ball_cut_by_a_ball_about_an_axis_through_its_centre_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`;
+//! `a_ball_cut_by_a_ball_about_an_axis_through_its_centre_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`,
+//! and the same two balls turned about one axis built sound, the drawing
+//! leaving out a row of the smaller's grid a hair from the rim they cross
+//! on rather than a sliver of strip beside it —
+//! `a_ball_cut_by_a_smaller_ball_on_its_own_axis_whose_rim_falls_a_hair_from_a_row_of_its_grid_is_built_sound_and_of_the_arithmetic_s_volume`,
+//! the rule itself held in `src/brep/tessellation/sampling/tests/rows.rs`;
 //! and two charts whose axes part by a few hundred-millionths of a radian,
 //! far less than the drawing sees but more than the tolerance at the ball's
 //! radius, are read about one —
@@ -1173,5 +1178,30 @@ fn a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_ce
                 ),
             }
         }
+    }
+}
+
+/// The ball turned about x, and the ball of 3 about (3, 0, 0) turned about x
+/// too: one axis, the rim they cross on, x = 25/6, a latitude of both,
+/// falling a hair from a row of the smaller's grid. Joined either way and
+/// each cut by the other: built, exact, its triangles closed and uncrossed,
+/// holding the two balls less their lens, the larger less it, and the
+/// smaller less it — the drawing leaving out the row a hair from the rim
+/// rather than a sliver of strip beside it.
+#[test]
+fn a_ball_cut_by_a_smaller_ball_on_its_own_axis_whose_rim_falls_a_hair_from_a_row_of_its_grid_is_built_sound_and_of_the_arithmetic_s_volume()
+ {
+    let (_, _, lens) = ball_and_a_ball_about_an_axis_through_its_centre();
+    let first = ball_about(DVec3::X);
+    let second = ball_at(DVec3::X * 3.0, DVec3::X, 3.0);
+    let smaller = 36.0 * PI;
+    for ((way, built), volume) in booleans(&first, &second).into_iter().zip([
+        BALL + smaller - lens,
+        BALL + smaller - lens,
+        BALL - lens,
+        smaller - lens,
+    ]) {
+        let what = format!("the ball about x {way} a ball of 3 about (3, 0, 0) turned about x");
+        built_sound_holding_one_of(built, &[volume], EXACT * BALL, &what);
     }
 }
