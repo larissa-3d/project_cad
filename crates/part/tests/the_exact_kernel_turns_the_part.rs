@@ -2089,10 +2089,9 @@ fn a_cone_within_another_s_slope_either_way_is_a_broken_step_with_its_reason() {
 /// ball off its centre — a pair the kernel declines — where the ball stands
 /// at the origin. There its other faces meet the ball as the kernel builds
 /// it: the inner wall pierces it right through, its axis off the centre, and
-/// the near end cuts it at a slant. About a line through the centre, as the
-/// turn stood before #956, the cone stands clear of the ball, and the inner
-/// wall through the centre was what declined, until #956 read the sphere
-/// about its axis.
+/// the near end cuts it at a slant. About a line through the centre the cone
+/// stands clear of the ball, and the step is built:
+/// `a_turn_whose_inner_wall_runs_through_a_ball_s_centre_at_thirty_degrees_is_built_and_holds_the_arithmetic_s_volume`.
 fn a_cone_turned_at_thirty_degrees_beside_a_ball_at(at: f64) -> History {
     turned_at_thirty_degrees_beside_a_ball_at(at, 1.5)
 }
@@ -2161,9 +2160,9 @@ fn turned_at_thirty_degrees_beside_a_ball_at(at: f64, off: f64) -> History {
 
 /// The turn of `turned_at_thirty_degrees_beside_a_ball_at` about a line
 /// through the ball's centre: its inner wall runs through the ball along
-/// the line, which main declined as a cylinder of another axis through a
-/// sphere's centre, and its cone stands clear of the ball. Since #956 the
-/// sphere is read about the line and the step is built, exact, holding the
+/// the line, a cylinder of another axis than the sphere's chart through its
+/// centre, which meets it as the sphere read about the line does (#956), and
+/// its cone stands clear of the ball. The step is built, exact, holding the
 /// ball, the tube π (5/3 (4² + 4·3 + 3²) − 5) and less what they share,
 /// π ∫ (8 − h²) dh from 1 to √8 along the line: π (301 − 32√2) / 3.
 #[test]

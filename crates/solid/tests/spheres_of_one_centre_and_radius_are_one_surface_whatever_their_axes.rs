@@ -34,63 +34,62 @@
 //!   relation: two spheres of one centre and radius are one surface whatever
 //!   axes they were turned about, and a hair apart in radius are not —
 //!   `two_balls_of_one_centre_and_radius_are_one_surface_whatever_axes_they_were_turned_about_and_a_hair_apart_in_radius_are_not`,
-//!   in `src/brep/relation/tests/round.rs`, which takes that pair out of the
-//!   declines `every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant`
-//!   pinned; and a ring meets a sphere whose centre its axis holds, turned
-//!   about another axis, as it meets that sphere turned about its own —
-//!   `a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_about_as_it_does_turned_about_the_ring_s`,
-//!   the other pair the pin lost: the ring against the first pair's sphere
-//!   about x, which is apart from it
+//!   in `src/brep/relation/tests/round.rs`; and a ring meets a sphere whose
+//!   centre its axis holds, turned about another axis, as it meets that
+//!   sphere turned about its own —
+//!   `a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_about_as_it_does_turned_about_the_ring_s`.
+//!   Neither pair is among the declines
+//!   `every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant`
+//!   holds
 //! - #938's and #805's tests still pass — no test: they are #938's in
 //!   `src/body/tests/through_a_pole.rs`, and #805's in
 //!   `a_chamfer_and_a_fillet_fill_a_concave_edge_up_to_a_curved_end.rs`,
 //!   `src/body/tests.rs`, `src/brep/relation/tests/round.rs` and
-//!   `src/brep/relation/tests/crossing/pierced.rs`, left as they were but for
-//!   the two pairs the second criterion takes out of the pinned declines;
-//!   running them is the answer
+//!   `src/brep/relation/tests/crossing/pierced.rs`; running them is the
+//!   answer
 //!
 //! A boolean between a sphere a step read about another axis and a sphere
 //! of its centre and radius about the first — #938's cut, then a ball about
 //! the axis it was turned about — is built only by reading one about the
 //! other's axis before the boolean (`aligned`, in `brep/combine/charted.rs`):
 //! with the two spheres one surface and their charts apart, it declines
-//! `Unverified` without it. Main built it, the two spheres not yet one
-//! surface, by #938's retry, which reads the second about the cut's axis;
-//! this keeps it built —
+//! `Unverified` without it —
 //! `a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_its_first_axis_is_built_sound_and_of_the_arithmetic_s_volume`.
 //!
-//! One fixture leaned on a decline #956 lifts: the turn of
-//! `a_cone_turned_at_thirty_degrees_beside_a_ball_at`, in
-//! `crates/part/tests/the_exact_kernel_turns_the_part.rs`, whose axis ran
-//! through the ball's centre — its inner wall through the centre is what
-//! declined, and its cone stood clear of the ball. Its axis now stands 1.5
-//! off the centre, so that its cone crosses the ball off its centre, which
-//! the kernel still declines, and the step after it is still numbered as if
-//! it had stood.
+//! The turn of `a_cone_turned_at_thirty_degrees_beside_a_ball_at`, in
+//! `crates/part/tests/the_exact_kernel_turns_the_part.rs`, stands about a
+//! line 1.5 off the ball's centre, so that its cone crosses the ball off its
+//! centre, which the kernel declines: a wall whose axis runs through the
+//! centre is no decline.
 //!
 //! Out of scope, and so not asked here: spheres that differ by more than the
 //! tolerance.
 //!
-//! Beyond the criteria — pins, not criteria of #956 — the review of the
-//! branch named what reading a sphere about another axis risks downstream,
-//! and each risk has its test, red where the branch goes wrong and a pin
-//! where it holds.
+//! Beyond the criteria — pins, not criteria of #956 — what reading a sphere
+//! about another axis reaches downstream.
 //!
-//! Decision 12 lays a wall a hair inside a ball onto the touch only where
-//! the two are coaxial in the ball's own chart. A shaft through the ball's
-//! centre along another axis a hair under its radius leaves two circles a
-//! few ten-thousandths apart, and the ball cut by it a ring of crossed
-//! triangles:
+//! Decision 12 lays a wall a hair inside a ball onto the touch where the two
+//! are coaxial about the wall's axis, whatever the ball's chart's: a shaft
+//! through the ball's centre along another axis a hair under its radius is
+//! laid onto the touch, rather than leaving two circles a few
+//! ten-thousandths apart and a ring of crossed triangles:
 //! `a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
 //! The same with a plane a hair above a rim the first criterion's bore
 //! leaves is built sound, the plane laid onto the rim as it is beside a ball
 //! turned about z:
 //! `a_ball_cut_at_a_slant_through_its_pole_and_bored_along_z_joined_with_or_cut_by_a_slab_whose_top_stands_a_hair_above_the_bore_s_rim_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
 //!
+//! So does every circle a sphere's faces are rimmed by, each read about its
+//! own axis through the centre: a slab parallel to a cut at a slant, or to
+//! the flat face of a ball turned part of the way, a hair off it, is laid
+//! onto it or left as drawn, and built sound either way:
+//! `a_ball_cut_at_a_slant_joined_with_or_cut_by_a_slab_parallel_to_the_cut_a_hair_off_it_is_built_sound_and_holds_the_matter_as_drawn_or_laid_onto_the_cut`,
+//! `a_ball_turned_part_way_joined_with_or_cut_by_a_slab_parallel_to_its_flat_face_a_hair_off_it_is_built_sound_and_holds_the_matter_as_drawn_or_laid_onto_the_face`.
+//!
 //! #938's re-reading is refused where another surface meets the sphere along
-//! circles its axis decides. A surface whose axis runs through the centre
-//! along another axis now relates to the sphere where it was unsupported,
-//! and refuses it even standing clear of the ball, which main built:
+//! circles its chart's axis decides, and only there: a surface whose axis
+//! runs through the centre along another axis, standing clear of the ball,
+//! leaves the sphere free to be read about a cut circle's axis:
 //! `a_ball_beside_a_rod_whose_axis_runs_through_its_centre_cut_at_a_slant_through_its_pole_is_built_sound_and_of_the_arithmetic_s_volume`.
 //!
 //! Where neither sphere can be read about the other's axis, each one's
@@ -102,8 +101,8 @@
 //! `src/brep/relation/tests/round.rs`; which side of each other a sphere and
 //! such a cylinder stand on, read in the meridian half-plane of their rims'
 //! axis rather than the sphere's chart's, in
-//! `src/brep/selection/tests/round.rs`; and the turn through a ball's centre
-//! that main declined, built, in
+//! `src/brep/selection/tests/round.rs`; and a turn whose inner wall runs
+//! through a ball's centre, built, in
 //! `crates/part/tests/the_exact_kernel_turns_the_part.rs`.
 
 use std::collections::BTreeSet;
@@ -221,6 +220,12 @@ fn bore_along_z(part: &Body) -> Body {
 /// A shaft of `radius` along z through the origin, from z = −10 to 10, a
 /// tool of `part`.
 fn shaft_along_z(part: &Body, radius: f64) -> Body {
+    shaft_along_z_from(part, radius, -10.0)
+}
+
+/// A shaft of `radius` along z through the origin, from z = `from` to 10, a
+/// tool of `part`.
+fn shaft_along_z_from(part: &Body, radius: f64, from: f64) -> Body {
     part.tool_raised(
         &exact(Contour {
             corners: vec![DVec2::X * radius],
@@ -230,11 +235,11 @@ fn shaft_along_z(part: &Body, radius: f64) -> Body {
             }],
         }),
         Frame {
-            origin: DVec3::Z * -10.0,
+            origin: DVec3::Z * from,
             u: DVec3::X,
             v: DVec3::Y,
         },
-        DVec3::Z * 20.0,
+        DVec3::Z * (10.0 - from),
     )
     .expect("the shaft raises")
 }
@@ -639,21 +644,34 @@ fn sound_or_declined(built: Result<Body, Declined>, volumes: &[f64], within: f64
     assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
 }
 
-/// What a shaft of `radius` along z through the ball's centre, from z = −10
-/// to 10, holds, and what it takes of the ball: 20π b², and the ball less the
-/// napkin ring it leaves, 4π/3 (r³ − (r² − b²)^{3/2}).
-fn shaft_and_its_share_of_the_ball(radius: f64) -> [f64; 2] {
-    let ring = (RADIUS * RADIUS - radius * radius).max(0.0).powf(1.5);
+/// What a shaft of `radius` along z through the ball's centre, from z =
+/// `from` to 10, holds, and what it takes of the ball: π b² (10 − `from`),
+/// and the ball's slices above `from`, each the disc of the shaft or the
+/// ball's own where that is the smaller — the shaft's within a of the
+/// equator, a = √(r² − b²), the ball's π (r² − z²) beyond. From z = −10, the
+/// ball less the napkin ring it leaves, 4π/3 (r³ − a³).
+fn shaft_and_its_share_of_the_ball(radius: f64, from: f64) -> [f64; 2] {
+    let reach = (RADIUS * RADIUS - radius * radius).max(0.0).sqrt();
+    let round = |low: f64, high: f64| {
+        PI * (RADIUS * RADIUS * (high - low) - (high.powi(3) - low.powi(3)) / 3.0)
+    };
+    let below = |height: f64| {
+        let height = height.clamp(-RADIUS, RADIUS);
+        round(-RADIUS, height.min(-reach))
+            + PI * radius * radius * (height.clamp(-reach, reach) + reach)
+            + round(reach, height.max(reach))
+    };
     [
-        20.0 * PI * radius * radius,
-        4.0 * PI / 3.0 * (RADIUS.powi(3) - ring),
+        PI * radius * radius * (10.0 - from),
+        below(RADIUS) - below(from),
     ]
 }
 
-/// What a ball and a shaft of `radius` through its centre leave, joined
-/// either way, the ball cut by the shaft and the shaft by the ball.
-fn ball_and_shaft(radius: f64) -> [f64; 4] {
-    let [shaft, shared] = shaft_and_its_share_of_the_ball(radius);
+/// What a ball and a shaft of `radius` through its centre from z = `from`
+/// leave, joined either way, the ball cut by the shaft and the shaft by the
+/// ball.
+fn ball_and_shaft(radius: f64, from: f64) -> [f64; 4] {
+    let [shaft, shared] = shaft_and_its_share_of_the_ball(radius, from);
     [
         BALL + shaft - shared,
         BALL + shaft - shared,
@@ -667,31 +685,35 @@ fn ball_and_shaft(radius: f64) -> [f64; 4] {
 /// tolerance the two are read at, under [`Scale::HAIR`] — where the shaft's
 /// wall meets the sphere along two circles a few ten-thousandths apart, so
 /// near its equator about z that decision 12 lays such a wall coaxial with
-/// the ball onto the touch. Joined either way, the ball cut by the shaft and
-/// the shaft by the ball: each built, exact, its triangles closed and
-/// uncrossed, holding what the arithmetic leaves — at the shaft's radius, or
-/// at the ball's for a shaft laid onto the touch — or declined; never a
-/// crossed body, nor the matter of a face kept on the wrong side.
+/// the ball onto the touch; the shaft a hair under from z = −10, and from
+/// within the band between those circles, a hundred-thousandth above the
+/// lower. Joined either way, the ball cut by the shaft and the shaft by the
+/// ball: each built, exact, its triangles closed and uncrossed, holding what
+/// the arithmetic leaves — at the shaft's radius, or at the ball's for a
+/// shaft laid onto the touch — or declined; never a crossed body, nor the
+/// matter of a face kept on the wrong side. A decline is let pass: the shaft
+/// from within the band, the shaft second, declines `Tie` where the same
+/// shaft beside a ball turned about z is built, which #1109 carries.
 #[test]
 fn a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
  {
     let eps = Scale::of(10.0).eps();
     let ball = ball_about(DVec3::X);
-    for (radius, hair) in [
-        (1.0, false),
-        (3.0, false),
-        (RADIUS - 2.0 * eps, true),
-        (RADIUS - 5.0 * eps, true),
-        (RADIUS - 15.0 * eps, true),
-    ] {
-        let shaft = shaft_along_z(&ball, radius);
-        let exactly = ball_and_shaft(radius);
-        let laid = ball_and_shaft(RADIUS);
+    let band = |radius: f64| -(RADIUS * RADIUS - radius * radius).sqrt() + 1e-5;
+    let hairs = [2.0, 5.0, 15.0].map(|hair| RADIUS - hair * eps);
+    let shafts = [(1.0, -10.0, false), (3.0, -10.0, false)]
+        .into_iter()
+        .chain(hairs.map(|radius| (radius, -10.0, true)))
+        .chain(hairs.map(|radius| (radius, band(radius), true)));
+    for (radius, from, hair) in shafts {
+        let shaft = shaft_along_z_from(&ball, radius, from);
+        let exactly = ball_and_shaft(radius, from);
+        let laid = ball_and_shaft(RADIUS, from);
         let within = EXACT * (BALL + laid[0]);
         for (index, (way, built)) in booleans(&ball, &shaft).into_iter().enumerate() {
             let what = format!(
                 "the ball turned about x {way} a shaft along z through its centre of radius \
-                 {radius}"
+                 {radius} from z = {from}"
             );
             let volumes = if hair {
                 vec![exactly[index], laid[index]]
@@ -837,5 +859,111 @@ fn a_half_ball_turned_about_x_joined_with_or_cut_by_itself_turned_about_y_is_bui
         let what =
             format!("the half ball z ≥ 0 turned about x {way} the same half ball turned about y");
         sound_or_declined(built, &[volume], EXACT * BALL, &what);
+    }
+}
+
+/// Holds that a boolean built a body that is exact, its triangles closed
+/// and uncrossed, holding within `within` of one of `volumes`.
+fn built_sound_holding_one_of(
+    built: Result<Body, Declined>,
+    volumes: &[f64],
+    within: f64,
+    what: &str,
+) {
+    let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    sound_or_declined(Ok(body), volumes, within, what);
+}
+
+/// `part`, holding `held`, with a flat face on the plane `normal` · p =
+/// `offset` and its matter behind it, against a slab 40 by 40 and 10 thick
+/// parallel to that face, beyond it: standing 2, 5 and 15 of the tolerance
+/// the two are read at off it, under [`Scale::HAIR`], clear of `part` or
+/// taking in the layer that deep behind the face, `layer` of it. Joined
+/// either way, `part` cut by the slab and the slab by `part`: each built,
+/// exact, its triangles closed and uncrossed, holding what the arithmetic
+/// leaves with the slab as drawn, or laid onto the face's rim on the sphere
+/// by decision 12 — which reads that circle about its own axis, through the
+/// sphere's centre, as it reads a latitude — the slab's near face then on
+/// the part's, the slab the hair thicker or thinner, or the part moved the
+/// hair onto the slab whole.
+fn beside_a_slab_a_hair_off(
+    part: &Body,
+    held: f64,
+    (normal, offset): (DVec3, f64),
+    layer: impl Fn(f64) -> f64,
+    part_is: &str,
+) {
+    let slab = 40.0 * 40.0 * 10.0;
+    let reach = |body: &Body| {
+        let (low, high) = body.bounds().expect("a body has a box");
+        low.abs().max(high.abs()).max_element()
+    };
+    for hair in [2.0, 5.0, 15.0] {
+        for (stands, off) in [("clear of it", 1.0), ("into it", -1.0)] {
+            let tool = slab_along(normal, offset);
+            let eps = Scale::of(reach(part).max(reach(&tool))).eps();
+            let off = off * hair * eps;
+            let tool = slab_along(normal, offset + off);
+            let taken = if off < 0.0 { layer(-off) } else { 0.0 };
+            let laid = 40.0 * 40.0 * (10.0 + off);
+            for ((way, built), volumes) in booleans(part, &tool).into_iter().zip([
+                [held + slab - taken, held + laid, held + slab],
+                [held + slab - taken, held + laid, held + slab],
+                [held - taken, held, held],
+                [slab - taken, laid, slab],
+            ]) {
+                let what = format!(
+                    "{part_is} {way} a slab parallel to its face {hair} tolerances off it, {stands}"
+                );
+                built_sound_holding_one_of(built, &volumes, EXACT * volumes[2].max(BALL), &what);
+            }
+        }
+    }
+}
+
+/// The ball about z cut by a plane at a slant off its poles, 2 from its
+/// centre along a normal leaning 45° from z towards x, keeping the side
+/// holding its centre: its flat face rimmed by the circle of radius √21 the
+/// plane cuts the sphere along (#805), of another axis than the sphere's
+/// chart. A slab parallel to the cut a hair off it, joined and cut either
+/// way, holds what [`beside_a_slab_a_hair_off`] says.
+#[test]
+fn a_ball_cut_at_a_slant_joined_with_or_cut_by_a_slab_parallel_to_the_cut_a_hair_off_it_is_built_sound_and_holds_the_matter_as_drawn_or_laid_onto_the_cut()
+ {
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let cut = ball_about(DVec3::Z)
+        .difference(&slab_along(normal, 2.0))
+        .expect("a plane at a slant cuts the ball");
+    beside_a_slab_a_hair_off(
+        &cut,
+        BALL - cap(3.0),
+        (normal, 2.0),
+        |deep| cap(3.0 + deep) - cap(3.0),
+        "the ball cut at a slant",
+    );
+}
+
+/// The ball turned half a turn about z from x, the half y ≥ 0, and a
+/// quarter of a turn, x ≥ 0 and y ≥ 0: their flat face on y = 0 is rimmed by
+/// a meridian of the sphere's chart, a circle of the axis y through its
+/// centre. A slab parallel to that face a hair off it, joined and cut either
+/// way, holds what [`beside_a_slab_a_hair_off`] says, the layer behind the
+/// face the disc or the half disc of radius √(r² − y²) summed over its
+/// depth.
+#[test]
+fn a_ball_turned_part_way_joined_with_or_cut_by_a_slab_parallel_to_its_flat_face_a_hair_off_it_is_built_sound_and_holds_the_matter_as_drawn_or_laid_onto_the_face()
+ {
+    for (turn, share, part_is) in [
+        (PI, 0.5, "the half ball turned about z"),
+        (PI / 2.0, 0.25, "the quarter ball turned about z"),
+    ] {
+        let part = turned_about(DVec3::Z, DVec3::X, turn);
+        beside_a_slab_a_hair_off(
+            &part,
+            BALL * share,
+            (-DVec3::Y, 0.0),
+            |deep| 2.0 * share * PI * (RADIUS * RADIUS * deep - deep.powi(3) / 3.0),
+            part_is,
+        );
     }
 }
