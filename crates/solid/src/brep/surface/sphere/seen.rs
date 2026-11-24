@@ -1,7 +1,9 @@
 //! A circle the sphere carries neither as a latitude nor as a meridian —
 //! the section of a plane at a slant to its axis, or holding a direction of
-//! it off it (#805) — seen in its `(θ, φ)`, with `θ` unwrapped so that it
-//! never jumps by a turn along the circle.
+//! it off it (#805), or a rim a cylinder, a cone or a round whose axis holds
+//! its centre off its chart's axis meets it along (#956) — seen in its
+//! `(θ, φ)`, with `θ` unwrapped so that it never jumps by a turn along the
+//! circle.
 //!
 //! Seen down the axis the circle is an ellipse, whose angle about the axis
 //! runs round once a turn, the way the circle's axis points along the

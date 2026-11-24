@@ -28,7 +28,7 @@ pub use crossing::{
 use nearly_parallel::grazing;
 pub(in crate::brep) use nearly_parallel::{grazed, too_near_to_build, within_two_sags};
 pub(in crate::brep) use revolved::apart_by;
-pub(in crate::brep) use round::{Gap, off_the_rim, untouched};
+pub(in crate::brep) use round::{Gap, off_the_rim, read_about_another_axis, untouched};
 pub use walls::Ruled;
 pub(in crate::brep) use walls::{abreast, closest, feet_of_touches};
 

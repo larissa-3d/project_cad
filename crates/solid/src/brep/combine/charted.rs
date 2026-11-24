@@ -25,7 +25,7 @@
 
 use crate::brep::assembly::tidied;
 use crate::brep::curve::Curve;
-use crate::brep::relation::{Relation, relation};
+use crate::brep::relation::{Relation, read_about_another_axis, relation};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Sphere, Surface};
 use crate::brep::topology::{Body, FaceId, SurfaceId};
@@ -143,6 +143,7 @@ fn about(
         .map(|(_, surface)| surface);
     let ruled_by_the_axis = (other.surfaces.iter().chain(besides)).any(|surface| {
         !matches!(surface, Surface::Plane(_))
+            && !read_about_another_axis(&own, surface, scale)
             && relation(&own, surface, scale) != Relation::Unsupported
     });
     if ruled_by_the_axis {

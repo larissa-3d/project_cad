@@ -70,6 +70,37 @@
 //!
 //! Out of scope, and so not asked here: spheres that differ by more than the
 //! tolerance.
+//!
+//! Beyond the criteria — pins, not criteria of #956 — the review of the
+//! branch named what reading a sphere about another axis risks downstream,
+//! and each risk has its test, red where the branch goes wrong and a pin
+//! where it holds.
+//!
+//! Decision 12 lays a wall a hair inside a ball onto the touch only where
+//! the two are coaxial in the ball's own chart. A shaft through the ball's
+//! centre along another axis a hair under its radius leaves two circles a
+//! few ten-thousandths apart, and the ball cut by it a ring of crossed
+//! triangles:
+//! `a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
+//! The same with a plane a hair above a rim the first criterion's bore
+//! leaves is built sound:
+//! `a_ball_cut_at_a_slant_through_its_pole_and_bored_along_z_joined_with_or_cut_by_a_slab_whose_top_stands_a_hair_above_the_bore_s_rim_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
+//!
+//! #938's re-reading is refused where another surface meets the sphere along
+//! circles its axis decides. A surface whose axis runs through the centre
+//! along another axis now relates to the sphere where it was unsupported,
+//! and refuses it even standing clear of the ball, which main built:
+//! `a_ball_beside_a_rod_whose_axis_runs_through_its_centre_cut_at_a_slant_through_its_pole_is_built_sound_and_of_the_arithmetic_s_volume`.
+//!
+//! Where neither sphere can be read about the other's axis, each one's
+//! circles running through the other's poles, the boolean is built sound:
+//! `a_half_ball_turned_about_x_joined_with_or_cut_by_itself_turned_about_y_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
+//!
+//! The rest is held beside the code it reaches: a cone and a cylinder whose
+//! axis runs through a sphere's centre along another, at the relation, in
+//! `src/brep/relation/tests/round.rs`; and the turn through a ball's centre
+//! that main declined, built, in
+//! `crates/part/tests/the_exact_kernel_turns_the_part.rs`.
 
 use std::collections::BTreeSet;
 use std::f64::consts::{PI, TAU};
@@ -180,9 +211,15 @@ fn slab_along(normal: DVec3, offset: f64) -> Body {
 /// A bore of [`BORE`] along z through the origin, from z = −10 to 10, a tool
 /// of `part`.
 fn bore_along_z(part: &Body) -> Body {
+    shaft_along_z(part, BORE)
+}
+
+/// A shaft of `radius` along z through the origin, from z = −10 to 10, a
+/// tool of `part`.
+fn shaft_along_z(part: &Body, radius: f64) -> Body {
     part.tool_raised(
         &exact(Contour {
-            corners: vec![DVec2::X * BORE],
+            corners: vec![DVec2::X * radius],
             runs: vec![Run::Round {
                 center: DVec2::ZERO,
                 turn: TAU,
@@ -195,7 +232,7 @@ fn bore_along_z(part: &Body) -> Body {
         },
         DVec3::Z * 20.0,
     )
-    .expect("the bore raises")
+    .expect("the shaft raises")
 }
 
 /// Three ways square to `axis` a plane through a pole may lean towards.
@@ -574,5 +611,221 @@ fn a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_ce
                 }
             }
         }
+    }
+}
+
+/// Holds that a boolean either declined, or built a body that is exact, its
+/// triangles closed and uncrossed, holding within `within` of one of
+/// `volumes` — never a crossed body, nor one short of a cap or holding a
+/// face it should not.
+fn sound_or_declined(built: Result<Body, Declined>, volumes: &[f64], within: f64, what: &str) {
+    let Ok(body) = built else {
+        return;
+    };
+    assert!(
+        body.is_exact()
+            && volumes
+                .iter()
+                .any(|volume| (body.volume() - volume).abs() <= within),
+        "{what}: holds {}, where the arithmetic leaves one of {volumes:?}",
+        body.volume()
+    );
+    let triangles = body.triangles();
+    assert_eq!(closed(&triangles), Ok(()), "{what}");
+    assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
+}
+
+/// What a shaft of `radius` along z through the ball's centre, from z = −10
+/// to 10, holds, and what it takes of the ball: 20π b², and the ball less the
+/// napkin ring it leaves, 4π/3 (r³ − (r² − b²)^{3/2}).
+fn shaft_and_its_share_of_the_ball(radius: f64) -> [f64; 2] {
+    let ring = (RADIUS * RADIUS - radius * radius).max(0.0).powf(1.5);
+    [
+        20.0 * PI * radius * radius,
+        4.0 * PI / 3.0 * (RADIUS.powi(3) - ring),
+    ]
+}
+
+/// What a ball and a shaft of `radius` through its centre leave, joined
+/// either way, the ball cut by the shaft and the shaft by the ball.
+fn ball_and_shaft(radius: f64) -> [f64; 4] {
+    let [shaft, shared] = shaft_and_its_share_of_the_ball(radius);
+    [
+        BALL + shaft - shared,
+        BALL + shaft - shared,
+        BALL - shared,
+        shaft - shared,
+    ]
+}
+
+/// The ball turned about x, and a shaft along z through its centre: of
+/// radius 1 and 3, and a hair under the ball's radius — 2, 5 and 15 of the
+/// tolerance the two are read at, under [`Scale::HAIR`] — where the shaft's
+/// wall meets the sphere along two circles a few ten-thousandths apart, so
+/// near its equator about z that decision 12 lays such a wall coaxial with
+/// the ball onto the touch. Joined either way, the ball cut by the shaft and
+/// the shaft by the ball: each built, exact, its triangles closed and
+/// uncrossed, holding what the arithmetic leaves — at the shaft's radius, or
+/// at the ball's for a shaft laid onto the touch — or declined; never a
+/// crossed body, nor the matter of a face kept on the wrong side.
+#[test]
+fn a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
+ {
+    let eps = Scale::of(10.0).eps();
+    let ball = ball_about(DVec3::X);
+    for (radius, hair) in [
+        (1.0, false),
+        (3.0, false),
+        (RADIUS - 2.0 * eps, true),
+        (RADIUS - 5.0 * eps, true),
+        (RADIUS - 15.0 * eps, true),
+    ] {
+        let shaft = shaft_along_z(&ball, radius);
+        let exactly = ball_and_shaft(radius);
+        let laid = ball_and_shaft(RADIUS);
+        let within = EXACT * (BALL + laid[0]);
+        for (index, (way, built)) in booleans(&ball, &shaft).into_iter().enumerate() {
+            let what = format!(
+                "the ball turned about x {way} a shaft along z through its centre of radius \
+                 {radius}"
+            );
+            let volumes = if hair {
+                vec![exactly[index], laid[index]]
+            } else {
+                vec![exactly[index]]
+            };
+            sound_or_declined(built, &volumes, within, &what);
+        }
+    }
+}
+
+/// The ball about z cut through its pole at (0, 0, 5) by a plane leaning 45°
+/// towards x, keeping the side holding (0, 0, −5), and bored along z, as the
+/// first criterion builds it: the bore's wall meets the sphere along the
+/// circle z = −√24, a rim of the sphere about z. Then a slab 40 by 40 and 20
+/// thick whose top stands on the plane square to z 5 and 15 hundred-millionths
+/// above that rim — a hair, under [`Scale::HAIR`] of the tolerance the two
+/// are read at, which decision 12 lays onto a rim of a sphere's own axis —
+/// joined either way, the bored ball cut by it and it by the bored ball. Each
+/// built, exact, its triangles closed and uncrossed, holding what the
+/// arithmetic leaves, within the ring a few hairs wide the slab's top takes
+/// off the ball's foot — or declined; never a crossed body.
+#[test]
+fn a_ball_cut_at_a_slant_through_its_pole_and_bored_along_z_joined_with_or_cut_by_a_slab_whose_top_stands_a_hair_above_the_bore_s_rim_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
+ {
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let cut = ball_about(DVec3::Z)
+        .difference(&Side::Rest.slab(normal, RADIUS * normal.dot(DVec3::Z)))
+        .expect("the cut, which #938 builds");
+    let bored = cut
+        .difference(&bore_along_z(&cut))
+        .expect("the bore, which the first criterion builds");
+    let kept = Side::Rest.bored(45.0);
+    let slab = 40.0 * 40.0 * 20.0;
+    for hair in [5e-8, 15e-8] {
+        let top = -bore_reach() + hair;
+        let below = bored
+            .tool_raised(
+                &exact(Contour::rectangle(DVec2::splat(-20.0), DVec2::splat(20.0))),
+                Frame {
+                    origin: DVec3::Z * (top - 20.0),
+                    u: DVec3::X,
+                    v: DVec3::Y,
+                },
+                DVec3::Z * 20.0,
+            )
+            .expect("the slab raises");
+        for ((way, built), volume) in
+            booleans(&bored, &below)
+                .into_iter()
+                .zip([kept + slab, kept + slab, kept, slab])
+        {
+            let what = format!(
+                "the ball cut at a slant through its pole and bored along z {way} a slab whose \
+                 top stands {hair:e} above the bore's rim"
+            );
+            sound_or_declined(built, &[volume], EXACT * volume.max(BALL), &what);
+        }
+    }
+}
+
+/// A rod of radius 1 along x, from x = −15 to −8, a tool of `part`: its axis
+/// the line through the ball's centre along x, its wall clear of the ball.
+fn rod_along_x(part: &Body) -> Body {
+    part.tool_raised(
+        &exact(Contour {
+            corners: vec![DVec2::X],
+            runs: vec![Run::Round {
+                center: DVec2::ZERO,
+                turn: TAU,
+            }],
+        }),
+        Frame {
+            origin: DVec3::X * -15.0,
+            u: DVec3::Y,
+            v: DVec3::Z,
+        },
+        DVec3::X * 7.0,
+    )
+    .expect("the rod raises")
+}
+
+/// The ball about z joined to a rod along x standing clear of it, whose
+/// axis runs through the ball's centre, then cut through the ball's pole at
+/// (0, 0, 5) by a plane leaning 20°, 45° and 70° towards y, either side
+/// kept, as #938 cuts a ball alone: the rod meets nothing of the ball, and
+/// leaves the ball's sphere free to be read about the cut circle's axis.
+/// Each cut built, sound and holding what the arithmetic leaves: the side
+/// holding (0, 0, −5) and the rod, which the plane leaves whole, or the cap,
+/// the slab taking the rod with the rest.
+#[test]
+fn a_ball_beside_a_rod_whose_axis_runs_through_its_centre_cut_at_a_slant_through_its_pole_is_built_sound_and_of_the_arithmetic_s_volume()
+ {
+    let ball = ball_about(DVec3::Z);
+    let part = ball
+        .union(&rod_along_x(&ball))
+        .expect("a rod clear of the ball joins it");
+    let rod = 7.0 * PI;
+    for tilt in TILTS {
+        let normal = leaning(DVec3::Z, tilt, DVec3::Y);
+        let offset = RADIUS * normal.dot(DVec3::Z);
+        for side in SIDES {
+            let what = format!(
+                "the ball about z beside a rod along x through its centre's line, cut through \
+                 its pole by a plane leaning {tilt}° towards y, keeping its {side:?}"
+            );
+
+            let body = part
+                .difference(&side.slab(normal, offset))
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+            let (kept, curved) = match side {
+                Side::Cap => (side.holds(tilt), side.sphere(tilt)),
+                Side::Rest => (side.holds(tilt) + rod, side.sphere(tilt) + 14.0 * PI),
+            };
+            built_and_drawn(&body, kept, curved, &what);
+        }
+    }
+}
+
+/// The half ball z ≥ 0 turned half a turn about x, and the same half ball
+/// turned half a turn about y: each one's flat circle on z = 0 runs through
+/// the poles of the other's chart, so neither sphere can be read about the
+/// other's axis. Joined either way, and each cut by the other: the half
+/// ball, or nothing — built, exact, its triangles closed and uncrossed and
+/// holding that, or declined; never short of a cap.
+#[test]
+fn a_half_ball_turned_about_x_joined_with_or_cut_by_itself_turned_about_y_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
+ {
+    let about_x = turned_about(DVec3::X, DVec3::Y, PI);
+    let about_y = turned_about(DVec3::Y, -DVec3::X, PI);
+    for ((way, built), volume) in
+        booleans(&about_x, &about_y)
+            .into_iter()
+            .zip([BALL / 2.0, BALL / 2.0, 0.0, 0.0])
+    {
+        let what =
+            format!("the half ball z ≥ 0 turned about x {way} the same half ball turned about y");
+        sound_or_declined(built, &[volume], EXACT * BALL, &what);
     }
 }

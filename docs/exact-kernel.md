@@ -657,10 +657,11 @@ Known and still open:
   through a node of a meet, and a round bar touching an elliptic hole at a
   point, named in `exact-kernel-failures.md`, "#571: elliptic walls";
 - a ball bored along its axis and then cut at a slant through a pole of
-  its chart is declined, as is any part whose sphere a plane cuts through
-  a pole of its chart where another surface of the part meets the sphere
-  too: it is read about no other axis then (#938). The other order, the
-  cut and then the bore, is built (#956);
+  its chart is declined (#1107), as is any part whose sphere a plane cuts
+  through a pole of its chart where another non-plane surface of the part,
+  of the chart's axis, is related to the sphere, even apart: it is read
+  about no other axis then (#938). The other order, the cut and then the
+  bore, is built (#956);
 - a cut at a slant a few tolerances off a pole, past where the sphere is
   read again, is built along the tilted circle, its volume off by up to a
   few units of 1e-7 there, held to 1e-6, where elsewhere it is good to a
@@ -969,8 +970,10 @@ The decisions, in the order taken, once per operation:
    top — leaves the ball's axis to the bore along it. It is read so only
    where every circle on its faces and every circle the other operand's
    planes cut it along stands clear of the new poles, and no surface but a
-   plane, in either operand, meets it — a coaxial knob keeps the axis, and
-   the step declines; the result carries the sphere so read, and a later
+   plane, in either operand, is related to it about its chart's axis — a
+   coaxial knob keeps the axis, and the step declines, where a rod whose
+   axis runs through the centre along another, read so whatever the chart
+   (#956), does not; the result carries the sphere so read, and a later
    bore or knob along the old axis meets it along circles of that axis, a
    circle of another axis on the sphere so read (#956). Two spheres of one
    centre and radius are one surface whatever axes they were turned about
@@ -1721,7 +1724,10 @@ The decisions, in the order taken, once per operation:
     meets another of its own surfaces: a rounded zone cut by its own section
     moved 5e-8 along the axis crossed the zone's sphere a hair under its rim
     and left a ring 1.7e-8 wide on the zone's end, which no ray tells the
-    side of (5576809934).
+    side of (5576809934). A sphere is read about the axis of the cylinder,
+    the cone or the rim where that axis holds its centre, whatever its
+    chart's (#956): a shaft through a ball turned about another axis, a
+    hair under its radius, is laid onto its equator about the shaft's axis.
 
     The second operand moves, with what it built on the surface, as decision
     8 moves it: along the axis for a plane or a cone, whichever operand
