@@ -420,9 +420,11 @@ It can:
   it crosses it — on an L cut down to a leaning top, higher on one wall than
   on the other. Where that face is a cylinder or a cone (#788), the solid cut
   from the prism is bounded by the round itself and starts where the prism's
-  long edges leave it, so the fill ends on the round. A result carries the
-  larger reach of its operands, and a solid standing out of the part's box
-  would draw every later step coarser. A cylinder's is raised along its
+  long edges leave it, so the fill ends on the round. A boolean decides at
+  the larger reach of its operands, so a solid standing out of the part's box
+  decides the fill a little coarser than the part asks; the body the fill
+  leaves carries the part's reach, joined with its own where it reaches
+  further, never its tools' (#1023). A cylinder's is raised along its
   axis, the rectangle round the long edges less the cylinder's disc, from a
   line across them where every one that meets the round stands inside it,
   and stands no further out than the prism. A cone, which no raise bounds,
