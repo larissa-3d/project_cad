@@ -67,6 +67,20 @@
 //! its reach. The cap a plane δ inside takes, πδ²(15 − δ)/3, is under 3e-14
 //! at 2·eps, seven orders below that, so a body that cuts the small circle
 //! exactly and one that reads it out as the touch meet it alike.
+//!
+//! Beyond the criteria, a pin on what #960 changed in the refinement on the
+//! sphere's own `(θ, φ)`, where a triangle facing the centre is now cut as
+//! one sagging is: a boundary side there bows off the chart's straight line
+//! between its ends, and a corner of a fraction of a degree, or a curve
+//! within half the drawing's tolerance of another, could leave a triangle
+//! inside that bow which no cut turns round. A ball cut by two flats whose
+//! circles meet at 45° of latitude, running east and west there, crossing at
+//! half a degree down to a twentieth or apart by half the drawing's
+//! tolerance down to a hundredth of it, laid out by `pierced.rs` and by
+//! `charted.rs`, is built and drawn whole as before #960 —
+//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`.
+//! What the two caps share, under 1.2e-8 at half a degree, is left out of
+//! the volume: under a tenth of the billionth of it the volume is held to.
 
 use super::*;
 use crate::soundness::listed;
@@ -406,6 +420,68 @@ fn a_slab_a_hair_inside_a_half_ball_just_under_its_rim_is_joined_and_cut_as_the_
                 SLAB,
                 0.0,
                 &what("the slab cut by the half ball"),
+            );
+        }
+    }
+}
+
+/// The two directions, in the plane of the meridian of +X, of two flats
+/// `offsets` from the centre of [`ball_about_y`] whose caps' centres stand
+/// `apart` on the sphere, the place between their circles at `latitude`.
+fn two_flats_about(offsets: [f64; 2], apart: f64, latitude: f64) -> [DVec3; 2] {
+    let [first, second] = offsets.map(|offset| (offset / 5.0).acos());
+    let overlap = first + second - apart;
+    let along = |at: f64| DVec3::new(at.cos(), at.sin(), 0.0);
+    [
+        along(latitude + first - overlap / 2.0),
+        along(latitude - second + overlap / 2.0),
+    ]
+}
+
+/// How far apart the centres of two caps reaching `offsets` from the centre
+/// of the ball of 5 stand when their circles cross at `angle` on the sphere
+/// outside both: the law of cosines on the triangle of a crossing and the two
+/// centres, whose angle at the crossing is π − `angle`.
+fn apart_crossing_at(offsets: [f64; 2], angle: f64) -> f64 {
+    let [first, second] = offsets.map(|offset| (offset / 5.0).acos());
+    (first.cos() * second.cos() - first.sin() * second.sin() * angle.cos()).acos()
+}
+
+/// The ball cut by two flats whose circles meet at 45° of latitude, running
+/// east and west there on the sphere's own `(θ, φ)`: crossing at half a
+/// degree down to a twentieth, or a gap of half the drawing's tolerance down
+/// to a hundredth of it apart. Flats 2 and 4 from the centre leave the south
+/// pole on the sphere left, which `pierced.rs` lays out; flats 1.25 from it
+/// take a pole each, and the sphere left is `charted.rs`'s where they cross
+/// and `pierced.rs`'s band where they do not. Each is built, listed sound,
+/// drawn whole and closed, uncrossed, as the refinement before #960 drew it.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole()
+ {
+    let latitude = 45f64.to_radians();
+    for offsets in [[2.0, 4.0], [1.25, 1.25]] {
+        let crossing = [0.5f64, 0.2, 0.1, 0.05].map(|degrees| {
+            (
+                format!("crossing at {degrees}°"),
+                apart_crossing_at(offsets, degrees.to_radians()),
+            )
+        });
+        let reach = offsets.map(|offset| (offset / 5.0).acos());
+        let gaps = [5e-4f64, 1e-4, 1e-5]
+            .map(|gap| (format!("{gap} apart"), reach[0] + reach[1] + gap / 5.0));
+        for (how, apart) in crossing.into_iter().chain(gaps) {
+            let [one, other] = two_flats_about(offsets, apart, latitude);
+            let cut = ball_about_y()
+                .difference(&slab_along(one, offsets[0]))
+                .and_then(|cut| cut.difference(&slab_along(other, offsets[1])));
+            let [first, second] = offsets.map(|offset| 5.0 - offset);
+            built_whole(
+                cut,
+                BALL_OF_5 - cap_of_5(first) - cap_of_5(second),
+                10.0 * PI * (10.0 - first - second),
+                &format!(
+                    "the ball cut by two flats {offsets:?} from its centre, their circles {how}"
+                ),
             );
         }
     }
