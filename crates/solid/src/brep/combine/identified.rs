@@ -25,7 +25,8 @@
 //! is one arc with where the arc lies on one. A plane a hair inside a half
 //! ball, crossing its rim, cuts the rim's plane along a line within the
 //! tolerance of the rim between the two crossings (#960); the rim's own
-//! plane and the cutting plane see the circle's arc as that very chord.
+//! plane traces the circle's arc as it is, and the cutting plane sees it as
+//! its chord, held within the tolerance or declined.
 
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
