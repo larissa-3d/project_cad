@@ -591,6 +591,34 @@
 //! stands out past the plate's side once the fill nears the rib's height,
 //! at 9.9 and at 10, the most the rib takes — the piece's shape, neither the
 //! bound nor the fill's prism, followed in #1023.
+//!
+//! Closes #1023.
+//! - On the plate 40 long of #908's fixtures, a chamfer and a fillet at the
+//!   foot of the wall leave `on_a_plane(0.0)` equal to the part's, to the
+//!   bit: with flat ends —
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_with_flat_ends_on_the_plate_forty_long_leave_the_part_s_tolerance_as_it_was`;
+//!   running into an upright or a leaning pillar —
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_an_upright_or_a_leaning_pillar_on_the_plate_forty_long_leave_the_part_s_tolerance_as_it_was`;
+//!   running into a bored boss —
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_bored_boss_on_the_plate_forty_long_leave_the_part_s_tolerance_as_it_was`.
+//!   Read as: [`wall_on_the_plate`], its wall ending on its flat left end
+//!   and right side; [`wall_into_a_pillar`] and
+//!   [`wall_into_a_leaning_pillar`]; [`wall_into_a_bored_boss`] bored 0.5,
+//!   1 and 1.5, short of the fill's section, just reaching it and reaching
+//!   into it, and [`wall_into_a_bored_leaning_boss`] — each deciding,
+//!   before the step, at the tolerance its own box asks; a chamfer and a
+//!   fillet of 0.3 and of 1 at the foot of the wall's front, each taken
+//!   whole; the body otherwise as it was before this issue — exact, closed
+//!   and uncrossed, holding the part's matter and the fill's as #908's and
+//!   #915's blocks above read it, one face more numbered where the steps'
+//!   numbers ended; and the eps it decides at, read through
+//!   `Body::on_a_plane`, the same to the bit as the part's before the step.
+//!   Every step that leaves it otherwise is named in the one failure, with
+//!   the reach the body carries
+//! - #915's test of the placed parts is extended to the parts at the origin,
+//!   and the reasons its module doc gives for reading the tolerance only on
+//!   placed parts go —
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_placed_far_from_the_origin_leave_the_part_s_tolerance_as_it_was`
 
 mod step_reader;
 
@@ -8235,4 +8263,163 @@ fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored
             }
         }
     }
+}
+
+/// The matter the [`wall_on_the_plate`] holds: the plate's 40 × 30 × 4 and
+/// the wall's 20 × 2 raised 8.
+const WALL_VOLUME: f64 = 4800.0 + 320.0;
+
+/// Every step of a chamfer and a fillet of each of [`BORED_VALUES`] at the
+/// foot of the wall's front of `part` — which holds `volume`, its curved
+/// faces `area` in all, and decides before the step at the tolerance its
+/// own box asks — that leaves the body deciding at another tolerance than
+/// the part did, said with the reach each carries. Each step is held
+/// otherwise unchanged: taken whole, the body exact, closed and uncrossed,
+/// holding the part's matter and the fill's, `filled` giving that matter
+/// and the area of its round for a fill and a value, and one face more,
+/// numbered where the steps' numbers ended.
+fn grown_by_a_fill_at_the_foot_of_the_wall(
+    part: &Body,
+    (volume, area): (f64, f64),
+    filled: impl Fn(Fill, f64) -> (f64, f64),
+    what: &str,
+) -> Vec<String> {
+    let before = part.on_a_plane(0.0);
+    let own = Scale::of(reach_of(part)).eps();
+    assert_eq!(
+        before, own,
+        "{what}, before the step: the part decides at a tolerance of {before}, where its own box \
+         asks {own}"
+    );
+    let foot = edge_between(part, TOP, WALL_FRONT);
+    let mut grown = Vec::new();
+    for fill in [Fill::Chamfer, Fill::Fillet] {
+        for value in BORED_VALUES {
+            let what = format!("{what}, the {fill:?} of {value} at the foot of the wall's front");
+            let laid = match fill {
+                Fill::Chamfer => part
+                    .chamfer(&foot, value)
+                    .map(|chamfered| (chamfered.body, chamfered.asked, chamfered.taken)),
+                Fill::Fillet => part
+                    .fillet(&foot, value)
+                    .map(|filleted| (filleted.body, filleted.asked, filleted.taken)),
+            };
+            let (body, asked, taken) =
+                laid.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+
+            taken_whole(asked, taken, value, &what);
+            let (matter, laid_area) = filled(fill, value);
+            sound_drawn_within(
+                &body,
+                volume + matter,
+                drawn_within(part, area + value * value + laid_area),
+                &what,
+            );
+            let made = match fill {
+                Fill::Chamfer => one_flat_face_more(part, &body, &what),
+                Fill::Fillet => one_round_more(part, &body, &what),
+            };
+            numbered_after_the_steps_last(part, &body, made, &what);
+            let after = body.on_a_plane(0.0);
+            if after != before {
+                grown.push(format!(
+                    "{what}: the body decides at a tolerance of {after}, a share of a reach of \
+                     {}, where before the step the part decided at {before}, its own box's \
+                     reach of {}",
+                    after / Scale::RELATIVE,
+                    before / Scale::RELATIVE
+                ));
+            }
+        }
+    }
+    grown
+}
+
+/// The matter a fill of `value` at the foot of the wall's front holds as it
+/// runs into a pillar or a boss leaning `lean`, and the area of its round:
+/// the chamfer's in closed form, the fillet's summed, as #908 reads them.
+fn filled_into_the_pillar(lean: f64) -> impl Fn(Fill, f64) -> (f64, f64) {
+    move |fill, value| match fill {
+        Fill::Chamfer => (chamfer_into_the_pillar(value, lean), 0.0),
+        Fill::Fillet => (
+            fill_matter(
+                value,
+                |out| fillet_height(value, out),
+                |out, up| along_the_wall_under(lean, out, up),
+            ),
+            PI / 2.0 * value * along_the_wall_under(lean, 0.0, value),
+        ),
+    }
+}
+
+/// Holds that no step of `grown` left the body deciding at another
+/// tolerance than its part did.
+fn none_grown(grown: Vec<String>) {
+    assert!(
+        grown.is_empty(),
+        "a fill left the part deciding at a coarser tolerance than before the step, and every \
+         later step would be decided and drawn coarser than the part's size asks:\n{}",
+        grown.join("\n")
+    );
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_with_flat_ends_on_the_plate_forty_long_leave_the_part_s_tolerance_as_it_was()
+ {
+    let part = wall_on_the_plate();
+    let along = 20.0;
+
+    none_grown(grown_by_a_fill_at_the_foot_of_the_wall(
+        &part,
+        (WALL_VOLUME, 0.0),
+        |fill, value| match fill {
+            Fill::Chamfer => (along * value * value / 2.0, 0.0),
+            Fill::Fillet => (
+                along * (1.0 - PI / 4.0) * value * value,
+                PI / 2.0 * value * along,
+            ),
+        },
+        "the wall with flat ends on the plate 40 long",
+    ));
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_an_upright_or_a_leaning_pillar_on_the_plate_forty_long_leave_the_part_s_tolerance_as_it_was()
+ {
+    let upright = grown_by_a_fill_at_the_foot_of_the_wall(
+        &wall_into_a_pillar(),
+        (wall_into_a_pillar_volume(), 2.0 * PI * 3.0 * 10.0),
+        filled_into_the_pillar(0.0),
+        "the wall running into an upright pillar on the plate 40 long",
+    );
+    let leaning = grown_by_a_fill_at_the_foot_of_the_wall(
+        &wall_into_a_leaning_pillar(),
+        (leaning_pillar_volume(), 2.0 * PI * 3.0 * 14.0),
+        filled_into_the_pillar(LEAN),
+        "the wall running into a leaning pillar on the plate 40 long",
+    );
+
+    none_grown([upright, leaning].concat());
+}
+
+#[test]
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_bored_boss_on_the_plate_forty_long_leave_the_part_s_tolerance_as_it_was()
+ {
+    let mut grown = Vec::new();
+    for bore in [0.5, 1.0, 1.5] {
+        grown.extend(grown_by_a_fill_at_the_foot_of_the_wall(
+            &wall_into_a_bored_boss(bore),
+            (bored_boss_volume(bore), bored_boss_area(bore)),
+            filled_into_the_pillar(0.0),
+            &format!("the wall running into a boss bored {bore} through on the plate 40 long"),
+        ));
+    }
+    grown.extend(grown_by_a_fill_at_the_foot_of_the_wall(
+        &wall_into_a_bored_leaning_boss(),
+        (bored_leaning_boss_volume(), bored_leaning_boss_area()),
+        filled_into_the_pillar(LEAN),
+        "the wall running into a leaning boss bored along its axis on the plate 40 long",
+    ));
+
+    none_grown(grown);
 }

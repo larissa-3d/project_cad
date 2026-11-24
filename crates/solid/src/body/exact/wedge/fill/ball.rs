@@ -12,8 +12,8 @@
 //! its corners, edges and bulges; the bound its profile is laid at — its
 //! corners' place plus their furthest from the axis — sets only the
 //! tolerances it is laid and read to, never the reach it carries (#977). A
-//! large fill near its part's edge may so widen the part's reach a little
-//! (followed in #1023); never by the dome's size.
+//! large fill near its part's edge is so decided a little coarser than its
+//! part, never by the dome's size, and leaves the part its own reach (#1023).
 
 use std::f64::consts::{PI, TAU};
 

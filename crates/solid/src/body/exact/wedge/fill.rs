@@ -57,8 +57,11 @@ impl Exact {
     /// plane of the face they meet across, gone, at either end — among them
     /// where the seam between their two walls ends, which a face whose plane
     /// runs through it but which does not reach it, the step at a stepped
-    /// end, would otherwise keep from rejoining. Declined `Unsupported`: an
-    /// end where
+    /// end, would otherwise keep from rejoining. The body left carries this
+    /// body's scale, or its own reach where it reaches further: the prism,
+    /// raised over the whole box, and the solids its ends are trimmed by stand
+    /// past the part, and the join would carry their reach on to every later
+    /// step (#1023). Declined `Unsupported`: an end where
     /// no face but the edge's two meets it, or several do, or one the fill
     /// cannot be trimmed flush on, as [`past_the_end`] and [`past_two_faces`]
     /// decline it, and another edge that does not end on the faces the first
@@ -134,7 +137,11 @@ impl Exact {
                 .filter(|&point| plane.distance(point).abs() <= eps);
             corners.extend(seam);
         }
-        joined.merged_at(&corners)
+        let filled = joined.merged_at(&corners)?;
+        Ok(Exact {
+            brep: filled.brep.carrying(self.brep.scale()),
+            ..filled
+        })
     }
 }
 

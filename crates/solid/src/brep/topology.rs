@@ -167,6 +167,16 @@ impl Body {
         Body { unstable, ..self }
     }
 
+    /// The body carrying `scale` rather than its own operation's, or its own
+    /// reach where it reaches further: what a step whose tools stood past the
+    /// part leaves, their reach gone with them. Its surfaces keep the scale
+    /// they arrived at, so that a pair of them is read again as it was
+    /// decided.
+    pub(crate) fn carrying(self, scale: Scale) -> Body {
+        let scale = scale.joined(Scale::of(self.reach()));
+        Body { scale, ..self }
+    }
+
     /// The scale of the operation that brought a surface into the body. A
     /// pair of its surfaces was decided when the later of the two came, at
     /// that operation's scale: a later leaf growing the reach does not decide

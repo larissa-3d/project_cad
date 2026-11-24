@@ -20,8 +20,9 @@ use crate::profile::{Contour, Frame, Run};
 /// round the edge holds some `m² · tan γ`, `γ` the angle between either face
 /// and the plane through the two lines the cut is set back to — a chamfer's
 /// own plane — `tan γ` taken at most one, as at a square edge or a sharper
-/// one: at three, nine times what the raise needs. There it grows the part's
-/// reach by some 1e-4 of it, and more as the edge flattens.
+/// one: at three, nine times what the raise needs. There a cut grows the
+/// part's reach by some 1e-4 of it, and more as the edge flattens; a fill
+/// leaves it as it was (#1023).
 const SECTION: f64 = 3.0;
 
 /// A line of the section, `a·w + b·h = offset`: `w` across the edge, from
