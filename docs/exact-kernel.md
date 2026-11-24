@@ -755,10 +755,7 @@ square to, or along, a wall's axis, or off parallel to a plane (decision
 surface a hair from touching a sphere or a torus, or from a rim on it
 (decision 12), and a plane a hair from a straight edge it runs along
 (decision 13). The result of an operation carries the larger reach of its
-operands. A chamfer or a fillet reads each solid it lays on its part at the
-part's scale, or at that solid's own reach where a join takes the part
-further, never at the reach of the boxes it was built from: those stand past
-the part, and would widen every later step's tolerance (#1023). A pair
+operands. A pair
 of surfaces one operand alone carries is decided at the tolerance it was
 decided at when the later of the two came into that operand: a body keeps,
 for each of its surfaces, the scale of the operation that brought it in —
@@ -768,7 +765,21 @@ A later leaf growing the reach, however many operations later, does not
 make one of two walls of a crescent a hair wide, crossing along two rulings
 the operand's own corners stand on. The second operand's own pairs are
 read at the operation's scale: it is a leaf, whose surfaces stand far
-apart.
+apart, read a little coarser than it decided them.
+
+There is one exception, where a pair is decided again finer than it was
+(#1023). A chamfer or a fillet reads each solid it lays on its part at the
+part's scale, or at that solid's own reach where a join takes the part
+further, never at the reach of the boxes it was built from: those stand past
+the part, and would widen the step's tolerance and every later one's. The
+solid's own pairs, decided at that coarser reach, are decided again at the
+part's. That is sound only because every coincidence inside such a solid is
+exact up to rounding — laid on the part's own surfaces and on exact crossings
+of planes and lines — and every near miss is a gap it was built with, far
+above either tolerance: a prism's margin, a trim's clearance, the depth a
+corner's piece is sunk. Its reach stays within a few times the part's, so
+none of its pairs lies between the two tolerances. A solid built otherwise
+is not to be read so.
 
 The decisions, in the order taken, once per operation:
 

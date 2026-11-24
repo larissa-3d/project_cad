@@ -4,7 +4,7 @@
 //! set-backs meet across the face they share as one, a later edge mitred
 //! against the earlier ones it meets at a corner, and the corners three or
 //! more of them meet at closed once all are laid — four or more cleared
-//! first.
+//! first — and the scale a solid the step lays on the body is read at.
 
 use std::collections::BTreeSet;
 
@@ -290,6 +290,35 @@ impl Exact {
         cut.overlaps_covered()?;
         cut.next = start + names.len() as u32;
         Ok((cut.closed(&closes, start)?, reported, pairs))
+    }
+
+    /// The body joined to `tool`, a solid a step lays on it, the tool read
+    /// at the body's scale or at its own reach where that is larger — the
+    /// furthest what the join leaves can reach — rather than at the scale it
+    /// carries from the boxes it was cut by: a step's tools stand past the
+    /// part, and would decide the step and every later one coarser than the
+    /// part's size asks (#1023). Its own pairs are so decided again finer than
+    /// it decided them, as `brep::Body::read_at` says when that is sound.
+    pub(in crate::body::exact) fn joined_in_a_step(&self, tool: Exact) -> Result<Exact, Declined> {
+        let scale = self.brep.scale().joined(Scale::of(tool.brep.reach()));
+        self.joined(&tool.read_at(scale))
+    }
+
+    /// The body less `tool`, a solid a step lays on it, the tool read at the
+    /// body's scale: what the cut leaves stands within the body, however far
+    /// the tool stands past it, as [`Exact::joined_in_a_step`] says.
+    pub(in crate::body::exact) fn cut_in_a_step(&self, tool: Exact) -> Result<Exact, Declined> {
+        let scale = self.brep.scale();
+        self.cut_by(&tool.read_at(scale))
+    }
+
+    /// A tool read at `scale`, as an operand alone: its drawing and its
+    /// names are its own scale's, and no boolean reads them.
+    fn read_at(self, scale: Scale) -> Exact {
+        Exact {
+            brep: self.brep.read_at(scale),
+            ..self
+        }
     }
 }
 

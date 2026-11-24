@@ -169,8 +169,17 @@ impl Body {
 
     /// The body read at `scale`, every surface of it arrived there: a solid
     /// a step lays on a part, decided at the scale of what the step can
-    /// leave rather than at the reach of the boxes it was cut from. It is a
-    /// leaf, whose own surfaces stand far apart and are read alike at either.
+    /// leave rather than at the reach of the boxes it was cut from (#1023).
+    /// Its own pairs, decided at that coarser reach, are decided again at
+    /// this finer scale: the one exception to a later operation never
+    /// deciding finer than an earlier one, which [`Scale`] states. It is sound
+    /// only for a solid every coincidence inside which is exact up to
+    /// rounding — laid on the part's own surfaces and on exact crossings of
+    /// planes and lines — and every near miss a gap it was built with far
+    /// above either tolerance — a prism's margin, a trim's clearance, the
+    /// depth a corner's piece is sunk — as a step's tools are, whose reach
+    /// stays within a few times the part's: none of its pairs then lies
+    /// between the two tolerances.
     pub(crate) fn read_at(self, scale: Scale) -> Body {
         let arrivals = vec![scale; self.surfaces.len()];
         Body {
