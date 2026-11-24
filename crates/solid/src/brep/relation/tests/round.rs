@@ -50,7 +50,7 @@ use glam::{DVec2, DVec3};
 
 use super::{REACH, assert_on_both, cylinder, plane, scale};
 use crate::brep::curve::{Circle, Curve};
-use crate::brep::relation::{Relation, Rim, at_a_slant, relation};
+use crate::brep::relation::{Relation, Rim, at_a_slant, relation, untouched};
 use crate::brep::surface::{Cone, Cylinder, EllipticCylinder, Sphere, Surface, Torus};
 use crate::brep::tessellation::FRONT;
 
@@ -1329,4 +1329,74 @@ fn a_cylinder_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the
          touch the ball along a great circle through its poles, and the one twice the tolerance \
          under crosses it along two within a few ten-thousandths of them; along the slant, none"
     );
+}
+
+/// A plane square to [`ball`]'s axis a hair past its pole at (0, 0, 8), or
+/// a hair short of it, and the same at its other pole (0, 0, 2): each stands
+/// that hair from touching the ball at the pole, the circle of no radius
+/// there, read in the meridian half-plane at the foot of the ball's centre
+/// on the axis — which decision 12 moves it onto.
+#[test]
+fn a_plane_square_to_a_ball_s_axis_a_hair_off_its_pole_stands_that_hair_from_touching_it_there() {
+    let hair = 5.0 * scale().eps();
+    for (pole, outward) in [(8.0, 1.0), (2.0, -1.0)] {
+        for off in [hair, -hair] {
+            let level = plane(DVec3::new(0.0, 0.0, pole + outward * off), DVec3::Z);
+            let what = format!("the plane square to z {off:e} past the pole at {pole}");
+
+            let gap = untouched(&ball(), &level, scale())
+                .unwrap_or_else(|| panic!("{what}: no gap to touching"));
+
+            assert!(
+                (gap.gap - off).abs() <= 1e-12 * REACH,
+                "{what}: stands {} from touching",
+                gap.gap
+            );
+            assert!(
+                gap.at.center.distance(DVec3::new(0.0, 0.0, pole)) <= 1e-12 * REACH
+                    && gap.at.radius.abs() <= 1e-12 * REACH,
+                "{what}: touches along {:?}, where the pole is",
+                gap.at
+            );
+        }
+    }
+}
+
+/// A cone about [`ball`]'s axis opening at 45° away from the ball, its
+/// apex past the ball's top so that its mirror nappe, which is no surface of
+/// it, stands a hair from touching the ball: no gap to touching. The same
+/// cone opening towards the ball from below it, its own nappe a hair from
+/// touching it, stands that hair off.
+#[test]
+fn a_cone_whose_mirror_nappe_stands_a_hair_from_touching_a_ball_does_not_stand_a_hair_from_touching_it()
+ {
+    let hair = 5.0 * scale().eps();
+    let reach = (3.0 + hair) * 2f64.sqrt();
+    let opening_up_from = |apex: f64| cone([apex, 0.0], [apex + 4.0, 4.0]);
+
+    let beyond = opening_up_from(5.0 + reach);
+    assert_eq!(
+        untouched(&ball(), &beyond, scale()),
+        None,
+        "a cone whose mirror nappe stands {hair:e} from touching the ball"
+    );
+
+    let below = opening_up_from(5.0 - reach);
+    let gap = untouched(&ball(), &below, scale())
+        .expect("a cone opening towards the ball stands a hair from touching it");
+    assert!(
+        (gap.gap - hair).abs() <= 1e-12 * REACH,
+        "the cone below the ball stands {} from touching it, where it stands {hair:e}",
+        gap.gap
+    );
+}
+
+/// A plane square to [`ball`]'s axis through its centre: every direction
+/// in the meridian half-plane stands it as far from touching the ball, and
+/// it stands from touching it nowhere.
+#[test]
+fn a_plane_square_to_a_ball_s_axis_through_its_centre_stands_from_touching_it_nowhere() {
+    let equator = plane(DVec3::new(0.0, 0.0, 5.0), DVec3::Z);
+
+    assert_eq!(untouched(&ball(), &equator, scale()), None);
 }

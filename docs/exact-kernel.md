@@ -2756,8 +2756,10 @@ pointed cone's flank waits on #711.
   round's angles as a cone's rim is on the cone's, and every meridian arc on
   the round's rows, the opening and the closing meridian of a turn on the
   same rows whatever circle each lies on, none within the round's room of a
-  latitude circle or a pole of the face it bounds. A face is laid out in
-  `(θ, φ)`, each sample on the line of its edge — a latitude circle's at the
+  latitude circle or a pole of the face it bounds, nor within a hundredth of
+  a step of one: the strip left beside it would be a sliver, its triangles
+  nearer a face across a sharp edge than that face's chords sag (#956). A
+  face is laid out in `(θ, φ)`, each sample on the line of its edge — a latitude circle's at the
   circle's own angle along the meridian, a meridian's at the arc's own angle
   about the axis — so that its boundaries are exactly square to the chart;
   the poles are laid as a cone's apex is, a loop passing through one running

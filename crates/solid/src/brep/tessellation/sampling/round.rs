@@ -253,9 +253,19 @@ pub(super) fn levels_along(
         .collect()
 }
 
+/// How near an end or a level of a face, as a share of a step of its grid,
+/// a row is left out: the strip it would leave there is a sliver, its
+/// triangles a hair from the edge, nearer a face across a sharp edge than
+/// that face's chords sag — a ball cut by a ball whose rim falls 7e-5 rad
+/// from a row of the smaller's grid was crossed there, and its folds never
+/// undone (#956). The strip beside it grows by as much, its sag by twice
+/// that share.
+const SLIVER: f64 = 0.01;
+
 /// The rows of a grid of `steps` rows a turn strictly between `low` and
-/// `high` along the meridian, none within `room` of an angle of `levels` a
-/// whole number of turns on, ascending.
+/// `high` along the meridian, none within `room`, or within [`SLIVER`] of a
+/// step, of either or of an angle of `levels` a whole number of turns on,
+/// ascending.
 pub(in crate::brep::tessellation) fn rows(
     steps: usize,
     low: f64,
@@ -264,6 +274,7 @@ pub(in crate::brep::tessellation) fn rows(
     room: f64,
 ) -> Vec<f64> {
     let step = TAU / steps as f64;
+    let room = room.max(SLIVER * step);
     ((low / step).floor() as i64..=(high / step).ceil() as i64)
         .map(|rank| TAU * rank as f64 / steps as f64)
         .filter(|&row| row > low + room && row < high - room)

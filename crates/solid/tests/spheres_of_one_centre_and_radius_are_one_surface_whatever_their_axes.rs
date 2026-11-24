@@ -99,9 +99,22 @@
 //! circles running through the other's poles, the boolean is built sound:
 //! `a_half_ball_turned_about_x_joined_with_or_cut_by_itself_turned_about_y_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
 //!
+//! Two spheres are read about one axis before the boolean only where they
+//! are one surface on charts of two axes: a ball about z and a smaller ball
+//! about x whose axis runs through the first's centre are read each in its
+//! own chart, and join and cut along the circle they cross on —
+//! `a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_one_is_cut_by_the_other_along_the_circle_they_cross_on`,
+//! the first cut by the second built sound or declined, never crossed —
+//! `a_ball_cut_by_a_ball_about_an_axis_through_its_centre_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`;
+//! and two charts whose axes part by a few hundred-millionths of a radian,
+//! far less than the drawing sees but more than the tolerance at the ball's
+//! radius, are read about one —
+//! `a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_an_axis_a_hair_off_the_cut_s_is_built_sound_and_of_the_arithmetic_s_volume`.
+//!
 //! The rest is held beside the code it reaches: a cone and a cylinder whose
-//! axis runs through a sphere's centre along another, at the relation, in
-//! `src/brep/relation/tests/round.rs`; which side of each other a sphere and
+//! axis runs through a sphere's centre along another, and how far a plane
+//! square to a ball's axis or a cone about it stands from touching it, at
+//! the relation, in `src/brep/relation/tests/round.rs`; which side of each other a sphere and
 //! such a cylinder stand on, read in the meridian half-plane of their rims'
 //! axis rather than the sphere's chart's, in
 //! `src/brep/selection/tests/round.rs`; and a turn whose inner wall runs
@@ -1028,5 +1041,137 @@ fn a_ball_turned_part_way_joined_with_or_cut_by_a_slab_parallel_to_its_flat_face
             |deep| 2.0 * share * PI * (RADIUS * RADIUS * deep - deep.powi(3) / 3.0),
             part_is,
         );
+    }
+}
+
+/// A ball of `radius` about `centre`, turned whole about the line through
+/// `centre` along `axis`, its sphere's chart laid about that line.
+fn ball_at(centre: DVec3, axis: DVec3, radius: f64) -> Body {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..=32)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * radius)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let half = Contour {
+        corners: vec![DVec2::new(0.0, -radius), DVec2::new(0.0, radius)],
+        runs: vec![
+            Run::Round {
+                center: DVec2::ZERO,
+                turn: PI,
+            },
+            Run::Straight,
+        ],
+    };
+    let profile = Profile {
+        exact: Some((half, Vec::new())),
+        sampled: Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    let frame = Frame {
+        origin: centre,
+        u: axis.any_orthonormal_vector(),
+        v: axis,
+    };
+    let along_v = Axis {
+        origin: DVec2::ZERO,
+        direction: DVec2::Y,
+    };
+    Body::default()
+        .tool_turned(&profile, frame, &Turn::of(along_v, TAU, 0.0, &profile))
+        .expect("the exact kernel turns the ball")
+}
+
+/// The ball about z, and a ball of radius 3 about (3, 0, 0) turned about x:
+/// the line through the second's centre along its axis runs through the
+/// first's centre, so the two meet along the circle x = 25/6 of radius
+/// √(25 − (25/6)²) about that line, far from the poles of either chart. The
+/// lens they share holds π (5 + 3 − 3)² (3² + 2·3·3 − 3·3² + 2·3·5 + 6·3·5 −
+/// 3·5²) / (12·3) = 125π/4.
+fn ball_and_a_ball_about_an_axis_through_its_centre() -> (Body, Body, f64) {
+    let first = ball_about(DVec3::Z);
+    let second = ball_at(DVec3::X * 3.0, DVec3::X, 3.0);
+    (first, second, 125.0 * PI / 4.0)
+}
+
+/// [`ball_and_a_ball_about_an_axis_through_its_centre`], joined either way,
+/// and the second cut by the first: each built, exact, its triangles closed
+/// and uncrossed, holding the two balls less the lens, and the smaller ball
+/// less it — the second read about neither the first's axis nor any but
+/// its own, whose line holds both centres.
+#[test]
+fn a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_one_is_cut_by_the_other_along_the_circle_they_cross_on()
+ {
+    let (first, second, lens) = ball_and_a_ball_about_an_axis_through_its_centre();
+    let smaller = 36.0 * PI;
+    for (way, built, volume) in [
+        ("joined with", first.union(&second), BALL + smaller - lens),
+        (
+            "joined to, the other first,",
+            second.union(&first),
+            BALL + smaller - lens,
+        ),
+        ("cut from", second.difference(&first), smaller - lens),
+    ] {
+        let what = format!("the ball about z {way} a ball of 3 about (3, 0, 0) turned about x");
+        built_sound_holding_one_of(built, &[volume], EXACT * BALL, &what);
+    }
+}
+
+/// [`ball_and_a_ball_about_an_axis_through_its_centre`], the first cut by
+/// the second: built, exact, its triangles closed and uncrossed, holding the
+/// ball less the lens — or declined; never a crossed body.
+#[test]
+fn a_ball_cut_by_a_ball_about_an_axis_through_its_centre_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
+ {
+    let (first, second, lens) = ball_and_a_ball_about_an_axis_through_its_centre();
+
+    let built = first.difference(&second);
+
+    sound_or_declined(
+        built,
+        &[BALL - lens],
+        EXACT * BALL,
+        "the ball about z cut by a ball of 3 about (3, 0, 0) turned about x",
+    );
+}
+
+/// The ball about z cut through its pole at (0, 0, 5) by a plane leaning 45°
+/// towards x, keeping the cap, its sphere read about the cut circle's axis
+/// (#938), and a ball of its centre and radius turned about that axis tilted
+/// 10, 30 and 100 billionths of a radian towards y: a chart a hair off the
+/// cut's, whose sphere the boolean reads about the cut's axis. Joined either
+/// way and each cut by the other: built, sound and holding the ball, the
+/// ball, nothing, and the ball less the cap.
+#[test]
+fn a_ball_cut_at_a_slant_through_its_pole_joined_with_or_cut_by_a_ball_of_its_centre_and_radius_turned_about_an_axis_a_hair_off_the_cut_s_is_built_sound_and_of_the_arithmetic_s_volume()
+ {
+    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
+    let cut = ball_about(DVec3::Z)
+        .difference(&Side::Cap.slab(normal, RADIUS * normal.dot(DVec3::Z)))
+        .expect("the cut, which #938 builds");
+    for tilt in [1e-8, 3e-8, 1e-7] {
+        let other = ball_about((normal + DVec3::Y * tilt).normalize());
+        for ((way, built), kept) in booleans(&cut, &other).into_iter().zip([
+            Some((BALL, 100.0 * PI)),
+            Some((BALL, 100.0 * PI)),
+            None,
+            Some((Side::Rest.holds(45.0), Side::Rest.sphere(45.0))),
+        ]) {
+            let what = format!(
+                "the ball cut at a slant through its pole, keeping its cap, {way} a ball turned \
+                 about the cut's axis tilted {tilt:e}"
+            );
+            let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            match kept {
+                Some((kept, curved)) => built_and_drawn(&body, kept, curved, &what),
+                None => assert!(
+                    body.is_exact() && body.is_empty(),
+                    "{what}: nothing left, where it holds {}",
+                    body.volume()
+                ),
+            }
+        }
     }
 }
