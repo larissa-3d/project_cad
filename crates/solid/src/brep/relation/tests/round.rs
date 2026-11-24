@@ -52,6 +52,7 @@ use super::{REACH, assert_on_both, cylinder, plane, scale};
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::relation::{Relation, Rim, at_a_slant, relation};
 use crate::brep::surface::{Cone, Cylinder, EllipticCylinder, Sphere, Surface, Torus};
+use crate::brep::tessellation::FRONT;
 
 /// A ball of radius 3 about `(0, 0, 5)`, turned about Z.
 fn ball() -> Surface {
@@ -1110,10 +1111,13 @@ fn two_balls_of_one_centre_and_radius_are_one_surface_whatever_axes_they_were_tu
 /// circle, crossing the tube along two, and holding it inside; and
 /// [`ball`]'s, clear above it. Each meets it as the same sphere turned about
 /// the ring's axis does, in either order: apart, or along the same circles,
-/// touching where those touch, on both surfaces.
+/// touching where those touch, on both surfaces — but the root circle, the
+/// sphere's equator about z, which runs through the poles of its charts
+/// about x and about y, and is unsupported there.
 #[test]
 fn a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_about_as_it_does_turned_about_the_ring_s()
  {
+    let mut declined = 0;
     for (h, radius, circles) in [(2.0, 3.0, 1), (2.0, 3.5, 2), (2.0, 6.0, 0), (5.0, 3.0, 0)] {
         let coaxial = between(&ring(), &ball_on_z_about(DVec3::Z, h, radius));
         assert_eq!(
@@ -1123,29 +1127,66 @@ fn a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_
         );
         for axis in OTHER_AXES.map(DVec3::normalize) {
             let other = ball_on_z_about(axis, h, radius);
-            as_read_about_the_axis(
+            declined += usize::from(as_read_about_the_axis(
                 [&ring(), &other],
                 &coaxial,
                 (DVec3::Z, 1e-12 * REACH),
                 &format!("the ring and the sphere about (0, 0, {h}) of {radius}, about {axis}"),
-            );
+            ));
         }
     }
+    assert_eq!(
+        declined, 2,
+        "the root circle, the equator about z of the sphere about (0, 0, 2) of 3, runs through \
+         the poles of its charts about x and about y, and of none other"
+    );
+}
+
+/// Whether a point of one of `rims` stands nearer a pole of `sphere`'s
+/// chart than the drawing lays a circle of another axis, [`FRONT`]: within
+/// the angle whose sine it is of the chart's axis, read at a tenth of a
+/// degree all round each rim.
+fn near_a_pole_of_its_chart(sphere: &Sphere, rims: &[Rim]) -> bool {
+    let beyond = (1.0 - FRONT * FRONT).sqrt();
+    rims.iter().any(|rim| {
+        (0..3600).any(|step| {
+            let point = rim.circle.point(TAU * f64::from(step) / 3600.0);
+            ((point - sphere.middle()).dot(sphere.axis) / sphere.radius).abs() > beyond
+        })
+    })
 }
 
 /// Holds that `pair`, a sphere and a round whose axis holds its centre,
 /// along `along`, the two of other axes, relate as `about` says the sphere
 /// read about `along` relates to the round, in either order: apart, one
 /// surface, touching at the same point, or meeting along the same circles,
-/// touching where those touch, on both surfaces within `within`.
+/// touching where those touch, on both surfaces within `within`. Where one
+/// of those circles comes nearer a pole of the sphere's own chart than the
+/// drawing lays a circle of another axis (#962), the pair is unsupported:
+/// through such a pole no trace of the sphere reads the circle, and the
+/// drawing leaves the face it bounds open. Whether it was so.
 fn as_read_about_the_axis(
     pair: [&Surface; 2],
     about: &Relation,
     (along, within): (DVec3, f64),
     what: &str,
-) {
+) -> bool {
     let eps = scale().eps();
     let found = between(pair[0], pair[1]);
+    let sphere = pair.iter().find_map(|surface| match surface {
+        Surface::Sphere(sphere) if sphere.axis.cross(along).length() > 1e-12 => Some(sphere),
+        _ => None,
+    });
+    if let (Some(sphere), Relation::Rims(rims)) = (sphere, about)
+        && near_a_pole_of_its_chart(sphere, rims)
+    {
+        assert_eq!(
+            found,
+            Relation::Unsupported,
+            "{what}: read about the axis it meets it along {rims:?}, near a pole of its chart"
+        );
+        return true;
+    }
     match (about, &found) {
         (Relation::Apart, Relation::Apart) => {}
         (Relation::Same { agree }, Relation::Same { agree: found }) if agree == found => {}
@@ -1176,6 +1217,7 @@ fn as_read_about_the_axis(
         }
         _ => panic!("{what}: {found:?}, where read about the axis it is {about:?}"),
     }
+    false
 }
 
 /// A cone through `(0, 0, 5)`, [`ball`]'s centre, along `axis`, through two
@@ -1212,11 +1254,15 @@ fn a_cone_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the_bal
                 "the ball turned about {axis} and the cone through {corners:?} along it: \
                  {about:?}"
             );
-            as_read_about_the_axis(
+            let declined = as_read_about_the_axis(
                 [&ball(), &cone],
                 &about,
                 (axis, 1e-12 * REACH),
                 &format!("the ball about z and the cone through {corners:?} along {axis}"),
+            );
+            assert!(
+                !declined,
+                "the cone through {corners:?} along {axis} meets the ball off its chart's poles"
             );
         }
     }
@@ -1227,7 +1273,10 @@ fn a_cone_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the_bal
 /// along two circles, touching it at its equator about that axis, within
 /// twice the tolerance of touching it inside, and apart a hair outside it
 /// and further. Each relates to it as it relates to the ball turned about
-/// that axis, in either order; twice the tolerance off the centre, a
+/// that axis, in either order — but where the circles run within the
+/// drawing's reach of the ball's poles about z, along x and along y, the
+/// touch at the great circle through them and the two circles a hair either
+/// side of it, which are unsupported; twice the tolerance off the centre, a
 /// cylinder of another axis meets it along the two loops its rulings
 /// pierce it along (#805), on both surfaces within the tolerance — at a
 /// slant so near the centre, a loop's points stand a fifth of it off the
@@ -1236,6 +1285,7 @@ fn a_cone_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the_bal
 fn a_cylinder_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the_ball_was_turned_about_as_it_meets_the_ball_turned_about_the_cylinder_s()
  {
     let eps = scale().eps();
+    let mut declined = 0;
     for axis in OTHER_AXES.map(DVec3::normalize) {
         let square = axis.any_orthonormal_vector();
         for (off, radius, circles) in [
@@ -1255,7 +1305,7 @@ fn a_cylinder_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the
                 "the ball turned about {axis} and the cylinder of {radius} {off:e} off its \
                  centre along it: {about:?}"
             );
-            as_read_about_the_axis(
+            declined += usize::from(as_read_about_the_axis(
                 [&ball(), &wall],
                 &about,
                 (axis, eps),
@@ -1263,7 +1313,7 @@ fn a_cylinder_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the
                     "the ball about z and the cylinder of {radius} along {axis}, {off:e} off its \
                      centre"
                 ),
-            );
+            ));
         }
         let off = cylinder(DVec3::new(0.0, 0.0, 5.0) + square * (2.0 * eps), axis, 2.0);
         let found = between(&ball(), &off);
@@ -1273,4 +1323,10 @@ fn a_cylinder_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the
         );
         assert_on_both(&found, &ball(), &off, eps);
     }
+    assert_eq!(
+        declined, 6,
+        "the cylinders of 3 along x and along y, through the centre or half the tolerance off it, \
+         touch the ball along a great circle through its poles, and the one twice the tolerance \
+         under crosses it along two within a few ten-thousandths of them; along the slant, none"
+    );
 }

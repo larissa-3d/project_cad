@@ -73,7 +73,10 @@
 //! through the ball's centre along another axis a hair under its radius is
 //! laid onto the touch, rather than leaving two circles a few
 //! ten-thousandths apart and a ring of crossed triangles:
-//! `a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`.
+//! `a_ball_turned_at_a_slant_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume`.
+//! Where those circles run within the drawing's reach of a pole of the
+//! ball's own chart (#962), the boolean is declined:
+//! `a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_is_declined_where_the_rims_pass_near_its_chart_s_poles_and_built_further_off`.
 //! The same with a plane a hair above a rim the first criterion's bore
 //! leaves is built sound, the plane laid onto the rim as it is beside a ball
 //! turned about z:
@@ -680,39 +683,56 @@ fn ball_and_shaft(radius: f64, from: f64) -> [f64; 4] {
     ]
 }
 
-/// The ball turned about x, and a shaft along z through its centre: of
-/// radius 1 and 3, and a hair under the ball's radius — 2, 5 and 15 of the
-/// tolerance the two are read at, under [`Scale::HAIR`] — where the shaft's
-/// wall meets the sphere along two circles a few ten-thousandths apart, so
-/// near its equator about z that decision 12 lays such a wall coaxial with
-/// the ball onto the touch; the shaft a hair under from z = −10, and from
-/// within the band between those circles, a hundred-thousandth above the
-/// lower. Joined either way, the ball cut by the shaft and the shaft by the
-/// ball: each built, exact, its triangles closed and uncrossed, holding what
-/// the arithmetic leaves — at the shaft's radius, or at the ball's for a
-/// shaft laid onto the touch — or declined; never a crossed body, nor the
-/// matter of a face kept on the wrong side. A decline is let pass: the shaft
-/// from within the band, the shaft second, declines `Tie` where the same
-/// shaft beside a ball turned about z is built, which #1109 carries.
-#[test]
-fn a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
- {
+/// The cosine of the angle off a sphere's chart axis the drawing lays a
+/// circle of another axis at, `tessellation/outline/central.rs`'s, which no
+/// public constant gives: a rim nearer a pole than that, about 2.9°, is no
+/// circle the drawing closes a face along (#962).
+const FRONT: f64 = 0.05;
+
+/// The shafts along z through the ball's centre the two tests below hold,
+/// each with where it starts and whether it stands a hair under the ball's
+/// radius: of radius 1 and 3, and of the ball's radius, touching it along its
+/// equator about z, from z = −10; a hair under the ball's radius — 2, 5 and
+/// 15 of the tolerance the two are read at, under [`Scale::HAIR`] — where
+/// the shaft's wall meets the sphere along two circles a few
+/// ten-thousandths either side of that equator, so near it that decision 12
+/// lays such a wall onto the touch, from z = −10 and from within the band
+/// between those circles, a hundred-thousandth above the lower.
+fn shafts() -> Vec<(f64, f64, bool)> {
     let eps = Scale::of(10.0).eps();
-    let ball = ball_about(DVec3::X);
     let band = |radius: f64| -(RADIUS * RADIUS - radius * radius).sqrt() + 1e-5;
     let hairs = [2.0, 5.0, 15.0].map(|hair| RADIUS - hair * eps);
-    let shafts = [(1.0, -10.0, false), (3.0, -10.0, false)]
-        .into_iter()
-        .chain(hairs.map(|radius| (radius, -10.0, true)))
-        .chain(hairs.map(|radius| (radius, band(radius), true)));
-    for (radius, from, hair) in shafts {
+    [
+        (1.0, -10.0, false),
+        (3.0, -10.0, false),
+        (RADIUS, -10.0, true),
+    ]
+    .into_iter()
+    .chain(hairs.map(|radius| (radius, -10.0, true)))
+    .chain(hairs.map(|radius| (radius, band(radius), true)))
+    .collect()
+}
+
+/// The ball turned about a slant, (1, 0, 1), and each of [`shafts`]: their
+/// rims stand 45° or more from its chart's poles. Joined either way, the
+/// ball cut by the shaft and the shaft by the ball: each built, exact, its
+/// triangles closed and uncrossed, holding what the arithmetic leaves — at
+/// the shaft's radius, or at the ball's for a shaft laid onto the touch;
+/// never a crossed body, nor the matter of a face kept on the wrong side. A
+/// shaft from within the band, the shaft second, may decline: #1109 carries
+/// it, and the ball joined with it declines `Undrawn` today.
+#[test]
+fn a_ball_turned_at_a_slant_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume()
+ {
+    let ball = ball_about(DVec3::new(1.0, 0.0, 1.0).normalize());
+    for (radius, from, hair) in shafts() {
         let shaft = shaft_along_z_from(&ball, radius, from);
         let exactly = ball_and_shaft(radius, from);
         let laid = ball_and_shaft(RADIUS, from);
         let within = EXACT * (BALL + laid[0]);
         for (index, (way, built)) in booleans(&ball, &shaft).into_iter().enumerate() {
             let what = format!(
-                "the ball turned about x {way} a shaft along z through its centre of radius \
+                "the ball turned at a slant {way} a shaft along z through its centre of radius \
                  {radius} from z = {from}"
             );
             let volumes = if hair {
@@ -720,7 +740,50 @@ fn a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centr
             } else {
                 vec![exactly[index]]
             };
-            sound_or_declined(built, &volumes, within, &what);
+            if from > -RADIUS && matches!(index, 0 | 2) {
+                sound_or_declined(built, &volumes, within, &what);
+            } else {
+                built_sound_holding_one_of(built, &volumes, within, &what);
+            }
+        }
+    }
+}
+
+/// The ball turned about x, and each of [`shafts`]. Those of 1 and 3 meet
+/// the sphere along circles far from its chart's poles, and are built as
+/// beside the ball turned at a slant. The rest meet it along its equator
+/// about z, or a few ten-thousandths either side of it, which runs through
+/// the poles of its chart about x: nearer them than [`FRONT`] lays a circle,
+/// no trace of the sphere reads the circle and the drawing leaves the face
+/// open, and each boolean is declined `Unsupported` rather than built so.
+#[test]
+fn a_ball_turned_about_x_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_is_declined_where_the_rims_pass_near_its_chart_s_poles_and_built_further_off()
+ {
+    let ball = ball_about(DVec3::X);
+    let beyond = (1.0 - FRONT * FRONT).sqrt();
+    for (radius, from, _) in shafts() {
+        let shaft = shaft_along_z_from(&ball, radius, from);
+        let exactly = ball_and_shaft(radius, from);
+        for (index, (way, built)) in booleans(&ball, &shaft).into_iter().enumerate() {
+            let what = format!(
+                "the ball turned about x {way} a shaft along z through its centre of radius \
+                 {radius} from z = {from}"
+            );
+            if radius / RADIUS > beyond {
+                assert_eq!(
+                    built.map(|body| body.volume()),
+                    Err(Declined::Unsupported),
+                    "{what}: its rims within {}° of the chart's poles",
+                    FRONT.asin().to_degrees()
+                );
+            } else {
+                built_sound_holding_one_of(
+                    built,
+                    &[exactly[index]],
+                    EXACT * (BALL + exactly[0]),
+                    &what,
+                );
+            }
         }
     }
 }
