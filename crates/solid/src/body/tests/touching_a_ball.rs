@@ -13,11 +13,7 @@
 //! The touch is built as well where it meets an edge: the block's own, along
 //! which the ball's great circle on the block's floor touches it too; the
 //! rim of a half ball, or its dome a little way from it. And from inside:
-//! a ball hollowed out of a block whose side it touches. A plane a hair
-//! inside a half ball of radius 5, touching its dome 5e-5 or 1.5e-4 from
-//! its rim, so near that the rim crosses the plane on either side of the
-//! touch, is still declined as unsupported: the face reads the touch at a
-//! point alone.
+//! a ball hollowed out of a block whose side it touches.
 //!
 //! Beneath the body, the relation of a plane and a sphere reads that touch
 //! within half the tolerance, at the point, in either order, misses the
@@ -26,6 +22,65 @@
 //! without the drawing (`brep/combine/tests/round.rs`); and the drawing lays
 //! on the plane the samples of the sphere's face it added, and no other
 //! (`brep/tessellation/sampling/tests/touching.rs`).
+//!
+//! Just past the tolerance, a hair inside, the plane cuts the sphere along a
+//! small circle of radius √(2r·δ), δ how far inside it stands: about 4e-4 on
+//! the ball of 5 at δ = 1.5e-8. Two bodies lay that circle across an edge.
+//! The block from x = 5, 20 across, whose floor z = 0 holds the ball's
+//! centre and whose side touches the ball where the floor does: the floor
+//! halves the circle, which crosses the edge of the block's side. And the
+//! half ball under z = 0, against a slab whose face touches its dome 1e-5 or
+//! 3e-5 rad under its rim — 5e-5 or 1.5e-4 from it, so near that the rim
+//! crosses the plane on either side of the touch, and the circle crosses the
+//! rim of the sphere's face. Either builds as the touch a hair further out
+//! does.
+//!
+//! Closes #960.
+//! - The two bodies above, at every offset from 5 − 2·eps to 5 + 2·eps,
+//!   joined and cut: built, sound, of the right volume, drawn uncrossed —
+//!   the block,
+//!   `a_block_a_hair_inside_a_ball_whose_floor_halves_their_small_circle_is_joined_and_cut_as_the_block_touching_it_is`;
+//!   the half ball,
+//!   `a_slab_a_hair_inside_a_half_ball_just_under_its_rim_is_joined_and_cut_as_the_slab_touching_it_is`
+//! - #939's, #938's and #805's tests still pass — no test: they are the tests
+//!   closing #939 above and beneath the body, `through_a_pole.rs`'s for #938,
+//!   and those `tests.rs`, the relation's files and
+//!   `tests/a_chamfer_and_a_fillet_fill_a_concave_edge_up_to_a_curved_end.rs`
+//!   name for #805, run as they stand
+//!
+//! Read as: "every offset", each quarter of the tolerance from 5 − 2·eps to
+//! 5 + 2·eps — ±2·eps, ±eps, ±eps/2 and the touch itself among them, 5 − eps
+//! too, whose gap rounding sets at −1.50000004e-8 against the block's eps of
+//! 1.5e-8, just past the band the touch is read in — a thousandth of the
+//! tolerance either side of that band's two edges, and 1 1/16, 1 11/16 and
+//! 1 13/16 of it inside, between the quarters, where a sweep by sixteenths
+//! found the half ball declined as well. eps is the tolerance the boolean of
+//! the two decides at, 1.5e-8 for the block, about 2e-8 for the slab; the
+//! offset is the block's side x = offset, or the slab's face that far from
+//! the half ball's centre towards the touch, at either angle. "Joined and
+//! cut": the union and both differences. "Built, sound, drawn uncrossed":
+//! what `built_whole` holds — built by the exact kernel, listed sound, its
+//! triangles closed, uncrossed and enclosing the volume within what the
+//! drawing promises, every corner within the tolerance of its face's
+//! surface. "Of the right volume": the volume the arithmetic gives the
+//! touch, within a billionth of it, the ratio of the kernel's tolerance to
+//! its reach. The cap a plane δ inside takes, πδ²(15 − δ)/3, is under 3e-14
+//! at 2·eps, seven orders below that, so a body that cuts the small circle
+//! exactly and one that reads it out as the touch meet it alike.
+//!
+//! Beyond the criteria, a pin on what #960 changed in the refinement on the
+//! sphere's own `(θ, φ)`, where a triangle facing the centre is now cut as
+//! one sagging is: a boundary side there bows off the chart's straight line
+//! between its ends, and a corner of a fraction of a degree, or a curve
+//! within half the drawing's tolerance of another, could leave a triangle
+//! inside that bow which no cut turns round. A ball cut by two flats whose
+//! circles meet at 45° of latitude, running east and west there, crossing at
+//! half a degree down to a twentieth or apart by half the drawing's
+//! tolerance down to a hundredth of it, laid out by `pierced.rs` and by
+//! `charted.rs`, is built and drawn whole as before #960 —
+//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`.
+//! What the two caps share, under 1.2e-8 at half a degree, is left out of
+//! the volume: under a tenth of the billionth of it the volume is held to.
 
 use super::*;
 use crate::soundness::listed;
@@ -266,6 +321,167 @@ fn a_half_ball_touched_on_its_rim_or_on_its_dome_is_joined_and_cut_as_the_slab_a
                 SLAB,
                 0.0,
                 &what("the slab cut by the half ball"),
+            );
+        }
+    }
+}
+
+/// The offsets across the band a plane is read as touching the ball of 5
+/// in, at the tolerance `eps`: each quarter of it from 5 − 2·eps to
+/// 5 + 2·eps, a thousandth of it either side of 5 − eps and 5 + eps, and the
+/// three sixteenths inside, between the quarters, where a sweep by
+/// sixteenths found the half ball declined.
+fn across_the_touch(eps: f64) -> impl Iterator<Item = f64> {
+    (-8..=8)
+        .map(move |quarter| 5.0 + f64::from(quarter) * eps / 4.0)
+        .chain([-1.001, -0.999, 0.999, 1.001].map(move |edge| 5.0 + edge * eps))
+        .chain([-29.0, -27.0, -17.0].map(move |sixteenths| 5.0 + sixteenths * eps / 16.0))
+}
+
+/// The block's side from twice the tolerance inside the ball to twice clear
+/// of it, where the block's floor holds the ball's centre and halves the
+/// small circle the side cuts a hair inside: the union holds both, the ball
+/// less the block is the whole ball, the block less the ball the whole
+/// block, as the block touching it gives them.
+#[test]
+fn a_block_a_hair_inside_a_ball_whose_floor_halves_their_small_circle_is_joined_and_cut_as_the_block_touching_it_is()
+ {
+    let ball = ball_about_y();
+    let sphere = 4.0 * PI * 25.0;
+    let eps = eps_of(&ball, &block_from(5.0));
+    for low in across_the_touch(eps) {
+        let block = block_from(low);
+        let holds = (15.0 - low) * 200.0;
+        let what = |how: &str| {
+            format!(
+                "{how}, the block from x = {low}, {} of the tolerance off the touch",
+                (low - 5.0) / eps
+            )
+        };
+
+        built_whole(
+            ball.union(&block),
+            BALL_OF_5 + holds,
+            sphere,
+            &what("the ball joined to the block"),
+        );
+        built_whole(
+            ball.difference(&block),
+            BALL_OF_5,
+            sphere,
+            &what("the ball cut by the block"),
+        );
+        built_whole(
+            block.difference(&ball),
+            holds,
+            0.0,
+            &what("the block cut by the ball"),
+        );
+    }
+}
+
+/// The slab's face from twice the tolerance inside the half ball to twice
+/// clear of it, towards a point of its dome 1e-5 or 3e-5 rad under its rim,
+/// which the small circle the face cuts a hair inside crosses: the union
+/// holds both, the half ball less the slab is the whole half ball, the slab
+/// less the half ball the whole slab, as the slab touching it gives them.
+#[test]
+fn a_slab_a_hair_inside_a_half_ball_just_under_its_rim_is_joined_and_cut_as_the_slab_touching_it_is()
+ {
+    let half = ball_turned_about_y(PI);
+    let dome = 2.0 * PI * 25.0;
+    for below in [1e-5f64, 3e-5] {
+        let towards = DVec3::new(below.cos(), 0.0, -below.sin());
+        let eps = eps_of(&half, &slab_along(towards, 5.0));
+        for offset in across_the_touch(eps) {
+            let slab = slab_along(towards, offset);
+            let what = |how: &str| {
+                format!(
+                    "{how}, the slab's face {offset} from the centre, {} of the tolerance off \
+                     the touch, {below} below the rim",
+                    (offset - 5.0) / eps
+                )
+            };
+
+            built_whole(
+                half.union(&slab),
+                BALL_OF_5 / 2.0 + SLAB,
+                dome,
+                &what("the half ball joined to the slab"),
+            );
+            built_whole(
+                half.difference(&slab),
+                BALL_OF_5 / 2.0,
+                dome,
+                &what("the half ball cut by the slab"),
+            );
+            built_whole(
+                slab.difference(&half),
+                SLAB,
+                0.0,
+                &what("the slab cut by the half ball"),
+            );
+        }
+    }
+}
+
+/// The two directions, in the plane of the meridian of +X, of two flats
+/// `offsets` from the centre of [`ball_about_y`] whose caps' centres stand
+/// `apart` on the sphere, the place between their circles at `latitude`.
+fn two_flats_about(offsets: [f64; 2], apart: f64, latitude: f64) -> [DVec3; 2] {
+    let [first, second] = offsets.map(|offset| (offset / 5.0).acos());
+    let overlap = first + second - apart;
+    let along = |at: f64| DVec3::new(at.cos(), at.sin(), 0.0);
+    [
+        along(latitude + first - overlap / 2.0),
+        along(latitude - second + overlap / 2.0),
+    ]
+}
+
+/// How far apart the centres of two caps reaching `offsets` from the centre
+/// of the ball of 5 stand when their circles cross at `angle` on the sphere
+/// outside both: the law of cosines on the triangle of a crossing and the two
+/// centres, whose angle at the crossing is π − `angle`.
+fn apart_crossing_at(offsets: [f64; 2], angle: f64) -> f64 {
+    let [first, second] = offsets.map(|offset| (offset / 5.0).acos());
+    (first.cos() * second.cos() - first.sin() * second.sin() * angle.cos()).acos()
+}
+
+/// The ball cut by two flats whose circles meet at 45° of latitude, running
+/// east and west there on the sphere's own `(θ, φ)`: crossing at half a
+/// degree down to a twentieth, or a gap of half the drawing's tolerance down
+/// to a hundredth of it apart. Flats 2 and 4 from the centre leave the south
+/// pole on the sphere left, which `pierced.rs` lays out; flats 1.25 from it
+/// take a pole each, and the sphere left is `charted.rs`'s where they cross
+/// and `pierced.rs`'s band where they do not. Each is built, listed sound,
+/// drawn whole and closed, uncrossed, as the refinement before #960 drew it.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole()
+ {
+    let latitude = 45f64.to_radians();
+    for offsets in [[2.0, 4.0], [1.25, 1.25]] {
+        let crossing = [0.5f64, 0.2, 0.1, 0.05].map(|degrees| {
+            (
+                format!("crossing at {degrees}°"),
+                apart_crossing_at(offsets, degrees.to_radians()),
+            )
+        });
+        let reach = offsets.map(|offset| (offset / 5.0).acos());
+        let gaps = [5e-4f64, 1e-4, 1e-5]
+            .map(|gap| (format!("{gap} apart"), reach[0] + reach[1] + gap / 5.0));
+        for (how, apart) in crossing.into_iter().chain(gaps) {
+            let [one, other] = two_flats_about(offsets, apart, latitude);
+            let cut = ball_about_y()
+                .difference(&slab_along(one, offsets[0]))
+                .and_then(|cut| cut.difference(&slab_along(other, offsets[1])));
+            let [first, second] = offsets.map(|offset| 5.0 - offset);
+            built_whole(
+                cut,
+                BALL_OF_5 - cap_of_5(first) - cap_of_5(second),
+                10.0 * PI * (10.0 - first - second),
+                &format!(
+                    "the ball cut by two flats {offsets:?} from its centre, their circles {how}"
+                ),
             );
         }
     }

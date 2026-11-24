@@ -688,12 +688,12 @@ Known and still open:
   within the tolerance (#939), and a face bounded by circles of several
   such axes is drawn whatever poles of its chart it holds (#940); a face
   one such circle of which passes within some 3° of a pole of its chart
-  (#962) is still declined. So is a plane a hair `δ`
-  inside a sphere whose small circle, `√(2rδ)` across, crosses an edge of
-  either face (#960): a block whose edge stands at x = 5 − `EPS` against a
-  ball of radius 5 is not drawn, the exact join being listed `Backwards`
-  and refused, and a touch 1e-5 to 3e-5 rad below a half ball's rim, the
-  plane `EPS`/2 to `EPS` inside, is unsupported. A cone within the
+  (#962) is still declined. A plane a hair `δ` inside a sphere, whose
+  small circle, `√(2rδ)` across, crosses an edge of either face, is joined
+  and cut as the touch a hair further out (#960): the rim's arc and the
+  line the plane cuts the rim's plane along, within the tolerance of each
+  other, are kept as the circle (decision 6), which no sphere has to trace
+  as a line. A cone within the
   tolerance of a plane or a cylinder of its axis all across the box, two
   walls nearly parallel that stand within the tolerance or a chord's sag
   of each other, a cone pair of the few kinds "A cone against another

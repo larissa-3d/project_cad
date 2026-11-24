@@ -242,6 +242,14 @@ impl Apart {
         )
     }
 
+    /// Whether `surface` is a sphere or a torus, which carries no line.
+    pub fn round(&self, surface: SurfaceId) -> bool {
+        matches!(
+            self.surfaces.get(surface.0 as usize),
+            Some(Surface::Sphere(_) | Surface::Torus(_))
+        )
+    }
+
     /// Whether a place stands within `eps` of a surface.
     pub fn near(&self, surface: SurfaceId, point: DVec3, eps: f64) -> bool {
         self.surfaces
