@@ -1,19 +1,22 @@
 //! The piece of the ball a fill is trimmed by at a sphere end (#941), read on
-//! [`within`], [`nearest`] and [`in_the_disc`] themselves. The box the trim
-//! starts from less any piece holding what of the ball the box takes in is
-//! one solid, so the body a fill leaves cannot tell one such piece from a
-//! larger one: only the reach the piece carries can, and that shows only
-//! where the piece stands out of the part's box. Here the piece's own shape
-//! is held — what it holds, and how far past the box it stands — on a ball
-//! of radius 100 about the origin turned about Z, and boxes square to its
-//! axis with a snug of a quarter.
+//! [`within`], [`nearest`] and [`in_the_disc`] themselves, and the trim
+//! [`outside_sphere`] makes of it. The box the trim starts from less any
+//! piece holding what of the ball the box takes in is one solid, so the body
+//! a fill leaves cannot tell one such piece from a larger one: only the
+//! reach the piece carries can, and since a fill leaves its part its own
+//! reach (#1023) that shows on the trim alone. Here the piece's own shape is
+//! held — what it holds, and how far past the box it stands — on a ball of
+//! radius 100 about the origin turned about Z, and boxes square to its axis
+//! with a snug of a quarter; and the snug the trim gives it, by the reach the
+//! trim carries.
 
 use std::f64::consts::{PI, TAU};
 
 use glam::{DVec2, DVec3};
 
-use super::{in_the_disc, nearest, within};
+use super::{in_the_disc, nearest, outside_sphere, within};
 use crate::body::exact::Exact;
+use crate::body::exact::wedge::end::CLEAR;
 use crate::brep::Sphere;
 use crate::profile::{Contour, Frame, Run};
 use crate::turning::{Axis, ON_THE_AXIS, Straight, Turn};
@@ -376,4 +379,46 @@ fn a_rectangle_meeting_the_disc_at_a_corner_alone_or_not_at_all_has_no_profile()
             "{what}: no profile, where it gave {profile:?}"
         );
     }
+}
+
+/// The prism of a fill running out of a ball of 10 about (0, 0, −100),
+/// turned about Z, along X at its equator: a right triangle, its legs 1
+/// along Y and up Z from the line through the centre, raised 15 along X
+/// from the plane through the centre square to it. Every corner of the
+/// section stands within 1 of the edge, so the trim stands clear of the
+/// prism by [`CLEAR`].
+fn running_out_of_a_ball_far_down() -> (Sphere, (Contour, Frame, DVec3)) {
+    let centre = DVec3::new(0.0, 0.0, -100.0);
+    let section = Contour {
+        corners: vec![DVec2::ZERO, DVec2::X, DVec2::Y],
+        runs: vec![Run::Straight; 3],
+    };
+    let frame = Frame {
+        origin: centre,
+        u: DVec3::Y,
+        v: DVec3::Z,
+    };
+    (
+        Sphere::through(centre, DVec3::Z, 0.0, 10.0),
+        (section, frame, DVec3::X * 15.0),
+    )
+}
+
+#[test]
+fn the_trim_at_a_sphere_end_reaches_a_quarter_of_a_clearance_past_the_box_it_starts_from() {
+    let (sphere, prism) = running_out_of_a_ball_far_down();
+
+    let trim = outside_sphere(&prism, &sphere, DVec3::X, 100.0)
+        .unwrap_or_else(|declined| panic!("the trim at the ball's end: {declined:?}"));
+
+    let floor = 100.0 + CLEAR;
+    let promised = floor + CLEAR / 4.0;
+    let reach = trim.reach();
+    assert!(
+        (reach - promised).abs() < PLACE,
+        "the trim at the end of a fill running out of a ball of 10 at its equator, 100 down: it \
+         carries a reach of {reach}, where the floor of the box it starts from stands {floor} \
+         down, a clearance under the prism, and the floor of the piece of the ball it takes \
+         from the box a quarter of a clearance under that, at {promised}"
+    );
 }

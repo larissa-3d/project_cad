@@ -91,9 +91,10 @@
 //!   Since #876 the triangles are cut at the body's own size whatever reach
 //!   it carries, so the test reads that reach where it still shows: what
 //!   stands in front of a plane is cut a drawing tolerance of it past the
-//!   plane. It is held to what the same fill up to an upright round carries,
-//!   whose trim hugs the fill: beside the plate's side the fill's own prism
-//!   stands its clearance past the side, and the box alone cannot be asked
+//!   plane. It is held to the part's own box, as its name says, since a fill
+//!   leaves its part its own reach (#1023); until then the fill's prism
+//!   beside the plate's side stood its clearance past the side, and the test
+//!   was held to what the same fill up to an upright round carried instead
 //! - A chamfer and a fillet at the foot of a slot's wall whose drafted round
 //!   end it meets at a few degrees are trimmed flush on the cone. The cone
 //!   stays one face and takes in the fill's section, and the body is closed,
@@ -257,8 +258,9 @@
 //!   the tolerance the body decides at the same to the bit as before the
 //!   step. The eps is read through `Body::on_a_plane`, the kernel's one
 //!   tolerance, a billionth of the reach the body carries — the larger of
-//!   its operands', carried rather than computed, so that as it was means
-//!   to the bit. The fill is the chamfer: the fillet on a sphere is #805's
+//!   its operands', carried rather than computed, and for a fill since
+//!   #1023 its part's, joined with its own — so that as it was means to the
+//!   bit. The fill is the chamfer: the fillet on a sphere is #805's
 //!   second slice's, and stays declined until then
 //! - #805's sphere tests keep their bodies — no test: the tests above of the
 //!   rib cut from a ball,
@@ -288,12 +290,18 @@
 //! corners, edges and bulges as every turned solid's is; the bound of its
 //! corners' place and their furthest from the axis only sets the tolerance
 //! its profile is laid at (#977). A larger piece stands further out, and
-//! where the piece stands just inside the part's box the larger one stands
-//! past it and the part's tolerance grows: both killed by #977's fill of
-//! nine and a half on the rib ending on a dome,
-//! `a_chamfer_and_a_fillet_of_nine_and_a_half_at_the_foot_of_the_rib_ending_on_a_dome_trimmed_just_inside_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step`;
-//! the fills of 2 and of 6 there leave the piece too far inside the box for
-//! either to reach past it. `within`'s furthest corner,
+//! until #1023 the reach the trim carried went on into the part: #977's fill
+//! of nine and a half on the rib ending on a dome killed both, the piece
+//! standing just inside the part's box and the larger one past it. A fill
+//! now leaves its part its own reach, and no body shows either; both are
+//! killed on the trim itself, whose reach is that of the piece's floor, a
+//! quarter of a clearance under the box it starts from where nothing else
+//! stands as far out —
+//! `the_trim_at_a_sphere_end_reaches_a_quarter_of_a_clearance_past_the_box_it_starts_from`,
+//! in `src/body/exact/wedge/fill/ball/tests.rs`. The clearance there is an
+//! eighth, under 4, so `% 4` leaves a snug of the whole clearance, three
+//! quarters of one further out, and `* 4` one of four, fifteen quarters
+//! further out. `within`'s furthest corner,
 //! `>` turned `>=`: equivalent, a tie takes another corner as nought for the
 //! angles, and the turn between planes is the same read from either; a
 //! whole turn reads no angle. Its spread, `snug / length` turned `%`:
@@ -445,25 +453,26 @@
 //! #908's leaning pillar buries what the disc misses in its own matter.
 //!
 //! The disc is raised over only what the long edges span along the axis
-//! because a cut's result carries the larger reach of its operands, and a
-//! disc reaching past the part would coarsen what every later step decides.
-//! The parts above cannot show it: at the origin the fill's own prism,
-//! raised along the wall over the part's box and a margin past it (#778),
-//! reaches past the plate's end and sets the reach the body carries, as it
-//! does for a wall with flat ends, while the disc reaches some 28. The same
-//! pillars and bored bosses, upright and leaning, on a plate ended 2 past
-//! the boss and placed 100 along the wall and 200 up or down, hold it — the
-//! part's top or floor then setting the reach — chamfer and fillet, each
-//! built whole at the matter arithmetic gives, one face more, and the
-//! tolerance as it was to the bit —
-//! `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_placed_far_from_the_origin_leave_the_part_s_tolerance_as_it_was`.
+//! because a cut decides at the larger reach of its operands, and a disc
+//! reaching past the part would decide the fill coarser than the part's size
+//! asks. What the fill leaves carries its part's reach as it was, wherever
+//! the disc, the prism and the other trims stand (#1023): the pillars and
+//! bored bosses, upright and leaning, on a plate ended 2 past the boss, at
+//! the origin and placed 100 along the wall and 200 up or down, chamfer and
+//! fillet, each built whole at the matter arithmetic gives, one face more,
+//! and the tolerance as it was to the bit —
+//! `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_at_the_origin_or_placed_far_from_it_leave_the_part_s_tolerance_as_it_was`.
 //! That is the kernel's answer for the disc, not a criterion of #915.
 //!
 //! The mutants of the disc's height the campaign let live, applied by hand,
 //! one line each. The run between a long edge's ends, `far - near` turned
 //! `/`; `axis * (high - low + 2.0 * clear)`'s `-` turned `+`, its `+` turned
-//! `*`, and its `* clear` turned `/ clear`: killed by the placed parts, the
-//! disc then raised past the part's top. Where an edge crosses a plane, `/`
+//! `*`, and its `* clear` turned `/ clear`: killed by the placed parts until
+//! #1023, the disc then raised past the part's top and its reach carried on
+//! into the part's tolerance. A fill now leaves its part its own reach, and
+//! that tolerance holds none of them: `/ clear`, which only raises the disc
+//! 16 taller, cuts from the prism what the disc cuts, and lives; the other
+//! three were not applied again. Where an edge crosses a plane, `/`
 //! turned `%`: killed by the placed leaning pillar, whose disc then misses
 //! the fill and the step is declined. Each height read off `at + origin`
 //! rather than `at - origin`, for the lowest and for the highest:
@@ -582,15 +591,15 @@
 //! and a laying much coarser than either lays the ball's piece the same. At
 //! nine and a half the bound stands past the part's reach while the piece
 //! itself still stands inside the part's box, and the tolerance holds: that
-//! pin is the one that would go red were the issue's premise true, and it
-//! also kills the snug mutants #941 left alive, so a change of its value
-//! for the mutants' sake has to keep the bound past the part's reach and
-//! the piece inside its box —
+//! pin is the one that would go red were the issue's premise true —
 //! `a_chamfer_and_a_fillet_of_nine_and_a_half_at_the_foot_of_the_rib_ending_on_a_dome_trimmed_just_inside_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step`.
-//! What does grow the part's reach is the piece's real extent: its sector
-//! stands out past the plate's side once the fill nears the rib's height,
-//! at 9.9 and at 10, the most the rib takes — the piece's shape, neither the
-//! bound nor the fill's prism, followed in #1023.
+//! It also killed the snug mutants #941 left alive, until #1023 kept a
+//! trim's reach out of the part; #941's paragraph above says what holds
+//! them now. What grew the part's reach was the piece's real extent: its
+//! sector stood out past the plate's side once the fill neared the rib's
+//! height, at 9.9 and at 10, the most the rib takes — the piece's shape,
+//! neither the bound nor the fill's prism. Since #1023 a fill leaves its
+//! part its own reach there too, as #1023's block below holds.
 //!
 //! Closes #1023.
 //! - On the plate 40 long of #908's fixtures, a chamfer and a fillet at the
@@ -618,7 +627,26 @@
 //! - #915's test of the placed parts is extended to the parts at the origin,
 //!   and the reasons its module doc gives for reading the tolerance only on
 //!   placed parts go —
-//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_placed_far_from_the_origin_leave_the_part_s_tolerance_as_it_was`
+//!   `a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_at_the_origin_or_placed_far_from_it_leave_the_part_s_tolerance_as_it_was`.
+//!   Read as: #915's [`placed_boss`]es — the pillar and the boss bored 1.5,
+//!   upright and leaning, on the plate 30 long — built at the origin as well
+//!   as 100 along the wall and 200 up or down, [`PLACED`], each read as
+//!   before; at the origin the plate's end sets the reach of the upright
+//!   parts, and the leaning pillar's top cap that of the leaning ones. The
+//!   reasons go from [`PLACED`]'s and [`PLACED_PLATE`]'s docs and from
+//!   #915's paragraph on the disc, which now names the test by its new name;
+//!   the mutants of the disc's height it said the placed parts killed are
+//!   said there again, as the tolerance no longer reads them
+//!
+//! Beyond the criteria, the same rule where a trim rather than the prism
+//! stood past the part: on #941's dome, a chamfer and a fillet of 9.9 and
+//! of 10, the most the rib takes, whose piece of the ball bulges out past
+//! the plate's side, grew the part's reach to some 40.009 and 40.178; they
+//! leave its eps as it was, to the bit, read as #977's fill of 6 is, the
+//! fill of 10 covering the rib's right side whole —
+//! `a_chamfer_and_a_fillet_of_nine_point_nine_and_of_ten_at_the_foot_of_the_rib_ending_on_a_dome_whose_trim_bulges_past_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step`.
+//! With the piece's reach kept out of the part, the snug of `outside_sphere`
+//! is held on the trim itself, as #941's mutants paragraph says.
 
 mod step_reader;
 
@@ -644,9 +672,8 @@ const EXACT: f64 = 1e-9;
 const DRAWN: f64 = 2e-4;
 
 /// How far off the round a ray may meet it: on a triangle, within the
-/// drawing's tolerance of it, which is taken at the reach the body carries —
-/// the largest of the operands that built it, the fill's tools among them,
-/// rather than its own box. A hundredth holds that at this part's size with
+/// drawing's tolerance of it, which is taken at the body's own size (#876).
+/// A hundredth holds that at this part's size with
 /// room to spare, and is under a tenth of how far a fill trimmed by the
 /// round's tangent plane instead would stand off it halfway across its
 /// section.
@@ -1134,6 +1161,31 @@ fn one_face_more(part: &Body, body: &Body, what: &str) -> usize {
         made.len(),
         1,
         "{what}: one face more: {before:?} became {after:?}"
+    );
+    made[0]
+}
+
+/// Holds that a step left every face of the part it was given but those of
+/// `covered`, which it covers whole and which go, and made one face more,
+/// numbered past the part's, and gives back the number that face answers to.
+fn one_face_more_covering(part: &Body, body: &Body, covered: &[usize], what: &str) -> usize {
+    let mut kept = numbers(part);
+    for face in covered {
+        assert!(
+            kept.remove(face) && !body.has_face(*face),
+            "{what}: face {face}, which the fill covers whole, goes"
+        );
+    }
+    let after = numbers(body);
+    assert!(
+        kept.is_subset(&after),
+        "{what}: a face went: {kept:?} became {after:?}"
+    );
+    let made: Vec<usize> = after.difference(&kept).copied().collect();
+    assert_eq!(
+        made.len(),
+        1,
+        "{what}: one face more: {kept:?} became {after:?}"
     );
     made[0]
 }
@@ -3312,9 +3364,11 @@ fn a_chamfer_trimmed_flush_on_a_sphere_ten_times_the_part_s_size_leaves_the_part
 
 /// Holds that a chamfer and a fillet of `value` at the foot of the
 /// [`rib_ending_on_a_dome`]'s right side are each taken whole and built
-/// flush on the sphere, the sphere one face still, and leave the tolerance
-/// the part decides at, its own box's before the step, the same to the bit.
-fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64) {
+/// flush on the sphere, the sphere one face still, every face of the part
+/// kept but those of `covered`, which the fill covers whole, and leave the
+/// tolerance the part decides at, its own box's before the step, the same
+/// to the bit.
+fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64, covered: &[usize]) {
     let part = rib_ending_on_a_dome();
     let before = part.on_a_plane(0.0);
     let own = Scale::of(reach_of(&part)).eps();
@@ -3329,18 +3383,11 @@ fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64) {
 
     let round = PI / 2.0 * value * along_the_domed_rib(0.0, 0.0);
     type Height = fn(f64, f64) -> f64;
-    type OneMore = fn(&Body, &Body, &str) -> usize;
-    let steps: [(&str, _, Height, f64, OneMore); 2] = [
-        (
-            "chamfer",
-            chamfered,
-            chamfer_height,
-            0.0,
-            one_flat_face_more,
-        ),
-        ("fillet", filleted, fillet_height, round, one_round_more),
+    let steps: [(&str, _, Height, f64, bool); 2] = [
+        ("chamfer", chamfered, chamfer_height, 0.0, true),
+        ("fillet", filleted, fillet_height, round, false),
     ];
-    for (kind, done, height_of, round_area, one_more) in steps {
+    for (kind, done, height_of, round_area, flat) in steps {
         let what = format!("the {kind} of {value} at the foot of the rib ending on a dome");
         let (body, asked, taken) =
             done.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
@@ -3352,7 +3399,12 @@ fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64) {
             drawn_within(&part, DOME_AREA + value * value + round_area),
             &what,
         );
-        one_more(&part, &body, &what);
+        let made = one_face_more_covering(&part, &body, covered, &what);
+        assert_eq!(
+            body.is_flat(made),
+            flat,
+            "{what}: the face the fill lays is flat for a chamfer and curved for a fillet"
+        );
         drawn_on_the_dome(&body, DOME, &what);
         let itself = [vec![DOME as u32], vec![DOME as u32]];
         assert!(
@@ -3376,17 +3428,28 @@ fn a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(value: f64) {
 #[test]
 fn a_chamfer_and_a_fillet_of_six_at_the_foot_of_the_rib_ending_on_a_dome_leave_the_part_s_tolerance_as_it_was_before_the_step()
  {
-    a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(6.0);
+    a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(6.0, &[]);
 }
 
 /// Nine and a half, just short of the rib's height of 10: the piece of the
 /// ball the fill is trimmed by stands just inside the part's box, while the
 /// bound of its corners' place plus their furthest from the axis stands past
-/// the part's reach, and so would a piece a larger snug turned.
+/// the part's reach.
 #[test]
 fn a_chamfer_and_a_fillet_of_nine_and_a_half_at_the_foot_of_the_rib_ending_on_a_dome_trimmed_just_inside_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step()
  {
-    a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(9.5);
+    a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(9.5, &[]);
+}
+
+/// Nine point nine and ten, the most the rib takes: the piece of the ball the
+/// fill is trimmed by, its sector turned about the dome's axis, bulges out
+/// past the plate's side, while the body the fill leaves stays inside the
+/// part's box. At ten the fill covers the rib's right side whole.
+#[test]
+fn a_chamfer_and_a_fillet_of_nine_point_nine_and_of_ten_at_the_foot_of_the_rib_ending_on_a_dome_whose_trim_bulges_past_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step()
+ {
+    a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(9.9, &[]);
+    a_fill_on_the_dome_rib_leaves_the_part_s_tolerance_as_it_was(10.0, &[RIB_RIGHT]);
 }
 
 /// How long the edges of the [`rib_cut_from_a_ball`] filleted at the foot of
@@ -5620,7 +5683,7 @@ fn a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_drafted_round_end_stands_ne
         ),
     ] {
         let what = format!("the rib drafted {where_it_stands}");
-        let (part, upright) = (rib_drafted_on(rib.front), rib.on());
+        let part = rib_drafted_on(rib.front);
         let off_its_cone = |point: DVec3| {
             point.truncate().distance(rib.front.axis)
                 - (rib.front.radius - DRAFT * (point.z - PLATE))
@@ -5641,38 +5704,27 @@ fn a_chamfer_and_a_fillet_at_the_foot_of_a_rib_whose_drafted_round_end_stands_ne
             "{what}, before the step: it carries a reach of {carried}, where its box reaches {own}"
         );
         let foot = edge_between(&part, TOP, RIB_RIGHT);
-        let upright_foot = edge_between(&upright, TOP, RIB_RIGHT);
 
         let laid = [
             (
                 "the chamfer",
                 part.chamfer(&foot, value).map(|chamfered| chamfered.body),
-                upright
-                    .chamfer(&upright_foot, value)
-                    .map(|chamfered| chamfered.body),
             ),
             (
                 "the fillet",
                 part.fillet(&foot, value).map(|filleted| filleted.body),
-                upright
-                    .fillet(&upright_foot, value)
-                    .map(|filleted| filleted.body),
             ),
         ];
 
-        for (step, drafted, square) in laid {
+        for (step, drafted) in laid {
             let drafted =
                 drafted.unwrap_or_else(|declined| panic!("{what}: {step} declined, {declined:?}"));
-            let square = square.unwrap_or_else(|declined| {
-                panic!("{what}: {step} up to the upright round declined, {declined:?}")
-            });
-            let (carried, hugging) = (reach_carried(&drafted), reach_carried(&square));
+            let carried = reach_carried(&drafted);
             assert!(
-                carried <= hugging + PLACE,
+                (carried - own).abs() <= PLACE,
                 "{what}, {step}: the part carries a reach of {carried}, where its box reaches \
-                 {own} and the same fill up to the upright round, trimmed by a solid standing no \
-                 further out than the fill, carries {hugging} — every later step would be \
-                 decided and drawn coarser than the part's size asks"
+                 {own} — every later step would be decided and drawn coarser than the part's \
+                 size asks"
             );
         }
     }
@@ -8099,24 +8151,22 @@ fn leaves_the_part_s_tolerance(part: &Body, body: &Body, what: &str) {
 }
 
 /// Where the pillars and bored bosses of #908 and #915 are built again for
-/// the reach their fill carries to be read: 100 along the wall's run, and
-/// 200 up the ground's normal or 200 down it. At the origin the fill's own
-/// prism, raised along the wall over the part's box and a margin past it
-/// (#778), reaches past the plate's end and sets what the body carries, as
-/// it does for a wall with flat ends. Placed so, the part's top or its floor
-/// sets the reach instead, far past the prism's, and a disc raised along the
-/// boss's axis past the part, up or down, shows in it; so does one moved
-/// along the axis off the fill, by what the fill's matter becomes.
-const PLACED: [DVec3; 2] = [
+/// the reach their fill leaves to be read: at the origin, where the plate's
+/// end sets the part's reach; and 100 along the wall's run and 200 up the
+/// ground's normal or 200 down it, where the part's top or its floor sets
+/// it. A disc moved along the boss's axis off the fill shows in what the
+/// fill's matter becomes, wherever the part stands.
+const PLACED: [DVec3; 3] = [
+    DVec3::ZERO,
     DVec3::new(100.0, 0.0, 200.0),
     DVec3::new(100.0, 0.0, -200.0),
 ];
 
 /// How long the plate of a [`placed_boss`] runs along the wall: 30, 2 past
-/// the upright boss. On the plate of 40 the box #908 cuts a leaning pillar's
-/// fill by, on the plane through its axis, falls past the plate's floor on
-/// its way to the prism's far end, and there sets the reach of a part placed
-/// down; ended there, the box stays over the floor.
+/// the upright boss, so that the part at the origin is not #908's again,
+/// which the tests of #1023's first criterion read on the plate 40 long; the
+/// leaning pillar's top cap then stands past the plate's end, and sets the
+/// reach of that part.
 const PLACED_PLATE: f64 = 30.0;
 
 /// The part of [`wall_into_a_pillar`], of [`wall_into_a_leaning_pillar`],
@@ -8188,7 +8238,7 @@ fn placed_boss(at: DVec3, lean: f64, bore: Option<f64>) -> Body {
 }
 
 #[test]
-fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_placed_far_from_the_origin_leave_the_part_s_tolerance_as_it_was()
+fn a_chamfer_and_a_fillet_at_the_foot_of_a_wall_running_into_a_pillar_or_a_bored_boss_at_the_origin_or_placed_far_from_it_leave_the_part_s_tolerance_as_it_was()
  {
     let shorter = (40.0 - PLACED_PLATE) * 30.0 * PLATE;
     let cases = [
