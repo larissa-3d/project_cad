@@ -7,6 +7,7 @@ use cao_part::{PartDocument, SavedSection};
 use cao_render::MatterInFront;
 
 use super::Section;
+use crate::screens::viewport::kept_sections::none_opened_by_hand;
 use crate::screens::viewport::reading::Reading;
 
 impl Section {
@@ -46,9 +47,10 @@ impl Section {
     }
 
     /// Keeps the section in the part: a new one, put in where the part is
-    /// read as any key step is, or the one it was reopened from, changed.
-    /// Kept again later, it changes the same one — while the part still has
-    /// it: undone or deleted, keeping it makes a new one.
+    /// read as any key step is, the one opened by hand before it given back
+    /// to the rule; or the one it was reopened from, changed. Kept again
+    /// later, it changes the same one — while the part still has it: undone
+    /// or deleted, keeping it makes a new one.
     pub(in crate::screens::viewport) fn keep_where_read(
         &mut self,
         document: &mut PartDocument,
@@ -65,6 +67,7 @@ impl Section {
             }
             None => {
                 reading.record(document, Operation::SaveSection(to));
+                none_opened_by_hand(document);
                 self.editing = document.sections().last().map(|kept| kept.id);
             }
         }

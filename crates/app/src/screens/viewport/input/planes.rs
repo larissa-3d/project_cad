@@ -55,7 +55,7 @@ pub(super) fn choose_a_plane(
         }),
         _ => None,
     };
-    // The cut of a kept section switched on is a plane the drawing hangs on
+    // The cut of the kept section cut with is a plane the drawing hangs on
     // and follows; the section view's own cut is taken once and stays put.
     let laid = match (choice, state.section.is_none()) {
         (PlaneChoice::Section(_), true) => state

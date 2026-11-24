@@ -141,7 +141,7 @@ impl ViewportState {
     }
 
     /// The section the frame cuts with: the section view's while it is open,
-    /// otherwise the kept one switched on.
+    /// otherwise the kept one the canvas cuts with.
     pub(crate) fn section_shown(&self) -> Option<&Section> {
         self.section.as_ref().or(self.kept_sections.shown())
     }

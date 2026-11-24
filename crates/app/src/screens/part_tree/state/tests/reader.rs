@@ -100,7 +100,9 @@
 //!   `crates/app/tests/the_step_reader.rs` by
 //!   `the_section_view_closed_without_saving_adds_no_box`
 //! - Reading to a step before the section does not show it; reading to it or
-//!   after leaves its active state alone; one test per case —
+//!   after leaves its active state alone; one test per case — since #1108 that
+//!   state is the hand's choice the part keeps, or the rule where there is
+//!   none, a section switched on being one opened by hand —
 //!   `a_section_switched_on_is_not_shown_while_the_part_is_read_to_a_box_before_it`,
 //!   `reading_to_a_section_or_past_it_leaves_it_on_or_off_as_it_was`
 //! - found in review: the reading point does not hide the section under the
@@ -645,14 +647,15 @@ fn cut_and_named(viewport: &ViewportState) -> (bool, bool) {
 
 #[test]
 fn a_section_switched_on_is_not_shown_while_the_part_is_read_to_a_box_before_it() {
-    let document = a_part_with_a_section_between_its_sketches();
+    let mut document = a_part_with_a_section_between_its_sketches();
+    let section = document.sections()[0].id;
+    document.set_section_choice(section, Some(true));
     let mut viewport = ViewportState::default();
-    viewport.kept_sections.switch_on(document.sections()[0].id);
     a_frame(&mut viewport, &document);
     assert_eq!(
         cut_and_named(&viewport),
         (true, true),
-        "the fixture wants the section switched on, the canvas cutting with it and the \
+        "the fixture wants the section opened by hand, the canvas cutting with it and the \
          title bar naming it",
     );
 
@@ -700,10 +703,10 @@ fn a_part_with_a_sketch_on_its_section() -> PartDocument {
 
 #[test]
 fn the_section_under_an_open_sketch_is_shown_though_the_part_is_read_to_a_box_before_it() {
-    let document = a_part_with_a_sketch_on_its_section();
+    let mut document = a_part_with_a_sketch_on_its_section();
     let section = document.sections()[0].id;
+    document.set_section_choice(section, Some(true));
     let mut viewport = ViewportState::default();
-    viewport.kept_sections.switch_on(section);
     a_frame(&mut viewport, &document);
     viewport.read_to(1, 5);
     a_frame(&mut viewport, &document);
@@ -712,63 +715,55 @@ fn the_section_under_an_open_sketch_is_shown_though_the_part_is_read_to_a_box_be
     a_frame_with_open(&mut viewport, &document, Some(2));
     let opened = cut_and_named(&viewport);
     a_frame(&mut viewport, &document);
-    let closed = (
-        cut_and_named(&viewport),
-        viewport.kept_sections.is_on(section),
-    );
+    let closed = cut_and_named(&viewport);
+    viewport.read_to(4, 5);
+    a_frame(&mut viewport, &document);
+    let read_whole = cut_and_named(&viewport);
 
     assert_eq!(
         read_before,
         (false, false),
-        "the fixture wants the section switched on and hidden, the part read to the block \
+        "the fixture wants the section opened by hand and hidden, the part read to the block \
          before it, as (cut with, named)",
     );
     assert_eq!(
-        (opened, closed),
-        ((true, true), ((false, false), true)),
+        (opened, closed, read_whole),
+        ((true, true), (false, false), (true, true)),
         "the part read to the block, before its section: the sketch laid on that section \
          opened, the canvas does not cut with the section or the title bar does not name it; \
-         or, the sketch closed, the section still on is not hidden again, as ((cut with, \
-         named) while the sketch is open, ((cut with, named), on) once it is closed)",
+         or, the sketch closed, the section is not hidden again; or, the part then read whole, \
+         the section opened by hand is not cut with again, as ((cut with, named) while the \
+         sketch is open, once it is closed, once the part is read whole)",
     );
 }
 
 #[test]
 fn reading_to_a_section_or_past_it_leaves_it_on_or_off_as_it_was() {
-    let document = a_part_with_a_section_between_its_sketches();
-    let section = document.sections()[0].id;
-    let read = |switched_on: bool| -> (Vec<bool>, Vec<bool>) {
+    let read = |choice: Option<bool>| -> Vec<bool> {
+        let mut document = a_part_with_a_section_between_its_sketches();
+        let section = document.sections()[0].id;
+        document.set_section_choice(section, choice);
         let mut viewport = ViewportState::default();
-        if switched_on {
-            viewport.kept_sections.switch_on(section);
-        }
         a_frame(&mut viewport, &document);
-        let mut on = vec![viewport.kept_sections.is_on(section)];
         let mut cut = vec![viewport.section_shown().is_some()];
         for rank in [3, 4, 1, 3, 4] {
             viewport.read_to(rank, 5);
             a_frame(&mut viewport, &document);
-            on.push(viewport.kept_sections.is_on(section));
             if rank >= 3 {
                 cut.push(viewport.section_shown().is_some());
             }
         }
-        (on, cut)
+        cut
     };
 
     assert_eq!(
-        read(true),
-        (vec![true; 6], vec![true; 5]),
-        "the section switched on, the part unread, then read to the section, past it, before \
-         it, back to it and past it: the section does not stay on throughout, or the canvas \
-         does not cut with it each time the part is read to it or past it, as (on after each \
-         gesture, cut with at or past the section)",
-    );
-    assert_eq!(
-        read(false),
-        (vec![false; 6], vec![false; 5]),
-        "the section switched off, the same readings: it switched itself on, or the canvas \
-         cut with it, as (on after each gesture, cut with at or past the section)",
+        [read(None), read(Some(true)), read(Some(false))],
+        [vec![true; 5], vec![true; 5], vec![false; 5]],
+        "the section left to the rule, opened by hand, then shut by hand; each time the part \
+         read whole, then to the section, past it, before it, back to it and past it: the \
+         canvas does not cut with it each time the part is read to it or past it while it is \
+         shown, or cuts with it while it is shut, as (cut with at or past the section) for \
+         each choice",
     );
 }
 

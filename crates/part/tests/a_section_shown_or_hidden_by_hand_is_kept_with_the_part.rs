@@ -260,3 +260,38 @@ fn a_part_saved_before_sections_were_set_by_hand_opens_with_none_set_and_takes_o
         );
     }
 }
+
+#[test]
+fn a_hand_choice_is_no_step_of_the_history_and_undo_leaves_it_alone() {
+    let mut document = PartDocument::new("Part", at_nine());
+    document.apply(a_section_along(WorkPlane::YZ, 15.0));
+    document.apply(a_section_along(WorkPlane::XZ, 5.0));
+    let first = document.sections()[0].id;
+    let history = |document: &PartDocument| {
+        (
+            document.history.operations().len(),
+            document.history.steps().len(),
+        )
+    };
+    let before = history(&document);
+
+    document.set_section_choice(first, Some(false));
+    let after = history(&document);
+    let undone = document.undo();
+
+    assert_eq!(
+        after, before,
+        "shutting a section's eye by hand wrote into the history, as (operations, steps)",
+    );
+    assert_eq!(
+        (
+            undone,
+            document.sections().len(),
+            document.section_choice(first)
+        ),
+        (true, 1, Some(false)),
+        "the first of two sections shut by hand, then an undo: the undo did not take back the \
+         second section, or it took the hand's choice back with it, as (undone, sections left, \
+         the first one's choice)",
+    );
+}
