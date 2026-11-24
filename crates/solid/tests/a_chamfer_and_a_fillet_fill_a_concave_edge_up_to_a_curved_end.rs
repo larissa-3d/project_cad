@@ -674,7 +674,27 @@
 //! `a_chamfer_and_a_fillet_on_the_three_edges_of_a_block_s_convex_corner_leave_the_part_s_tolerance_as_it_was`
 //! and
 //! `a_chamfer_and_a_fillet_on_one_convex_edge_or_two_meeting_at_a_corner_leave_the_part_s_tolerance_as_it_was`,
-//! in `a_chamfer_and_a_fillet_leave_the_part_s_tolerance_as_it_was.rs`. A
+//! in `a_chamfer_and_a_fillet_leave_the_part_s_tolerance_as_it_was.rs`. The
+//! same file holds the closed round and the apex, whose tools a part's own
+//! box would not show unless they stood past it: #790's bar, 30 long and 10
+//! square, its four long edges rounded into one cylinder, the ring cut from
+//! it by a square raised a margin past both its ends —
+//! `a_fillet_on_the_four_long_edges_of_a_square_bar_closing_them_into_one_cylinder_leaves_the_part_s_tolerance_as_it_was`;
+//! and a pyramid cut by prisms reaching no further than 11, its four hips at
+//! its apex chamfered at 1 and 2.5 and rounded at a half and 1, the apex
+//! cleared first by a prism over the hips' crossings spread three times —
+//! out to 14.2 at 2.5 — or by a cell cut back by slabs five times its
+//! sphere's centre's distance from the apex wide —
+//! `a_chamfer_and_a_fillet_on_the_four_hips_at_a_pyramid_s_apex_leave_the_part_s_tolerance_as_it_was`.
+//! A pyramid cut by slabs as wide as its block carries their reach, far past
+//! any apex's tools, and could not show them. The corners of mixed sense
+//! hold no such pin: the piece that fills one is a raised solid, which
+//! carries its own reach and nothing more, so that the join reads it the
+//! same either way; and the sector that clears one stands within the value
+//! of the corner's walls and under the face the two others share, inside
+//! the part wherever the step builds — past its box it would need a wall
+//! thinner than the value, which the round of that value on the wall's top
+//! edge cannot be laid on. A
 //! solid joined is read at the larger of the part's scale and its own
 //! reach, which no step here makes the larger — no fill stands past its
 //! part — so that branch is held on the join itself, a tool carrying 90

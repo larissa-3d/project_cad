@@ -75,11 +75,6 @@ fn box_from(low: DVec3, high: DVec3) -> Exact {
     Exact::raised(&rectangle, &[], frame, DVec3::Z * (high.z - low.z)).expect("the box raises")
 }
 
-/// A part 10 across, and a tool a step lays on it that runs out of it to
-/// x = 50, cut back there from a bar 80 long by a box reaching 90: the tool
-/// carries the 90 of the boxes it was cut from, and stands no further than
-/// 50. The join leaves matter out to 50, and is read at that, neither the
-/// part's 10 nor the tool's 90.
 #[test]
 fn a_solid_a_step_joins_to_the_part_reaching_past_it_leaves_the_part_carrying_its_own_reach() {
     let part = box_from(DVec3::ZERO, DVec3::splat(10.0));

@@ -137,10 +137,6 @@ fn the_corners_of_a_face_bounded_by_an_ellipse_hold_points_along_it_that_move_wi
     }
 }
 
-/// A solid a step lays on a part, standing past it (#1023): a block 50 long
-/// read at the scale of a part 30 long takes that scale, and so does every
-/// surface of it, which arrived at the block's own 50 — the scale a boolean
-/// reads a pair of them at.
 #[test]
 fn a_body_read_at_a_part_s_scale_has_every_surface_arrive_at_that_scale() {
     let block = Body::raised(
