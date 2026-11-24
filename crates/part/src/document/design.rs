@@ -28,6 +28,7 @@ use cao_solid::EdgeName;
 use glam::DVec3;
 use serde::{Deserialize, Serialize};
 
+use super::sections::SectionChoices;
 use crate::errors::PartFileError;
 use crate::formula::Formula;
 use crate::history::{
@@ -148,6 +149,10 @@ struct Contents {
     /// the part was put away is not given again once it is reopened.
     #[serde(default)]
     last_sketch_number: u32,
+    /// Whether each kept section's eye was opened or shut by hand, by section.
+    /// Beside the steps rather than among them: undo leaves it alone.
+    #[serde(default, skip_serializing_if = "SectionChoices::is_empty")]
+    section_choices: SectionChoices,
 }
 
 /// A step's folder: what its opening operation sets, and everything recorded
@@ -181,7 +186,10 @@ impl Written {
 /// The design, laid out as the files that carry it: the index first, then one
 /// per step in the order the index names them, then the variables when the
 /// part has any.
-pub(super) fn laid_out(history: &History) -> Result<Vec<Written>, PartFileError> {
+pub(super) fn laid_out(
+    history: &History,
+    section_choices: &SectionChoices,
+) -> Result<Vec<Written>, PartFileError> {
     let mut listed = Vec::new();
     let mut folders = Vec::new();
     let mut ranks = Ranks::default();
@@ -212,6 +220,7 @@ pub(super) fn laid_out(history: &History) -> Result<Vec<Written>, PartFileError>
             applied: index.applied,
             last_operation_number: index.last_operation_number,
             last_sketch_number: index.last_sketch_number,
+            section_choices: section_choices.clone(),
         })?,
     }];
     files.append(&mut folders);
@@ -246,14 +255,15 @@ pub(super) fn write<W: Write + Seek>(
     Ok(())
 }
 
-/// The design, and the text every one of its files held.
+/// The design, the text every one of its files held, and what the hand chose
+/// for each kept section's eye.
 ///
 /// The text comes back out with it because the geometry cache is guarded by a
 /// print taken over the whole design: reading it again from the archive to
 /// take that print would cost a second pass over what was just read.
 pub(super) fn read<R: Read + Seek>(
     archive: &mut zip::ZipArchive<R>,
-) -> Result<(History, Vec<String>), PartFileError> {
+) -> Result<(History, Vec<String>, SectionChoices), PartFileError> {
     let index_text = super::read_entry(archive, INDEX_ENTRY)?;
     let contents: Contents = serde_json::from_str(&index_text)?;
 
@@ -287,7 +297,7 @@ pub(super) fn read<R: Read + Seek>(
         last_sketch_number: contents.last_sketch_number,
     };
     let history = History::restore(index, operations).ok_or(PartFileError::BrokenDesign)?;
-    Ok((history, read))
+    Ok((history, read, contents.section_choices))
 }
 
 /// How many steps of each kind have gone by in the order of the part, which is

@@ -165,9 +165,15 @@ pub(crate) fn carry_out(
         }
         TreeAction::MakeAllOpaque => viewport.make_all_opaque(),
         TreeAction::ToggleSection(section) => {
-            viewport.kept_sections.toggle(section);
+            viewport.kept_sections.clicked(doc, section);
+            changed = true;
         }
-        TreeAction::SwitchSectionOn(section) => viewport.kept_sections.switch_on(section),
+        TreeAction::SwitchSectionOn(section) => {
+            if !viewport.kept_sections.is_on(section) {
+                doc.open_section_by_hand(section);
+                changed = true;
+            }
+        }
         TreeAction::EditSection(section) => {
             if let Some(kept) = doc.sections().iter().find(|kept| kept.id == section) {
                 viewport.reopen_section(kept);

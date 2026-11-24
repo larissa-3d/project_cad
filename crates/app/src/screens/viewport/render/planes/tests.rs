@@ -562,8 +562,8 @@ fn the_block_under_the_section_view(
     (a_block(), state)
 }
 
-/// The block keeping a section across it at mid-height, switched on, the side
-/// under the cut drawn `behind` and the side over it `in_front`.
+/// The block keeping a section across it at mid-height, opened by hand, the
+/// side under the cut drawn `behind` and the side over it `in_front`.
 fn the_block_under_its_kept_section(
     behind: SideDrawing,
     in_front: SideDrawing,
@@ -580,12 +580,12 @@ fn the_block_under_its_kept_section(
         pivot: DVec3::ZERO,
     }));
     let kept = document.sections().first().expect("the section is kept").id;
+    document.set_section_choice(kept, Some(true));
     let mut state = ViewportState::default();
-    state.kept_sections.switch_on(kept);
     state.kept_sections.keep_up_with(&document, None);
     assert!(
         state.section_shown().is_some(),
-        "the fixture wants the section the block keeps switched on and cutting it",
+        "the fixture wants the section the block keeps opened by hand and cutting it",
     );
     (document, state)
 }

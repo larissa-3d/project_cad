@@ -46,9 +46,10 @@ impl Section {
     }
 
     /// Keeps the section in the part: a new one, put in where the part is
-    /// read as any key step is, or the one it was reopened from, changed.
-    /// Kept again later, it changes the same one — while the part still has
-    /// it: undone or deleted, keeping it makes a new one.
+    /// read as any key step is, the one opened by hand before it given back
+    /// to the rule; or the one it was reopened from, changed. Kept again
+    /// later, it changes the same one — while the part still has it: undone
+    /// or deleted, keeping it makes a new one.
     pub(in crate::screens::viewport) fn keep_where_read(
         &mut self,
         document: &mut PartDocument,

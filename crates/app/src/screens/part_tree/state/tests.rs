@@ -231,13 +231,15 @@
 //! Closes #969 — the whole transcription is here; the bullets only the panel
 //! drawn and clicked shows point to where they are held.
 //! - A saved section's row carries an eye that reads shown or hidden from the
-//!   section's active state; a presenter test checks it with no window —
+//!   section's active state; a presenter test checks it with no window — since
+//!   #1108 the active state is the section the canvas cuts with, worked out
+//!   from the hand's choices the part keeps —
 //!   `a_saved_section_s_eye_is_open_while_it_is_switched_on_and_shut_while_it_is_off`
 //! - decided when the work opened: the eye reads whether the section is
-//!   switched on, not whether the canvas cuts with it now — a section switched
-//!   on while the part is read to a box before it keeps its eye open, as #968
-//!   keeps its active state —
-//!   `a_section_switched_on_keeps_its_eye_open_while_the_part_is_read_to_a_box_before_it`
+//!   switched on, not whether the canvas cuts with it now — reversed by #1108,
+//!   its criterion 6: the eye reads what the canvas cuts with, the part read to
+//!   a box before the section included —
+//!   `a_section_s_eye_reads_what_the_canvas_cuts_with_even_while_the_part_is_read_to_a_box_before_it`
 //! - Clicking it switches that section on and any other off, or off; one test
 //!   per case — no test: here, a click reaches the eye only through the panel
 //!   drawn; held in `crates/app/tests/keeping_a_section.rs` by
@@ -257,8 +259,9 @@
 //! - Must not break, #692: one section on at most, the part opening whole, a
 //!   section deleted from the tree, editing by double-click — no test: held,
 //!   untouched, in `crates/app/tests/keeping_a_section.rs` by
-//!   `switching_the_second_section_on_switches_the_first_off`,
-//!   `a_part_reopened_keeps_its_sections_and_opens_with_none_active`,
+//!   `switching_the_second_section_on_switches_the_first_off`, the part opening
+//!   whole until #1108 turned it round, now
+//!   `a_part_reopened_keeps_its_sections_and_opens_with_the_last_saved_shown`,
 //!   `deleting_a_section_a_sketch_stands_on_asks_first` and
 //!   `a_saved_section_reopened_from_the_tree_comes_back_on_its_plane_its_offset_and_its_sides`
 //! - Must not break, the sketch and volume eyes of #733 and #734 —
@@ -270,6 +273,135 @@
 //!
 //! Out of scope, and left as it is: the view bar's « Vue en coupe » button,
 //! which makes a new section.
+//!
+//! Closes #1108 — the whole transcription is here; the bullets the part file or
+//! the whole application holds say where they are held. What the part stores
+//! is the hand's choice alone, per section: none, opened by hand or shut by
+//! hand; which section the canvas cuts with is worked out from it, from the
+//! order the sections were saved in and from the reading point.
+//! - A section just saved is shown, and the one before it is switched off. A
+//!   test checks it with no window — no test: here, a section is saved from its
+//!   panel, which only the whole application drives; held in
+//!   `crates/app/tests/keeping_a_section.rs` by
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`, the
+//!   one before it shown by default and then opened by hand
+//! - An eye shut by hand keeps the section hidden; an eye opened by hand keeps
+//!   it shown. One test per case — no test: here, the eye is clicked through
+//!   the panel drawn; held in `crates/app/tests/keeping_a_section.rs` by
+//!   `an_eye_shut_by_hand_keeps_its_section_hidden`, the last section saved
+//!   shut and still hidden once the part is reopened, and
+//!   `an_eye_opened_by_hand_keeps_its_section_shown`, a section before the last
+//!   opened and still the one shown once the part is reopened
+//! - The state of each section is written in the part and read back: a section
+//!   hidden before closing is hidden on reopening. A part test checks it — no
+//!   test: here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `each_section_comes_back_from_the_caopart_shut_open_or_unset_as_the_hand_left_it`
+//! - On a part with several saved sections and no hand-made choice, the last
+//!   saved one is shown, the others not —
+//!   `with_several_sections_and_no_hand_choice_the_last_saved_is_shown_and_the_others_not`
+//! - A section a sketch is laid on stops cutting by itself, unless its eye was
+//!   opened by hand; one test per case — the sketch counts once the part is
+//!   read through its step, as a sketch counts as used once the volume raised
+//!   from it is read: read whole it does not cut, read to before the sketch it
+//!   does, and the sketch undone it cuts again,
+//!   `a_section_a_sketch_is_laid_on_stops_cutting_by_itself`; opened by hand it
+//!   cuts whether the sketch is read or not, and shut by hand it does not,
+//!   `a_section_a_sketch_is_laid_on_keeps_cutting_once_its_eye_was_opened_by_hand`
+//! - decided on the issue's rule: a section stepping out of the way for a
+//!   sketch laid on it hands its cut to no other section; only deleting the
+//!   last section brings the one before it back, and a section past the
+//!   reading point is not made yet —
+//!   `a_section_a_sketch_is_laid_on_hands_its_cut_to_no_other_section`
+//! - The eye reads shown or hidden as the canvas does, including while the
+//!   part is read to a step before the section —
+//!   `a_section_s_eye_reads_what_the_canvas_cuts_with_even_while_the_part_is_read_to_a_box_before_it`
+//! - A part saved before this change opens with its last section shown, none
+//!   hand-set — the part's half, none hand-set, in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_part_saved_before_sections_were_set_by_hand_opens_with_none_set_and_takes_one_as_any_part`;
+//!   the last section shown, here, since a part with no hand choice is what
+//!   such a part opens as —
+//!   `with_several_sections_and_no_hand_choice_the_last_saved_is_shown_and_the_others_not`
+//! - decided before the red step: the hand's choice is no step of the history;
+//!   undo does not take it back and it moves no key step of #968 — no test:
+//!   here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_hand_choice_is_no_step_of_the_history_and_undo_leaves_it_alone`
+//! - decided before the red step, turned in review: a choice is read only while
+//!   its section stands, and forgotten only once its rank can be given again,
+//!   by a new operation dropping what was undone or by a compaction, so that
+//!   the next section saved comes with none; it survives an undo redone and a
+//!   rewind brought forward, which criterion 2 asks of an eye shut by hand —
+//!   no test: here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_hand_choice_leaves_with_its_section_and_never_passes_to_the_next_one_saved`,
+//!   `a_hand_choice_comes_back_with_its_section_when_the_undo_is_redone` and
+//!   `a_hand_choice_comes_back_when_the_part_is_rewound_and_brought_forward`
+//! - decided before the red step, the effective state: a section cuts if it was
+//!   opened by hand, not if it was shut by hand, and with no hand choice if it
+//!   is the last saved section not deleted that the part is read through and
+//!   no sketch laid on it is read through the reading point; deleting the last
+//!   section brings the one before it back to the same rule — left to the rule
+//!   it is shown, shut by hand it stays hidden —
+//!   `deleting_the_last_section_brings_the_one_before_it_back_to_the_rule`; the
+//!   other cases by the bullets of criteria 2, 4 and 5
+//! - decided before the red step, one at a time: saving a section, or opening
+//!   one by hand, clears the « opened by hand » of every other section and
+//!   touches nothing else; a « shut by hand » is never cleared by another
+//!   section's action — no test: here, the eyes are clicked through the panel
+//!   drawn; held in `crates/app/tests/keeping_a_section.rs` by
+//!   `opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut`,
+//!   and the saving half by
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`.
+//!   Decided in review, the rule lives in the part, beside the choices, and
+//!   reaches a deleted section too; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `opening_a_section_by_hand_gives_every_other_one_opened_back_to_the_rule_and_leaves_a_shut_one_shut`
+//!   and `saving_a_section_gives_every_section_opened_by_hand_back_to_the_rule`
+//! - decided in review: a row clicked, or « Montrer », on the section the
+//!   canvas already cuts with changes nothing, the file and its hour included —
+//!   no test: here, whether the part is written is the shell's to say; held in
+//!   `crates/app/tests/keeping_a_section.rs` by
+//!   `clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file`
+//! - decided before the red step: the sketch being drawn on a section still
+//!   shows its cut while it is open, whatever the rule; closing it gives the
+//!   rule back — a section left to the rule with that sketch read, and one shut
+//!   by hand, each cut while the sketch is open and not once it is closed —
+//!   `the_section_under_the_sketch_open_cuts_while_it_is_open_and_the_rule_comes_back_once_it_is_closed`
+//! - decided before the red step: reading to a step before the section changes
+//!   what the canvas and the eye show, never what is stored —
+//!   `a_section_s_eye_reads_what_the_canvas_cuts_with_even_while_the_part_is_read_to_a_box_before_it`,
+//!   which reads the part back to its end and finds the same section shown;
+//!   the reading point is the viewport's, never handed the part to change
+//! - decided after the storage was green: the section shown by default is the
+//!   last saved one the part is read through, a section past the reading point
+//!   not being made yet, as an unread sketch is not; read to « Coupe 1 » with
+//!   « Coupe 2 » unread, « Coupe 1 » is shown; read before both, none is —
+//!   `the_section_shown_by_default_is_the_last_one_the_part_is_read_through`
+//! - decided before the red step: the choices are stored with the part, next to
+//!   the history in the archive, as a field an old part reads as no choice; no
+//!   migration, `SCHEMA_VERSION` unchanged — no test: here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_part_saved_before_sections_were_set_by_hand_opens_with_none_set_and_takes_one_as_any_part`,
+//!   whose fixture says schema version 6 and has to open
+//! - decided in the issue: this reverses #692's « the part opens whole, a
+//!   section never switches itself on » and #969's eye reading the active state
+//!   rather than the cut — no test: it is the bookkeeping of the transcriptions;
+//!   each test of #692, #968, #969 and #972 that held the old rule is turned
+//!   round as the criterion that reverses it is reached, and its bullet points
+//!   at what holds it now, which `crates/app/tests/criteria.rs` keeps honest
+//! - Must not break: the body, the volume, the STL and the STEP are the whole
+//!   part's; a sketch on a saved section hangs on it, the double-click edits, a
+//!   section is deleted from the tree; #968's key steps; the sketch and volume
+//!   eyes — no test: held, untouched, by
+//!   `a_saved_section_leaves_the_volume_the_stl_and_the_step_as_they_were` in
+//!   `crates/part/tests/a_section_is_kept_in_the_part.rs`, by
+//!   `deleting_a_section_a_sketch_stands_on_asks_first` and
+//!   `a_saved_section_reopened_from_the_tree_comes_back_on_its_plane_its_offset_and_its_sides`
+//!   in `crates/app/tests/keeping_a_section.rs`, by the #968 block of
+//!   `tests/reader.rs` beside this file, and by the #969 bullets above on the
+//!   sketch and volume eyes
 
 use cao_part::VariableChange;
 use cao_part::VolumeState;
@@ -1576,70 +1708,401 @@ fn section_eyes(document: &PartDocument, viewport: &ViewportState) -> Vec<(Strin
         .collect()
 }
 
-fn eyes(read: [(&str, bool); 2]) -> Vec<(String, bool)> {
+fn eyes<const N: usize>(read: [(&str, bool); N]) -> Vec<(String, bool)> {
     read.into_iter()
         .map(|(name, open)| (name.to_string(), open))
         .collect()
 }
 
+/// Which kept section the canvas cuts with, by id, and which one the title
+/// bar names as the section the view stands on.
+fn the_cut(viewport: &ViewportState) -> (Option<usize>, Option<usize>) {
+    (
+        viewport.section_shown().and_then(|cut| cut.editing),
+        viewport.kept_sections.cutting(),
+    )
+}
+
+/// What the user reads of the sections: each row's name and whether its eye
+/// is open, then the section the canvas cuts with and the one the title bar
+/// names.
+type SectionsRead = (Vec<(String, bool)>, (Option<usize>, Option<usize>));
+
+fn sections_read(document: &PartDocument, viewport: &ViewportState) -> SectionsRead {
+    (section_eyes(document, viewport), the_cut(viewport))
+}
+
+/// `a_part_with_two_sections`, then a third section kept along XY, 2 up the
+/// block: six boxes, the three sections the last.
+fn a_part_with_three_sections() -> PartDocument {
+    let mut document = a_part_with_two_sections();
+    document.apply(Operation::SaveSection(SectionAsked {
+        plane: WorkPlane::XY,
+        on: None,
+        offset: 2.0,
+        behind: SideDrawing::SeeThrough,
+        in_front: SideDrawing::Opaque,
+        tilt_about_u_degrees: 0.0,
+        tilt_about_v_degrees: 0.0,
+        pivot: DVec3::ZERO,
+    }));
+    let choices: Vec<Option<bool>> = document
+        .sections()
+        .iter()
+        .map(|kept| document.section_choice(kept.id))
+        .collect();
+    assert_eq!(
+        choices, [None; 3],
+        "the fixture wants three sections kept, none set by hand",
+    );
+    document
+}
+
+#[test]
+fn with_several_sections_and_no_hand_choice_the_last_saved_is_shown_and_the_others_not() {
+    let document = a_part_with_three_sections();
+    let last = document.sections()[2].id;
+    let mut viewport = ViewportState::default();
+
+    caught_up(&mut viewport, &document);
+
+    assert_eq!(
+        sections_read(&document, &viewport),
+        (
+            eyes([("Coupe 1", false), ("Coupe 2", false), ("Coupe 3", true)]),
+            (Some(last), Some(last)),
+        ),
+        "three sections saved, none set by hand: the canvas does not cut with « Coupe 3 », the \
+         last saved, alone, the title bar does not name it, or the eyes do not read so, as \
+         ((row, eye open), (section cut with, section named))",
+    );
+}
+
 #[test]
 fn a_saved_section_s_eye_is_open_while_it_is_switched_on_and_shut_while_it_is_off() {
-    let document = a_part_with_two_sections();
+    let mut document = a_part_with_two_sections();
     let sections = document.sections();
     let (first, second) = (sections[0].id, sections[1].id);
     let mut viewport = ViewportState::default();
     caught_up(&mut viewport, &document);
 
-    let mut seen = vec![section_eyes(&document, &viewport)];
-    for on in [second, first] {
-        viewport.kept_sections.switch_on(on);
+    let mut seen = vec![sections_read(&document, &viewport)];
+    for (section, choice) in [
+        (first, Some(true)),
+        (first, Some(false)),
+        (second, Some(false)),
+    ] {
+        document.set_section_choice(section, choice);
         caught_up(&mut viewport, &document);
-        seen.push(section_eyes(&document, &viewport));
+        seen.push(sections_read(&document, &viewport));
     }
-    viewport.kept_sections.toggle(first);
-    caught_up(&mut viewport, &document);
-    seen.push(section_eyes(&document, &viewport));
 
     assert_eq!(
         seen,
         [
-            eyes([("Coupe 1", false), ("Coupe 2", false)]),
-            eyes([("Coupe 1", false), ("Coupe 2", true)]),
-            eyes([("Coupe 1", true), ("Coupe 2", false)]),
-            eyes([("Coupe 1", false), ("Coupe 2", false)]),
+            (
+                eyes([("Coupe 1", false), ("Coupe 2", true)]),
+                (Some(second), Some(second)),
+            ),
+            (
+                eyes([("Coupe 1", true), ("Coupe 2", false)]),
+                (Some(first), Some(first)),
+            ),
+            (
+                eyes([("Coupe 1", false), ("Coupe 2", true)]),
+                (Some(second), Some(second)),
+            ),
+            (eyes([("Coupe 1", false), ("Coupe 2", false)]), (None, None)),
         ],
-        "none on, « Coupe 2 » switched on, « Coupe 1 » switched on, then « Coupe 1 » \
-         switched off: a section's eye does not read open exactly while that section is the \
-         one switched on, as (row, eye open) after each",
+        "none set by hand, « Coupe 1 » opened by hand, « Coupe 1 » then shut by hand, then \
+         « Coupe 2 » shut by hand too: a section's eye does not read open exactly while the \
+         canvas cuts with that section, as ((row, eye open), (section cut with, section \
+         named)) after each",
     );
 }
 
 #[test]
-fn a_section_switched_on_keeps_its_eye_open_while_the_part_is_read_to_a_box_before_it() {
-    let document = a_part_with_two_sections();
-    let second = document.sections()[1].id;
+fn a_section_s_eye_reads_what_the_canvas_cuts_with_even_while_the_part_is_read_to_a_box_before_it()
+{
+    let mut document = a_part_with_two_sections();
+    let first = document.sections()[0].id;
+    document.set_section_choice(first, Some(true));
     let mut viewport = ViewportState::default();
-    viewport.kept_sections.switch_on(second);
-    caught_up(&mut viewport, &document);
-    assert!(
-        viewport.section_shown().is_some(),
-        "the fixture wants the canvas cutting with « Coupe 2 », switched on, the part read \
-         to its end",
-    );
 
-    viewport.read_to(1, 5);
+    let mut seen = Vec::new();
+    for rank in [4, 1, 4] {
+        viewport.read_to(rank, 5);
+        caught_up(&mut viewport, &document);
+        seen.push(sections_read(&document, &viewport));
+    }
+
+    assert_eq!(
+        seen,
+        [
+            (
+                eyes([("Coupe 1", true), ("Coupe 2", false)]),
+                (Some(first), Some(first)),
+            ),
+            (eyes([("Coupe 1", false), ("Coupe 2", false)]), (None, None)),
+            (
+                eyes([("Coupe 1", true), ("Coupe 2", false)]),
+                (Some(first), Some(first)),
+            ),
+        ],
+        "« Coupe 1 » opened by hand, the part read whole, then to the block before both \
+         sections, then whole again: an eye reads open while the canvas does not cut with its \
+         section, or shut while it does, or reading changed which section is cut with once \
+         the part is read whole again, as ((row, eye open), (section cut with, section named)) \
+         for each",
+    );
+}
+
+#[test]
+fn the_section_shown_by_default_is_the_last_one_the_part_is_read_through() {
+    let document = a_part_with_two_sections();
+    let sections = document.sections();
+    let (first, second) = (sections[0].id, sections[1].id);
+    let mut viewport = ViewportState::default();
+
+    let mut seen = Vec::new();
+    for rank in [4, 3, 2] {
+        viewport.read_to(rank, 5);
+        caught_up(&mut viewport, &document);
+        seen.push(sections_read(&document, &viewport));
+    }
+
+    assert_eq!(
+        seen,
+        [
+            (
+                eyes([("Coupe 1", false), ("Coupe 2", true)]),
+                (Some(second), Some(second)),
+            ),
+            (
+                eyes([("Coupe 1", true), ("Coupe 2", false)]),
+                (Some(first), Some(first)),
+            ),
+            (eyes([("Coupe 1", false), ("Coupe 2", false)]), (None, None)),
+        ],
+        "two sections, none set by hand, the part read whole, then to « Coupe 1 » with \
+         « Coupe 2 » unread, then to the sketch before both: the section shown is not the last \
+         one the part is read through, or one is shown while the part is read through none, \
+         as ((row, eye open), (section cut with, section named)) for each",
+    );
+}
+
+/// A sketch laid on the cut of the kept section `section`, where it cuts.
+fn a_sketch_laid_on(document: &mut PartDocument, section: usize) {
+    let plane = document
+        .sections()
+        .iter()
+        .find(|kept| kept.id == section)
+        .and_then(|kept| kept.cutting_plane())
+        .expect("the section cuts somewhere");
+    document.apply(Operation::CreateSketchOnSection { section, plane });
+}
+
+/// `a_part`, then a section kept along YZ through its block and a third
+/// sketch laid on its cut: five boxes, the section the fourth and the sketch
+/// on it, sketch 2, the last.
+fn a_block_with_a_sketch_laid_on_its_section() -> PartDocument {
+    let mut document = a_part();
+    document.apply(Operation::SaveSection(SectionAsked {
+        plane: WorkPlane::YZ,
+        on: None,
+        offset: 5.0,
+        behind: SideDrawing::SeeThrough,
+        in_front: SideDrawing::Opaque,
+        tilt_about_u_degrees: 0.0,
+        tilt_about_v_degrees: 0.0,
+        pivot: DVec3::ZERO,
+    }));
+    let section = document.sections()[0].id;
+    a_sketch_laid_on(&mut document, section);
+    assert_eq!(
+        (
+            StepReader::of(&document, &french()).boxes.len(),
+            document.section_under(2),
+        ),
+        (5, Some(section)),
+        "the fixture wants five boxes, the last a sketch laid on the section, as (boxes, the \
+         section under sketch 2)",
+    );
+    document
+}
+
+/// The viewport as a frame leaves it with `sketch` open, the one the editor
+/// draws on.
+fn caught_up_with_open(viewport: &mut ViewportState, document: &PartDocument, sketch: usize) {
+    viewport.keep_reading_up_with(document);
+    viewport.kept_sections.keep_up_with(document, Some(sketch));
+}
+
+#[test]
+fn a_section_a_sketch_is_laid_on_stops_cutting_by_itself() {
+    let mut document = a_block_with_a_sketch_laid_on_its_section();
+    let section = document.sections()[0].id;
+    let mut viewport = ViewportState::default();
+
+    let mut seen = Vec::new();
+    for rank in [4, 3, 4] {
+        viewport.read_to(rank, 5);
+        caught_up(&mut viewport, &document);
+        seen.push(sections_read(&document, &viewport));
+    }
+    document.undo();
     caught_up(&mut viewport, &document);
-    assert!(
-        viewport.section_shown().is_none() && viewport.kept_sections.is_on(second),
-        "the fixture wants « Coupe 2 » still on and the canvas not cutting with it, the part \
-         read to the block before it",
+    seen.push(sections_read(&document, &viewport));
+
+    let not_cut = (eyes([("Coupe 1", false)]), (None, None));
+    let cut = (eyes([("Coupe 1", true)]), (Some(section), Some(section)));
+    assert_eq!(
+        seen,
+        [not_cut.clone(), cut.clone(), not_cut, cut],
+        "the only section, set by no hand, a sketch laid on it: the part read whole, then to \
+         the section before the sketch, then whole again, then the sketch undone: the canvas \
+         still cuts with the section while the sketch on it is read, or does not cut with it \
+         while that sketch is not, as ((row, eye open), (section cut with, section named)) for \
+         each",
+    );
+}
+
+#[test]
+fn a_section_a_sketch_is_laid_on_keeps_cutting_once_its_eye_was_opened_by_hand() {
+    let mut document = a_block_with_a_sketch_laid_on_its_section();
+    let section = document.sections()[0].id;
+    let mut viewport = ViewportState::default();
+
+    let mut seen = Vec::new();
+    for choice in [Some(true), Some(false)] {
+        document.set_section_choice(section, choice);
+        for rank in [4, 3] {
+            viewport.read_to(rank, 5);
+            caught_up(&mut viewport, &document);
+            seen.push(sections_read(&document, &viewport));
+        }
+    }
+
+    let not_cut = (eyes([("Coupe 1", false)]), (None, None));
+    let cut = (eyes([("Coupe 1", true)]), (Some(section), Some(section)));
+    assert_eq!(
+        seen,
+        [cut.clone(), cut, not_cut.clone(), not_cut],
+        "the only section, a sketch laid on it, opened by hand, then shut by hand; each time \
+         the part read whole, then to the section before the sketch: the section opened by \
+         hand does not cut with the sketch on it read, or the section shut by hand cuts with \
+         that sketch unread, as ((row, eye open), (section cut with, section named)) for each",
+    );
+}
+
+#[test]
+fn a_section_a_sketch_is_laid_on_hands_its_cut_to_no_other_section() {
+    let mut document = a_part_with_two_sections();
+    let sections = document.sections();
+    let (first, second) = (sections[0].id, sections[1].id);
+    a_sketch_laid_on(&mut document, second);
+    assert_eq!(
+        (
+            StepReader::of(&document, &french()).boxes.len(),
+            document.section_under(2),
+        ),
+        (6, Some(second)),
+        "the fixture wants six boxes, the last a sketch laid on « Coupe 2 », as (boxes, the \
+         section under sketch 2)",
+    );
+    let mut viewport = ViewportState::default();
+
+    let mut seen = Vec::new();
+    for rank in [5, 4, 3] {
+        viewport.read_to(rank, 6);
+        caught_up(&mut viewport, &document);
+        seen.push(sections_read(&document, &viewport));
+    }
+
+    assert_eq!(
+        seen,
+        [
+            (eyes([("Coupe 1", false), ("Coupe 2", false)]), (None, None)),
+            (
+                eyes([("Coupe 1", false), ("Coupe 2", true)]),
+                (Some(second), Some(second)),
+            ),
+            (
+                eyes([("Coupe 1", true), ("Coupe 2", false)]),
+                (Some(first), Some(first)),
+            ),
+        ],
+        "two sections set by no hand, a sketch laid on « Coupe 2 », the last: the part read \
+         whole, then to « Coupe 2 » before the sketch, then to « Coupe 1 » with « Coupe 2 » \
+         unread: the section the sketch is laid on, stepping out of the way, brings « Coupe 1 » \
+         back in its place, or the last section read does not cut while no sketch on it is \
+         read, as ((row, eye open), (section cut with, section named)) for each",
+    );
+}
+
+#[test]
+fn deleting_the_last_section_brings_the_one_before_it_back_to_the_rule() {
+    let read = |first_choice: Option<bool>| -> [SectionsRead; 2] {
+        let mut document = a_part_with_two_sections();
+        let sections = document.sections();
+        let (first, second) = (sections[0].id, sections[1].id);
+        document.set_section_choice(first, first_choice);
+        let mut viewport = ViewportState::default();
+        caught_up(&mut viewport, &document);
+        let before = sections_read(&document, &viewport);
+        document.apply(Operation::DeleteSection { section: second });
+        caught_up(&mut viewport, &document);
+        [before, sections_read(&document, &viewport)]
+    };
+    let the_second_shown = (
+        eyes([("Coupe 1", false), ("Coupe 2", true)]),
+        (Some(1), Some(1)),
     );
 
     assert_eq!(
-        section_eyes(&document, &viewport),
-        eyes([("Coupe 1", false), ("Coupe 2", true)]),
-        "« Coupe 2 » switched on, the part read to the block before it: its eye shut with \
-         the cut the canvas no longer shows, or « Coupe 1 », off, reads open, as (row, eye \
-         open)",
+        [read(None), read(Some(false))],
+        [
+            [
+                the_second_shown.clone(),
+                (eyes([("Coupe 1", true)]), (Some(0), Some(0))),
+            ],
+            [the_second_shown, (eyes([("Coupe 1", false)]), (None, None))],
+        ],
+        "two sections, « Coupe 2 », the last, shown, then deleted; « Coupe 1 » left to the rule, \
+         then shut by hand: « Coupe 1 » left to the rule does not come back as the last \
+         section, or « Coupe 1 » shut by hand comes back all the same, as ((row, eye open), \
+         (section cut with, section named)) before and after the deleting, for each",
+    );
+}
+
+#[test]
+fn the_section_under_the_sketch_open_cuts_while_it_is_open_and_the_rule_comes_back_once_it_is_closed()
+ {
+    let read = |choice: Option<bool>| -> Vec<SectionsRead> {
+        let mut document = a_block_with_a_sketch_laid_on_its_section();
+        let section = document.sections()[0].id;
+        document.set_section_choice(section, choice);
+        let mut viewport = ViewportState::default();
+        caught_up(&mut viewport, &document);
+        let mut seen = vec![sections_read(&document, &viewport)];
+        caught_up_with_open(&mut viewport, &document, 2);
+        seen.push(sections_read(&document, &viewport));
+        caught_up(&mut viewport, &document);
+        seen.push(sections_read(&document, &viewport));
+        seen
+    };
+    let not_cut = (eyes([("Coupe 1", false)]), (None, None));
+    let cut = (eyes([("Coupe 1", true)]), (Some(0), Some(0)));
+
+    assert_eq!(
+        [read(None), read(Some(false))],
+        [
+            [not_cut.clone(), cut.clone(), not_cut.clone()],
+            [not_cut.clone(), cut, not_cut],
+        ],
+        "the only section, a sketch laid on it and read; the section left to the rule, then \
+         shut by hand; each time with no sketch open, the sketch on it open, then closed: the \
+         section does not cut while the sketch on it is open, or cuts once it is closed, as \
+         ((row, eye open), (section cut with, section named)) for each",
     );
 }

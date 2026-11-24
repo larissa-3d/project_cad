@@ -19,10 +19,12 @@ mod design;
 mod geometry_cache;
 mod insertion;
 mod matter;
+mod picture_entries;
 mod rule_in_place;
 mod sections;
 mod variables;
 
+use sections::SectionChoices;
 pub use variables::{Refused, Use};
 
 /// Bumped whenever the layout of a saved part changes.
@@ -33,10 +35,6 @@ pub use variables::{Refused, Use};
 pub const SCHEMA_VERSION: u32 = 6;
 
 const METADATA_ENTRY: &str = "part.json";
-/// How big the picture is. Kept apart from its bytes so that neither entry has
-/// to carry a header the other could contradict.
-const PICTURE_SHAPE_ENTRY: &str = "picture.json";
-const PICTURE_PIXELS_ENTRY: &str = "picture.rgba";
 
 /// What a write of the archive is for.
 #[derive(Clone, Copy, PartialEq)]
@@ -71,13 +69,9 @@ pub struct PartDocument {
     pub history: History,
     state: PartState,
     picture: Option<Picture>,
-}
-
-/// How big a picture is, beside the bytes that fill it.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-struct PictureShape {
-    width: u32,
-    height: u32,
+    /// Whether each kept section's eye was opened or shut by hand, by section.
+    /// No step of the history: undo leaves it alone.
+    section_choices: SectionChoices,
 }
 
 impl PartDocument {
@@ -93,6 +87,7 @@ impl PartDocument {
             history: History::default(),
             state: PartState::default(),
             picture: None,
+            section_choices: SectionChoices::new(),
         }
     }
 
@@ -185,6 +180,7 @@ impl PartDocument {
         if matches!(operation, Operation::EditMatter { .. }) {
             return self.change_matter(operation);
         }
+        let made = self.sections_made_if_undone();
         let before = matches!(operation, Operation::Blend { .. }).then(|| self.state.clone());
         let outcome = self
             .state
@@ -196,6 +192,7 @@ impl PartDocument {
         if outcome == Some(Outcome::RuleRefused) {
             return outcome;
         }
+        self.choices_on_recording(&operation, made);
         self.history.push(operation);
         // An edit landing in an earlier step changed a drawing the matter after
         // it stands on, so the part is built again rather than patched. Drawing
@@ -223,7 +220,9 @@ impl PartDocument {
     /// Rewrites the history down to the steps that still describe the part,
     /// dropping the redo tail with it.
     pub fn compact_history(&mut self) {
+        let made = self.sections_made_if_undone();
         self.history = crate::compaction::compact(&self.history);
+        self.forget_choices_past(made);
         self.rebuild();
     }
 
@@ -292,7 +291,7 @@ impl PartDocument {
         archive
             .write_all(serde_json::to_string_pretty(&metadata)?.as_bytes())
             .map_err(zip::result::ZipError::from)?;
-        let design = design::laid_out(&self.history)?;
+        let design = design::laid_out(&self.history, &self.section_choices)?;
         design::write(&mut archive, options, &design)?;
         if writing == Writing::PuttingAway {
             let print: Vec<&str> = design.iter().map(design::Written::text).collect();
@@ -300,18 +299,7 @@ impl PartDocument {
         }
 
         if let Some(picture) = &self.picture {
-            let shape = PictureShape {
-                width: picture.width(),
-                height: picture.height(),
-            };
-            archive.start_file(PICTURE_SHAPE_ENTRY, options)?;
-            archive
-                .write_all(serde_json::to_string(&shape)?.as_bytes())
-                .map_err(zip::result::ZipError::from)?;
-            archive.start_file(PICTURE_PIXELS_ENTRY, options)?;
-            archive
-                .write_all(picture.pixels())
-                .map_err(zip::result::ZipError::from)?;
+            picture_entries::write(&mut archive, options, picture)?;
         }
 
         let bytes = archive.finish()?.into_inner();
@@ -326,7 +314,7 @@ impl PartDocument {
     pub fn picture_in(files: &impl Files, path: &Path) -> Option<Picture> {
         let bytes = files.read(path).ok()?;
         let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).ok()?;
-        read_picture(&mut archive)
+        picture_entries::read(&mut archive)
     }
 
     pub fn load(files: &impl Files, path: &Path) -> Result<Self, PartFileError> {
@@ -346,7 +334,7 @@ impl PartDocument {
             return Err(PartFileError::UnsupportedVersion(metadata.schema_version));
         }
 
-        let (history, design) = design::read(&mut archive)?;
+        let (history, design, section_choices) = design::read(&mut archive)?;
         let print: Vec<&str> = design.iter().map(String::as_str).collect();
         let state = match geometry_cache::read(&mut archive, &print) {
             Some(mut cached) => {
@@ -360,26 +348,10 @@ impl PartDocument {
             metadata,
             history,
             state,
-            picture: read_picture(&mut archive),
+            picture: picture_entries::read(&mut archive),
+            section_choices,
         })
     }
-}
-
-/// The picture, when the archive holds a whole one.
-///
-/// A part written before pictures existed carries neither entry, and a part
-/// whose picture is damaged is a part with no picture — never a part that
-/// refuses to open. Nothing of the drawing is in there.
-fn read_picture<R: Read + std::io::Seek>(archive: &mut zip::ZipArchive<R>) -> Option<Picture> {
-    let shape: PictureShape =
-        serde_json::from_str(&read_entry(archive, PICTURE_SHAPE_ENTRY).ok()?).ok()?;
-    let mut pixels = Vec::new();
-    archive
-        .by_name(PICTURE_PIXELS_ENTRY)
-        .ok()?
-        .read_to_end(&mut pixels)
-        .ok()?;
-    Picture::new(shape.width, shape.height, pixels)
 }
 
 pub(super) fn read_entry<R: Read + std::io::Seek>(

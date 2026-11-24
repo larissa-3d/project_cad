@@ -195,8 +195,8 @@ fn variables(ui: &mut egui::Ui, variables: &[Variable], asked: &mut Asked<'_>, l
     }
 }
 
-/// One kept section: a click on it or on its eye switches it on or off, a
-/// double-click reopens it, and its menu deletes it.
+/// One kept section: a click on its eye shuts it by hand or opens it, a click
+/// on it opens it by hand, a double-click reopens it, and its menu deletes it.
 fn section(ui: &mut egui::Ui, kept: &Kept, asked: &mut Asked<'_>, lang: &Catalogue) {
     let badge = kept.badge.map(|found| said::badge(lang, found));
     let eye = said::section_eye(lang, kept.shown);
@@ -213,8 +213,10 @@ fn section(ui: &mut egui::Ui, kept: &Kept, asked: &mut Asked<'_>, lang: &Catalog
     asked.ended(ui);
     if touched.row.double_clicked() {
         asked.action = TreeAction::EditSection(kept.id);
-    } else if touched.row.clicked() || touched.eye {
+    } else if touched.eye {
         asked.action = TreeAction::ToggleSection(kept.id);
+    } else if touched.row.clicked() {
+        asked.action = TreeAction::SwitchSectionOn(kept.id);
     }
     touched.row.context_menu(|ui| {
         if ui.button(lang.t("part_tree.delete")).clicked() {

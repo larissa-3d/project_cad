@@ -40,9 +40,10 @@ pub enum TreeAction {
     NextVolumeMode(usize),
     /// Draw every volume opaque again.
     MakeAllOpaque,
-    /// Switch this kept section on, or off when it is on.
+    /// Open this kept section by hand, or shut it by hand while it is the one
+    /// on.
     ToggleSection(usize),
-    /// Switch this kept section on, leaving it on when it is.
+    /// Open this kept section by hand, leaving it open when it is.
     SwitchSectionOn(usize),
     /// Reopen the section view on this kept section, to change it.
     EditSection(usize),

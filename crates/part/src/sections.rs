@@ -137,6 +137,11 @@ impl PartState {
         }
     }
 
+    /// Whether the part has made that section and not deleted it.
+    pub(crate) fn section_stands(&self, section: usize) -> bool {
+        self.sections.get(section).is_some_and(|kept| !kept.deleted)
+    }
+
     /// The sections still kept, each found on the part as it stands.
     pub(crate) fn sections_standing(&self) -> Vec<SavedSection> {
         self.sections

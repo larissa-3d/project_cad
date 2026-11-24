@@ -1,0 +1,16 @@
+{
+  "opening": {
+    "opens": "section",
+    "offset": 15.0,
+    "behind": "see-through",
+    "in_front": "opaque",
+    "tilt_about_u_degrees": 0.0,
+    "tilt_about_v_degrees": 0.0,
+    "pivot": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "operations": []
+}

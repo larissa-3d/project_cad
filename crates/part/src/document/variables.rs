@@ -84,6 +84,8 @@ impl PartDocument {
         if !breaks.is_empty() {
             return Err(Refused::Breaks(breaks));
         }
+        let made = self.sections_made_if_undone();
+        self.forget_choices_past(made);
         self.history = trial;
         self.state = after;
         Ok(())

@@ -12,6 +12,8 @@ impl PartDocument {
         let Some(kind) = StepKind::opened_by(&operation).filter(|kind| kind.is_key()) else {
             return self.apply(operation);
         };
+        let made = self.sections_made_if_undone();
+        self.choices_on_recording(&operation, made);
         self.history.insert_after(key_step, kind, operation);
         self.rebuild();
         None

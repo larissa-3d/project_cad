@@ -1,0 +1,55 @@
+{
+  "steps": [
+    {
+      "kind": "section",
+      "plane": {
+        "origin": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "u": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "on": null,
+      "operations": [
+        1
+      ]
+    },
+    {
+      "kind": "section",
+      "plane": {
+        "origin": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "on": null,
+      "operations": [
+        2
+      ]
+    }
+  ],
+  "applied": 2,
+  "last_operation_number": 2,
+  "last_sketch_number": 0
+}

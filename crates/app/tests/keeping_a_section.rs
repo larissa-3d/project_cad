@@ -14,7 +14,8 @@
 //! - Two sections in one part: switching the second on switches the first off
 //!   — `switching_the_second_section_on_switches_the_first_off`
 //! - Saving and reopening keeps every section, and the part opens with none
-//!   active — `a_part_reopened_keeps_its_sections_and_opens_with_none_active`,
+//!   active — reversed by #1108: it opens with its last section shown, none
+//!   set by hand — `a_part_reopened_keeps_its_sections_and_opens_with_the_last_saved_shown`,
 //!   and what each section keeps through the file by
 //!   `every_section_comes_back_from_the_caopart_with_its_plane_its_offset_and_its_sides`,
 //!   in `crates/part/tests/a_section_is_kept_in_the_part.rs`
@@ -95,8 +96,9 @@
 //! `crates/app/src/screens/part_tree/state/tests.rs`; these are the bullets
 //! only the panel clicked shows.
 //! - Clicking it switches that section on and any other off — clicking the eye
-//!   of « Coupe 1 », none on, then the eye of « Coupe 2 »: each is switched on
-//!   alone in turn, and the title bar names the section the canvas cuts with —
+//!   of « Coupe 1 », none on until #1108 left the last saved on, then the eye
+//!   of « Coupe 2 »: each is switched on alone in turn, and the title bar names
+//!   the section the canvas cuts with —
 //!   `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off`
 //! - or off — clicking the eye of the section on switches it off, the other
 //!   staying off, and the title bar names no section any more —
@@ -105,6 +107,31 @@
 //!   « Ne plus afficher la coupe » while its section is on, « Afficher la
 //!   coupe » while it is off — `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off`,
 //!   `clicking_the_eye_of_the_section_on_switches_it_off`
+//!
+//! Closes #1108 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests.rs`; these are the bullets
+//! only the panel clicked and the part saved by the application show.
+//! - A section just saved is shown, and the one before it is switched off. A
+//!   test checks it with no window — « Coupe 1 » saved reads shown, its eye
+//!   says a click hides it and the title bar names it; « Coupe 1 » then opened
+//!   by hand, « Coupe 2 » saved reads shown and « Coupe 1 » off —
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`
+//! - An eye shut by hand keeps the section hidden; an eye opened by hand keeps
+//!   it shown. One test per case — the eye of « Coupe 2 », the last saved,
+//!   shut: neither section shown, and still neither once the part is reopened,
+//!   `an_eye_shut_by_hand_keeps_its_section_hidden`; the eye of « Coupe 1 »
+//!   opened while « Coupe 2 » is the last saved: « Coupe 1 » shown alone, and
+//!   still once the part is reopened, `an_eye_opened_by_hand_keeps_its_section_shown`
+//! - decided before the red step, one at a time: saving a section, or opening
+//!   one by hand, clears the « opened by hand » of every other section and
+//!   touches nothing else; a « shut by hand » is never cleared by another
+//!   section's action —
+//!   `opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut`
+//! - decided in review: a row clicked, or « Montrer », on the section the
+//!   canvas already cuts with changes nothing — no choice, no file written, no
+//!   hour moved, since a look must not rewrite the part; on a section not cut
+//!   it opens it by hand and the part is written —
+//!   `clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file`
 
 mod driver;
 
@@ -687,8 +714,247 @@ fn the_title_bar(app: &driver::App) -> Vec<String> {
 fn named_in_the_title_bar(app: &driver::App) -> Vec<String> {
     the_title_bar(app)
         .into_iter()
-        .filter(|read| read == "Coupe 1" || read == "Coupe 2")
+        .filter(|read| ["Coupe 1", "Coupe 2", "Coupe 3"].contains(&read.as_str()))
         .collect()
+}
+
+/// What the eye of a section that is shown says a click on it does, and what
+/// the eye of one that is hidden says.
+const SHOWN: &str = "Ne plus afficher la coupe";
+const HIDDEN: &str = "Afficher la coupe";
+
+/// What the user reads of the sections: what each one's eye says a click on it
+/// does, by its row's name, then the sections the title bar names as the one
+/// the canvas cuts with.
+type Read = (Vec<(String, String)>, Vec<String>);
+
+fn what_reads(app: &driver::App, sections: &[&str]) -> Read {
+    let eyes = sections
+        .iter()
+        .map(|name| {
+            let eye = the_eye_of(app, name).accesskit_node().label();
+            (name.to_string(), eye.unwrap_or_default())
+        })
+        .collect();
+    (eyes, named_in_the_title_bar(app))
+}
+
+fn reading(eyes: &[(&str, &str)], named: &[&str]) -> Read {
+    (
+        eyes.iter()
+            .map(|(name, eye)| (name.to_string(), eye.to_string()))
+            .collect(),
+        named.iter().map(|name| name.to_string()).collect(),
+    )
+}
+
+const TWO: [&str; 2] = ["Coupe 1", "Coupe 2"];
+const THREE: [&str; 3] = ["Coupe 1", "Coupe 2", "Coupe 3"];
+
+#[test]
+fn a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off() {
+    let mut app = driver::a_block("keeping_a_section_just_saved_is_shown");
+
+    save_a_section(&mut app, "Plan YZ");
+    let mut seen = vec![what_reads(&app, &TWO[..1])];
+    save_a_section(&mut app, "Plan XZ");
+    seen.push(what_reads(&app, &TWO));
+    click_the_eye_of(&mut app, "Coupe 1");
+    seen.push(what_reads(&app, &TWO));
+    save_a_section(&mut app, "Plan XY");
+    seen.push(what_reads(&app, &THREE));
+
+    assert_eq!(
+        seen,
+        [
+            reading(&[("Coupe 1", SHOWN)], &["Coupe 1"]),
+            reading(&[("Coupe 1", HIDDEN), ("Coupe 2", SHOWN)], &["Coupe 2"]),
+            reading(&[("Coupe 1", SHOWN), ("Coupe 2", HIDDEN)], &["Coupe 1"]),
+            reading(
+                &[("Coupe 1", HIDDEN), ("Coupe 2", HIDDEN), ("Coupe 3", SHOWN)],
+                &["Coupe 3"],
+            ),
+        ],
+        "« Coupe 1 » saved, « Coupe 2 » saved after it, « Coupe 1 » then opened by hand, \
+         « Coupe 3 » saved after it: the section just saved is not shown alone, the one \
+         before it, shown by default or opened by hand, is not switched off, or the title bar \
+         does not name the section shown, as ((row, what its eye says), sections the title \
+         bar names) after each",
+    );
+}
+
+#[test]
+fn an_eye_shut_by_hand_keeps_its_section_hidden() {
+    let test = "keeping_a_section_an_eye_shut_by_hand";
+    let mut app = driver::a_block(test);
+    save_a_section(&mut app, "Plan YZ");
+    save_a_section(&mut app, "Plan XZ");
+    let saved = what_reads(&app, &TWO);
+
+    click_the_eye_of(&mut app, "Coupe 2");
+    let shut = what_reads(&app, &TWO);
+    reopen_the_part(&mut app);
+    let reopened = what_reads(&app, &TWO);
+
+    let none_shown = reading(&[("Coupe 1", HIDDEN), ("Coupe 2", HIDDEN)], &[]);
+    assert_eq!(
+        [saved, shut, reopened],
+        [
+            reading(&[("Coupe 1", HIDDEN), ("Coupe 2", SHOWN)], &["Coupe 2"]),
+            none_shown.clone(),
+            none_shown,
+        ],
+        "two sections saved, « Coupe 2 », the last, shown; its eye then shut by hand; the \
+         part then closed and reopened: the last section saved is still shown once its eye \
+         is shut, the one before it comes up in its place, or the part reopens with either \
+         shown, as ((row, what its eye says), sections the title bar names) after each",
+    );
+}
+
+#[test]
+fn an_eye_opened_by_hand_keeps_its_section_shown() {
+    let test = "keeping_a_section_an_eye_opened_by_hand";
+    let mut app = driver::a_block(test);
+    save_a_section(&mut app, "Plan YZ");
+    save_a_section(&mut app, "Plan XZ");
+    let saved = what_reads(&app, &TWO);
+
+    click_the_eye_of(&mut app, "Coupe 1");
+    let opened = what_reads(&app, &TWO);
+    reopen_the_part(&mut app);
+    let reopened = what_reads(&app, &TWO);
+
+    let the_first_shown = reading(&[("Coupe 1", SHOWN), ("Coupe 2", HIDDEN)], &["Coupe 1"]);
+    assert_eq!(
+        [saved, opened, reopened],
+        [
+            reading(&[("Coupe 1", HIDDEN), ("Coupe 2", SHOWN)], &["Coupe 2"]),
+            the_first_shown.clone(),
+            the_first_shown,
+        ],
+        "two sections saved, « Coupe 2 », the last, shown; the eye of « Coupe 1 » then opened \
+         by hand; the part then closed and reopened: « Coupe 1 » is not shown alone once \
+         opened by hand, or the part reopens with « Coupe 2 », the last saved, shown in its \
+         place, as ((row, what its eye says), sections the title bar names) after each",
+    );
+}
+
+/// The part's file as it stands on disk, byte for byte.
+fn the_file_on_disk(test: &str) -> Vec<u8> {
+    let path = driver::the_part_s_file(test, "Bloc");
+    cao_part::Files::read(&cao_app::adapters::files::DiskFiles, &path)
+        .unwrap_or_else(|err| panic!("the part at {path:?} does not read: {err:?}"))
+}
+
+fn click_the_row_of(app: &mut driver::App, name: &str) {
+    driver::the_row(app, name)
+        .unwrap_or_else(|| {
+            panic!(
+                "the tree holds no « {name} », showing {:?}",
+                driver::on_screen(app)
+            )
+        })
+        .click();
+    app.run();
+}
+
+#[test]
+fn clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file() {
+    let test = "keeping_a_section_a_click_on_the_section_cut";
+    let mut app = driver::a_block(test);
+    save_a_section(&mut app, "Plan YZ");
+    save_a_section(&mut app, "Plan XZ");
+    let (read_saved, file_saved) = (what_reads(&app, &TWO), the_file_on_disk(test));
+
+    click_the_row_of(&mut app, "Coupe 2");
+    let (read_clicked, file_clicked) = (what_reads(&app, &TWO), the_file_on_disk(test));
+    let put_away = the_part_file(&mut app, test);
+    let choices = (put_away.section_choice(0), put_away.section_choice(1));
+    app.query_all_by_label("Bloc")
+        .last()
+        .expect("the start menu lists the part")
+        .click();
+    app.run();
+    let file_reopened = the_file_on_disk(test);
+    click_the_row_of(&mut app, "Coupe 1");
+    let (read_another, file_another) = (what_reads(&app, &TWO), the_file_on_disk(test));
+
+    let the_second_shown = reading(&[("Coupe 1", HIDDEN), ("Coupe 2", SHOWN)], &["Coupe 2"]);
+    assert_eq!(
+        (
+            read_saved,
+            read_clicked,
+            file_clicked == file_saved,
+            choices
+        ),
+        (
+            the_second_shown.clone(),
+            the_second_shown,
+            true,
+            (None, None)
+        ),
+        "two sections saved, « Coupe 2 », the last, shown by itself, then its row clicked: what \
+         the sections read changed, the file was written again, or the part put away keeps a \
+         choice the click made, as (read when saved, read once clicked, the file as it was, \
+         (first, second) choice put away)",
+    );
+    assert_eq!(
+        (read_another, file_another == file_reopened),
+        (
+            reading(&[("Coupe 1", SHOWN), ("Coupe 2", HIDDEN)], &["Coupe 1"]),
+            false,
+        ),
+        "the fixture wants the row of « Coupe 1 », which is not cut, clicked once the part is \
+         reopened, to open it by hand and write the file, as (read once clicked, the file as \
+         it was)",
+    );
+}
+
+#[test]
+fn opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut() {
+    let mut app = driver::a_block("keeping_a_section_one_opened_at_a_time");
+    for plane in ["Plan YZ", "Plan XZ", "Plan XY"] {
+        save_a_section(&mut app, plane);
+    }
+
+    let mut seen = vec![what_reads(&app, &THREE)];
+    for eye in ["Coupe 3", "Coupe 1", "Coupe 2", "Coupe 2"] {
+        click_the_eye_of(&mut app, eye);
+        seen.push(what_reads(&app, &THREE));
+    }
+
+    let none_shown = reading(
+        &[
+            ("Coupe 1", HIDDEN),
+            ("Coupe 2", HIDDEN),
+            ("Coupe 3", HIDDEN),
+        ],
+        &[],
+    );
+    assert_eq!(
+        seen,
+        [
+            reading(
+                &[("Coupe 1", HIDDEN), ("Coupe 2", HIDDEN), ("Coupe 3", SHOWN)],
+                &["Coupe 3"],
+            ),
+            none_shown.clone(),
+            reading(
+                &[("Coupe 1", SHOWN), ("Coupe 2", HIDDEN), ("Coupe 3", HIDDEN)],
+                &["Coupe 1"],
+            ),
+            reading(
+                &[("Coupe 1", HIDDEN), ("Coupe 2", SHOWN), ("Coupe 3", HIDDEN)],
+                &["Coupe 2"],
+            ),
+            none_shown,
+        ],
+        "three sections saved, « Coupe 3 », the last, shown; its eye shut by hand, then the \
+         eye of « Coupe 1 » opened, then the eye of « Coupe 2 » opened, then shut: opening a \
+         section does not switch the one opened before off for good, or « Coupe 3 », shut by \
+         hand, came back, as ((row, what its eye says), sections the title bar names) after \
+         each",
+    );
 }
 
 #[test]
@@ -707,9 +973,10 @@ fn clicking_a_section_s_eye_switches_it_on_and_the_one_on_off() {
         before,
         read_as([
             ("Coupe 1", false, "Afficher la coupe"),
-            ("Coupe 2", false, "Afficher la coupe"),
+            ("Coupe 2", true, "Ne plus afficher la coupe"),
         ]),
-        "the fixture wants two sections saved and neither on, as (row, on, what its eye says)",
+        "the fixture wants two sections saved and the last, « Coupe 2 », alone on, as (row, \
+         on, what its eye says)",
     );
     assert_eq!(
         first,
@@ -759,8 +1026,8 @@ fn clicking_the_eye_of_the_section_on_switches_it_off() {
             ]),
             vec!["Coupe 2".to_string()],
         ),
-        "the fixture wants « Coupe 2 » alone on, by a click on its row, and the title bar \
-         naming it, as ((row, on, what its eye says), sections the title bar names)",
+        "the fixture wants « Coupe 2 », the last saved, alone on, and the title bar naming \
+         it, as ((row, on, what its eye says), sections the title bar names)",
     );
     assert_eq!(
         off,
@@ -778,11 +1045,10 @@ fn clicking_the_eye_of_the_section_on_switches_it_off() {
 }
 
 #[test]
-fn a_part_reopened_keeps_its_sections_and_opens_with_none_active() {
+fn a_part_reopened_keeps_its_sections_and_opens_with_the_last_saved_shown() {
     let mut app = driver::a_block("keeping_a_section_reopened_part");
     save_a_section(&mut app, "Plan YZ");
     save_a_section(&mut app, "Plan XZ");
-    switch_on(&mut app, "Coupe 2");
 
     reopen_the_part(&mut app);
 
@@ -791,9 +1057,11 @@ fn a_part_reopened_keeps_its_sections_and_opens_with_none_active() {
         "the part came back without its sections, showing {:?}",
         driver::on_screen(&app),
     );
-    assert!(
-        !is_active(&app, "Coupe 1") && !is_active(&app, "Coupe 2"),
-        "the part opened with a section active",
+    assert_eq!(
+        (is_active(&app, "Coupe 1"), is_active(&app, "Coupe 2")),
+        (false, true),
+        "the part, none of its sections set by hand, opened with other than « Coupe 2 », the \
+         last saved, alone active, as (first active, second active)",
     );
     assert!(
         !the_panel_is_open(&app),

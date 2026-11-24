@@ -509,6 +509,7 @@ fn show_selects_the_sketch_or_the_section_and_leaves_the_list_open() {
     }
 
     let mut app = a_part_with_a_section_off_its_face("show_selects_the_section");
+    driver::click_the_button(&mut app, "Ne plus afficher la coupe");
     let before = the_row_is_selected(&app, "Coupe 1");
     driver::click_the_button(&mut app, "2 alertes");
     click_the_alert_s(&mut app, FACE_LOST, "Montrer");
@@ -520,8 +521,9 @@ fn show_selects_the_sketch_or_the_section_and_leaves_the_list_open() {
     let twice = the_row_is_selected(&app, "Coupe 1");
     if before || !once || !twice {
         wrong.push(format!(
-            "« Montrer » on « {FACE_LOST} » did not switch « Coupe 1 » on in the tree, or a second \
-             « Montrer » switched it off: on before {before}, after one {once}, after two {twice}"
+            "« Montrer » on « {FACE_LOST} » did not switch « Coupe 1 », its eye shut by hand, on \
+             in the tree, or a second « Montrer » switched it off: on before {before}, after one \
+             {once}, after two {twice}"
         ));
     }
     if the_section_tool_is_open(&app) {
