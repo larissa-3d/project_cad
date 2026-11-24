@@ -299,11 +299,12 @@ found [`exact-kernel-failures.md`](exact-kernel-failures.md).
 | The `.caopart` file (zip) | `part/src/document.rs` | `PartDocument`, `SCHEMA_VERSION = 6` |
 | The design folder: the index, one folder per step, and the line between them | `part/src/document/design.rs`, `part/src/document/design/opening.rs` | `laid_out`, `read`, `taken_apart`, `put_together` |
 | A section kept in the part: what making or changing one asks, the step it is, the plane it is found on again at every replay and tilted by its two angles (#693), broken when its face is gone, and the drawings laid on it (#692) | `part/src/history/section.rs`, `part/src/sections.rs`, `part/src/document/sections.rs` | `SectionAsked`, `SideDrawing`, `SavedSection::cutting_plane`, `pivot_of`, `pivot_kept_on`, `PartState::apply_to_sections`, `PartDocument::sections`, `section_under`, `is_stood_on` |
+| A kept section's eye opened or shut by hand: no step of the history, written in the index beside the steps, dropped with a section undone (#1108) | `part/src/document/sections.rs`, `part/src/document/design.rs` | `PartDocument::section_choice`, `set_section_choice`, `forget_choices_of_sections_gone` |
 | The geometry a part is cached with | `part/src/document/geometry_cache.rs` | `write`, `read`, `GEOMETRY_ENTRY` |
 | A part drawn to order, for a test or a measurement | `part/src/drawn_to_order.rs` | `Recipe`, `Recipe::drawn` |
 | Writing one out, and timing what it costs | `part/examples/draw_a_part.rs` | `cargo run --release -p cao_part --features test-support --example draw_a_part -- /tmp/big.caopart sketches=6 storeys=4` |
 | The picture a part carries of itself | `part/src/picture.rs` | `Picture` |
-| Pulling that picture out without replaying | `part/src/document.rs` | `PartDocument::picture_in` |
+| Pulling that picture out without replaying | `part/src/document.rs`, `part/src/document/picture_entries.rs` | `PartDocument::picture_in`, `picture_entries::read` |
 | What fails when opening a part | `part/src/errors.rs` | `PartFileError` |
 | What a part asks of a filesystem | `part/src/ports/files.rs` | `Files`, `FileError` |
 | What browsing a folder of parts asks of it | `part/src/ports/folders.rs` | `Folders`, `Entry` |

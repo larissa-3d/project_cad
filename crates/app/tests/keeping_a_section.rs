@@ -105,6 +105,26 @@
 //!   « Ne plus afficher la coupe » while its section is on, « Afficher la
 //!   coupe » while it is off — `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off`,
 //!   `clicking_the_eye_of_the_section_on_switches_it_off`
+//!
+//! Closes #1108 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests.rs`; these are the bullets
+//! only the panel clicked and the part saved by the application show.
+//! - A section just saved is shown, and the one before it is switched off. A
+//!   test checks it with no window — « Coupe 1 » saved reads shown, its eye
+//!   says a click hides it and the title bar names it; « Coupe 1 » then opened
+//!   by hand, « Coupe 2 » saved reads shown and « Coupe 1 » off —
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`
+//! - An eye shut by hand keeps the section hidden; an eye opened by hand keeps
+//!   it shown. One test per case — the eye of « Coupe 2 », the last saved,
+//!   shut: neither section shown, and still neither once the part is reopened,
+//!   `an_eye_shut_by_hand_keeps_its_section_hidden`; the eye of « Coupe 1 »
+//!   opened while « Coupe 2 » is the last saved: « Coupe 1 » shown alone, and
+//!   still once the part is reopened, `an_eye_opened_by_hand_keeps_its_section_shown`
+//! - decided before the red step, one at a time: saving a section, or opening
+//!   one by hand, clears the « opened by hand » of every other section and
+//!   touches nothing else; a « shut by hand » is never cleared by another
+//!   section's action —
+//!   `opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut`
 
 mod driver;
 

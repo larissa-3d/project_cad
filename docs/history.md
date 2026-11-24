@@ -116,7 +116,8 @@ A `.caopart` is a **zip archive**, and no longer a single JSON object:
 │                                 bytes each
 └── design/
     ├── history.json              the index: what each step is and what it
-    │                             stands on
+    │                             stands on, and which kept sections' eyes
+    │                             were opened or shut by hand
     ├── sketch-0/steps.json       what was drawn on that sketch
     ├── extrusion-0/steps.json    how far it went, and which way
     ├── sketch-1/steps.json
@@ -314,6 +315,19 @@ A part written before this carries neither entry and opens exactly as it did,
 so no version was bumped for it. A picture that cannot be read whole is a part
 with no picture, never a part that refuses to open: nothing of the drawing is
 in there.
+
+### A section's eye set by hand is kept beside the steps
+
+Whether the eye of a kept section was opened or shut by hand is written in
+`design/history.json` as `section_choices`, section by section, and only for the
+sections the hand set: one left to the rule has no entry. It is no step of the
+history, so undo does not take it back. A choice lasts as long as its section:
+a section undone or rewound away takes its choice with it, so that the next one
+saved, which takes its rank, comes with none; a section deleted keeps its rank,
+and its choice with it.
+
+A part written before this carries no such field and opens with no section set
+by hand, so no version was bumped for it.
 
 ### Earlier versions are not converted
 

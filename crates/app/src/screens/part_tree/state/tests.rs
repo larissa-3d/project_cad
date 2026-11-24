@@ -270,6 +270,105 @@
 //!
 //! Out of scope, and left as it is: the view bar's « Vue en coupe » button,
 //! which makes a new section.
+//!
+//! Closes #1108 — the whole transcription is here; the bullets the part file or
+//! the whole application holds say where they are held. What the part stores
+//! is the hand's choice alone, per section: none, opened by hand or shut by
+//! hand; which section the canvas cuts with is worked out from it, from the
+//! order the sections were saved in and from the reading point.
+//! - A section just saved is shown, and the one before it is switched off. A
+//!   test checks it with no window — no test: here, a section is saved from its
+//!   panel, which only the whole application drives; held in
+//!   `crates/app/tests/keeping_a_section.rs` by
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`, the
+//!   one before it shown by default and then opened by hand
+//! - An eye shut by hand keeps the section hidden; an eye opened by hand keeps
+//!   it shown. One test per case — no test: here, the eye is clicked through
+//!   the panel drawn; held in `crates/app/tests/keeping_a_section.rs` by
+//!   `an_eye_shut_by_hand_keeps_its_section_hidden`, the last section saved
+//!   shut and still hidden once the part is reopened, and
+//!   `an_eye_opened_by_hand_keeps_its_section_shown`, a section before the last
+//!   opened and still the one shown once the part is reopened
+//! - The state of each section is written in the part and read back: a section
+//!   hidden before closing is hidden on reopening. A part test checks it — no
+//!   test: here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `each_section_comes_back_from_the_caopart_shut_open_or_unset_as_the_hand_left_it`
+//! - On a part with several saved sections and no hand-made choice, the last
+//!   saved one is shown, the others not —
+//!   `with_several_sections_and_no_hand_choice_the_last_saved_is_shown_and_the_others_not`
+//! - A section a sketch is laid on stops cutting by itself, unless its eye was
+//!   opened by hand; one test per case —
+//!   `a_section_a_sketch_is_laid_on_stops_cutting_by_itself`,
+//!   `a_section_a_sketch_is_laid_on_keeps_cutting_once_its_eye_was_opened_by_hand`
+//! - The eye reads shown or hidden as the canvas does, including while the
+//!   part is read to a step before the section —
+//!   `a_section_s_eye_reads_what_the_canvas_cuts_with_even_while_the_part_is_read_to_a_box_before_it`
+//! - A part saved before this change opens with its last section shown, none
+//!   hand-set — the part's half, none hand-set, in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_part_saved_before_sections_were_set_by_hand_opens_with_none_set_and_takes_one_as_any_part`;
+//!   the last section shown, here, since a part with no hand choice is what
+//!   such a part opens as —
+//!   `with_several_sections_and_no_hand_choice_the_last_saved_is_shown_and_the_others_not`
+//! - decided before the red step: the hand's choice is no step of the history;
+//!   undo does not take it back and it moves no key step of #968 — no test:
+//!   here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_hand_choice_is_no_step_of_the_history_and_undo_leaves_it_alone`
+//! - decided before the red step: a choice is kept only while its section
+//!   stands. A section undone takes its choice with it, so that the next
+//!   section saved, which takes the same rank, comes with none — no test: here;
+//!   held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_hand_choice_leaves_with_its_section_and_never_passes_to_the_next_one_saved`
+//! - decided before the red step, the effective state: a section cuts if it was
+//!   opened by hand, not if it was shut by hand, and with no hand choice if it
+//!   is the last saved section not deleted and no sketch laid on it is read
+//!   through the reading point; deleting the last section brings the one
+//!   before it back to the same rule —
+//!   `deleting_the_last_section_brings_the_one_before_it_back_to_the_rule`; the
+//!   other cases by the bullets of criteria 2, 4 and 5
+//! - decided before the red step, one at a time: saving a section, or opening
+//!   one by hand, clears the « opened by hand » of every other section and
+//!   touches nothing else; a « shut by hand » is never cleared by another
+//!   section's action — no test: here, the eyes are clicked through the panel
+//!   drawn; held in `crates/app/tests/keeping_a_section.rs` by
+//!   `opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut`,
+//!   and the saving half by
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`
+//! - decided before the red step: the sketch being drawn on a section still
+//!   shows its cut while it is open, whatever the rule; closing it gives the
+//!   rule back —
+//!   `the_section_under_the_sketch_open_cuts_while_it_is_open_and_the_rule_comes_back_once_it_is_closed`
+//! - decided before the red step: reading to a step before the section changes
+//!   what the canvas and the eye show, never what is stored —
+//!   `a_section_s_eye_reads_what_the_canvas_cuts_with_even_while_the_part_is_read_to_a_box_before_it`,
+//!   which reads the part back to its end and finds the same section shown;
+//!   the reading point is the viewport's, never handed the part to change
+//! - decided before the red step: the choices are stored with the part, next to
+//!   the history in the archive, as a field an old part reads as no choice; no
+//!   migration, `SCHEMA_VERSION` unchanged — no test: here; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `a_part_saved_before_sections_were_set_by_hand_opens_with_none_set_and_takes_one_as_any_part`,
+//!   whose fixture says schema version 6 and has to open
+//! - decided in the issue: this reverses #692's « the part opens whole, a
+//!   section never switches itself on » and #969's eye reading the active state
+//!   rather than the cut — no test: it is the bookkeeping of the transcriptions;
+//!   each test of #692, #968, #969 and #972 that held the old rule is turned
+//!   round as the criterion that reverses it is reached, and its bullet points
+//!   at what holds it now, which `crates/app/tests/criteria.rs` keeps honest
+//! - Must not break: the body, the volume, the STL and the STEP are the whole
+//!   part's; a sketch on a saved section hangs on it, the double-click edits, a
+//!   section is deleted from the tree; #968's key steps; the sketch and volume
+//!   eyes — no test: held, untouched, by
+//!   `a_saved_section_leaves_the_volume_the_stl_and_the_step_as_they_were` in
+//!   `crates/part/tests/a_section_is_kept_in_the_part.rs`, by
+//!   `deleting_a_section_a_sketch_stands_on_asks_first` and
+//!   `a_saved_section_reopened_from_the_tree_comes_back_on_its_plane_its_offset_and_its_sides`
+//!   in `crates/app/tests/keeping_a_section.rs`, by the #968 block of
+//!   `tests/reader.rs` beside this file, and by the #969 bullets above on the
+//!   sketch and volume eyes
 
 use cao_part::VariableChange;
 use cao_part::VolumeState;
