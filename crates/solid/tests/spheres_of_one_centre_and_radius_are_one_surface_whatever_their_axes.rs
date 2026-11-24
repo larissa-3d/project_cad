@@ -102,17 +102,18 @@
 //! Two spheres are read about one axis before the boolean only where they
 //! are one surface on charts of two axes: a ball about z and a smaller ball
 //! about x whose axis runs through the first's centre are read each in its
-//! own chart, and join and cut along the circle they cross on —
-//! `a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_one_is_cut_by_the_other_along_the_circle_they_cross_on`,
-//! the first cut by the second built sound or declined, never crossed —
-//! `a_ball_cut_by_a_ball_about_an_axis_through_its_centre_is_built_sound_and_of_the_arithmetic_s_volume_or_declined`,
+//! own chart, and join and each cut the other along the circle they cross
+//! on, built sound —
+//! `a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_each_is_cut_by_the_other_along_the_circle_they_cross_on`;
 //! and the same two balls turned about one axis built sound, the drawing
 //! leaving out a row of the smaller's grid a hair from the rim they cross
 //! on rather than a sliver of strip beside it —
 //! `a_ball_cut_by_a_smaller_ball_on_its_own_axis_whose_rim_falls_a_hair_from_a_row_of_its_grid_is_built_sound_and_of_the_arithmetic_s_volume`,
 //! the rule itself held in `src/brep/tessellation/sampling/tests/rows.rs`;
-//! a meridian arc keeping every row all the same, where the faces either
-//! side of it are cut —
+//! a meridian arc keeping every row all the same: where one of its samples
+//! stands on a row a face leaves out, the face's column runs on through
+//! that point rather than the face being cut there, so the faces either
+//! side still share every sample of the arc —
 //! `a_half_ball_on_a_shaft_s_top_a_hair_wider_than_it_whose_meridian_arcs_end_a_hair_from_a_row_of_its_grid_is_drawn_closed`;
 //! and two charts whose axes part by a few hundred-millionths of a radian,
 //! far less than the drawing sees but more than the tolerance at the ball's
@@ -1104,12 +1105,15 @@ fn ball_and_a_ball_about_an_axis_through_its_centre() -> (Body, Body, f64) {
 }
 
 /// [`ball_and_a_ball_about_an_axis_through_its_centre`], joined either way,
-/// and the second cut by the first: each built, exact, its triangles closed
-/// and uncrossed, holding the two balls less the lens, and the smaller ball
-/// less it — the second read about neither the first's axis nor any but
-/// its own, whose line holds both centres.
+/// and each cut by the other: each built, exact, its triangles closed and
+/// uncrossed, holding the two balls less the lens, the larger less it and
+/// the smaller less it — the second read about neither the first's axis nor
+/// any but its own, whose line holds both centres. The larger cut by the
+/// smaller is drawn with no row of the smaller's grid a hair from the rim
+/// they cross on, rather than a sliver of strip beside it, which would cross
+/// the faces across.
 #[test]
-fn a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_one_is_cut_by_the_other_along_the_circle_they_cross_on()
+fn a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_each_is_cut_by_the_other_along_the_circle_they_cross_on()
  {
     let (first, second, lens) = ball_and_a_ball_about_an_axis_through_its_centre();
     let smaller = 36.0 * PI;
@@ -1120,29 +1124,12 @@ fn a_ball_and_a_ball_about_an_axis_through_its_centre_join_and_one_is_cut_by_the
             second.union(&first),
             BALL + smaller - lens,
         ),
+        ("cut by", first.difference(&second), BALL - lens),
         ("cut from", second.difference(&first), smaller - lens),
     ] {
         let what = format!("the ball about z {way} a ball of 3 about (3, 0, 0) turned about x");
         built_sound_holding_one_of(built, &[volume], EXACT * BALL, &what);
     }
-}
-
-/// [`ball_and_a_ball_about_an_axis_through_its_centre`], the first cut by
-/// the second: built, exact, its triangles closed and uncrossed, holding the
-/// ball less the lens — or declined; never a crossed body.
-#[test]
-fn a_ball_cut_by_a_ball_about_an_axis_through_its_centre_is_built_sound_and_of_the_arithmetic_s_volume_or_declined()
- {
-    let (first, second, lens) = ball_and_a_ball_about_an_axis_through_its_centre();
-
-    let built = first.difference(&second);
-
-    sound_or_declined(
-        built,
-        &[BALL - lens],
-        EXACT * BALL,
-        "the ball about z cut by a ball of 3 about (3, 0, 0) turned about x",
-    );
 }
 
 /// The ball about z cut through its pole at (0, 0, 5) by a plane leaning 45°
@@ -1235,8 +1222,11 @@ fn shaft_up_to_the_centre(part: &Body, radius: f64) -> Body {
 /// turned half a turn about z, the half y ≥ 0: the sphere crosses the
 /// shaft's wall a thousandth or so under its equator, and the half ball's
 /// meridian arcs end there, a ten-thousandth of a radian or two from the
-/// equator's row of the sphere's grid. The arcs keep that row, which the
-/// faces either side of them are cut at. Joined either way, and each cut by
+/// equator's row of the sphere's grid. The arcs keep that row: where one of
+/// their samples stands on a row a face leaves out, the face's column runs
+/// on through that point rather than the face being cut there, so the faces
+/// either side still share every sample of the arc. Joined either way, and
+/// each cut by
 /// the other: built, exact, its triangles closed and uncrossed, holding what
 /// the arithmetic leaves — at the shaft's radius, or at the ball's for a
 /// shaft laid onto the touch.

@@ -3,9 +3,11 @@
 //! hundredth of a step of either, nor within the room the caller asks if
 //! that is wider, so that no strip beside an end or a level is a sliver
 //! thinner than the faces across it sag (#956's ball cut by a ball). A
-//! meridian arc keeps every row of the grid outside its room, the faces
-//! either side of it being cut there too; that is held through the
-//! drawing, in
+//! meridian arc keeps every row of the grid outside its room: where one of
+//! its samples stands on a row a face leaves out, the face's column runs on
+//! through that point rather than the face being cut there, so the faces
+//! either side still share every sample of the arc. That is held through
+//! the drawing, in
 //! `tests/spheres_of_one_centre_and_radius_are_one_surface_whatever_their_axes.rs`.
 
 use std::f64::consts::TAU;
