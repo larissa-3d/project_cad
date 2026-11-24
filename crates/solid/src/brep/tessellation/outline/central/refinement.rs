@@ -19,8 +19,11 @@
 //!
 //! On the sphere's own `(θ, φ)`, a sliver narrower than the chart bends
 //! between its corners turns counterclockwise there and faces the centre on
-//! the sphere, crossing its neighbours: it is cut as a triangle sagging is,
-//! until the two agree. And a side is never cut the other way into a
+//! the sphere, crossing its neighbours: with no side on the boundary, it is
+//! cut as a triangle sagging is, until the two agree. One on the boundary
+//! is held by the chord there, and faces the centre wherever its corner
+//! stands a hair inside a latitude, within the chord's bow: no cut brings
+//! that corner off it (seed 956011325). And a side is never cut the other way into a
 //! triangle whose corners stand in a line on the chart but for rounding —
 //! the middle of a side cut, flipped back across it — which no cut could
 //! part again: a half ball notched at its rim by the small circle of a
@@ -138,17 +141,18 @@ struct Mesh<'a, C> {
 }
 
 impl<C: Lifted> Mesh<'_, C> {
-    /// Whether the triangle at `at` faces the centre, or stands further from
-    /// the sphere than `tolerance` and than the chord of any of its sides on
-    /// the boundary.
+    /// Whether the triangle at `at`, with no side on the boundary, faces the
+    /// centre, or stands further from the sphere than `tolerance` and than
+    /// the chord of any of its sides on the boundary.
     fn sags(&self, at: usize, tolerance: f64) -> bool {
         let corners = self.triangles[at];
-        if self.inward(corners) {
+        let on_the_boundary = (0..3)
+            .map(|side| [corners[side], corners[(side + 1) % 3]])
+            .filter(|&side| self.bounds.contains(&sorted(side)));
+        if on_the_boundary.clone().next().is_none() && self.inward(corners) {
             return true;
         }
-        let allowed = (0..3)
-            .map(|side| [corners[side], corners[(side + 1) % 3]])
-            .filter(|&side| self.bounds.contains(&sorted(side)))
+        let allowed = on_the_boundary
             .map(|[one, other]| self.chart.radius() - self.reach(one, other))
             .fold(tolerance, f64::max);
         self.chart.radius() - self.nearest(corners) > allowed
