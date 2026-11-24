@@ -2828,7 +2828,13 @@ pointed cone's flank waits on #711.
   great-circle arcs, the flat beside them — gain those samples: on the
   tests that draw them, a few in a hundred more triangles for most, about a
   tenth more for a sector, and an extra one in a hundred over all of
-  them.
+  them. Of the angles a face going round can be cut open at, it is cut at
+  the one the loops' other samples stand clearest of (#1110): the sweep fans
+  a sample a hair beside a wall — a circle's own grid angle a hair round
+  from where it crosses the cut's angle, a flat leaning across the meridian
+  there — out to every point along it, in slivers all but in the meridian's
+  plane that the refinement leaves within the tolerance, folded over one
+  another.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

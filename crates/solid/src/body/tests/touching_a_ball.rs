@@ -81,6 +81,30 @@
 //! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`.
 //! What the two caps share, under 1.2e-8 at half a degree, is left out of
 //! the volume: under a tenth of the billionth of it the volume is held to.
+//!
+//! The same flats turned a quarter about the ball's axis, their normals in
+//! the plane of its meridian of −Z rather than of +X, were drawn crossed,
+//! dozens to hundreds of triangles facing the centre, where the meridians of
+//! +X and −X draw them clean: caps of 30° and 50° — flats 5·cos 30° and
+//! 5·cos 50° from the centre — meeting at 60° of latitude, and caps of 45°
+//! and 45° meeting at 45°, their circles crossing at 0.1° and at 0.05°. Each
+//! step was accepted all the same, since a face drawn whole is all it asks.
+//!
+//! Closes #1110.
+//! - The four placements above, the flats cut in either order: built, sound,
+//!   drawn uncrossed, of the right volume (the caps' shared sliver is under
+//!   the tolerance) —
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first`
+//! - `touching_a_ball.rs`'s
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`
+//!   (#960) keeps passing — the test of that name above, run as it stands
+//!
+//! Read as: "built, sound, drawn uncrossed, of the right volume", what
+//! `built_whole` holds, as for #960's flats; "the right volume", the ball
+//! less both caps whole, the sliver the two share left out of it as #960's
+//! test leaves it: some 1e-11 for the caps of 30° and 50° crossing at a
+//! tenth of a degree, four orders under the billionth of the volume it is
+//! held to.
 
 use super::*;
 use crate::soundness::listed;
@@ -483,6 +507,47 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass
                     "the ball cut by two flats {offsets:?} from its centre, their circles {how}"
                 ),
             );
+        }
+    }
+}
+
+/// [`two_flats_about`]'s two directions turned a quarter about Y, from the
+/// plane of the meridian of +X into that of −Z.
+fn two_flats_about_minus_z(offsets: [f64; 2], apart: f64, latitude: f64) -> [DVec3; 2] {
+    two_flats_about(offsets, apart, latitude).map(|way| DVec3::new(0.0, way.y, -way.x))
+}
+
+/// The ball cut by two flats whose circles meet in the plane of its
+/// meridian of −Z: caps of 30° and 50° meeting at 60° of latitude, or of 45°
+/// each meeting at 45°, their circles crossing at a tenth of a degree or a
+/// twentieth, the first cap's centre under half a millionth of a radian off
+/// the pole it takes in. Cut by either flat first, each is built, listed
+/// sound, drawn whole and closed, uncrossed, as on the meridians of +X and
+/// −X.
+#[test]
+fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first()
+ {
+    for (caps, latitude) in [([30f64, 50.0], 60f64), ([45.0, 45.0], 45.0)] {
+        let offsets = caps.map(|cap| 5.0 * cap.to_radians().cos());
+        let [first, second] = offsets.map(|offset| 5.0 - offset);
+        for degrees in [0.1f64, 0.05] {
+            let apart = apart_crossing_at(offsets, degrees.to_radians());
+            let flats = two_flats_about_minus_z(offsets, apart, latitude.to_radians());
+            for [one, other] in [[0, 1], [1, 0]] {
+                let cut = ball_about_y()
+                    .difference(&slab_along(flats[one], offsets[one]))
+                    .and_then(|cut| cut.difference(&slab_along(flats[other], offsets[other])));
+                built_whole(
+                    cut,
+                    BALL_OF_5 - cap_of_5(first) - cap_of_5(second),
+                    10.0 * PI * (10.0 - first - second),
+                    &format!(
+                        "the ball cut by the flat of the cap of {}° then of {}°, their circles \
+                         crossing at {degrees}° at {latitude}° of latitude on the meridian of −Z",
+                        caps[one], caps[other]
+                    ),
+                );
+            }
         }
     }
 }

@@ -242,9 +242,8 @@ impl Outline {
         }
         let raws = floors.read_again(&laid);
         let ids: Vec<Vec<usize>> = laid.into_iter().map(|lap| lap.ids).collect();
-        self.round_laid(&raws, &ids, steps, |id| {
-            !samples.is_vertex(id) || floors.tip(id).is_some()
-        })
+        let cuttable = |id| !samples.is_vertex(id) || floors.tip(id).is_some();
+        self.round_laid_by(&raws, &ids, (steps, chart == Read::Tilted), cuttable)
     }
 
     /// A face of a ring winding round the tube between two whole meridians,
