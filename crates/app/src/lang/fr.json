@@ -162,6 +162,8 @@
   "part_tree.mode.cut": "enlèvement de matière",
   "part_tree.eye.hide": "Ne plus afficher l'esquisse",
   "part_tree.eye.show": "Afficher l'esquisse",
+  "part_tree.section_eye.hide": "Ne plus afficher la coupe",
+  "part_tree.section_eye.show": "Afficher la coupe",
   "part_tree.volume.hidden": "invisible",
   "part_tree.volume.see_through": "transparente",
   "part_tree.volume.opaque": "opaque",

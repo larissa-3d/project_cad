@@ -60,6 +60,14 @@ pub fn eye(lang: &Catalogue, lit: bool) -> String {
     })
 }
 
+/// What a click on a kept section's eye would do, given whether it is on.
+pub fn section_eye(lang: &Catalogue, on: bool) -> String {
+    lang.t(match on {
+        true => "part_tree.section_eye.hide",
+        false => "part_tree.section_eye.show",
+    })
+}
+
 /// How a volume is drawn, written on its line.
 pub fn volume_state(lang: &Catalogue, mode: VolumeState) -> String {
     lang.t(match mode {

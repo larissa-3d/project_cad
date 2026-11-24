@@ -90,6 +90,21 @@
 //!   found in review, with a sketch edited under the section, the pill says
 //!   the sketch's tool, not the section's step —
 //!   `with_the_section_open_a_sketch_edited_says_its_own_tool_rather_than_the_section_s_step`
+//!
+//! Closes #969 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests.rs`; these are the bullets
+//! only the panel clicked shows.
+//! - Clicking it switches that section on and any other off — clicking the eye
+//!   of « Coupe 1 », none on, then the eye of « Coupe 2 »: each is switched on
+//!   alone in turn, and the title bar names the section the canvas cuts with —
+//!   `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off`
+//! - or off — clicking the eye of the section on switches it off, the other
+//!   staying off, and the title bar names no section any more —
+//!   `clicking_the_eye_of_the_section_on_switches_it_off`
+//! - decided when the eye was wired: it is called what a click on it does,
+//!   « Ne plus afficher la coupe » while its section is on, « Afficher la
+//!   coupe » while it is off — `clicking_a_section_s_eye_switches_it_on_and_the_one_on_off`,
+//!   `clicking_the_eye_of_the_section_on_switches_it_off`
 
 mod driver;
 
@@ -580,6 +595,185 @@ fn switching_the_second_section_on_switches_the_first_off() {
         second_alone,
         (false, true),
         "« Coupe 2 » switched on, the sections read (first, second) = {second_alone:?}",
+    );
+}
+
+/// The button in the eye's column of the section's row named `name`: on the
+/// row's line, left of it, never the row itself.
+fn the_eye_of<'a>(app: &'a driver::App, name: &str) -> egui_kittest::Node<'a> {
+    let row = driver::the_row(app, name)
+        .unwrap_or_else(|| {
+            panic!(
+                "the tree holds no « {name} », showing {:?}",
+                driver::on_screen(app)
+            )
+        })
+        .rect();
+    app.query_all_by_role(egui::accesskit::Role::Button)
+        .filter(|node| node.accesskit_node().bounding_box().is_some())
+        .filter(|node| {
+            let at = node.rect();
+            at.right() <= row.left() && row.y_range().contains(at.center().y)
+        })
+        .max_by(|one, other| one.rect().right().total_cmp(&other.rect().right()))
+        .unwrap_or_else(|| {
+            panic!(
+                "no eye stands beside « {name} », showing {:?}",
+                driver::on_screen(app)
+            )
+        })
+}
+
+fn click_the_eye_of(app: &mut driver::App, name: &str) {
+    the_eye_of(app, name).click();
+    app.run();
+}
+
+/// Each section's row as the user reads it: its name, whether it is switched
+/// on, and what its eye says a click on it would do.
+type SectionRead = (String, bool, String);
+
+fn the_two_sections(app: &driver::App) -> Vec<SectionRead> {
+    ["Coupe 1", "Coupe 2"]
+        .into_iter()
+        .map(|name| {
+            let eye = the_eye_of(app, name).accesskit_node().label();
+            (
+                name.to_string(),
+                is_active(app, name),
+                eye.unwrap_or_default(),
+            )
+        })
+        .collect()
+}
+
+fn read_as(sections: [(&str, bool, &str); 2]) -> Vec<SectionRead> {
+    sections
+        .into_iter()
+        .map(|(name, on, eye)| (name.to_string(), on, eye.to_string()))
+        .collect()
+}
+
+/// What the title bar reads, left to right: the row of the topmost « Accueil ».
+fn the_title_bar(app: &driver::App) -> Vec<String> {
+    let home = app
+        .query_all_by(|node| node.label().as_deref() == Some("Accueil"))
+        .map(|node| node.rect())
+        .min_by(|one, other| one.top().total_cmp(&other.top()))
+        .unwrap_or_else(|| panic!("nothing reads « Accueil »: {:?}", driver::on_screen(app)));
+    let mut read: Vec<(f32, String)> = app
+        .get_all_by(|_| true)
+        .filter_map(|node| {
+            let read = node.accesskit_node();
+            read.bounding_box()?;
+            if read.role() == egui::accesskit::Role::TextRun {
+                return None;
+            }
+            let said = read
+                .label()
+                .or_else(|| read.value())
+                .filter(|said| !said.is_empty())?;
+            let at = node.rect();
+            home.y_range()
+                .contains(at.center().y)
+                .then_some((at.left(), said))
+        })
+        .collect();
+    read.sort_by(|one, other| one.0.total_cmp(&other.0));
+    read.into_iter().map(|(_, said)| said).collect()
+}
+
+/// The sections the title bar names as the one the canvas cuts with.
+fn named_in_the_title_bar(app: &driver::App) -> Vec<String> {
+    the_title_bar(app)
+        .into_iter()
+        .filter(|read| read == "Coupe 1" || read == "Coupe 2")
+        .collect()
+}
+
+#[test]
+fn clicking_a_section_s_eye_switches_it_on_and_the_one_on_off() {
+    let mut app = driver::a_block("keeping_a_section_the_eye_switches_on");
+    save_a_section(&mut app, "Plan YZ");
+    save_a_section(&mut app, "Plan XZ");
+    let before = the_two_sections(&app);
+
+    click_the_eye_of(&mut app, "Coupe 1");
+    let first = (the_two_sections(&app), named_in_the_title_bar(&app));
+    click_the_eye_of(&mut app, "Coupe 2");
+    let second = (the_two_sections(&app), named_in_the_title_bar(&app));
+
+    assert_eq!(
+        before,
+        read_as([
+            ("Coupe 1", false, "Afficher la coupe"),
+            ("Coupe 2", false, "Afficher la coupe"),
+        ]),
+        "the fixture wants two sections saved and neither on, as (row, on, what its eye says)",
+    );
+    assert_eq!(
+        first,
+        (
+            read_as([
+                ("Coupe 1", true, "Ne plus afficher la coupe"),
+                ("Coupe 2", false, "Afficher la coupe"),
+            ]),
+            vec!["Coupe 1".to_string()],
+        ),
+        "the eye of « Coupe 1 » clicked, none on: it is not switched on alone, its eye does not \
+         say a click hides it, or the title bar does not name it, as ((row, on, what its eye \
+         says), sections the title bar names)",
+    );
+    assert_eq!(
+        second,
+        (
+            read_as([
+                ("Coupe 1", false, "Afficher la coupe"),
+                ("Coupe 2", true, "Ne plus afficher la coupe"),
+            ]),
+            vec!["Coupe 2".to_string()],
+        ),
+        "the eye of « Coupe 2 » clicked, « Coupe 1 » on: « Coupe 2 » is not switched on and \
+         « Coupe 1 » off, their eyes do not say so, or the title bar does not name « Coupe 2 » \
+         alone, as ((row, on, what its eye says), sections the title bar names)",
+    );
+}
+
+#[test]
+fn clicking_the_eye_of_the_section_on_switches_it_off() {
+    let mut app = driver::a_block("keeping_a_section_the_eye_switches_off");
+    save_a_section(&mut app, "Plan YZ");
+    save_a_section(&mut app, "Plan XZ");
+    switch_on(&mut app, "Coupe 2");
+    let on = (the_two_sections(&app), named_in_the_title_bar(&app));
+
+    click_the_eye_of(&mut app, "Coupe 2");
+    let off = (the_two_sections(&app), named_in_the_title_bar(&app));
+
+    assert_eq!(
+        on,
+        (
+            read_as([
+                ("Coupe 1", false, "Afficher la coupe"),
+                ("Coupe 2", true, "Ne plus afficher la coupe"),
+            ]),
+            vec!["Coupe 2".to_string()],
+        ),
+        "the fixture wants « Coupe 2 » alone on, by a click on its row, and the title bar \
+         naming it, as ((row, on, what its eye says), sections the title bar names)",
+    );
+    assert_eq!(
+        off,
+        (
+            read_as([
+                ("Coupe 1", false, "Afficher la coupe"),
+                ("Coupe 2", false, "Afficher la coupe"),
+            ]),
+            Vec::<String>::new(),
+        ),
+        "the eye of « Coupe 2 », on, clicked: it is not switched off, « Coupe 1 » came on, an \
+         eye does not say a click shows it, or the title bar still names a section, as ((row, \
+         on, what its eye says), sections the title bar names)",
     );
 }
 
