@@ -373,3 +373,6 @@ pub(super) fn outside_cone(
     let ring = Exact::turned(&straight, frame, &turn, straight.numbers(false))?;
     Ok(vec![outside, ring])
 }
+
+#[cfg(test)]
+mod tests;

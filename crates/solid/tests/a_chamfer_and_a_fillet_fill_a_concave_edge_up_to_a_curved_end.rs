@@ -466,26 +466,39 @@
 //!
 //! The mutants of the disc's height the campaign let live, applied by hand,
 //! one line each. The run between a long edge's ends, `far - near` turned
-//! `/`; `axis * (high - low + 2.0 * clear)`'s `-` turned `+`, its `+` turned
-//! `*`, and its `* clear` turned `/ clear`: killed by the placed parts until
-//! #1023, the disc then raised past the part's top and its reach carried on
-//! into the part's tolerance. A fill now leaves its part its own reach, and
-//! that tolerance holds none of them: `/ clear`, which only raises the disc
-//! 16 taller, cuts from the prism what the disc cuts, and lives; the other
-//! three were not applied again. Where an edge crosses a plane, `/`
-//! turned `%`: killed by the placed leaning pillar, whose disc then misses
-//! the fill and the step is declined. Each height read off `at + origin`
-//! rather than `at - origin`, for the lowest and for the highest:
+//! `/`; and `axis * (high - low + 2.0 * clear)`'s `-` turned `+`, its `+`
+//! turned `*`, and its `2.0 * clear` turned `2.0 / clear` or `2.0 + clear`:
+//! each a disc taller than the fill, or moved along the axis off it, which
+//! cuts from the prism what the disc cuts where it still covers the fill.
+//! The placed parts killed the first four until #1023, the disc then raised
+//! past the part's top and its reach carried on into the part's tolerance,
+//! and left the last alive, the disc 2 past the fill inside every part's
+//! box. A fill now leaves its part its own reach, and all five are killed on
+//! the disc itself —
+//! `the_disc_a_fill_is_trimmed_by_inside_a_pillar_stands_a_clearance_under_and_over_what_the_fill_spans_along_its_axis`,
+//! in `src/body/exact/wedge/fill/round/tests.rs`: a fill of 1 on a plate's
+//! top 200 up running into a pillar of 3, its prism spanning 200 to 201
+//! along the axis, the clearance an eighth, so the disc is promised from
+//! 199.875 to 201.125, its top its reach. `/` reads the run as (16, 1, 1)
+//! and lifts every crossing by 1.25 or 1.4375, the disc from 201.125 to
+//! 202.5625; `-` turned `+` raises it 401.25, to 601.125; `+` turned `*`
+//! raises it 201 − 200 × 2 × ⅛ = 151, to 350.875; `/ clear` 1 + 16, to
+//! 216.875; and `+ clear` 1 + 2⅛, to 203. None is equivalent: the second
+//! would agree only where the fill's lowest crossing lies on the plane
+//! through the world's origin square to the axis, the third where it stands
+//! 2c / (1 − 2c) along it, c the clearance, and the last two at a clearance
+//! of 1 and of 2. Where an edge crosses a plane, `/` turned `%`: killed by
+//! the placed leaning pillar, whose disc then misses the fill and the step
+//! is declined; the unit test leaves it alone, its prism running square to
+//! the axis, so that a crossing stands at its edge's height wherever along
+//! the edge it is read. Each height read off `at +
+//! origin` rather than `at - origin`, for the lowest and for the highest:
 //! equivalent, a cylinder's origin is its axis's point nearest the world's,
 //! so `axis · origin` is nought. The frame's `v: -towards` turned `towards`:
 //! equivalent, the same disc, its two halves still meeting on the plane
-//! through the axis, raised along the axis as given. `2.0 * clear` turned
-//! `2.0 + clear`: left alive, the disc standing 2 past the fill rather than
-//! its clearance, which covers the prism and stays inside the box of every
-//! part here, the boss standing some 9 over the fill; only a part whose
-//! top stood within 2 of the fill's and set its reach would show it. The
-//! pillar arm's `normal · past < 0` turned `<=` is #908's guard, equivalent
-//! as #908's mutants above say.
+//! through the axis, raised along the axis as given. The pillar arm's
+//! `normal · past < 0` turned `<=` is #908's guard, equivalent as #908's
+//! mutants above say.
 //!
 //! Closes #907.
 //! - A fillet at the foot of the drafted slot's front wall is trimmed flush
