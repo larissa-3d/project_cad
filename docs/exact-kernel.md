@@ -2759,10 +2759,12 @@ pointed cone's flank waits on #711.
   latitude circle or a pole of the face it bounds. A face is cut at no row
   within a hundredth of a step of an end or a level of it, where the strip
   left beside it would be a sliver, its triangles nearer a face across a
-  sharp edge than that face's chords sag (#956), but for a row a meridian
-  arc of it stands on: the arc keeps every row, so that the faces either
-  side of it close against each other, and its chords skip no row where a
-  face turns a corner a hair from it. A face is laid out in `(θ, φ)`, each
+  sharp edge than that face's chords sag (#956). A meridian arc keeps every
+  row: where one of its samples stands on a row a face leaves out, the
+  face's column runs on through that point rather than the face being cut
+  there, so the faces either side still share every sample of the arc; an
+  arc that left the row out too opened the drawing where a face turned a
+  corner a hair from it. A face is laid out in `(θ, φ)`, each
   sample on the line of its edge — a latitude circle's at the circle's own
   angle along the meridian, a meridian's at the arc's own angle about the
   axis — so that its boundaries are exactly square to the chart;

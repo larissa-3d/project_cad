@@ -259,17 +259,20 @@ pub(super) fn levels_along(
 /// edge than that face's chords sag — a ball cut by a ball whose rim falls
 /// 7e-5 rad from a row of the smaller's grid was crossed there, and its
 /// folds never undone (#956). The strip beside it grows by as much, its sag
-/// by twice that share. A meridian arc keeps every row ([`on_meridian`]):
-/// each of its samples is a level of the faces it bounds, which take back a
-/// row they left out where the arc stands on it, so that the faces either
-/// side of it stay closed against each other, and a chord of the arc never
-/// skips a row where a face turns a corner a hair from it.
+/// by about twice that share. No edge is sampled at these rows: a meridian
+/// arc keeps every row ([`on_meridian`]), and where one of its samples
+/// stands on a row a face leaves out, the face's column runs on through
+/// that point (`Outline::passing`) rather than the face being cut there, so
+/// the faces either side still share every sample of the arc. An arc that
+/// left the row out too opened the drawing where a face turned a corner a
+/// hair from it (#956).
 const SLIVER: f64 = 0.01;
 
 /// The rows of a grid of `steps` rows a turn strictly between `low` and
 /// `high` along the meridian, none within `room`, or within [`SLIVER`] of a
 /// step, of either or of an angle of `levels` a whole number of turns on,
-/// ascending: the rows a face is cut at.
+/// ascending: the rows a face is cut at, never those an edge is sampled
+/// at, which `grid_rows` gives.
 pub(in crate::brep::tessellation) fn rows(
     steps: usize,
     low: f64,
