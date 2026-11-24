@@ -192,15 +192,14 @@ fn lying<'a>(
 /// What the surfaces a registered curve lies on were decided to make with
 /// `surface`, and with each other: the lines they touch along, and the
 /// points where two perpendicular cylinders touch — a node of the curve
-/// itself among them — or a plane a sphere, each with how far its touch
-/// reaches.
+/// itself among them.
 fn touches(registry: &Registry, curve: usize, surface: SurfaceId) -> Touches {
     let support = &registry.list[curve].support;
-    let mut at: Vec<(DVec3, f64)> = Vec::new();
+    let mut at: Vec<DVec3> = Vec::new();
     for (index, &own) in support.iter().enumerate() {
-        at.extend(registry.apart.reached(own, surface));
+        at.extend(registry.apart.points(own, surface));
         for &other in &support[index + 1..] {
-            at.extend(registry.apart.reached(own, other));
+            at.extend(registry.apart.points(own, other));
         }
     }
     Touches {
