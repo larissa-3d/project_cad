@@ -259,8 +259,8 @@
 //!   step. The eps is read through `Body::on_a_plane`, the kernel's one
 //!   tolerance, a billionth of the reach the body carries — the larger of
 //!   its operands', carried rather than computed, and for a fill since
-//!   #1023 its part's, joined with its own — so that as it was means to the
-//!   bit. The fill is the chamfer: the fillet on a sphere is #805's
+//!   #1023 its part's, joined with the reach its fill's prism itself stands
+//!   out to — so that as it was means to the bit. The fill is the chamfer: the fillet on a sphere is #805's
 //!   second slice's, and stays declined until then
 //! - #805's sphere tests keep their bodies — no test: the tests above of the
 //!   rib cut from a ball,
@@ -660,6 +660,30 @@
 //! `a_chamfer_and_a_fillet_of_nine_point_nine_and_of_ten_at_the_foot_of_the_rib_ending_on_a_dome_whose_trim_bulges_past_the_part_s_box_leave_the_part_s_tolerance_as_it_was_before_the_step`.
 //! With the piece's reach kept out of the part, the snug of `outside_sphere`
 //! is held on the trim itself, as #941's mutants paragraph says.
+//!
+//! Beyond the criteria too, the rule holds for every solid a chamfer or a
+//! fillet lays on its part, not a fill's alone: the cut of a convex edge,
+//! raised over the part's box and a margin past it, and the pieces that
+//! close or clear a corner, each read at the part's scale. On a block 30 by
+//! 20 by 10 with a pocket sunk 5 into its top, chamfers and fillets of 1, 2
+//! and 2.5 at the pocket's bottom corner, at the block's convex top corner,
+//! and on one of its top edges or two meeting at that corner grew the reach
+//! the part carries before this issue, to some 34 to 55, 32 to 45 and
+//! 30.003; they leave it as it was, to the bit —
+//! `a_chamfer_and_a_fillet_on_the_three_edges_of_a_pocket_s_bottom_corner_leave_the_part_s_tolerance_as_it_was`,
+//! `a_chamfer_and_a_fillet_on_the_three_edges_of_a_block_s_convex_corner_leave_the_part_s_tolerance_as_it_was`
+//! and
+//! `a_chamfer_and_a_fillet_on_one_convex_edge_or_two_meeting_at_a_corner_leave_the_part_s_tolerance_as_it_was`,
+//! in `a_chamfer_and_a_fillet_leave_the_part_s_tolerance_as_it_was.rs`. A
+//! solid joined is read at the larger of the part's scale and its own
+//! reach, which no step here makes the larger — no fill stands past its
+//! part — so that branch is held on the join itself, a tool carrying 90
+//! and standing out to 50 joined to a part of 10 leaving it carrying 50 —
+//! `a_solid_a_step_joins_to_the_part_reaching_past_it_leaves_the_part_carrying_its_own_reach`,
+//! in `src/body/exact/tests.rs`; and every surface of a solid so read
+//! arrives at that scale, which is what a boolean reads a pair of them at —
+//! `a_body_read_at_a_part_s_scale_has_every_surface_arrive_at_that_scale`,
+//! in `src/brep/topology/tests.rs`.
 
 mod step_reader;
 
