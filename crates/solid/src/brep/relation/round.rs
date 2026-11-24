@@ -8,7 +8,8 @@
 //! cylinder, a cone or a round whose axis holds the centre meets it as it
 //! meets the sphere read about that axis (#956), along circles of it, so that
 //! two spheres of one centre and radius are one surface whatever axes they
-//! were turned about. Any other plane cuts a sphere along the circle about
+//! were turned about; unsupported where such a circle comes within the
+//! drawing's reach of a pole of the sphere's own chart (#962). Any other plane cuts a sphere along the circle about
 //! the foot of its centre (#805), a circle of another axis than the
 //! sphere's, or touches it at that foot alone within the tolerance (#939),
 //! and a cylinder whose axis does not hold its centre pierces it along one
@@ -32,6 +33,7 @@ use crate::brep::curve::{Circle, Wall};
 use crate::brep::meet::{Configuration, Meeting};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Cone, Cylinder, Plane, Sphere, Surface, Torus};
+use crate::brep::tessellation::FRONT;
 pub(in crate::brep) use gap::{Gap, off_the_rim, untouched};
 
 /// A sphere or a torus as the frame of its axis and its meridian circle,
@@ -118,15 +120,37 @@ fn against(
         return about_the_axis(&frame, (center, radius), other, scale);
     }
     if let Some((frame, center, radius)) = read_about(surface, origin, axis, scale) {
-        return about_the_axis(&frame, (center, radius), other, scale);
+        let met = about_the_axis(&frame, (center, radius), other, scale);
+        return off_its_poles(surface, met);
     }
     match (surface, other) {
         (_, Surface::Sphere(sphere)) if holds(frame.origin, frame.axis, sphere.middle(), scale) => {
             let about = Surface::Sphere(sphere.about(frame.axis));
-            about_the_axis(&frame, (center, radius), &about, scale)
+            off_its_poles(
+                other,
+                about_the_axis(&frame, (center, radius), &about, scale),
+            )
         }
         (Surface::Sphere(sphere), Surface::Cylinder(cylinder)) => pierced(sphere, cylinder, scale),
         _ => Relation::Unsupported,
+    }
+}
+
+/// `met`, the relation of `sphere` read about another axis than its chart's,
+/// or unsupported where one of its rims comes nearer a pole of that chart
+/// than the drawing lays a circle of another axis, [`FRONT`] (#962): through
+/// one, no trace of the sphere reads it (`surface/sphere/seen.rs`), and the
+/// drawing leaves a face it bounds there open.
+fn off_its_poles(sphere: &Surface, met: Relation) -> Relation {
+    match (sphere, &met) {
+        (Surface::Sphere(sphere), Relation::Rims(rims))
+            if rims
+                .iter()
+                .any(|rim| sphere.near_a_pole(&rim.circle, FRONT)) =>
+        {
+            Relation::Unsupported
+        }
+        _ => met,
     }
 }
 

@@ -948,7 +948,12 @@ The decisions, in the order taken, once per operation:
    sphere whose centre its axis holds reads the sphere about its own
    (#956), so that the two meet along circles of that axis, a circle of
    another axis on a sphere turned about another, and two spheres of one
-   centre and radius are `Same` whatever axes they were turned about. Any other plane cuts a sphere (#805) along
+   centre and radius are `Same` whatever axes they were turned about. Such
+   a pair is unsupported where one of its circles comes nearer a pole of
+   the sphere's own chart than the drawing lays a circle of another axis
+   (#962): a shaft of a ball's radius through its centre square to its
+   axis touches it along a great circle through both poles, which no trace
+   reads. Any other plane cuts a sphere (#805) along
    the circle about the foot of its centre on the plane, square to the
    plane, of radius `√(r² − d²)`, `d` the centre's distance from the plane,
    written as a product — `Relation::Circle`, a circle of another axis than

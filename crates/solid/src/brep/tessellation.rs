@@ -45,6 +45,7 @@ use glam::DVec3;
 use super::surface::Surface;
 use super::topology::{Body, FaceId};
 use folds::Drawn;
+pub(in crate::brep) use outline::FRONT;
 use outline::Outline;
 use sampling::Samples;
 pub(in crate::brep) use sampling::divisions_in;

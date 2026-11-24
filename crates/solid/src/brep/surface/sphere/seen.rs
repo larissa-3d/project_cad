@@ -25,6 +25,16 @@ use super::Sphere;
 use crate::brep::curve::Circle;
 
 impl Sphere {
+    /// Whether `circle`, one the sphere carries, comes nearer a pole than
+    /// `front`, the cosine of the angle off the axis each of its points must
+    /// stand at: its point highest along the axis, either way, past
+    /// `√(1 − front²)` of the radius.
+    pub(in crate::brep) fn near_a_pole(&self, circle: &Circle, front: f64) -> bool {
+        let over = (circle.center - self.middle()).dot(self.axis);
+        let across = circle.u.dot(self.axis).hypot(circle.v.dot(self.axis));
+        (over.abs() + circle.radius * across) / self.radius > (1.0 - front * front).sqrt()
+    }
+
     /// Whether the circle passes within `eps` of a pole.
     pub(in crate::brep) fn through_a_pole(&self, circle: &Circle, eps: f64) -> bool {
         [-1.0, 1.0].into_iter().any(|side| {
