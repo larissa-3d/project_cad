@@ -79,7 +79,7 @@ impl PartDocument {
     }
 
     /// The part shown as read through its `key_step`th key step in effect —
-    /// a sketch, an extrusion or a revolution, a section being none: the
+    /// a sketch, an extrusion, a revolution or a section kept: the
     /// design's steps replayed through the one it opens, each whole as it now
     /// stands, none after it. Through the last, or past it, the part shown.
     pub fn shown_through(&self, states: &BTreeMap<u32, VolumeState>, key_step: usize) -> Shown {

@@ -53,12 +53,11 @@ impl History {
             .collect();
     }
 
-    /// The numbers of the operations that opened the sketches, in the order
-    /// they were made: a sketch's rank here is what every operation names it
-    /// by.
-    pub(crate) fn sketches_made(&self) -> Vec<u32> {
-        StepKind::Sketch
-            .in_the_order_made(&self.steps)
+    /// The numbers of the operations that opened the steps of that kind, in
+    /// the order they were made: a sketch's or a section's rank here is what
+    /// every operation names it by.
+    pub(crate) fn made(&self, kind: StepKind) -> Vec<u32> {
+        kind.in_the_order_made(&self.steps)
             .into_iter()
             .map(|(number, _)| number)
             .collect()

@@ -1,6 +1,6 @@
 //! The step reader, the card above the history in the Part panel: one box per
-//! key step the part stands on — a sketch or a volume. A section raises
-//! nothing and is no step.
+//! key step the part stands on — a sketch, a volume or a section kept. A
+//! section left unsaved is only a look, and no step.
 
 use std::collections::HashMap;
 
@@ -18,7 +18,7 @@ use crate::wording::part_tree::{self as said, Problem};
 pub struct KeyStep {
     pub kind: StepKind,
     /// Whether a volume adds matter or takes it away, as its row in the tree
-    /// says; nothing for a sketch.
+    /// says; nothing for a sketch or a section.
     pub mode: Option<ExtrusionMode>,
     pub name: String,
     /// Played: at or before the reading point.
@@ -67,18 +67,17 @@ impl StepReader {
 
     fn read(document: &PartDocument, lang: &Catalogue, played: impl Fn(usize) -> bool) -> Self {
         let tree = PartTree::of(document, lang);
-        let problems = problems(&tree);
         let modes: HashMap<usize, ExtrusionMode> = tree
             .bodies
             .iter()
             .map(|body| (body.step, body.mode))
             .collect();
-        let names = names(&tree);
+        let rows = rows(&tree);
         let mut steps: Vec<(KeyStep, Option<Problem>)> = key_steps(document)
             .filter_map(|(step, _, kind)| {
-                let name = names.get(&step)?.to_string();
+                let (name, problem) = rows.get(&step)?;
                 let mode = modes.get(&step).copied();
-                Some((kind, mode, name, problems.get(&step).copied()))
+                Some((kind, mode, name.to_string(), *problem))
             })
             .enumerate()
             .map(|(rank, (kind, mode, name, problem))| {
@@ -115,9 +114,9 @@ impl StepReader {
     }
 }
 
-/// The key steps in effect, in the part's order — each sketch and each
-/// volume, a section raising nothing — with the place of the operation that
-/// opens each among the operations applied.
+/// The key steps in effect, in the part's order — each sketch, each volume
+/// and each section kept — with the place of the operation that opens each
+/// among the operations applied.
 pub fn key_steps(document: &PartDocument) -> impl Iterator<Item = (usize, &Operation, StepKind)> {
     let history = &document.history;
     history.key_steps().filter_map(|(_, step)| {
@@ -126,26 +125,23 @@ pub fn key_steps(document: &PartDocument) -> impl Iterator<Item = (usize, &Opera
     })
 }
 
-/// The name of each row of the tree's sketches and volumes, by the step in the
-/// design the row stands for: what its box is called too.
-fn names(tree: &PartTree) -> HashMap<usize, &str> {
-    let sketches = tree.sketches.iter().map(|drawn| (drawn.step, &drawn.name));
-    let volumes = tree.bodies.iter().map(|body| (body.step, &body.name));
-    sketches
-        .chain(volumes)
-        .map(|(step, name)| (step, name.as_str()))
-        .collect()
-}
-
-/// The problem of each badge of the tree's sketches and volumes, by the step
-/// in the design the row stands for.
-fn problems(tree: &PartTree) -> HashMap<usize, Problem> {
-    let sketches = tree.sketches.iter().map(|drawn| (drawn.step, drawn.badge));
-    let volumes = tree.bodies.iter().map(|body| (body.step, body.badge));
-    sketches
-        .chain(volumes)
-        .filter_map(|(step, badge)| Some((step, badge?)))
-        .collect()
+/// The name and the problem of the badge of each row of the tree's sketches,
+/// volumes and sections, by the step in the design the row stands for: what
+/// its box is called and wears too.
+fn rows(tree: &PartTree) -> HashMap<usize, (&str, Option<Problem>)> {
+    let sketches = tree
+        .sketches
+        .iter()
+        .map(|drawn| (drawn.step, (drawn.name.as_str(), drawn.badge)));
+    let volumes = tree
+        .bodies
+        .iter()
+        .map(|body| (body.step, (body.name.as_str(), body.badge)));
+    let sections = tree
+        .sections
+        .iter()
+        .map(|kept| (kept.step, (kept.name.as_str(), kept.badge)));
+    sketches.chain(volumes).chain(sections).collect()
 }
 
 /// The line under the row, read off the box read to.

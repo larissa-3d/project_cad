@@ -6,8 +6,9 @@
 //! the steps that follow it keeps that edit when read, because the design
 //! replays a step whole. The part as it stood when an operation was typed is
 //! the history's own reading, which `rewind_to` gives and undo walks; the
-//! reader is not the undo stack. A section raises nothing, so it counts for
-//! no key step and changes nothing read.
+//! reader is not the undo stack. A section kept is a key step since #968, and
+//! raises nothing: the part read through it is the part read through the step
+//! before it. A section deleted is no key step.
 //!
 //! Closes #356 — the whole transcription is in
 //! `crates/app/src/screens/part_tree/state/tests/reader.rs`; this bullet is
@@ -22,6 +23,15 @@
 //!   the reading point is not replayed at all, so that it brings no matter and
 //!   leaves no ghost whatever its state —
 //!   `a_part_read_through_a_key_step_is_its_design_replayed_through_that_step`
+//!
+//! Closes #968 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests/reader.rs`; this bullet is
+//! the part's half, before any frame draws it.
+//! - decided in the issue: deleting a section stays what #692 made it, and
+//!   its step follows — the part's half: a section deleted is no key step,
+//!   and each key step after it is read through its own rank, as the reader
+//!   counts its boxes —
+//!   `a_deleted_section_is_no_key_step_and_the_steps_after_it_are_read_at_their_own_rank`
 
 use std::collections::BTreeMap;
 
@@ -51,8 +61,8 @@ fn length_of_the_first_side(document: &mut PartDocument, millimetres: f64) {
 /// A square of side 10 drawn on XY and raised 10 into a block, a section kept
 /// across it, a second sketch on XY and a slab 10 by 10 raised 5 from it at
 /// x = 40; then the first square's side typed again, 20 rather than 10, which
-/// makes the block 20 long. Four key steps: the first sketch, the block, the
-/// second sketch, the slab.
+/// makes the block 20 long. Five key steps: the first sketch, the block, the
+/// section, the second sketch, the slab.
 fn a_part_whose_first_sketch_was_edited_last() -> PartDocument {
     let mut document = PartDocument::new("part", Utc::now());
     document.apply(Operation::CreateSketch {
@@ -141,10 +151,15 @@ fn a_part_read_through_a_key_step_is_its_design_replayed_through_that_step() {
         (
             2,
             2000.0,
-            "read through the second sketch, which raises nothing, the part",
+            "read through the section, which raises nothing, the part",
         ),
         (
             3,
+            2000.0,
+            "read through the second sketch, which raises nothing, the part",
+        ),
+        (
+            4,
             2500.0,
             "read through the slab, the last key step, the part",
         ),
@@ -189,4 +204,73 @@ fn a_part_read_through_a_key_step_is_its_design_replayed_through_that_step() {
         2500.0,
         "the part itself, once read through its block,",
     );
+}
+
+/// A square of side 10 drawn on XY at `corner` as `sketch`, raised `height`.
+fn a_square_raised(document: &mut PartDocument, sketch: usize, corner: DVec2, height: f64) {
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(corner + DVec2::splat(10.0)),
+        construction: false,
+    });
+    document.apply(Operation::Extrude {
+        sketch,
+        areas: document.areas_at(sketch, &[corner + DVec2::splat(5.0)]),
+        distance: height.into(),
+        mode: ExtrusionMode::Add,
+    });
+}
+
+#[test]
+fn a_deleted_section_is_no_key_step_and_the_steps_after_it_are_read_at_their_own_rank() {
+    let mut document = PartDocument::new("part", Utc::now());
+    a_square_raised(&mut document, 0, DVec2::ZERO, 10.0);
+    document.apply(Operation::SaveSection(SectionAsked {
+        plane: WorkPlane::YZ,
+        on: None,
+        offset: 5.0,
+        behind: SideDrawing::SeeThrough,
+        in_front: SideDrawing::Opaque,
+        tilt_about_u_degrees: 0.0,
+        tilt_about_v_degrees: 0.0,
+        pivot: DVec3::ZERO,
+    }));
+    a_square_raised(&mut document, 1, DVec2::new(40.0, 0.0), 5.0);
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    let slab = document.history.number_at(6).expect("the slab's raise");
+    assert_eq!(
+        document.history.key_steps().count(),
+        6,
+        "the fixture wants six key steps, the section among them",
+    );
+
+    let section = document.sections()[0].id;
+    document.apply(Operation::DeleteSection { section });
+
+    assert_eq!(
+        (
+            document.history.key_steps().count(),
+            document.history.key_step_opened_by(slab),
+        ),
+        (5, Some(3)),
+        "a block, a section, a slab and a third sketch, then the section deleted: the part \
+         does not count five key steps, the slab the fourth, as (key steps, the slab's rank)",
+    );
+    let all_opaque = BTreeMap::new();
+    for (key_step, expected, what) in [
+        (1, 1000.0, "read through the block, the part"),
+        (2, 1000.0, "read through the second sketch, the part"),
+        (3, 1500.0, "read through the slab, the part"),
+    ] {
+        let read = document.shown_through(&all_opaque, key_step);
+        assert_volume(read.body.volume(), expected, what);
+    }
 }

@@ -95,7 +95,7 @@ From top to bottom:
   - the counter « 3 / 6 » on the right;
   - a warning / error legend.
 - Screenshot 07: reading point on « Esquisse 2 » (in error).
-> Decided otherwise in #722 (inventory L2, L7, L3, L5): a step added while the reading point is at step 3 is inserted after step 3, and the reading point then stays on the new step; export always takes the whole part; and sections are not steps.
+> Decided otherwise in #722 (inventory L2, L7, L3, L5): a step added while the reading point is at step 3 is inserted after step 3, and the reading point then stays on the new step; export always takes the whole part; and sections are not steps — which #968 reverses: a saved section is a key step, and one left unsaved stays a look.
 
 ## P8 — 3D view
 - **Background**:

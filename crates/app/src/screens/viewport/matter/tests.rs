@@ -118,7 +118,18 @@
 //! drops what was undone. So the part's own reading could count undone steps
 //! and still read every box applied to the same place; the boxes could not,
 //! since one box more would name a step the part does not have. A section
-//! between two key steps is what can set the two counts apart.
+//! between two key steps is what set the two counts apart while a section was
+//! no box; since #968 a saved section is a box of its own, and a section
+//! deleted is what can set them apart.
+//!
+//! Closes #968 — the whole transcription is in
+//! `crates/app/src/screens/part_tree/state/tests/reader.rs`; this bullet is
+//! the half the canvas draws.
+//! - decided in the issue: deleting a section stays what #692 made it, and
+//!   its step follows — a section deleted is no box, and each box after it
+//!   draws the part read through its own step, the part's own reading
+//!   counting the same boxes —
+//!   `a_deleted_section_is_no_box_and_each_box_after_it_draws_the_part_read_through_it`
 
 use std::collections::BTreeMap;
 
@@ -831,32 +842,29 @@ fn a_part_read_to_a_step_is_drawn_up_to_it_and_whole_again_from_the_last() {
     );
 }
 
-/// A square of side 10 raised 10 into a block, a section kept across it, a
-/// square of side 10 at x = 40 raised 5 into a slab, then a third square at
-/// x = 80 raised 3 and that raise undone: five boxes, the section and the
-/// undone raise none of them.
-fn a_part_with_a_section_between_its_steps_and_a_step_undone() -> PartDocument {
-    let mut document = PartDocument::new("part", chrono::Utc::now());
-    let square = |document: &mut PartDocument, sketch: usize, corner: DVec2, distance: f64| {
-        document.apply(Operation::CreateSketch {
-            plane: WorkPlane::XY,
-            on: None,
-        });
-        document.apply(Operation::AddRectangle {
-            sketch,
-            corner: PointRef::New(corner),
-            opposite: PointRef::New(corner + DVec2::splat(10.0)),
-            construction: false,
-        });
-        document.apply(Operation::Extrude {
-            sketch,
-            areas: document.areas_at(sketch, &[corner + DVec2::splat(5.0)]),
-            distance: distance.into(),
-            mode: ExtrusionMode::Add,
-        });
-    };
-    square(&mut document, 0, DVec2::ZERO, 10.0);
-    document.apply(Operation::SaveSection(SectionAsked {
+/// A square of side 10 drawn on XY at `corner` as `sketch`, raised `distance`.
+fn a_square_raised(document: &mut PartDocument, sketch: usize, corner: DVec2, distance: f64) {
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    document.apply(Operation::AddRectangle {
+        sketch,
+        corner: PointRef::New(corner),
+        opposite: PointRef::New(corner + DVec2::splat(10.0)),
+        construction: false,
+    });
+    document.apply(Operation::Extrude {
+        sketch,
+        areas: document.areas_at(sketch, &[corner + DVec2::splat(5.0)]),
+        distance: distance.into(),
+        mode: ExtrusionMode::Add,
+    });
+}
+
+/// « Enregistrer la coupe » on a section across YZ, 5 from it.
+fn a_section_across_yz() -> Operation {
+    Operation::SaveSection(SectionAsked {
         plane: WorkPlane::YZ,
         on: None,
         offset: 5.0,
@@ -865,22 +873,122 @@ fn a_part_with_a_section_between_its_steps_and_a_step_undone() -> PartDocument {
         tilt_about_u_degrees: 0.0,
         tilt_about_v_degrees: 0.0,
         pivot: DVec3::ZERO,
-    }));
-    square(&mut document, 1, DVec2::new(40.0, 0.0), 5.0);
-    square(&mut document, 2, DVec2::new(80.0, 0.0), 3.0);
+    })
+}
+
+/// A square of side 10 raised 10 into a block, a section kept across it, a
+/// square of side 10 at x = 40 raised 5 into a slab, then a third square at
+/// x = 80 raised 3 and that raise undone: six boxes, the section one of them
+/// and the undone raise none.
+fn a_part_with_a_section_between_its_steps_and_a_step_undone() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    a_square_raised(&mut document, 0, DVec2::ZERO, 10.0);
+    document.apply(a_section_across_yz());
+    a_square_raised(&mut document, 1, DVec2::new(40.0, 0.0), 5.0);
+    a_square_raised(&mut document, 2, DVec2::new(80.0, 0.0), 3.0);
     document.undo();
     document
 }
 
-#[test]
-fn each_box_read_to_draws_the_part_read_through_that_box() {
-    const VOLUME: f64 = 1e-6;
-    let document = a_part_with_a_section_between_its_steps_and_a_step_undone();
-    let boxes: Vec<String> = StepReader::of(&document, &Catalogue::french())
+/// The name of each of the reader's boxes, in the row's order.
+fn the_boxes(document: &PartDocument) -> Vec<String> {
+    StepReader::of(document, &Catalogue::french())
         .boxes
         .into_iter()
         .map(|step| step.name)
-        .collect();
+        .collect()
+}
+
+/// Each box, by its rank, read to whose matter is not what the part read
+/// through that box holds, drawn or read: what each holds is `expected`, by
+/// rank, nothing for no matter.
+fn boxes_drawn_apart(
+    document: &PartDocument,
+    boxes: &[String],
+    expected: &[Option<f64>],
+) -> Vec<String> {
+    const VOLUME: f64 = 1e-6;
+    let same = |one: Option<f64>, other: Option<f64>| match (one, other) {
+        (Some(one), Some(other)) => (one - other).abs() <= VOLUME * other.max(1.0),
+        (None, None) => true,
+        _ => false,
+    };
+    let mut apart = Vec::new();
+    for (rank, holds) in expected.iter().copied().enumerate() {
+        let mut viewport = ViewportState::default();
+        viewport.read_to(rank, boxes.len());
+        let drawn = matter_drawn(&viewport, document);
+        let read = document.shown_through(&BTreeMap::new(), rank).body;
+        let read = (!read.is_empty()).then(|| read.volume());
+        if !(same(drawn, holds) && same(read, holds)) {
+            apart.push(format!(
+                "« {} »: drawn {drawn:?}, the part read through it {read:?}, not {holds:?}",
+                boxes.get(rank).map_or("?", String::as_str),
+            ));
+        }
+    }
+    apart
+}
+
+#[test]
+fn each_box_read_to_draws_the_part_read_through_that_box() {
+    let document = a_part_with_a_section_between_its_steps_and_a_step_undone();
+    let boxes = the_boxes(&document);
+    assert_eq!(
+        boxes,
+        [
+            "Esquisse 1",
+            "Extrusion 1",
+            "Coupe 1",
+            "Esquisse 2",
+            "Extrusion 2",
+            "Esquisse 3"
+        ],
+        "the reader does not list the six steps applied, the section among them and the \
+         raise undone left out",
+    );
+
+    let apart = boxes_drawn_apart(
+        &document,
+        &boxes,
+        &[
+            None,
+            Some(1000.0),
+            Some(1000.0),
+            Some(1000.0),
+            Some(1500.0),
+            Some(1500.0),
+        ],
+    );
+    assert!(
+        apart.is_empty(),
+        "a box read to does not draw what the part read through that box holds:\n{}",
+        apart.join("\n"),
+    );
+}
+
+/// A square of side 10 raised 10 into a block, a section kept across it, a
+/// square of side 10 at x = 40 raised 5 into a slab, a third sketch left
+/// empty, then the section deleted: five boxes, the section deleted none of
+/// them.
+fn a_part_whose_section_between_its_steps_was_deleted() -> PartDocument {
+    let mut document = PartDocument::new("part", chrono::Utc::now());
+    a_square_raised(&mut document, 0, DVec2::ZERO, 10.0);
+    document.apply(a_section_across_yz());
+    a_square_raised(&mut document, 1, DVec2::new(40.0, 0.0), 5.0);
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XY,
+        on: None,
+    });
+    let section = document.sections()[0].id;
+    document.apply(Operation::DeleteSection { section });
+    document
+}
+
+#[test]
+fn a_deleted_section_is_no_box_and_each_box_after_it_draws_the_part_read_through_it() {
+    let document = a_part_whose_section_between_its_steps_was_deleted();
+    let boxes = the_boxes(&document);
     assert_eq!(
         boxes,
         [
@@ -890,38 +998,19 @@ fn each_box_read_to_draws_the_part_read_through_that_box() {
             "Extrusion 2",
             "Esquisse 3"
         ],
-        "the reader does not list the five steps applied, the section and the raise undone \
-         left out",
+        "the reader does not list the five steps left once the section between them was \
+         deleted",
     );
 
-    let same = |one: Option<f64>, other: Option<f64>| match (one, other) {
-        (Some(one), Some(other)) => (one - other).abs() <= VOLUME * other.max(1.0),
-        (None, None) => true,
-        _ => false,
-    };
-    let mut apart = Vec::new();
-    for (rank, holds) in [
-        (0, None),
-        (1, Some(1000.0)),
-        (2, Some(1000.0)),
-        (3, Some(1500.0)),
-        (4, Some(1500.0)),
-    ] {
-        let mut viewport = ViewportState::default();
-        viewport.read_to(rank, boxes.len());
-        let drawn = matter_drawn(&viewport, &document);
-        let read = document.shown_through(&BTreeMap::new(), rank).body;
-        let read = (!read.is_empty()).then(|| read.volume());
-        if !(same(drawn, holds) && same(read, holds)) {
-            apart.push(format!(
-                "« {} »: drawn {drawn:?}, the part read through it {read:?}, not {holds:?}",
-                boxes[rank],
-            ));
-        }
-    }
+    let apart = boxes_drawn_apart(
+        &document,
+        &boxes,
+        &[None, Some(1000.0), Some(1000.0), Some(1500.0), Some(1500.0)],
+    );
     assert!(
         apart.is_empty(),
-        "a box read to does not draw what the part read through that box holds:\n{}",
+        "once the section between its steps is deleted, a box read to does not draw what \
+         the part read through that box holds:\n{}",
         apart.join("\n"),
     );
 }

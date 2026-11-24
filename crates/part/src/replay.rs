@@ -20,7 +20,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use cao_sketch::Sketch;
 
 use crate::formula::Formula;
-use crate::history::{History, Operation};
+use crate::history::{History, Operation, StepKind};
 use crate::outcome::Outcome;
 use crate::showing::Showing;
 use crate::state::PartState;
@@ -51,6 +51,8 @@ pub(crate) struct Replay {
     /// The numbers of the operations that opened the sketches, in the order
     /// they were made.
     sketches_made: Vec<u32>,
+    /// The same for the sections.
+    sections_made: Vec<u32>,
     /// How many edges each blend step was first laid with, by number.
     pub(crate) blends_first_laid: BTreeMap<u32, usize>,
     /// The number of the change in effect of each step changed, by the number
@@ -134,7 +136,8 @@ impl PartState {
     fn replayed(history: &History, superseded: HashMap<SetBy, Vec<f64>>, showing: Showing) -> Self {
         let mut state = Self::default();
         state.replay.superseded = superseded;
-        state.replay.sketches_made = history.sketches_made();
+        state.replay.sketches_made = history.made(StepKind::Sketch);
+        state.replay.sections_made = history.made(StepKind::Section);
         state.replay.blends_first_laid = history.blends_first_laid();
         state.replay.changes_named_by = history.changes_named_by();
         state.showing = showing;
@@ -183,6 +186,14 @@ impl PartState {
             .sketches_made
             .binary_search(&self.replaying)
             .unwrap_or(self.sketches.len())
+    }
+
+    /// The rank the section about to be kept is named by, as a sketch's is.
+    pub(crate) fn section_being_made(&self) -> usize {
+        self.replay
+            .sections_made
+            .binary_search(&self.replaying)
+            .unwrap_or(self.sections.len())
     }
 
     /// Lays a sketch just made at its rank. One replayed before sketches made
