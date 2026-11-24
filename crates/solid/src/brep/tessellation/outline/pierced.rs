@@ -8,9 +8,8 @@
 //! sample of those curves where it is read, each pole the face holds along
 //! its floor, a face going round cut open at an angle of the grid every loop
 //! passes at a sample, as a circle of another axis is sampled where it
-//! crosses one, the angle the loops' other samples stand clearest of, its
-//! walls split at the grid's rows on lattice points both walls share — then
-//! swept and refined as the central chart is
+//! crosses one, its walls split at the grid's rows on lattice points both
+//! walls share — then swept and refined as the central chart is
 //! ([`super::central`]), each point added lifted onto the sphere from
 //! `(θ, φ)`. A triangle with two corners on a floor stands for its pole twice
 //! and is dropped, as on a cone, leaving a fan from the pole. Only a face
@@ -20,12 +19,18 @@
 //! floor to a point, and a curve passing near one sweeps round it between two
 //! of its samples.
 //!
-//! Clearest, since the sweep fans a sample a hair beside a wall out to every
-//! point along it: a circle's own grid angle a hair round from where it
-//! crosses the angle of the cut, a flat leaning across the meridian there
-//! (#1110). Those slivers lie all but in the meridian's plane, along an arc,
-//! and the refinement leaves them within the tolerance folded over one
-//! another.
+//! Of the angles every loop passes at a sample, the face is cut open at the
+//! first that no other sample stands beside, within a tenth of a step — or,
+//! where one stands beside each, at the one the nearest stands furthest
+//! from. The sweep fans a sample beside a wall out to every point along it,
+//! in slivers all but in the meridian's plane, along an arc, which the
+//! refinement leaves within the tolerance folded over one another: a
+//! circle's own grid angle a hair round from where it crosses the angle, a
+//! flat leaning across the meridian there (#1110). Not the clearest angle
+//! of all, though: where nothing stands beside the first, a cut moved on
+//! changes the drawing for nothing, and a ball turned about the axis of a
+//! slot's round end, its rim a hair outside the end's wall, was drawn
+//! through that wall's chords (956009659).
 
 use glam::{DVec2, DVec3};
 

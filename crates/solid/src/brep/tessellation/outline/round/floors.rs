@@ -12,7 +12,8 @@ use glam::DVec2;
 
 use super::super::super::sampling::Samples;
 use super::super::cone::{Laid, near_turn};
-use super::super::cylinder::{CLEAR, apart};
+use super::super::cylinder::{CLEAR, apart, clear_first};
+use super::Read;
 use crate::brep::domain::floor::Pole;
 
 /// The floors of a round's chart: its poles, each a line the chart ends
@@ -190,6 +191,20 @@ impl Floors<'_> {
                     .collect()
             })
             .collect()
+    }
+
+    /// The grid's angles in the order a face whose loops were read again as
+    /// `raws` is tried cut open at, read as `chart` says: by rank, but where
+    /// its samples stand where they are read, the angles a sample stands
+    /// beside last ([`clear_first`]). Swept rather than cut in strips, such a
+    /// face has a sample beside its wall fanned out to every point along it.
+    pub(super) fn openings(&self, raws: &[Vec<DVec2>], chart: Read) -> Vec<f64> {
+        match chart {
+            Read::Tilted => clear_first(raws, self.steps),
+            Read::Own | Read::About(_) => (0..self.steps as i64)
+                .map(|rank| self.angle(rank))
+                .collect(),
+        }
     }
 
     /// The floor of `pole` going once round on its own, the way `way` says,

@@ -125,17 +125,18 @@ impl Outline {
         steps: usize,
         cuttable: impl Fn(usize) -> bool,
     ) -> Option<()> {
-        self.round_laid_by(raws, laps, (steps, false), cuttable)
+        let grid = (0..steps).map(|step| TAU * step as f64 / steps as f64);
+        self.round_laid_by(raws, laps, grid, cuttable)
     }
 
     /// Lays out loops as [`Outline::round_laid`] does, a face going round
-    /// cut open, where `clearest` says so, at the angle of those that the
-    /// samples off it stand clearest of ([`clearest_first`]).
+    /// cut open at the first of the angles `order` gives that every loop
+    /// passes at a sample `cuttable` lets it be cut at.
     pub(super) fn round_laid_by(
         &mut self,
         raws: &[Vec<DVec2>],
         laps: &[Vec<usize>],
-        (steps, clearest): (usize, bool),
+        order: impl IntoIterator<Item = f64>,
         cuttable: impl Fn(usize) -> bool,
     ) -> Option<()> {
         let laid: Vec<Lap> = laps
@@ -175,14 +176,7 @@ impl Outline {
             return Some(());
         }
 
-        let ranks = if clearest {
-            clearest_first(raws, steps)
-        } else {
-            (0..steps).collect()
-        };
-        let opened = (ranks.into_iter())
-            .map(|step| TAU * step as f64 / steps as f64)
-            .find_map(|cut| Opened::at(cut, laps, raws, &cuttable))?;
+        let opened = (order.into_iter()).find_map(|cut| Opened::at(cut, laps, raws, &cuttable))?;
         for piece in &opened.pieces {
             self.chain(piece);
         }
@@ -203,10 +197,20 @@ impl Outline {
 /// vertex must stand from the angle a face is cut at.
 pub(super) const CLEAR: f64 = 1e-9;
 
-/// The ranks of the grid's `steps` angles, the one the samples `raws` not on
-/// it stand clearest of first: by how near the nearest stands, half a step
-/// for none nearer, the lowest rank first among equals.
-fn clearest_first(raws: &[Vec<DVec2>], steps: usize) -> Vec<usize> {
+/// How near an angle of the grid, as a share of a step, a sample not on it
+/// must stand to be beside it: a tenth, as an elliptic rim's drift is read.
+/// Far over the hair a circle's own grid angle stands from where it crosses
+/// that angle (#1110), over the hundredth that still left a face open
+/// (956005099); under the third of a step between the angles of two grids
+/// of 24 and 32 steps a turn, which would put most angles back for nothing.
+const BESIDE: f64 = 0.1;
+
+/// The grid's `steps` angles in the order a face is tried cut open at, so
+/// that no sample of the loops `raws` stands [`BESIDE`] the cut where the
+/// face allows it: by rank, every angle no sample is beside; then the
+/// others, the one the nearest stands furthest from first, the lowest rank
+/// among equals.
+pub(super) fn clear_first(raws: &[Vec<DVec2>], steps: usize) -> Vec<f64> {
     let step = TAU / steps as f64;
     let mut clear = vec![step / 2.0; steps];
     for at in raws.iter().flatten() {
@@ -217,9 +221,13 @@ fn clearest_first(raws: &[Vec<DVec2>], steps: usize) -> Vec<usize> {
             clear[rank] = clear[rank].min(off);
         }
     }
-    let mut ranks: Vec<usize> = (0..steps).collect();
-    ranks.sort_by(|one, other| clear[*other].total_cmp(&clear[*one]));
-    ranks
+    let (mut ranks, mut beside): (Vec<usize>, Vec<usize>) =
+        (0..steps).partition(|&rank| clear[rank] >= BESIDE * step);
+    beside.sort_by(|one, other| clear[*other].total_cmp(&clear[*one]));
+    ranks.extend(beside);
+    (ranks.into_iter())
+        .map(|rank| TAU * rank as f64 / steps as f64)
+        .collect()
 }
 
 /// A face going round, cut open at an angle: its loops in pieces, each within
