@@ -80,7 +80,7 @@ impl Exact {
         let mut fillings: Vec<Range<u32>> = Vec::new();
         for corner in odd {
             let from = filled.next;
-            let joined = filled.joined(&filling(corner, &wedges[corner.lone], taken)?)?;
+            let joined = filled.joined_in_a_step(filling(corner, &wedges[corner.lone], taken)?)?;
             let next = joined.next;
             let merged = Exact {
                 next: from,
@@ -108,7 +108,7 @@ impl Exact {
         for corner in odd {
             let from = cleared.next;
             if let Some(sector) = clearing(corner, &wedges[corner.lone], taken)? {
-                let cut = cleared.cut_by(&sector)?;
+                let cut = cleared.cut_in_a_step(sector)?;
                 if !cleared.kept_on(&cut, &fillings) {
                     return Err(Declined::Unsupported);
                 }

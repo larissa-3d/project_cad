@@ -3,17 +3,17 @@
 //! the box takes in, so that the fill ends flush on it. The piece is turned
 //! about the sphere's own axis, so that the fill's end lies on the very
 //! surface of the face it merges into, and bounded round the box (#941): a
-//! result carries the larger reach of its operands, and the whole ball of a
-//! dome far larger than its part would draw every later step coarser. The
+//! boolean decides at the larger reach of its operands, and the whole ball of
+//! a dome far larger than its part would cut the prism at the dome's size. The
 //! piece no longer carries the sphere's size, but it is not held inside the
 //! box: a sector's arc bulges past it between its planes, a whole turn's
 //! disc stands all round the axis, each by no more than about the box's
 //! furthest distance from the axis. That reach is the piece's own, read off
 //! its corners, edges and bulges; the bound its profile is laid at — its
 //! corners' place plus their furthest from the axis — sets only the
-//! tolerances it is laid and read to, never the reach it carries (#977). A
-//! large fill near its part's edge is so decided a little coarser than its
-//! part, never by the dome's size, and leaves the part its own reach (#1023).
+//! tolerances it is laid and read to, never the reach it carries (#977).
+//! However far it bulges, the fill it trims is joined to the part at the
+//! part's scale, as `Exact::joined_in_a_step` reads it (#1023).
 
 use std::f64::consts::{PI, TAU};
 

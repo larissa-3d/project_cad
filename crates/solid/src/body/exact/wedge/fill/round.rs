@@ -3,8 +3,9 @@
 //! leave it, bounded by the round's own surface so that the fill ends flush
 //! on it. A cylinder's is raised along its axis, and hugs the prism's sides:
 //! a boolean decides at the larger reach of its operands, and a solid
-//! standing out of the part's box would decide the fill coarser than the
-//! part's size asks. A cone cannot
+//! standing far out of the part's box would cut the prism coarser than the
+//! part's size asks, though the fill is joined to the part at the part's
+//! scale whatever its trims reach (#1023). A cone cannot
 //! be raised: what stands outside a cylinder just outside it is cut as a
 //! cylinder's is, and only the stretch between the two is held by a piece
 //! turned about the axis, bounded either side by planes through the axis

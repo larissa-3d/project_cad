@@ -167,14 +167,17 @@ impl Body {
         Body { unstable, ..self }
     }
 
-    /// The body carrying `scale` rather than its own operation's, or its own
-    /// reach where it reaches further: what a step whose tools stood past the
-    /// part leaves, their reach gone with them. Its surfaces keep the scale
-    /// they arrived at, so that a pair of them is read again as it was
-    /// decided.
-    pub(crate) fn carrying(self, scale: Scale) -> Body {
-        let scale = scale.joined(Scale::of(self.reach()));
-        Body { scale, ..self }
+    /// The body read at `scale`, every surface of it arrived there: a solid
+    /// a step lays on a part, decided at the scale of what the step can
+    /// leave rather than at the reach of the boxes it was cut from. It is a
+    /// leaf, whose own surfaces stand far apart and are read alike at either.
+    pub(crate) fn read_at(self, scale: Scale) -> Body {
+        let arrivals = vec![scale; self.surfaces.len()];
+        Body {
+            scale,
+            arrivals,
+            ..self
+        }
     }
 
     /// The scale of the operation that brought a surface into the body. A

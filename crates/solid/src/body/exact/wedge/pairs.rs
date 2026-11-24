@@ -209,7 +209,7 @@ impl Exact {
         let cut = if first.inwards {
             self.filled(on, &pair, (&[], &[]), &prism, tool)?
         } else {
-            self.cut_by(&Exact { next: 2, ..tool })?
+            self.cut_in_a_step(Exact { next: 2, ..tool })?
         };
         cut.paired(self, &[first, second], &[self.next, number], mitred)
     }

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use super::caught::{caught, quietly};
 use super::drawn::Drawn;
 use super::{FaceHit, FacePlane};
-use crate::brep::{self, Declined, EdgeName, FaceId, Lost, Surface, Unstable, VertexName};
+use crate::brep::{self, Declined, EdgeName, FaceId, Lost, Scale, Surface, Unstable, VertexName};
 use crate::mesh::Mesh;
 use crate::profile::{Contour, Frame};
 use crate::turning::{Straight, Turn};
@@ -128,6 +128,34 @@ impl Exact {
             }
             first.cut_by(second)
         })
+    }
+
+    /// The body joined to `tool`, a solid a step lays on it, read at the
+    /// body's scale or at the tool's own reach where that is larger — the
+    /// furthest what the join leaves can reach — rather than at the scale the
+    /// tool carries from the boxes it was cut by: a step's tools stand past
+    /// the part, and would decide the step and every later one coarser than
+    /// the part's size asks (#1023).
+    fn joined_in_a_step(&self, tool: Exact) -> Result<Exact, Declined> {
+        let scale = self.brep.scale().joined(Scale::of(tool.brep.reach()));
+        self.joined(&tool.read_at(scale))
+    }
+
+    /// The body less `tool`, a solid a step lays on it, read at the body's
+    /// scale: what the cut leaves stands within the body, however far the
+    /// tool stands past it, as [`Exact::joined_in_a_step`] says.
+    fn cut_in_a_step(&self, tool: Exact) -> Result<Exact, Declined> {
+        let scale = self.brep.scale();
+        self.cut_by(&tool.read_at(scale))
+    }
+
+    /// A tool read at `scale`, as an operand alone: its drawing and its names
+    /// are its own scale's, and no boolean reads them.
+    fn read_at(self, scale: Scale) -> Exact {
+        Exact {
+            brep: self.brep.read_at(scale),
+            ..self
+        }
     }
 
     /// The operation on the two bodies, the second's numbers moved above the

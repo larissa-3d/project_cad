@@ -49,7 +49,7 @@ pub(in crate::body::exact) fn cut_across(
 ) -> Result<Exact, Declined> {
     let (outline, frame, travel) = across(&corner.crossings, corner.at);
     let tool = Exact::raised(&outline, &[], frame, travel)?;
-    let cut = body.cut_by(&Exact { next: 1, ..tool })?;
+    let cut = body.cut_in_a_step(Exact { next: 1, ..tool })?;
     let taken: Vec<u32> = (0..flats.len())
         .filter(|&at| corner.between[at] && !cut.has_face(flats[at] as usize))
         .map(|at| flats[at])
@@ -80,7 +80,7 @@ pub(in crate::body::exact) fn joined_across(
         + frame.origin.distance(corner.at)
         + travel.length();
     let tool = corner.sunk(Exact::raised(&outline, &[], frame, travel)?, reach)?;
-    let joined = body.joined(&Exact { next: 1, ..tool })?;
+    let joined = body.joined_in_a_step(Exact { next: 1, ..tool })?;
     let filled: Vec<u32> = (0..flats.len())
         .filter(|&at| corner.between[at] && !joined.has_face(flats[at] as usize))
         .map(|at| flats[at])

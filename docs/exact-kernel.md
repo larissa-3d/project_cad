@@ -202,9 +202,11 @@ It can:
   tolerance times the part's reach, more as the edge flattens: a raise
   refuses a section whose area is under its tolerance times its reach. So
   the prism stands outside the part by no more than about the distance
-  taken, or that least margin where it is larger, which matters: a result
-  carries the larger reach of its operands, and every later step decides
-  and draws at it. Its wall on the chamfer's plane is the one face the step
+  taken, or that least margin where it is larger. However far it stands
+  out, the step lays it at the part's scale, as it lays every solid it
+  cuts or joins — at that solid's own reach where a join takes the part
+  further — so that neither the step nor any later one decides or draws
+  coarser for it (#1023). Its wall on the chamfer's plane is the one face the step
   names, numbered where the steps' numbers ended, and the count moves on by
   one, so no other face changes its number. The chamfer is trimmed by the
   faces it meets at the edge's ends, as the usual CAD tools trim it: where
@@ -421,10 +423,10 @@ It can:
   on the other. Where that face is a cylinder or a cone (#788), the solid cut
   from the prism is bounded by the round itself and starts where the prism's
   long edges leave it, so the fill ends on the round. A boolean decides at
-  the larger reach of its operands, so a solid standing out of the part's box
-  decides the fill a little coarser than the part asks; the body the fill
-  leaves carries the part's reach, joined with its own where it reaches
-  further, never its tools' (#1023). A cylinder's is raised along its
+  the larger reach of its operands, so a solid standing far out of the
+  part's box would cut the prism coarser than the part asks; the fill is
+  then joined to the part at the part's scale whatever its trims reach
+  (#1023). A cylinder's is raised along its
   axis, the rectangle round the long edges less the cylinder's disc, from a
   line across them where every one that meets the round stands inside it,
   and stands no further out than the prism. A cone, which no raise bounds,
@@ -457,8 +459,8 @@ It can:
   past it between its planes, and the whole turn's disc stands all round
   the axis, each by no more than about the box's furthest distance from the
   axis; the reach its profile is laid at, its corners' place plus their
-  furthest from the axis, is larger still. A large fill near its part's
-  edge may so widen the part's reach a little, never by the dome's size. A
+  furthest from the axis, is larger still. The fill is joined to its part
+  at the part's scale all the same, and leaves its reach as it was (#1023). A
   fillet on a
   sphere end, which meets it along a cylinder of
   another axis, and a torus end are still declined. The trimmed prism is
@@ -753,7 +755,10 @@ square to, or along, a wall's axis, or off parallel to a plane (decision
 surface a hair from touching a sphere or a torus, or from a rim on it
 (decision 12), and a plane a hair from a straight edge it runs along
 (decision 13). The result of an operation carries the larger reach of its
-operands. A pair
+operands. A chamfer or a fillet reads each solid it lays on its part at the
+part's scale, or at that solid's own reach where a join takes the part
+further, never at the reach of the boxes it was built from: those stand past
+the part, and would widen every later step's tolerance (#1023). A pair
 of surfaces one operand alone carries is decided at the tolerance it was
 decided at when the later of the two came into that operand: a body keeps,
 for each of its surfaces, the scale of the operation that brought it in —
