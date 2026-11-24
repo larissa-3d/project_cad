@@ -12,7 +12,6 @@ pub(crate) use cube_labels::repaint_if_the_atlas_grew;
 mod finish;
 mod input;
 mod kept_sections;
-pub(crate) use kept_sections::open_by_hand as open_a_section_by_hand;
 mod visibility;
 pub(crate) use input::copying::take_up as take_up_the_copy;
 pub(crate) use input::{chamfer_to_swap, corner_picks_with, swap_held_chamfer, switch_held_cuts};

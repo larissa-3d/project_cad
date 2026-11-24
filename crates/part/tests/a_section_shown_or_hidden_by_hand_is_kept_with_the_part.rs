@@ -20,11 +20,22 @@
 //!   geometry kept or not, opens with no section set by hand, and takes a
 //!   choice and keeps it as any part does —
 //!   `a_part_saved_before_sections_were_set_by_hand_opens_with_none_set_and_takes_one_as_any_part`
-//! - decided before the red step: a choice is kept only while its section
-//!   stands; a section undone takes its choice with it, so that the next one
-//!   saved, which takes the same rank, comes with none, in memory and through
-//!   the file —
+//! - decided in review: a choice is read only while its section stands, and
+//!   is forgotten only once its rank can be given again — a new operation
+//!   dropping what was undone, or a compaction; the next section saved, which
+//!   takes that rank, comes with none, in memory and through the file —
 //!   `a_hand_choice_leaves_with_its_section_and_never_passes_to_the_next_one_saved`
+//! - decided in review, criterion 2 read through the history: a choice
+//!   survives an undo redone, in memory and through the file saved while
+//!   undone, and a rewind brought forward —
+//!   `a_hand_choice_comes_back_with_its_section_when_the_undo_is_redone`,
+//!   `a_hand_choice_comes_back_when_the_part_is_rewound_and_brought_forward`
+//! - decided in review: one opened at a time lives in the part, beside the
+//!   choices. Opening a section by hand gives every other one opened back to
+//!   the rule, a deleted one included, and leaves one shut by hand shut —
+//!   `opening_a_section_by_hand_gives_every_other_one_opened_back_to_the_rule_and_leaves_a_shut_one_shut`;
+//!   saving a section does the same, at the end or put in where the part is
+//!   read — `saving_a_section_gives_every_section_opened_by_hand_back_to_the_rule`
 //! - decided before the red step: the hand's choice is no step of the history;
 //!   undo does not take it back and it moves no key step of #968 —
 //!   `a_hand_choice_is_no_step_of_the_history_and_undo_leaves_it_alone`
@@ -141,44 +152,190 @@ fn each_section_comes_back_from_the_caopart_shut_open_or_unset_as_the_hand_left_
     }
 }
 
+/// Something done to the part, and how a failure names it.
+type Gesture = (&'static str, fn(&mut PartDocument));
+
+/// The ways a section can be taken back so that the next one saved is given
+/// its rank again: an undo, a rewind to before it, and an undo the history is
+/// then compacted after.
+const TAKEN_BACK: [Gesture; 3] = [
+    ("undone", |document| {
+        document.undo();
+    }),
+    ("rewound to before it", |document| document.rewind_to(0)),
+    ("undone then compacted", |document| {
+        document.undo();
+        document.compact_history();
+    }),
+];
+
 #[test]
 fn a_hand_choice_leaves_with_its_section_and_never_passes_to_the_next_one_saved() {
+    for (how, take_back) in TAKEN_BACK {
+        let mut document = PartDocument::new("Part", at_nine());
+        document.apply(a_section_along(WorkPlane::YZ, 15.0));
+        let undone = document.sections()[0].id;
+        document.set_section_choice(undone, Some(false));
+        let while_it_stood = document.section_choice(undone);
+
+        take_back(&mut document);
+        let while_it_is_gone = document.section_choice(undone);
+        document.apply(a_section_along(WorkPlane::XZ, 5.0));
+        let next = document.sections()[0].id;
+
+        assert_eq!(
+            (while_it_stood, next),
+            (Some(false), undone),
+            "{how}: the fixture wants the first section shut by hand while it stands, and the \
+             section saved after it is taken back to take its rank, as (choice, rank)",
+        );
+        assert_eq!(
+            while_it_is_gone, None,
+            "{how}: the section taken back still reads the choice the hand made for it",
+        );
+        let files = Memory::default();
+        let path = Path::new("/parts/after-a-section-taken-back.caopart");
+        document
+            .save(&files, path, at_nine())
+            .expect("the part is saved");
+        for (read, part) in [
+            ("in memory", document.clone()),
+            (
+                "saved and reopened",
+                PartDocument::load(&files, path).expect("the part opens again"),
+            ),
+        ] {
+            assert_eq!(
+                part.section_choice(next),
+                None,
+                "{how}, {read}: the section saved after the first was taken back came with the \
+                 choice the hand made for the one taken back",
+            );
+        }
+    }
+}
+
+#[test]
+fn a_hand_choice_comes_back_with_its_section_when_the_undo_is_redone() {
     let mut document = PartDocument::new("Part", at_nine());
     document.apply(a_section_along(WorkPlane::YZ, 15.0));
-    let undone = document.sections()[0].id;
-    document.set_section_choice(undone, Some(false));
-    let while_it_stood = document.section_choice(undone);
+    document.apply(a_section_along(WorkPlane::XZ, 5.0));
+    let second = document.sections()[1].id;
+    document.set_section_choice(second, Some(false));
 
     document.undo();
-    document.apply(a_section_along(WorkPlane::XZ, 5.0));
-    let next = document.sections()[0].id;
-
-    assert_eq!(
-        while_it_stood,
-        Some(false),
-        "the fixture wants the first section shut by hand while it stands",
-    );
-    assert_eq!(
-        next, undone,
-        "the fixture wants the section saved after the undo to take the rank of the one undone",
-    );
+    let undone = document.section_choice(second);
     let files = Memory::default();
-    let path = Path::new("/parts/after-an-undo.caopart");
+    let path = Path::new("/parts/undone.caopart");
     document
         .save(&files, path, at_nine())
-        .expect("the part is saved");
-    for (how, part) in [
-        ("in memory", document.clone()),
+        .expect("the part is saved undone");
+    let mut reopened = PartDocument::load(&files, path).expect("the part opens again undone");
+    document.redo();
+    reopened.redo();
+
+    assert_eq!(
         (
-            "saved and reopened",
-            PartDocument::load(&files, path).expect("the part opens again"),
+            undone,
+            document.section_choice(second),
+            reopened.section_choice(second),
         ),
+        (None, Some(false), Some(false)),
+        "the second section shut by hand, its saving undone, then redone: it reads a choice \
+         while it is undone, or comes back without the one the hand made, in memory or once \
+         the part was saved undone and reopened, as (undone, redone, saved undone, reopened \
+         and redone)",
+    );
+}
+
+#[test]
+fn a_hand_choice_comes_back_when_the_part_is_rewound_and_brought_forward() {
+    let mut document = PartDocument::new("Part", at_nine());
+    document.apply(a_section_along(WorkPlane::YZ, 15.0));
+    document.apply(a_section_along(WorkPlane::XZ, 5.0));
+    let sections = document.sections();
+    let (first, second) = (sections[0].id, sections[1].id);
+    document.set_section_choice(first, Some(true));
+    document.set_section_choice(second, Some(false));
+
+    document.rewind_to(1);
+    let rewound = (
+        document.section_choice(first),
+        document.section_choice(second),
+    );
+    document.rewind_to(2);
+    let forward = (
+        document.section_choice(first),
+        document.section_choice(second),
+    );
+
+    assert_eq!(
+        (rewound, forward),
+        ((Some(true), None), (Some(true), Some(false))),
+        "the first section opened by hand and the second shut by hand, the part rewound to \
+         before the second then brought forward: a choice was lost, or the second reads one \
+         while it is not made, as ((first, second) rewound, (first, second) brought forward)",
+    );
+}
+
+#[test]
+fn opening_a_section_by_hand_gives_every_other_one_opened_back_to_the_rule_and_leaves_a_shut_one_shut()
+ {
+    let mut document = PartDocument::new("Part", at_nine());
+    for (plane, offset) in [
+        (WorkPlane::YZ, 15.0),
+        (WorkPlane::XZ, 5.0),
+        (WorkPlane::XY, 2.0),
     ] {
+        document.apply(a_section_along(plane, offset));
+    }
+    let ids: Vec<usize> = document.sections().iter().map(|kept| kept.id).collect();
+    document.open_section_by_hand(ids[0]);
+    document.set_section_choice(ids[2], Some(false));
+    document.apply(Operation::DeleteSection { section: ids[0] });
+
+    document.open_section_by_hand(ids[1]);
+    document.undo();
+
+    assert_eq!(
+        choices_of(&document),
+        [(ids[0], None), (ids[1], Some(true)), (ids[2], Some(false))],
+        "the first section opened by hand then deleted, the third shut by hand, the second \
+         then opened by hand and the deleting undone: the first comes back still opened by \
+         hand, the second is not the one opened, or the third is no longer shut, as (section, \
+         choice)",
+    );
+}
+
+#[test]
+fn saving_a_section_gives_every_section_opened_by_hand_back_to_the_rule() {
+    let save: [Gesture; 2] = [
+        ("at the end", |document| {
+            document.apply(a_section_along(WorkPlane::XY, 2.0));
+        }),
+        ("after the first, the part read to it", |document| {
+            document.insert_after(0, a_section_along(WorkPlane::XY, 2.0));
+        }),
+    ];
+    for (how, saving) in save {
+        let mut document = PartDocument::new("Part", at_nine());
+        document.apply(a_section_along(WorkPlane::YZ, 15.0));
+        document.apply(a_section_along(WorkPlane::XZ, 5.0));
+        let sections = document.sections();
+        let (first, second) = (sections[0].id, sections[1].id);
+        document.open_section_by_hand(first);
+        document.set_section_choice(second, Some(false));
+
+        saving(&mut document);
+        let mut choices = choices_of(&document);
+        choices.sort();
+
         assert_eq!(
-            part.section_choice(next),
-            None,
-            "{how}: the section saved after the first was undone came with the choice the hand \
-             made for the one undone",
+            choices,
+            [(first, None), (second, Some(false)), (2, None)],
+            "the first section opened by hand, the second shut by hand, a third saved {how}: \
+             the first is still opened by hand, the second is no longer shut, or the third came \
+             with a choice, as (section, choice)",
         );
     }
 }

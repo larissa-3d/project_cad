@@ -127,6 +127,11 @@
 //!   touches nothing else; a « shut by hand » is never cleared by another
 //!   section's action —
 //!   `opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut`
+//! - decided in review: a row clicked, or « Montrer », on the section the
+//!   canvas already cuts with changes nothing — no choice, no file written, no
+//!   hour moved, since a look must not rewrite the part; on a section not cut
+//!   it opens it by hand and the part is written —
+//!   `clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file`
 
 mod driver;
 
@@ -831,6 +836,77 @@ fn an_eye_opened_by_hand_keeps_its_section_shown() {
          by hand; the part then closed and reopened: « Coupe 1 » is not shown alone once \
          opened by hand, or the part reopens with « Coupe 2 », the last saved, shown in its \
          place, as ((row, what its eye says), sections the title bar names) after each",
+    );
+}
+
+/// The part's file as it stands on disk, byte for byte.
+fn the_file_on_disk(test: &str) -> Vec<u8> {
+    let path = driver::the_part_s_file(test, "Bloc");
+    cao_part::Files::read(&cao_app::adapters::files::DiskFiles, &path)
+        .unwrap_or_else(|err| panic!("the part at {path:?} does not read: {err:?}"))
+}
+
+fn click_the_row_of(app: &mut driver::App, name: &str) {
+    driver::the_row(app, name)
+        .unwrap_or_else(|| {
+            panic!(
+                "the tree holds no « {name} », showing {:?}",
+                driver::on_screen(app)
+            )
+        })
+        .click();
+    app.run();
+}
+
+#[test]
+fn clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file() {
+    let test = "keeping_a_section_a_click_on_the_section_cut";
+    let mut app = driver::a_block(test);
+    save_a_section(&mut app, "Plan YZ");
+    save_a_section(&mut app, "Plan XZ");
+    let (read_saved, file_saved) = (what_reads(&app, &TWO), the_file_on_disk(test));
+
+    click_the_row_of(&mut app, "Coupe 2");
+    let (read_clicked, file_clicked) = (what_reads(&app, &TWO), the_file_on_disk(test));
+    let put_away = the_part_file(&mut app, test);
+    let choices = (put_away.section_choice(0), put_away.section_choice(1));
+    app.query_all_by_label("Bloc")
+        .last()
+        .expect("the start menu lists the part")
+        .click();
+    app.run();
+    let file_reopened = the_file_on_disk(test);
+    click_the_row_of(&mut app, "Coupe 1");
+    let (read_another, file_another) = (what_reads(&app, &TWO), the_file_on_disk(test));
+
+    let the_second_shown = reading(&[("Coupe 1", HIDDEN), ("Coupe 2", SHOWN)], &["Coupe 2"]);
+    assert_eq!(
+        (
+            read_saved,
+            read_clicked,
+            file_clicked == file_saved,
+            choices
+        ),
+        (
+            the_second_shown.clone(),
+            the_second_shown,
+            true,
+            (None, None)
+        ),
+        "two sections saved, « Coupe 2 », the last, shown by itself, then its row clicked: what \
+         the sections read changed, the file was written again, or the part put away keeps a \
+         choice the click made, as (read when saved, read once clicked, the file as it was, \
+         (first, second) choice put away)",
+    );
+    assert_eq!(
+        (read_another, file_another == file_reopened),
+        (
+            reading(&[("Coupe 1", SHOWN), ("Coupe 2", HIDDEN)], &["Coupe 1"]),
+            false,
+        ),
+        "the fixture wants the row of « Coupe 1 », which is not cut, clicked once the part is \
+         reopened, to open it by hand and write the file, as (read once clicked, the file as \
+         it was)",
     );
 }
 

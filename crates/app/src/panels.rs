@@ -169,8 +169,10 @@ pub(crate) fn carry_out(
             changed = true;
         }
         TreeAction::SwitchSectionOn(section) => {
-            screens::viewport::open_a_section_by_hand(doc, section);
-            changed = true;
+            if !viewport.kept_sections.is_on(section) {
+                doc.open_section_by_hand(section);
+                changed = true;
+            }
         }
         TreeAction::EditSection(section) => {
             if let Some(kept) = doc.sections().iter().find(|kept| kept.id == section) {

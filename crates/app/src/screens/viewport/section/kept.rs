@@ -7,7 +7,6 @@ use cao_part::{PartDocument, SavedSection};
 use cao_render::MatterInFront;
 
 use super::Section;
-use crate::screens::viewport::kept_sections::none_opened_by_hand;
 use crate::screens::viewport::reading::Reading;
 
 impl Section {
@@ -67,7 +66,6 @@ impl Section {
             }
             None => {
                 reading.record(document, Operation::SaveSection(to));
-                none_opened_by_hand(document);
                 self.editing = document.sections().last().map(|kept| kept.id);
             }
         }

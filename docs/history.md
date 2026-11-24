@@ -249,10 +249,11 @@ out of reach of any change, but leaves the drawing standing where the section
 put it: on the plane it last cut along, or on its face as the part carries it. A drawing started on the cut
 of a section view never kept is a plain `CreateSketch` on a fixed plane.
 
-Which section is switched on is the viewport's, never the file's: a part opens
-whole. No version changed: a part written before sections reads exactly as it
-did, and the sketch line of one written since says nothing new until it stands
-on a section.
+Which section the canvas cuts with is worked out from what the hand chose for
+each section's eye, which the file keeps beside the steps (see below), and from
+the point the part is read to. No version changed: a part written before
+sections reads exactly as it did, and the sketch line of one written since says
+nothing new until it stands on a section.
 
 The grouping this describes is no longer worked out from the list of
 operations. The history records it, and `Feature::all` turns it into positions
@@ -321,10 +322,17 @@ in there.
 Whether the eye of a kept section was opened or shut by hand is written in
 `design/history.json` as `section_choices`, section by section, and only for the
 sections the hand set: one left to the rule has no entry. It is no step of the
-history, so undo does not take it back. A choice lasts as long as its section:
-a section undone or rewound away takes its choice with it, so that the next one
-saved, which takes its rank, comes with none; a section deleted keeps its rank,
-and its choice with it.
+history, so undo does not take it back. Opening one by hand, or saving a new
+section, gives every section opened by hand back to the rule; one shut by hand
+stays shut.
+
+A choice is read only while its section stands, and is kept while it does not:
+a section undone, rewound away or deleted reads no choice, and comes back with
+its own when it is redone, brought forward or its deleting undone. The file
+carries those kept choices as well. A choice is forgotten only once its rank
+can be given again — a new operation dropping what was undone, or a
+compaction — so that the next section saved, which takes that rank, comes with
+none.
 
 A part written before this carries no such field and opens with no section set
 by hand, so no version was bumped for it.

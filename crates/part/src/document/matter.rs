@@ -18,6 +18,7 @@ impl PartDocument {
         let raised_by = *raised_by;
         let before = matches!(**to, Operation::Blend { .. })
             .then(|| (self.history.clone(), self.state.clone()));
+        let made = self.sections_made_if_undone();
         self.history.push(change);
         self.rebuild();
         match (self.declined_because(raised_by), before) {
@@ -26,7 +27,10 @@ impl PartDocument {
                 self.state = state;
                 Some(Outcome::BlendDeclined(reason))
             }
-            _ => None,
+            _ => {
+                self.forget_choices_past(made);
+                None
+            }
         }
     }
 

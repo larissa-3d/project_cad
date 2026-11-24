@@ -67,7 +67,7 @@ impl KeptSections {
     pub(crate) fn clicked(&self, document: &mut PartDocument, section: usize) {
         match self.is_on(section) {
             true => document.set_section_choice(section, Some(false)),
-            false => open_by_hand(document, section),
+            false => document.open_section_by_hand(section),
         }
     }
 
@@ -103,22 +103,5 @@ impl KeptSections {
             document.section_choice(kept.id).is_none() && !self.stood_on.contains(&kept.id)
         });
         opened.or(last)
-    }
-}
-
-/// Opens a section by hand, the one opened by hand before it given back to
-/// the rule.
-pub(crate) fn open_by_hand(document: &mut PartDocument, section: usize) {
-    none_opened_by_hand(document);
-    document.set_section_choice(section, Some(true));
-}
-
-/// Gives every section opened by hand back to the rule. One shut by hand
-/// stays shut.
-pub(crate) fn none_opened_by_hand(document: &mut PartDocument) {
-    for kept in document.sections() {
-        if document.section_choice(kept.id) == Some(true) {
-            document.set_section_choice(kept.id, None);
-        }
     }
 }

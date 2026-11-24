@@ -328,12 +328,16 @@
 //!   here; held in
 //!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
 //!   by `a_hand_choice_is_no_step_of_the_history_and_undo_leaves_it_alone`
-//! - decided before the red step: a choice is kept only while its section
-//!   stands. A section undone takes its choice with it, so that the next
-//!   section saved, which takes the same rank, comes with none — no test: here;
-//!   held in
+//! - decided before the red step, turned in review: a choice is read only while
+//!   its section stands, and forgotten only once its rank can be given again,
+//!   by a new operation dropping what was undone or by a compaction, so that
+//!   the next section saved comes with none; it survives an undo redone and a
+//!   rewind brought forward, which criterion 2 asks of an eye shut by hand —
+//!   no test: here; held in
 //!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
-//!   by `a_hand_choice_leaves_with_its_section_and_never_passes_to_the_next_one_saved`
+//!   by `a_hand_choice_leaves_with_its_section_and_never_passes_to_the_next_one_saved`,
+//!   `a_hand_choice_comes_back_with_its_section_when_the_undo_is_redone` and
+//!   `a_hand_choice_comes_back_when_the_part_is_rewound_and_brought_forward`
 //! - decided before the red step, the effective state: a section cuts if it was
 //!   opened by hand, not if it was shut by hand, and with no hand choice if it
 //!   is the last saved section not deleted that the part is read through and
@@ -349,7 +353,17 @@
 //!   drawn; held in `crates/app/tests/keeping_a_section.rs` by
 //!   `opening_a_section_by_hand_switches_the_one_opened_before_off_and_leaves_a_shut_one_shut`,
 //!   and the saving half by
-//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`
+//!   `a_section_just_saved_is_shown_and_the_one_before_it_is_switched_off`.
+//!   Decided in review, the rule lives in the part, beside the choices, and
+//!   reaches a deleted section too; held in
+//!   `crates/part/tests/a_section_shown_or_hidden_by_hand_is_kept_with_the_part.rs`
+//!   by `opening_a_section_by_hand_gives_every_other_one_opened_back_to_the_rule_and_leaves_a_shut_one_shut`
+//!   and `saving_a_section_gives_every_section_opened_by_hand_back_to_the_rule`
+//! - decided in review: a row clicked, or « Montrer », on the section the
+//!   canvas already cuts with changes nothing, the file and its hour included —
+//!   no test: here, whether the part is written is the shell's to say; held in
+//!   `crates/app/tests/keeping_a_section.rs` by
+//!   `clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file`
 //! - decided before the red step: the sketch being drawn on a section still
 //!   shows its cut while it is open, whatever the rule; closing it gives the
 //!   rule back — a section left to the rule with that sketch read, and one shut

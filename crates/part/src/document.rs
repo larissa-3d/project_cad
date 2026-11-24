@@ -180,6 +180,7 @@ impl PartDocument {
         if matches!(operation, Operation::EditMatter { .. }) {
             return self.change_matter(operation);
         }
+        let made = self.sections_made_if_undone();
         let before = matches!(operation, Operation::Blend { .. }).then(|| self.state.clone());
         let outcome = self
             .state
@@ -191,6 +192,7 @@ impl PartDocument {
         if outcome == Some(Outcome::RuleRefused) {
             return outcome;
         }
+        self.choices_on_recording(&operation, made);
         self.history.push(operation);
         // An edit landing in an earlier step changed a drawing the matter after
         // it stands on, so the part is built again rather than patched. Drawing
@@ -218,13 +220,14 @@ impl PartDocument {
     /// Rewrites the history down to the steps that still describe the part,
     /// dropping the redo tail with it.
     pub fn compact_history(&mut self) {
+        let made = self.sections_made_if_undone();
         self.history = crate::compaction::compact(&self.history);
+        self.forget_choices_past(made);
         self.rebuild();
     }
 
     fn rebuild(&mut self) -> bool {
         self.state = PartState::rebuild(&self.history);
-        self.forget_choices_of_sections_gone();
         true
     }
 
