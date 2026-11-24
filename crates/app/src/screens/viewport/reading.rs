@@ -87,9 +87,10 @@ impl ViewportState {
     /// stays on its box whatever goes or comes before or after it, and goes to
     /// the box before when its own goes — the part read whole when none is
     /// left before it. The kept sections past the point are then not made
-    /// yet, and not cut with. Says whether the point moved since
-    /// this was last asked, a step put in included, or which sections are
-    /// past it changed: the panel, drawn before, has to catch up.
+    /// yet, and not cut with; nor, by itself, one a drawing read through is
+    /// laid on. Says whether the point moved since this was last asked, a
+    /// step put in included, or which sections are past it changed: the
+    /// panel, drawn before, has to catch up.
     pub(crate) fn keep_reading_up_with(&mut self, document: &PartDocument) -> bool {
         let moved = self.follow_the_boxes(document);
         let unread = document
@@ -98,7 +99,12 @@ impl ViewportState {
             .map(|kept| kept.id)
             .filter(|section| !self.reads_through_section(document, *section))
             .collect();
-        self.kept_sections.leave_unread(document, unread) || moved
+        let stood_on = self
+            .sketches_read(document)
+            .into_iter()
+            .filter_map(|sketch| document.section_under(sketch))
+            .collect();
+        self.kept_sections.leave_unread(document, unread, stood_on) || moved
     }
 
     /// Whether the part is read through the step that kept that section.

@@ -19,6 +19,9 @@ pub(crate) struct KeptSections {
     /// The kept sections past the step the part is read to, by id: none of
     /// them is made yet, so none is cut with.
     unread: Vec<usize>,
+    /// The kept sections a drawing the part is read through is laid on, by
+    /// id: left to the rule, none of them cuts by itself.
+    stood_on: Vec<usize>,
 }
 
 impl KeptSections {
@@ -36,11 +39,18 @@ impl KeptSections {
         self.on.filter(|_| self.shown.is_some())
     }
 
-    /// Sets the sections the part is not read through, and follows the part
-    /// as it stands. Says whether they or the section on changed.
-    pub(crate) fn leave_unread(&mut self, document: &PartDocument, sections: Vec<usize>) -> bool {
-        let changed = self.unread != sections;
-        self.unread = sections;
+    /// Sets the sections the part is not read through and the ones a drawing
+    /// read is laid on, and follows the part as it stands. Says whether they
+    /// or the section on changed.
+    pub(crate) fn leave_unread(
+        &mut self,
+        document: &PartDocument,
+        unread: Vec<usize>,
+        stood_on: Vec<usize>,
+    ) -> bool {
+        let changed = self.unread != unread || self.stood_on != stood_on;
+        self.unread = unread;
+        self.stood_on = stood_on;
         self.choose(document) || changed
     }
 
@@ -74,7 +84,8 @@ impl KeptSections {
     }
 
     /// Among the sections the part is read through, the one opened by hand;
-    /// else the last saved, unless the hand shut it.
+    /// else the last saved, unless the hand shut it or a drawing read is laid
+    /// on it — which hands its cut to no other.
     fn by_the_rule<'a>(
         &self,
         document: &PartDocument,
@@ -88,9 +99,9 @@ impl KeptSections {
         let opened = read()
             .rev()
             .find(|kept| document.section_choice(kept.id) == Some(true));
-        let last = read()
-            .next_back()
-            .filter(|kept| document.section_choice(kept.id).is_none());
+        let last = read().next_back().filter(|kept| {
+            document.section_choice(kept.id).is_none() && !self.stood_on.contains(&kept.id)
+        });
         opened.or(last)
     }
 }
