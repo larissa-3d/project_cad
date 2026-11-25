@@ -2,19 +2,10 @@ use std::path::PathBuf;
 
 use cao_prefs::RecentEntry;
 
-use egui::vec2;
-
 use crate::adapters::clock;
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
 use crate::screens::new_card::{self, NewCard};
-use crate::ui::segmented::{Segment, segmented};
-use crate::ui::shown_field;
-use crate::ui::text_edit::tall_text_edit;
-
-/// How tall « Créer ↵ » stands across the card: the redesign's 44 px, which
-/// the tokens do not carry.
-const CREATE_HEIGHT: f32 = 44.0;
 
 pub enum StartMenuAction {
     None,
@@ -46,30 +37,7 @@ pub fn show(
 
     ui.columns(2, |columns| {
         columns[0].vertical(|ui| {
-            ui.heading(lang.t("start_menu.new"));
-            ui.add_space(8.0);
-            kinds(ui, lang);
-            ui.add_space(8.0);
-            let entered = ui
-                .horizontal(|ui| {
-                    ui.label(lang.t("start_menu.name"));
-                    // A single-line field gives the keyboard up on ↵, the frame it is pressed.
-                    let field = tall_text_edit(ui, card.name_mut(), shown_field::HEIGHT);
-                    field.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter))
-                })
-                .inner;
-            ui.add_space(8.0);
-            new_card::saves_in(ui, card, explorer, lang);
-            ui.add_space(8.0);
-            let room = vec2(ui.available_width(), CREATE_HEIGHT);
-            let create = egui::Button::new(lang.t("start_menu.create"));
-            let clicked = ui
-                .add_enabled_ui(card.can_make(), |ui| ui.add_sized(room, create))
-                .inner
-                .clicked();
-            if (clicked || entered)
-                && let Some((name, folder)) = card.make(explorer)
-            {
+            if let Some((name, folder)) = new_card::show(ui, card, explorer, lang) {
                 action = StartMenuAction::CreateNew { name, folder };
             }
         });
@@ -100,28 +68,4 @@ pub fn show(
     });
 
     action
-}
-
-/// What the card can make: a part, the one choice there is, and an assembly
-/// shown greyed until there are assemblies to make.
-fn kinds(ui: &mut egui::Ui, lang: &Catalogue) {
-    ui.label(lang.t("start_menu.kind"));
-    let (part, assembly, soon) = (
-        lang.t("start_menu.part"),
-        lang.t("start_menu.assembly"),
-        lang.t("start_menu.soon"),
-    );
-    let offered = [
-        Segment {
-            label: &part,
-            enabled: true,
-            tag: None,
-        },
-        Segment {
-            label: &assembly,
-            enabled: false,
-            tag: Some(&soon),
-        },
-    ];
-    segmented(ui, &offered, 0);
 }

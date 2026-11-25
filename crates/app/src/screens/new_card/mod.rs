@@ -6,4 +6,4 @@ mod state;
 mod view;
 
 pub use state::NewCard;
-pub use view::saves_in;
+pub use view::show;

@@ -98,6 +98,34 @@ fn a_pick_the_column_moved_past_is_forgotten_and_selecting_back_does_not_bring_i
 }
 
 #[test]
+fn a_pick_whose_folder_left_the_library_gives_way_to_the_column_s_folder() {
+    let files = a_library();
+    let mut explorer = panel_on(&files);
+    explorer.select(Path::new("/CAO/Brides"));
+    let mut card = NewCard::default();
+    card.pick(path("/CAO/Brides/Petites"), &explorer);
+    assert_eq!(card.folder(&explorer), path("/CAO/Brides/Petites"));
+
+    let without_petites = InMemoryFiles::default();
+    for part in ["/CAO/Plaque.caopart", "/CAO/Brides/Équerre.caopart"] {
+        without_petites
+            .write(Path::new(part), b"PK")
+            .expect("writes");
+    }
+    without_petites
+        .create(Path::new("/CAO/Coques"))
+        .expect("makes the folder");
+    explorer.refresh(&without_petites);
+
+    assert_eq!(
+        card.folder(&explorer),
+        path("/CAO/Brides"),
+        "« Petites » is gone from the library, « Brides » still selected in the column, \
+         and the card would still make a part in « Petites », making the folder again",
+    );
+}
+
+#[test]
 fn making_hands_over_the_name_trimmed_and_the_card_s_folder_and_empties_the_field() {
     let files = a_library();
     let explorer = panel_on(&files);

@@ -30,11 +30,13 @@ impl NewCard {
     }
 
     /// Where a part made now would go: the folder picked, until the column's
-    /// selection changes, else the folder the column chose. A pick the column
-    /// moved past is forgotten, so selecting back does not bring it back.
+    /// selection changes or the folder leaves the library, else the folder the
+    /// column chose. A pick given up is forgotten, so selecting back does not
+    /// bring it back.
     pub fn folder(&mut self, explorer: &Explorer) -> PathBuf {
         if let Some(picked) = &self.picked
             && picked.against.as_deref() == explorer.selected()
+            && explorer.is_a_folder(&picked.folder)
         {
             return picked.folder.clone();
         }

@@ -201,7 +201,9 @@ impl Explorer {
         }
     }
 
-    fn is_a_folder(&self, path: &Path) -> bool {
+    /// Whether `path` is the root or a folder anywhere under it, as the library
+    /// was last read.
+    pub fn is_a_folder(&self, path: &Path) -> bool {
         fn under(folder: &Folder, path: &Path) -> bool {
             folder.path == path || folder.folders.iter().any(|under_it| under(under_it, path))
         }

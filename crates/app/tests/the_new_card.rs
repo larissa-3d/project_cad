@@ -470,7 +470,7 @@ fn choosing_lists_the_folders_inside_the_parts_folder_each_indented_by_its_depth
          {brides:?}, {petites:?} and {boitiers:?}",
     );
     assert!(
-        root.left() <= brides.left()
+        root.left() < brides.left()
             && (brides.left() - boitiers.left()).abs() < 0.5
             && petites.left() > brides.left(),
         "the entries are not indented by their depth: the root at {root:?}, \
