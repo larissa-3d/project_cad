@@ -2905,6 +2905,28 @@ pointed cone's flank waits on #711.
   stands beside the first, a cut moved on changes the drawing for nothing,
   and a ball turned about the axis of a slot's round end, its rim a hair
   outside the end's wall, was drawn through that wall's chords.
+- **A wall touching a sphere along its equator** (#1112,
+  `outline/touched.rs`). A ball zone in a bore of its own radius touches the
+  bore's wall along its equator, and the two part there only as the square
+  of the distance from it. Where the two layouts above lay a face of the
+  sphere in its `(θ, φ)` and refine it, the refinement holds a triangle
+  along the boundary by the chord there once its corner stands inside the
+  circle on that chord as its diameter: a hair off the equator between the
+  chord's ends, outside the chord, and so outside the wall's triangles
+  running from that very chord to the wall's far rim — the two crossed
+  beside the equator, a ball zone cut by a plane and joined with a ring
+  whose bore touches it. Along an equator a cylinder's face runs on, the
+  strip between it and the next row of the grid inside the face is laid as
+  the strips lay it instead: the row's lattice points, one at each angle of
+  the grid the equator is sampled at, joined to each other and at the
+  strip's two ends to the equator, both ways, so that the sweep cuts the
+  strip apart and the refinement keeps every side of it. Each triangle along
+  the equator then reaches the row at an end of its chord and leans inside
+  the wall's chords by some half the row's angle, as two cylinders touching
+  take common rays. Only a stretch between two angles of the grid no other
+  boundary of the face comes into is laid so: the step at either end of a
+  stretch, up to the vertex where another curve leaves the equator or the
+  wall a face going round is cut open along, is still the refinement's.
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near

@@ -9,6 +9,7 @@ mod cylinder;
 mod pierced;
 mod round;
 mod strips;
+mod touched;
 
 use std::collections::BTreeMap;
 

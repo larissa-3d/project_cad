@@ -10,14 +10,16 @@
 //!
 //! Any other — the sphere of a rib cut from a ball, once a fill is trimmed
 //! flush on it — is laid out in the sphere's own `(θ, φ)` as the strips lay
-//! it, each sample of a circle of another axis where it is read, then swept
-//! and refined as the central chart is ([`super::central`]), each point added
-//! lifted onto the sphere from `(θ, φ)`. Only a face that holds no pole,
-//! whose every edge stands at least [`FRONT`] off both all along it as the
-//! central chart's samples stand off its plane, and that turns round the
-//! axis by nought, its region on the bounded side of its loops, is laid so:
-//! the chart folds a floor to a point, and a circle passing near one sweeps
-//! round it between two of its samples.
+//! it, each sample of a circle of another axis where it is read, the strip
+//! along a latitude a wall touches it along laid as the strips lay it
+//! ([`super::touched`]), then swept and refined as the central chart is
+//! ([`super::central`]), each point added lifted onto the sphere from
+//! `(θ, φ)`. Only a face that holds no pole, whose every edge stands at least
+//! [`FRONT`] off both all along it as the central chart's samples stand off
+//! its plane, and that turns round the axis by nought, its region on the
+//! bounded side of its loops, is laid so: the chart folds a floor to a
+//! point, and a circle passing near one sweeps round it between two of its
+//! samples.
 
 use std::f64::consts::PI;
 
@@ -28,6 +30,7 @@ use super::super::sweep;
 use super::central::FRONT;
 use super::central::refinement::refined;
 use super::round::Read;
+use super::touched::touched;
 use super::{Outline, laps};
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::scale::Scale;
@@ -63,13 +66,16 @@ impl Outline {
         let grid = (samples.steps(face.surface)?, samples.rows(face.surface)?);
         let round = Rounded::Sphere(*sphere);
         let mut outline = Outline::default();
-        outline.laid_out(body, samples, face, &laps, grid, (&round, Read::Tilted))?;
+        let mut lattice =
+            outline.laid_out(body, samples, face, &laps, grid, (&round, Read::Tilted))?;
         let area: f64 = (outline.segments.iter())
             .map(|&[from, to]| outline.points[from].perp_dot(outline.points[to]))
             .sum();
         if !outline.walls.is_empty() || area <= 0.0 {
             return None;
         }
+        let touched = touched(body, face, sphere, body.scale().eps());
+        outline.beside_walls(samples, &mut lattice, &touched);
         let swept = sweep::triangles(&outline.points, &outline.segments)?;
         let places: Vec<DVec3> = (outline.samples.iter())
             .map(|&id| samples.point(id) - sphere.middle())

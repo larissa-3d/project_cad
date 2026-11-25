@@ -9,15 +9,16 @@
 //! its floor, a face going round cut open at an angle of the grid every loop
 //! passes at a sample, as a circle of another axis is sampled where it
 //! crosses one, its walls split at the grid's rows on lattice points both
-//! walls share — then swept and refined as the central chart is
-//! ([`super::central`]), each point added lifted onto the sphere from
-//! `(θ, φ)`. A triangle with two corners on a floor stands for its pole twice
-//! and is dropped, as on a cone, leaving a fan from the pole. Only a face
-//! whose every such curve stands at least [`FRONT`] off both poles all along
-//! it — a circle as [`super::charted`] reads it, the curve a cylinder meets
-//! the sphere along at each of its samples — is laid so: the chart folds a
-//! floor to a point, and a curve passing near one sweeps round it between two
-//! of its samples.
+//! walls share, the strip along a latitude a wall touches it along laid as
+//! the strips lay it ([`super::touched`]) — then swept and refined as the
+//! central chart is ([`super::central`]), each point added lifted onto the
+//! sphere from `(θ, φ)`. A triangle with two corners on a floor stands for
+//! its pole twice and is dropped, as on a cone, leaving a fan from the
+//! pole. Only a face whose every such curve stands at least [`FRONT`] off
+//! both poles all along it — a circle as [`super::charted`] reads it, the
+//! curve a cylinder meets the sphere along at each of its samples — is laid
+//! so: the chart folds a floor to a point, and a curve passing near one
+//! sweeps round it between two of its samples.
 //!
 //! Of the angles every loop passes at a sample, the face is cut open at the
 //! first that no other sample stands beside, within a tenth of a step — or,
@@ -41,6 +42,7 @@ use super::central::refinement::refined;
 use super::charted::highest;
 use super::round::Read;
 use super::strips::Lattice;
+use super::touched::touched;
 use super::{Outline, laps};
 use crate::brep::curve::{Curve, Wall};
 use crate::brep::surface::Sphere;
@@ -102,6 +104,8 @@ impl Outline {
         let mut lattice =
             outline.laid_out(body, samples, face, &laps, grid, (&round, Read::Tilted))?;
         outline.walls_split(samples, &mut lattice);
+        let touched = touched(body, face, sphere, eps);
+        outline.beside_walls(samples, &mut lattice, &touched);
         let swept = sweep::triangles(&outline.points, &outline.segments)?;
         let places: Vec<DVec3> = (outline.samples.iter())
             .map(|&id| samples.point(id) - sphere.middle())
