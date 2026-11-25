@@ -60,6 +60,24 @@
 //! inner equator, drawn sound on `main` already. Its grid is lined up with
 //! the post's now, and the pin holds it sound there:
 //! `a_ring_joined_with_or_cut_by_a_coaxial_post_up_to_its_centre_plane_a_hair_outside_its_inner_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//!
+//! The rule counts a wall only where it stands beside a row of the round's
+//! grid, and a wall counted must not undo the grid it lines up with another
+//! wall. Two pins hold that, against walls that do not stand beside the
+//! round where it needs them, each found by the review of the fix. A rod
+//! whose radius is a hair from the circle of a row of a ring's grid, but
+//! which stands far along the axis from it, on the end of a post the ring
+//! touches along its inner equator: drawn sound on `main`, crossed at the
+//! post's touch by the fix's first rule (8b973844), which read only the
+//! rod's radius, counted it, and gave the ring back its own steps since no
+//! grid a multiple of the post's and the rod's stood under the most a turn
+//! is cut into —
+//! `a_ring_round_a_post_of_its_inner_radius_with_a_rod_on_the_post_s_end_clear_of_the_ring_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//! And the same undoing in the criterion's own case: the half ball cut by
+//! the shaft 1e-6 under its radius, then bored by a pin beside another row,
+//! whose grid and the shaft's have no multiple under that most, crossed at
+//! the shaft's rim again —
+//! `a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_under_its_radius_then_bored_blind_from_its_top_by_a_pin_beside_a_row_of_its_grid_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 
 use std::collections::BTreeSet;
 use std::f64::consts::{PI, TAU};
@@ -116,22 +134,23 @@ fn half_ball() -> Body {
     turned_whole_or_half(half, sampled, PI)
 }
 
-/// The disc of [`MINOR`] about (`MAJOR`, 0) in the plane y = 0, turned whole
-/// about z: a ring about the origin, its outer equator of radius 12 and its
-/// inner one of 8 on the plane z = 0.
-fn ring() -> Body {
+/// The disc of `minor` about (`major`, 0) in the plane y = 0, turned whole
+/// about z: a ring about the origin, its outer equator of radius
+/// `major + minor` and its inner one of `major − minor` on the plane z = 0.
+/// Of [`MAJOR`] and [`MINOR`], those are 12 and 8.
+fn ring_of(major: f64, minor: f64) -> Body {
     let sampled: &'static [DVec2] = Box::leak(
         (0..64)
             .map(|step| {
-                DVec2::new(MAJOR, 0.0) + DVec2::from_angle(TAU * f64::from(step) / 64.0) * MINOR
+                DVec2::new(major, 0.0) + DVec2::from_angle(TAU * f64::from(step) / 64.0) * minor
             })
             .collect::<Vec<_>>()
             .into_boxed_slice(),
     );
     let disc = Contour {
-        corners: vec![DVec2::new(MAJOR + MINOR, 0.0)],
+        corners: vec![DVec2::new(major + minor, 0.0)],
         runs: vec![Run::Round {
-            center: DVec2::new(MAJOR, 0.0),
+            center: DVec2::new(major, 0.0),
             turn: TAU,
         }],
     };
@@ -164,6 +183,12 @@ fn turned_whole_or_half(outline: Contour, sampled: &'static [DVec2], angle: f64)
 /// A shaft of `radius` along z from z = `from` up to the origin, a tool of
 /// `part`. #956's.
 fn shaft_up_to_the_centre(part: &Body, radius: f64, from: f64) -> Body {
+    shaft_along_z(part, radius, from, 0.0)
+}
+
+/// A shaft of `radius` along z from z = `from` to z = `to`, a tool of
+/// `part`.
+fn shaft_along_z(part: &Body, radius: f64, from: f64, to: f64) -> Body {
     part.tool_raised(
         &Profile {
             exact: Some((
@@ -185,7 +210,7 @@ fn shaft_up_to_the_centre(part: &Body, radius: f64, from: f64) -> Body {
             u: DVec3::X,
             v: DVec3::Y,
         },
-        DVec3::Z * -from,
+        DVec3::Z * (to - from),
     )
     .expect("the shaft raises")
 }
@@ -211,6 +236,16 @@ fn sliver(hair: f64) -> [f64; 2] {
     let area = MINOR * MINOR * (2.0 * angle - (2.0 * angle).sin()) / 4.0;
     let moment = MINOR.powi(3) * angle.sin().powi(3) / 3.0;
     [TAU * (MAJOR * area + moment), TAU * (MAJOR * area - moment)]
+}
+
+/// What a pin of `radius` along z from z = 1 up past the ball takes of the
+/// half ball: half what it takes of the ball, the cylinder from z = 1 up to
+/// where its wall meets the sphere, z = √(r² − b²), and the cap above that,
+/// π H² (3r − H) / 3 for H = r − z.
+fn pinned(radius: f64) -> f64 {
+    let meets = (RADIUS * RADIUS - radius * radius).sqrt();
+    let cap = RADIUS - meets;
+    (PI * radius * radius * (meets - 1.0) + PI * cap * cap * (3.0 * RADIUS - cap) / 3.0) / 2.0
 }
 
 /// Holds that a boolean built a body that is exact, holds `volume` to the
@@ -358,7 +393,7 @@ fn a_half_ball_cut_up_to_its_centre_by_a_shaft_whose_rim_falls_a_hair_under_the_
 #[test]
 fn a_ring_cut_up_to_its_centre_plane_by_a_coaxial_shaft_a_hair_inside_its_outer_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
  {
-    let ring = ring();
+    let ring = ring_of(MAJOR, MINOR);
     for hair in [1e-6, 1e-5, 1e-4, 4e-4, 1e-3] {
         let shaft = shaft_up_to_the_centre(&ring, MAJOR + MINOR - hair, -5.0);
         let [outside, _] = sliver(hair);
@@ -382,7 +417,7 @@ fn a_ring_cut_up_to_its_centre_plane_by_a_coaxial_shaft_a_hair_inside_its_outer_
 #[test]
 fn a_ring_joined_with_or_cut_by_a_coaxial_post_up_to_its_centre_plane_a_hair_outside_its_inner_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
  {
-    let ring = ring();
+    let ring = ring_of(MAJOR, MINOR);
     for hair in [1e-6, 1e-4, 1e-3] {
         let radius = MAJOR - MINOR + hair;
         let post = shaft_up_to_the_centre(&ring, radius, -5.0);
@@ -402,4 +437,65 @@ fn a_ring_joined_with_or_cut_by_a_coaxial_post_up_to_its_centre_plane_a_hair_out
             );
         }
     }
+}
+
+/// 5576855166's ring, of tube 45 about a ring radius of 60, joined to a
+/// coaxial post of radius 15 along z from z = −45 to 45, which touches it
+/// along its inner equator, and then to a rod of radius 24.035 from z = 45
+/// to 80 standing on the post's end, clear of the ring. The ring's grid
+/// holds a row whose circle, of radius 24.025, stands 0.01 inside the rod's
+/// wall but 27 up the axis, 18 under the rod's foot: the rod stands beside
+/// no row of the ring. Built, exact, holding the ring, the post and the rod
+/// — the post touches the ring along a circle and the rod stands clear of
+/// it, so they share no matter — its triangles closed and uncrossed, the
+/// post's touch along the inner equator among them.
+#[test]
+fn a_ring_round_a_post_of_its_inner_radius_with_a_rod_on_the_post_s_end_clear_of_the_ring_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let (major, minor, rod) = (60.0, 45.0, 24.035);
+    let ring = ring_of(major, minor);
+    let post = shaft_along_z(&ring, major - minor, -minor, minor);
+    let posted = ring
+        .union(&post)
+        .unwrap_or_else(|declined| panic!("the ring round its post: declined, {declined:?}"));
+    let rod_on_the_post = shaft_along_z(&posted, rod, minor, 80.0);
+
+    let built = posted.union(&rod_on_the_post);
+
+    built_sound_holding(
+        built,
+        2.0 * PI * PI * major * minor * minor
+            + PI * (major - minor).powi(2) * 2.0 * minor
+            + PI * rod * rod * (80.0 - minor),
+        "the ring round a post of its inner radius, a rod of 24.035 on the post's end",
+    );
+}
+
+/// The half ball cut by a shaft from z = −10 up to its centre 1e-6 under its
+/// radius, as the criterion asks, then bored blind from its top by a pin of
+/// radius 1.0554 from z = 1 up past the ball. The pin's wall meets the
+/// sphere at z = 4.887, within a thousandth of the circle of a row of the
+/// sphere's grid, of radius 1.0564: the pin stands beside a row as the shaft
+/// does beside the equator, and the grid a multiple of both walls' would
+/// need more columns than a turn is cut into. Built, exact, holding what the
+/// cut leaves less what the pin takes, its triangles closed and uncrossed —
+/// the shaft's rim under the equator among them.
+#[test]
+fn a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_under_its_radius_then_bored_blind_from_its_top_by_a_pin_beside_a_row_of_its_grid_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let (hair, pin) = (1e-6, 1.0554);
+    let half = half_ball();
+    let shaft = shaft_up_to_the_centre(&half, RADIUS - hair, -10.0);
+    let cut = half.difference(&shaft).unwrap_or_else(|declined| {
+        panic!("the half ball cut by its shaft: declined, {declined:?}")
+    });
+    let bore = shaft_along_z(&cut, pin, 1.0, 10.0);
+
+    let bored = cut.difference(&bore);
+
+    built_sound_holding(
+        bored,
+        kept(hair) - pinned(pin),
+        "the half ball cut by a shaft 1e-6 under its radius, then bored by a pin of 1.0554",
+    );
 }

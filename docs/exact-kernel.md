@@ -2768,22 +2768,31 @@ pointed cone's flank waits on #711.
   a zone across the equator reaches `r`, a ring `R + r`, read off the surface
   and the face's extent along the meridian, not off its edges alone, and made
   a multiple of the grid of every cylinder of the body on the round's axis
-  standing within twice the sag of its own chords of the circle of a row of
-  the round's grid — as two walls are told close — whose grid starts the
-  same way round (#644, #1123): a ring round a post of its inner radius is touched along a
-  circle that parts neither face, and its chords along it, on its own grid,
-  cut across the post's between two of its steps (5576855166) — and one of
-  rows along the meridian, cut for the tube's radius; each takes a little
-  under half the tolerance, since the two sags add up along the hypotenuse
-  of a triangle of the lattice. A wall crossing a round a hair from a row —
-  a half ball cut by a shaft from a few tenths of a micron to a few
-  thousandths under its radius, its rim a hair under the equator or the row
-  below — leaves between them, along the strip from the rim to that row, a
-  ring thinner than either face's chords sag: on columns of its own the
-  strip reached across from a step of the wall's to the next, through the
-  wall's chords (#1123); on a multiple of the wall's grid each of its columns
-  stands where the rim has a sample, and the strip stays outside the wall's
-  chords. Every latitude circle is sampled on the
+  touching it along an equator, or sharing a rim with it within twice the
+  sag of its own chords of the circle of a row of the round's grid about
+  that rim — as two walls are told close — whose grid starts the same way
+  round (#644, #1123): a ring round a post of its inner radius is touched
+  along a circle that parts neither face, and its chords along it, on its
+  own grid, cut across the post's between two of its steps (5576855166) —
+  and one of rows along the meridian, cut for the tube's radius; each takes
+  a little under half the tolerance, since the two sags add up along the
+  hypotenuse of a triangle of the lattice. A wall crossing a round a hair
+  from a row — a half ball cut by a shaft from a few tenths of a micron to
+  a few thousandths under its radius, its rim a hair under the equator or
+  the row below — leaves between them, along the strip from the rim to that
+  row, a ring thinner than either face's chords sag: on columns of its own
+  the strip reached across from a step of the wall's to the next, through
+  the wall's chords (#1123); on a multiple of the wall's grid each of its
+  columns stands where the rim has a sample, and the strip stays outside
+  the wall's chords. A wall of a row's radius sharing no rim with the round
+  — a rod on the end of a post a ring touches, far along the axis from the
+  row — is not counted. The walls are taken one at a time, those touching
+  the round first, then the nearest a row, and one whose multiple with
+  those taken would pass the most a turn is cut into is left out alone:
+  leaving them all out gave a ring round its post back its own steps for a
+  rod clear of it, and a half ball cut by a shaft a hair under its radius
+  for a pin bored beside another row, and both crossed again at the wall
+  they had lined up with. Every latitude circle is sampled on the
   round's angles as a cone's rim is on the cone's, and every meridian arc on
   the round's rows, the opening and the closing meridian of a turn on the
   same rows whatever circle each lies on, none within the round's room of a
@@ -2851,9 +2860,10 @@ pointed cone's flank waits on #711.
   round's latitude
   circle whose radius is a coaxial cylinder's — the equator a shaft ends in
   a ball at — lies on both and is sampled once, on the shaft's grid and the
-  round's. A coaxial wall a hair inside a ball and further than twice the
-  sag of its chords from every row's circle is not drawn in common with it:
-  a family the campaign measures.
+  round's. A coaxial wall a hair inside a ball whose rim stands further than
+  twice the sag of its chords from the circles of the rows about it, or
+  whose grid has no multiple with those taken under the most a turn is cut
+  into, is not drawn in common with it: a family the campaign measures.
 - **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
   The strips cannot cut a face of a sphere such a circle bounds, since it
   runs along no line of the chart, nor can the central chart where the face
