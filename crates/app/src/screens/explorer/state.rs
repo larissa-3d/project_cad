@@ -30,6 +30,7 @@ impl Naming {
 pub struct Explorer {
     root: PathBuf,
     library: Folder,
+    query: String,
     folded: BTreeSet<PathBuf>,
     selected: Option<PathBuf>,
     naming: Option<Naming>,
@@ -53,6 +54,7 @@ impl Explorer {
                 parts: Vec::new(),
             },
             root,
+            query: String::new(),
             folded: BTreeSet::new(),
             selected: None,
             naming: None,
@@ -66,6 +68,19 @@ impl Explorer {
 
     pub fn library(&self) -> &Folder {
         &self.library
+    }
+
+    pub fn query(&self) -> &str {
+        &self.query
+    }
+
+    pub fn set_query(&mut self, query: &str) {
+        self.query = query.to_string();
+    }
+
+    /// The library as the filter typed leaves it, which is what the panel draws.
+    pub fn tree(&self) -> Folder {
+        library::filter(&self.library, &self.query)
     }
 
     /// The picture of a part, if it has been read yet.
@@ -244,6 +259,29 @@ impl Explorer {
                 self.refresh(folders);
             }
             Err(fate) => self.trouble = Some(fate),
+        }
+    }
+
+    /// Moves a part dropped on a folder there, and says where it was and where
+    /// it went, which is what the recent list follows. A part dropped on the
+    /// folder it is in went nowhere.
+    pub fn drop_on(
+        &mut self,
+        folders: &impl Folders,
+        part: &Path,
+        folder: &Path,
+    ) -> Option<(PathBuf, PathBuf)> {
+        match library::move_part(folders, part, folder) {
+            Ok(to) => {
+                self.trouble = None;
+                self.selected = Some(to.clone());
+                self.refresh(folders);
+                (to != part).then(|| (part.to_path_buf(), to))
+            }
+            Err(fate) => {
+                self.trouble = Some(fate);
+                None
+            }
         }
     }
 }

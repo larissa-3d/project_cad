@@ -39,14 +39,20 @@
 //!   `a_recent_part_moved_onto_a_path_already_listed_is_listed_once`, in
 //!   `crates/prefs/src/recents/tests.rs`
 //! - the column holds what is typed in « Filtrer… », and the tree it draws is
-//!   the filtered one — `the_tree_drawn_keeps_only_what_the_filter_keeps`
-//! - a part dropped on a folder moves there, and the counts follow —
-//!   `a_part_dropped_on_a_folder_moves_there_and_the_counts_follow`
+//!   the filtered one, a capital accent matched as its small letter —
+//!   `the_tree_drawn_keeps_only_what_the_filter_keeps`
+//! - a part dropped on a folder moves there, and the counts follow; under a
+//!   filter, a folder counts the matches it shows — decided when the work
+//!   opened — `a_part_dropped_on_a_folder_moves_there_and_the_counts_follow`
 //! - the selection follows the part to its new place —
 //!   `the_selection_follows_a_part_dropped_on_a_folder`
 //! - the move says where the part was and where it went, which is what the
 //!   application hands the recent list —
 //!   `a_part_dropped_on_a_folder_says_where_it_was_and_where_it_went`
+//! - a part a folder refuses stays where it was, the panel says why, and
+//!   nothing is handed to the recent list — not one of the issue's words: the
+//!   presenter's share of the refusal above —
+//!   `a_part_a_folder_refuses_stays_where_it_was_and_the_panel_says_why`
 //! - the call that hands that pair to the recent list — no test: a line of
 //!   wiring in the shell, between this presenter and `Remembered`, which reads
 //!   and writes the real disk; the headless driver could reach it only through
@@ -328,4 +334,144 @@ fn a_question_answered_no_leaves_the_part_where_it_is() {
     explorer.discard(&files);
 
     assert_eq!(explorer.library().parts.len(), 1);
+}
+
+fn everything_in(folder: &Folder) -> Vec<String> {
+    let mut laid = Vec::new();
+    for under in &folder.folders {
+        laid.push(under.path.display().to_string());
+        laid.extend(everything_in(under));
+    }
+    laid.extend(
+        folder
+            .parts
+            .iter()
+            .map(|part| part.path.display().to_string()),
+    );
+    laid
+}
+
+fn counts_of(folder: &Folder) -> Vec<(String, usize)> {
+    folder
+        .folders
+        .iter()
+        .map(|under| (under.name.clone(), under.count_of_parts()))
+        .collect()
+}
+
+#[test]
+fn the_tree_drawn_keeps_only_what_the_filter_keeps() {
+    let files = library_of(&[
+        "/CAO/Équerre.caopart",
+        "/CAO/support.caopart",
+        "/CAO/drafts/équerre 2.caopart",
+        "/CAO/drafts/plate.caopart",
+    ]);
+    let mut explorer = panel_on(&files);
+
+    explorer.set_query("éQU");
+
+    assert_eq!(
+        everything_in(&explorer.tree()),
+        [
+            "/CAO/drafts",
+            "/CAO/drafts/équerre 2.caopart",
+            "/CAO/Équerre.caopart",
+        ],
+        "a French name starting with a capital É answers to a small é typed",
+    );
+}
+
+#[test]
+fn a_part_dropped_on_a_folder_moves_there_and_the_counts_follow() {
+    let files = library_of(&[
+        "/CAO/bride.caopart",
+        "/CAO/Brides/bride 2.caopart",
+        "/CAO/Brides/plate.caopart",
+        "/CAO/drafts/support.caopart",
+    ]);
+    let mut explorer = panel_on(&files);
+    explorer.set_query("bri");
+
+    explorer.drop_on(
+        &files,
+        Path::new("/CAO/bride.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        counts_of(&explorer.tree()),
+        [("Brides".to_string(), 2)],
+        "under a filter a folder counts the matches it shows, the part just dropped among them",
+    );
+    assert!(
+        explorer.tree().parts.is_empty(),
+        "the part is still at the root"
+    );
+    explorer.set_query("");
+    assert_eq!(
+        counts_of(&explorer.tree()),
+        [("Brides".to_string(), 3), ("drafts".to_string(), 1)],
+    );
+}
+
+#[test]
+fn the_selection_follows_a_part_dropped_on_a_folder() {
+    let files = library_of(&["/CAO/support.caopart", "/CAO/Brides/bride.caopart"]);
+    let mut explorer = panel_on(&files);
+    explorer.select(Path::new("/CAO/support.caopart"));
+
+    explorer.drop_on(
+        &files,
+        Path::new("/CAO/support.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        explorer.selected(),
+        Some(Path::new("/CAO/Brides/support.caopart")),
+    );
+}
+
+#[test]
+fn a_part_dropped_on_a_folder_says_where_it_was_and_where_it_went() {
+    let files = library_of(&["/CAO/support.caopart", "/CAO/Brides/bride.caopart"]);
+    let mut explorer = panel_on(&files);
+
+    let moved = explorer.drop_on(
+        &files,
+        Path::new("/CAO/support.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        moved,
+        Some((
+            PathBuf::from("/CAO/support.caopart"),
+            PathBuf::from("/CAO/Brides/support.caopart"),
+        )),
+        "the application hands this pair to the recent list",
+    );
+}
+
+#[test]
+fn a_part_a_folder_refuses_stays_where_it_was_and_the_panel_says_why() {
+    let files = library_of(&["/CAO/support.caopart", "/CAO/Brides/support.caopart"]);
+    let mut explorer = panel_on(&files);
+
+    let moved = explorer.drop_on(
+        &files,
+        Path::new("/CAO/support.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        moved, None,
+        "the recent list would follow a move that never happened"
+    );
+    assert!(matches!(
+        explorer.trouble(),
+        Some(PartFileError::NameTaken(_))
+    ));
+    assert_eq!(explorer.tree().parts[0].name, "support");
 }
