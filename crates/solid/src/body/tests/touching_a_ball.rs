@@ -154,7 +154,8 @@
 //! It is held built, listed sound, of the arithmetic's volume and drawn
 //! closed, not drawn uncrossed: the ball's chords and the band's still cross
 //! beside the circle the two only touch, wherever the ball is cut as well,
-//! before #1117 as after it (`tessellation/sampling/cone.rs`).
+//! before #1117 as after it (`tessellation/sampling/cone.rs`) — #1140, which
+//! lifts the waiver.
 
 use super::*;
 use crate::soundness::listed;
