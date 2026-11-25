@@ -956,7 +956,11 @@
 
   "start_menu.title": "CAO",
   "start_menu.subtitle": "Nouvelle pièce ou reprise d'une pièce récente",
-  "start_menu.new_part": "Nouvelle pièce",
+  "start_menu.new": "Nouveau",
+  "start_menu.kind": "Type",
+  "start_menu.part": "Pièce",
+  "start_menu.assembly": "Assemblage",
+  "start_menu.soon": "bientôt",
   "start_menu.name": "Nom :",
   "start_menu.saves_in": "Enregistrer dans :",
   "start_menu.saves_in_by_default": "Par défaut : le dossier choisi à gauche.",

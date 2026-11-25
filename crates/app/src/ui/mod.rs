@@ -18,6 +18,7 @@ pub mod question;
 pub mod quiet_link;
 pub mod reader_card;
 pub mod secondary_button;
+pub mod segmented;
 pub mod sheet;
 pub mod slider;
 pub mod step_box;

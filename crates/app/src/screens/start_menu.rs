@@ -5,6 +5,7 @@ use cao_prefs::RecentEntry;
 use crate::adapters::clock;
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
+use crate::ui::segmented::{Segment, segmented};
 use crate::wording;
 
 pub enum StartMenuAction {
@@ -37,7 +38,9 @@ pub fn show(
 
     ui.columns(2, |columns| {
         columns[0].vertical(|ui| {
-            ui.heading(lang.t("start_menu.new_part"));
+            ui.heading(lang.t("start_menu.new"));
+            ui.add_space(8.0);
+            kinds(ui, lang);
             ui.add_space(8.0);
             let entered = ui
                 .horizontal(|ui| {
@@ -92,4 +95,28 @@ pub fn show(
     });
 
     action
+}
+
+/// What the card can make: a part, the one choice there is, and an assembly
+/// shown greyed until there are assemblies to make.
+fn kinds(ui: &mut egui::Ui, lang: &Catalogue) {
+    ui.label(lang.t("start_menu.kind"));
+    let (part, assembly, soon) = (
+        lang.t("start_menu.part"),
+        lang.t("start_menu.assembly"),
+        lang.t("start_menu.soon"),
+    );
+    let offered = [
+        Segment {
+            label: &part,
+            enabled: true,
+            tag: None,
+        },
+        Segment {
+            label: &assembly,
+            enabled: false,
+            tag: Some(&soon),
+        },
+    ];
+    segmented(ui, &offered, 0);
 }

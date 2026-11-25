@@ -141,6 +141,33 @@ fn choose_in_the_column(app: &mut driver::App, folder: &str) {
     );
 }
 
+/// The segment of « Type » reading this word: its name holds the word whole,
+/// whatever icon is drawn before it, and « Pièces récentes » is not « Pièce ».
+fn the_type<'tree>(app: &'tree driver::App, word: &str) -> egui_kittest::Node<'tree> {
+    app.get_all_by(|_| true)
+        .find(|node| {
+            node.accesskit_node()
+                .label()
+                .is_some_and(|name| name.split_whitespace().any(|read| read == word))
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "no « {word} » on the card, showing {:?}",
+                driver::on_screen(app),
+            )
+        })
+}
+
+fn is_chosen(node: &egui_kittest::Node<'_>) -> bool {
+    node.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)
+}
+
+fn a_part_is_open(app: &driver::App) -> bool {
+    app.state()
+        .where_the_view_shows(glam::DVec3::ZERO)
+        .is_some()
+}
+
 /// How many files stand in this folder itself, not under it, named this before
 /// their extension.
 fn files_named(folder: &Path, name: &str) -> usize {
@@ -313,5 +340,37 @@ fn a_name_taken_only_in_another_folder_is_kept_as_typed() {
         "« Support » created in « Brides », taken only at the root, is not kept as \
          typed there: (« Support » in « Brides », « Support 2 » in « Brides », \
          « Support 2 » at the root)",
+    );
+}
+
+#[test]
+fn the_assembly_segment_is_disabled_and_creates_nothing() {
+    let test = "the_assembly_segment_is_disabled_and_creates_nothing";
+    let mut app = driver::open(test);
+    let library = cao_prefs::default_projects_dir(&driver::locations_of(test));
+    driver::type_beside(&mut app, "Nom :", "Support");
+    assert!(
+        is_chosen(&the_type(&app, "Pièce")),
+        "« Pièce » is not the type chosen on the card",
+    );
+    let assembly = the_type(&app, "Assemblage");
+    assert!(
+        assembly.accesskit_node().is_disabled(),
+        "« Assemblage » can be chosen on the card",
+    );
+    let at = assembly.rect();
+
+    driver::click_at(&mut app, at.center());
+
+    assert!(
+        !a_part_is_open(&app) && files_named(&library, "Support") == 0,
+        "clicking « Assemblage » with « Support » typed made something: a part open \
+         {}, files named « Support » in the parts folder {}",
+        a_part_is_open(&app),
+        files_named(&library, "Support"),
+    );
+    assert!(
+        is_chosen(&the_type(&app, "Pièce")) && !is_chosen(&the_type(&app, "Assemblage")),
+        "clicking « Assemblage » took the card off « Pièce »",
     );
 }
