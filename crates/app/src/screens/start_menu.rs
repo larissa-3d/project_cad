@@ -4,6 +4,8 @@ use cao_prefs::RecentEntry;
 
 use crate::adapters::clock;
 use crate::lang::Catalogue;
+use crate::screens::explorer::Explorer;
+use crate::wording;
 
 pub enum StartMenuAction {
     None,
@@ -15,6 +17,7 @@ pub fn show(
     ui: &mut egui::Ui,
     recents: &[RecentEntry],
     new_part_name: &mut String,
+    explorer: &Explorer,
     lang: &Catalogue,
 ) -> StartMenuAction {
     let mut action = StartMenuAction::None;
@@ -36,6 +39,11 @@ pub fn show(
                 ui.label(lang.t("start_menu.name"));
                 ui.text_edit_singleline(new_part_name);
             });
+            ui.add_space(8.0);
+            ui.label(lang.t("start_menu.saves_in"));
+            let (root, chosen) = (&explorer.library().path, explorer.chosen_folder());
+            ui.label(wording::library::folder(lang, root, &chosen));
+            ui.weak(lang.t("start_menu.saves_in_by_default"));
             ui.add_space(8.0);
             let can_create = !new_part_name.trim().is_empty();
             if ui

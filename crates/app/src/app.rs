@@ -152,6 +152,7 @@ impl CaoApp {
                     ui,
                     self.remembered.recents(),
                     &mut self.new_part_name,
+                    &self.explorer,
                     self.remembered.lang(),
                 )
             })

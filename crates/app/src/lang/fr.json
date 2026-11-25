@@ -952,10 +952,14 @@
   "explorer.discard_confirm_ok": "Mettre à la corbeille",
   "explorer.discard_confirm_cancel": "Annuler",
 
+  "library.parts_folder": "Dossier des pièces",
+
   "start_menu.title": "CAO",
   "start_menu.subtitle": "Nouvelle pièce ou reprise d'une pièce récente",
   "start_menu.new_part": "Nouvelle pièce",
   "start_menu.name": "Nom :",
+  "start_menu.saves_in": "Enregistrer dans :",
+  "start_menu.saves_in_by_default": "Par défaut : le dossier choisi à gauche.",
   "start_menu.create": "Créer",
   "start_menu.recents": "Pièces récentes",
   "start_menu.no_recents": "Aucune pièce ouverte pour le moment.",
