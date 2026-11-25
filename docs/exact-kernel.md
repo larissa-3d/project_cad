@@ -2014,7 +2014,19 @@ same input gives the same bits.
   crossed it halfway up, below the place the parity is read from as often
   as above it. A sector of a ball turned a quarter, its arc hanging between
   the two meridians it reaches its pole by, was read as holding the far
-  pole too once the place moved up that arc, and listed backwards. A
+  pole too once the place moved up that arc, and listed backwards. Nor is
+  the parity ever read from a slit, a trace the face's loops also run the
+  other way (`domain/floor/round.rs`, `holds`). The poles a body's faces
+  are listed with were read with their slits left out (`topology/poles.rs`),
+  but the volume and the domain, closed along the floors of the poles a
+  face holds, read them off the loops as they stand; `holds` now passes
+  over the slits itself, for all three. A slit along a latitude runs across
+  the meridian as squarely as any trace, the face on either side of it,
+  and the ball a half band touches along half its equator, cut by a flat
+  about a pole, was read as holding the wrong pole and held 2.6 where the
+  arithmetic gives 526. Crossed twice at one height, a slit changes no
+  parity on the way; a face whose traces are slits alone holds every pole,
+  as one with no loop does. A
   face of a ring reaching across the cut is closed along what it reaches of
   it (#623, `domain/floor/round/ring.rs`): along each stretch between the
   meridians crossing the cut, read off the way each runs, and along the

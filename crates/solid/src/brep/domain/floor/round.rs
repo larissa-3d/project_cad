@@ -236,13 +236,18 @@ fn whole_round(pole: &Pole, turns: f64, flipped: bool) -> Vec<Trace> {
 /// which keeps the face on its left seen from outside the matter: the face
 /// lies above it where it runs forwards and its surface's normal points out,
 /// below it on a `flipped` face, and the pole is inside where the other
-/// traces are crossed an even number of times on the way. Not from where a
-/// trace runs along the meridian, as a loop round a bore along the axis
-/// does at its middle (#805), nor where it turns back a hair off it, as a
-/// circle about a point a hair off the equator does at its middle (#1117):
-/// the meridian there all but touches the trace, whose own crossing rounding
-/// finds further than the pole's room from it, counted on the way. A face
-/// with no loop holds every pole; one bounded by meridians alone holds none.
+/// traces are crossed an even number of times on the way. Never from where
+/// a trace runs along the meridian, as a loop round a bore along the axis
+/// does at its middle (#805), and so not from a circle's middle where it
+/// turns back a hair off it unless nothing crosses more steeply: about a
+/// point a hair off the equator (#1117), the meridian there all but touches
+/// the circle, whose own crossing rounding finds further than the pole's
+/// room from it, counted on the way. Never from a slit either — a trace the
+/// loops also run the other way, the face on either side of it — which runs
+/// along a latitude as steeply as anything does and tells nothing of which
+/// side the face lies on; crossed twice at one height, it changes no parity
+/// (5585606550). A face with no loop, or with slits alone, holds every
+/// pole; one bounded by meridians alone holds none.
 pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -> bool {
     if loops
         .iter()
@@ -251,10 +256,18 @@ pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -
     {
         return false;
     }
+    let traces: Vec<&Trace> = loops.iter().flatten().collect();
+    let bounding: Vec<&Trace> = (traces.iter().copied())
+        .filter(|trace| {
+            !traces
+                .iter()
+                .any(|other| **other == trace.reversed() || other.reversed() == **trace)
+        })
+        .collect();
     let across = |pace: DVec2| pace.x.abs() / pace.length();
     let Some([place, pace, _]) = [0.5, 0.25, 0.75]
         .into_iter()
-        .flat_map(|along| loops.iter().flatten().map(move |trace| trace.at(along)))
+        .flat_map(|along| bounding.iter().map(move |trace| trace.at(along)))
         .filter(|[_, pace, _]| pace.x.abs() > ACROSS * pace.length())
         .reduce(|steepest, next| {
             if across(next[1]) > across(steepest[1]) {
@@ -264,7 +277,7 @@ pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -
             }
         })
     else {
-        return loops.is_empty();
+        return bounding.is_empty();
     };
     let tiny = pole.room;
     let floored: Vec<Vec<Trace>> = loops.iter().map(|lap| floored(lap, tiny)).collect();

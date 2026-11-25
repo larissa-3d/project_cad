@@ -141,6 +141,20 @@
 //! ball less both caps of 45° whole, the sliver they share at 0.05° left out
 //! of it as #1110's test leaves it. "Both orders" give the same body as
 //! #822 has it: each is held to that one volume, by the same checks.
+//!
+//! Beyond the criteria, the review's case: the place the parity is read
+//! from, where a trace runs most steeply across the meridian, is never on a
+//! slit, an edge the face runs both ways with the face on either side of
+//! it, which runs across the meridian squarely along a latitude and bounds
+//! nothing. The ball a half band touches along half its equator, its face
+//! slit there (5585606550), cut by a flat whose cap takes in the pole
+//! towards −Y or +Y, joined then cut or cut then joined, the band turned
+//! either way, holds the ball and the band less the cap —
+//! `a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first`.
+//! It is held built, listed sound, of the arithmetic's volume and drawn
+//! closed, not drawn uncrossed: the ball's chords and the band's still cross
+//! beside the circle the two only touch, wherever the ball is cut as well,
+//! before #1117 as after it (`tessellation/sampling/cone.rs`).
 
 use super::*;
 use crate::soundness::listed;
@@ -616,5 +630,85 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_mer
             |way| DVec3::new(way.x * along, way.y, -way.x * across),
             &format!("{longitude}° from +X towards −Z"),
         );
+    }
+}
+
+/// The band from radius 5 to 6, from y = −0.5 to 0.5, turned half a turn
+/// about Y `way`: its inner wall touches [`ball_about_y`] along half its
+/// equator, the ball's face slit there (5585606550).
+fn half_band_about_y(way: f64) -> Body {
+    let corners = Contour::rectangle(DVec2::new(5.0, -0.5), DVec2::new(6.0, 0.5)).corners;
+    let triangles = fan(&corners);
+    let profile = straight(&corners, &triangles);
+    Body::default()
+        .tool_turned(&profile, FLAT, &about_v(&profile, way * PI))
+        .expect("the exact kernel turns the band")
+}
+
+/// Holds that `result` is built by the exact kernel, listed sound, holds
+/// `kept` within a billionth of it, and that its triangles are closed:
+/// what [`built_whole`] holds short of the drawing, whose chords of a ball
+/// and of a wall along a circle the two only touch still cross beside it
+/// where the ball is cut as well (`tessellation/sampling/cone.rs`,
+/// 5585606550).
+fn built_sound(result: Result<Body, Declined>, kept: f64, what: &str) {
+    let body = result.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    let exact = body.brep().expect("the exact kernel computed the step");
+    assert_eq!(
+        listed(&exact.listing(), exact.scale().reach()),
+        Ok(()),
+        "{what}: listed sound"
+    );
+    assert!(
+        (body.volume() - kept).abs() <= 1e-9 * kept,
+        "{what}: holds {}, where the arithmetic gives {kept}",
+        body.volume()
+    );
+    assert_eq!(
+        crate::soundness::closed(&body.triangles()),
+        Ok(()),
+        "{what}: drawn closed"
+    );
+}
+
+/// The ball joined to a half band its equator touches, the ball's face slit
+/// along that half, and cut by a flat 4 from its centre whose cap takes in
+/// the pole towards −Y or +Y — its normal (0.3, ±1, 0.18) or (0, ±1, 0.18)
+/// — joined then cut, or cut then joined, the band turned either way: each
+/// is built, listed sound, drawn closed, holding the ball and the band less
+/// the cap, which misses the band. The ball's face holds the pole the cap
+/// leaves it, the slit bounding nothing.
+#[test]
+fn a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first()
+ {
+    let ball = ball_about_y();
+    for way in [1.0, -1.0] {
+        let half = half_band_about_y(way);
+        for up in [-1.0, 1.0] {
+            for tilt in [0.3, 0.0] {
+                let towards = DVec3::new(tilt, up, 0.18);
+                let flat = slab_along(towards, 4.0);
+                for (how, built) in [
+                    (
+                        "joined then cut",
+                        ball.union(&half)
+                            .and_then(|joined| joined.difference(&flat)),
+                    ),
+                    (
+                        "cut then joined",
+                        ball.difference(&flat).and_then(|cut| cut.union(&half)),
+                    ),
+                ] {
+                    built_sound(
+                        built,
+                        BALL_OF_5 + 5.5 * PI - cap_of_5(1.0),
+                        &format!(
+                            "the ball and the half band turned {way} of a half turn, {how} by \
+                             the flat along {towards}"
+                        ),
+                    );
+                }
+            }
+        }
     }
 }
