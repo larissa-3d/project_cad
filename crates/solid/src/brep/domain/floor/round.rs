@@ -10,7 +10,7 @@ use glam::{DVec2, DVec3};
 mod ring;
 
 use super::super::crossing::heights;
-use super::{interleaved, turning, whole};
+use super::{interleaved, nearest, turning, whole};
 use crate::brep::surface::Surface;
 use crate::brep::trace::Trace;
 use ring::{closing, cut};
@@ -267,7 +267,8 @@ pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -
         return loops.is_empty();
     };
     let tiny = pole.room;
-    let crossings = heights(loops, place.x, true)
+    let floored: Vec<Vec<Trace>> = loops.iter().map(|lap| floored(lap, tiny)).collect();
+    let crossings = heights(&floored, place.x, true)
         .into_iter()
         .filter(|height| {
             if pole.high {
@@ -284,3 +285,23 @@ pub(in crate::brep) fn holds(loops: &[Vec<Trace>], pole: &Pole, flipped: bool) -
 /// Under this share of its pace, a trace runs along the meridian, and tells
 /// nothing of which side the face lies on.
 const ACROSS: f64 = 1e-9;
+
+/// A loop with a stretch of the floor between each trace and the next where
+/// the two part in angle by more than `room`: the loop passes through a pole
+/// there, and a meridian between the two angles crosses it on that pole's
+/// floor, at its height. Read as it stands, the trace arriving at the pole
+/// runs on to where the next starts, and is crossed by every meridian
+/// between them halfway up — below the place a face's parity is read from
+/// as often as above it: a sector of a ball, a quarter turn, its arc
+/// hanging between the two meridians it reaches the pole by (#1117).
+fn floored(lap: &[Trace], room: f64) -> Vec<Trace> {
+    let count = lap.len();
+    let joins = (0..count)
+        .map(|rank| {
+            let (end, next) = (lap[rank].end(), lap[(rank + 1) % count].start());
+            let to = DVec2::new(nearest(next.x, end.x), end.y);
+            ((to.x - end.x).abs() > room).then_some(Trace::Segment { from: end, to })
+        })
+        .collect();
+    interleaved(lap.to_vec(), joins)
+}

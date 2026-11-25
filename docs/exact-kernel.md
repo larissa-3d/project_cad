@@ -2008,7 +2008,13 @@ same input gives the same bits.
   and counted on the way, and a ball cut by such a flat was read as holding
   one pole of two; a second flat taking the cap about the pole it held left
   the rest of the sphere unbounded in the chart, no face, and its listing
-  failed. A
+  failed. A loop through the other pole is crossed there on that pole's
+  floor, at its height: read as traced, the trace arriving at the pole ran
+  on to where the next one leaves it, and every meridian between the two
+  crossed it halfway up, below the place the parity is read from as often
+  as above it. A sector of a ball turned a quarter, its arc hanging between
+  the two meridians it reaches its pole by, was read as holding the far
+  pole too once the place moved up that arc, and listed backwards. A
   face of a ring reaching across the cut is closed along what it reaches of
   it (#623, `domain/floor/round/ring.rs`): along each stretch between the
   meridians crossing the cut, read off the way each runs, and along the
