@@ -8,7 +8,7 @@
 //! runs; and a loop left open at a pole is crossed on that pole's floor,
 //! not halfway up the sector it closes.
 
-use std::f64::consts::{FRAC_PI_2, PI, TAU};
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
 
 use glam::{DVec2, DVec3};
 
@@ -369,5 +369,141 @@ fn a_cap_about_a_point_a_hair_off_the_equator_holds_neither_pole_and_the_rest_of
                 "the rest of the ball about {latitude} of latitude leaves the {which} pole out"
             );
         }
+    }
+}
+
+/// A hole thinner than the pole's room, from `from` to `to` and back
+/// `thick` above: the two sides are no slit, being apart, but a meridian
+/// through either finds the other closer than the room, and does not count
+/// it.
+fn sliver(from: [f64; 2], to: [f64; 2], thick: f64) -> Vec<Trace> {
+    polygon(&[from, [from[0], from[1] + thick], [to[0], to[1] + thick], to])
+}
+
+/// A slit of round traces, an arc run there and back whose angles the
+/// reversal does not give back to the bit, bounds nothing: the face round
+/// the hole beside it holds both poles. The arc runs along a latitude at
+/// its middle, more squarely across the meridian than any side of the
+/// hole.
+#[test]
+fn a_slit_of_round_traces_whose_reversal_rounds_its_angles_still_bounds_nothing() {
+    let poles = poles_of(&ball(), 1e-9);
+    let hole = polygon(&[[-1.0, 0.0], [0.0, 0.5], [1.0, 0.0], [0.0, -0.5]]);
+    let sweep = 0.4;
+    let there = Trace::Round {
+        center: DVec2::new(2.25, 0.05),
+        radius: 0.25,
+        start: FRAC_PI_2 - sweep / 2.0,
+        sweep,
+    };
+    let back = there.reversed();
+    assert_ne!(back.reversed(), there, "the fixture rounds on the way back");
+    for slit in [vec![there, back], vec![back, there]] {
+        let face = vec![hole.clone(), slit];
+        assert!(
+            poles.iter().all(|pole| holds(&face, pole, false)),
+            "the face round the hole, slit beside it by an arc: {face:?}"
+        );
+    }
+}
+
+/// The parity is read from the trace that crosses the meridian most
+/// squarely for its pace, not the one that runs fastest across it: a face
+/// round a hole, beside a hole thinner than the pole's room whose sides lean
+/// further from a latitude but run twice as fast, holds both poles. Read
+/// from the thin hole's side, the other side is closer than the room and
+/// would not be counted.
+#[test]
+fn the_parity_is_read_from_the_trace_crossing_the_meridian_most_squarely_not_the_fastest() {
+    let poles = poles_of(&ball(), 1e-9);
+    let hole = polygon(&[[-1.0, 0.0], [0.0, 0.5], [1.0, 0.0], [0.0, -0.5]]);
+    let thin = sliver([2.0, 0.3], [3.6, 1.5], 1e-12);
+    let face = vec![hole, thin];
+    assert!(
+        poles.iter().all(|pole| holds(&face, pole, false)),
+        "{face:?}"
+    );
+}
+
+/// A trace of no length runs neither along the meridian nor across it,
+/// and tells nothing of which side the face lies on — its own reverse, it
+/// is left out as a slit is: a cap whose loop begins with one holds the
+/// pole it lies towards and not the other.
+#[test]
+fn a_trace_of_no_length_tells_nothing_of_which_side_the_face_lies_on() {
+    let poles = poles_of(&ball(), 1e-9);
+    let start = DVec2::new(0.0, 0.4);
+    let mut lap = vec![Trace::Segment {
+        from: start,
+        to: start,
+    }];
+    lap.extend(latitude(0.4, true));
+    let cap = vec![lap];
+    assert!(!holds(&cap, &poles[0], false), "the low pole");
+    assert!(holds(&cap, &poles[1], false), "the high pole");
+}
+
+/// How squarely a trace crosses the meridian is a share of its pace, the
+/// same whatever its speed: a hole as thin as a needle, its sides leaning
+/// off the meridian by twice the billionth of their pace that tells a trace
+/// running along it, at a pace of a half, is read from its sides, and the
+/// face round it holds both poles.
+#[test]
+fn a_needle_hole_whose_sides_lean_off_the_meridian_by_over_a_billionth_of_their_pace_is_read_from_them()
+ {
+    let poles = poles_of(&ball(), 1e-9);
+    let needle = vec![polygon(&[[0.0, -0.5], [0.0, 0.5], [1e-9, 0.0]])];
+    assert!(
+        poles.iter().all(|pole| holds(&needle, pole, false)),
+        "{needle:?}"
+    );
+}
+
+/// Of traces crossing the meridian as squarely, the first is read: a face
+/// above a latitude, holding a hole thinner than the pole's room whose
+/// sides run along latitudes too, holds the high pole and not the low one.
+/// Read from the thin hole's last side, the other side is closer than the
+/// room and would not be counted.
+#[test]
+fn of_traces_crossing_the_meridian_as_squarely_the_first_is_read() {
+    let poles = poles_of(&ball(), 1e-9);
+    let face = vec![latitude(-0.5, true), sliver([2.0, 0.3], [2.5, 0.3], 1e-12)];
+    assert!(!holds(&face, &poles[0], false), "the low pole: {face:?}");
+    assert!(holds(&face, &poles[1], false), "the high pole: {face:?}");
+}
+
+/// A sector of the ball a quarter turn wide through its high pole holds
+/// neither pole wherever it stands round the axis, the rest of the ball the
+/// low one: its floor at the pole is laid however the two meridians it
+/// reaches the pole by stand about the chart's nought, astride it as well.
+#[test]
+fn a_sector_a_quarter_turn_wide_through_a_pole_holds_neither_pole_wherever_it_stands_round_the_axis()
+ {
+    let poles = poles_of(&ball(), 1e-9);
+    for turned in [-FRAC_PI_4, 0.5, -2.0, PI] {
+        let sector: Vec<Vec<Trace>> = vec![
+            sector(FRAC_PI_2)
+                .into_iter()
+                .map(|trace| match trace {
+                    Trace::Segment { from, to } => Trace::Segment {
+                        from: from + DVec2::X * turned,
+                        to: to + DVec2::X * turned,
+                    },
+                    other => other,
+                })
+                .collect(),
+        ];
+        let rest: Vec<Vec<Trace>> = sector
+            .iter()
+            .map(|lap| lap.iter().rev().map(Trace::reversed).collect())
+            .collect();
+        assert!(
+            !holds(&sector, &poles[0], false),
+            "the sector turned {turned} holds the far pole"
+        );
+        assert!(
+            holds(&rest, &poles[0], false),
+            "the rest of the ball, the sector turned {turned}, leaves the far pole out"
+        );
     }
 }
