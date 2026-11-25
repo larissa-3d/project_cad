@@ -1,4 +1,14 @@
 //! What prefs · recents.rs is held to.
+//!
+//! Closes #743 — the whole transcription is in
+//! `crates/app/src/screens/explorer/state/tests.rs`; these bullets are the
+//! recent list's share.
+//! - A part moved keeps its recent entry pointing to it: the list can be told
+//!   that a path became another, and the entry keeps its place and its name
+//!   under the new path —
+//!   `a_recent_part_moved_elsewhere_keeps_its_place_and_its_name_under_its_new_path`
+//! - an entry that would then repeat a path already listed is listed once, as
+//!   a push does — `a_recent_part_moved_onto_a_path_already_listed_is_listed_once`
 
 use std::path::Path;
 

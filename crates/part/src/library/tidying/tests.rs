@@ -1,4 +1,16 @@
 //! What part · library/tidying.rs is held to.
+//!
+//! Closes #743 — the whole transcription is in
+//! `crates/app/src/screens/explorer/state/tests.rs`; these bullets are the
+//! move's share.
+//! - Drag a part onto a folder to move it there: the part lands in the folder
+//!   under the file name it had, with what its archive holds, its picture and
+//!   its name among it, and the new path is handed back —
+//!   `a_part_moved_into_a_folder_keeps_its_file_name_its_picture_and_its_name`
+//! - it is refused where the folder already holds a part of that name —
+//!   `a_part_is_not_moved_into_a_folder_already_holding_one_of_that_name`
+//! - moved into the folder it is already in, it stays where it is —
+//!   `a_part_moved_into_the_folder_it_is_in_stays_where_it_is`
 
 use super::*;
 

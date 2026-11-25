@@ -60,6 +60,34 @@ pub fn read(folders: &impl Folders, root: &Path) -> Result<Folder, FileError> {
     Ok(folder)
 }
 
+/// The library as `query` leaves it: the parts whose name holds it whatever
+/// the case, and the folders on the way to one. A folder is never kept for
+/// its own name; nothing typed hides nothing.
+pub fn filter(library: &Folder, query: &str) -> Folder {
+    keep_matching(library, &query.to_lowercase())
+}
+
+fn keep_matching(folder: &Folder, query: &str) -> Folder {
+    Folder {
+        path: folder.path.clone(),
+        name: folder.name.clone(),
+        folders: folder
+            .folders
+            .iter()
+            .map(|under| keep_matching(under, query))
+            .filter(|under| {
+                query.is_empty() || !(under.folders.is_empty() && under.parts.is_empty())
+            })
+            .collect(),
+        parts: folder
+            .parts
+            .iter()
+            .filter(|part| part.name.to_lowercase().contains(query))
+            .cloned()
+            .collect(),
+    }
+}
+
 fn is_a_part(path: &Path) -> bool {
     path.extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case(PART_EXTENSION))
