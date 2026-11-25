@@ -105,7 +105,7 @@ impl Outline {
             outline.laid_out(body, samples, face, &laps, grid, (&round, Read::Tilted))?;
         outline.walls_split(samples, &mut lattice);
         let touched = touched(body, face, sphere, eps);
-        outline.beside_walls(samples, &mut lattice, &touched);
+        outline.along_touched_latitudes(samples, &mut lattice, &touched);
         let swept = sweep::triangles(&outline.points, &outline.segments)?;
         let places: Vec<DVec3> = (outline.samples.iter())
             .map(|&id| samples.point(id) - sphere.middle())

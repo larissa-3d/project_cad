@@ -9,15 +9,21 @@
 //! the chord's ends, stands outside the chord, and so outside the wall's
 //! triangles running from that very chord to the wall's far rim. The strip
 //! between the latitude and the next row of the grid inside the face is
-//! laid as the strips lay it instead, and kept from the refinement: the
-//! lattice points along that row, one at each angle of the grid the
-//! latitude is sampled at, joined to each other and, at the strip's two
-//! ends, to the latitude, so that every triangle along the latitude
+//! laid as the strips lay it instead: the lattice points along that row, one
+//! at each angle of the grid the latitude is sampled at, joined to each
+//! other and, at the strip's two ends, to the latitude. Those joins are
+//! boundaries the refinement never cuts or turns, so no triangle along the
+//! latitude reaches past the row; inside the strip, the sides are the
+//! refinement's like any other, and a cell of the lattice stands within the
+//! tolerance, as the strips' do, so that every triangle along the latitude
 //! reaches the row at an end of its chord and leans inside the wall's
-//! chords by half the row's angle, as two cylinders touching take common
-//! rays ([`super::super::contact`]). Only a stretch between two angles of
-//! the grid no other boundary of the face comes into is laid so; the
-//! latitude's last step at either end of a stretch is the refinement's.
+//! chords by some half the row's angle, as two cylinders touching take
+//! common rays ([`super::super::contact`]). Only a stretch between two
+//! angles of the grid no other boundary of the face comes into is laid so;
+//! the latitude's last step at either end of a stretch is the refinement's.
+//! A wall ending a short way past the latitude leans further in than that
+//! (#1129), and a face the central chart lays is refined with no strip at
+//! all (#1128).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::TAU;
@@ -62,9 +68,9 @@ impl Outline {
     /// along it with no other boundary coming into the strip: the lattice
     /// points of that row, at each angle of the grid the latitude is sampled
     /// at, joined to each other and at the stretch's ends to the latitude,
-    /// both ways, so that the sweep cuts the strip apart and the refinement
-    /// keeps every side of it.
-    pub(super) fn beside_walls(
+    /// both ways: segments of the outline, which the sweep cuts the strip
+    /// apart along and the refinement never cuts or turns.
+    pub(super) fn along_touched_latitudes(
         &mut self,
         samples: &mut Samples,
         lattice: &mut Lattice,

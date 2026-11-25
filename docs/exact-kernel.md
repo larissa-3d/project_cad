@@ -2919,14 +2919,25 @@ pointed cone's flank waits on #711.
   strip between it and the next row of the grid inside the face is laid as
   the strips lay it instead: the row's lattice points, one at each angle of
   the grid the equator is sampled at, joined to each other and at the
-  strip's two ends to the equator, both ways, so that the sweep cuts the
-  strip apart and the refinement keeps every side of it. Each triangle along
-  the equator then reaches the row at an end of its chord and leans inside
-  the wall's chords by some half the row's angle, as two cylinders touching
-  take common rays. Only a stretch between two angles of the grid no other
-  boundary of the face comes into is laid so: the step at either end of a
-  stretch, up to the vertex where another curve leaves the equator or the
-  wall a face going round is cut open along, is still the refinement's.
+  strip's two ends to the equator, both ways. Those are segments of the
+  outline: the sweep cuts the strip apart along them, and the refinement
+  never cuts or turns them, so no triangle along the equator reaches past
+  the row. Inside the strip its sides are the refinement's like any other,
+  and a cell of the lattice stands within the tolerance as the strips' do.
+  Each triangle along the equator then reaches the row at an end of its
+  chord and leans inside the wall's chords by some half the row's angle, as
+  two cylinders touching take common rays. Only a stretch between two
+  angles of the grid no other boundary of the face comes into is laid so:
+  the step at either end of a stretch, up to the vertex where another curve
+  leaves the equator or the wall a face going round is cut open along, is
+  still the refinement's. Left open: a face the central chart lays, which
+  `Outline::cut_of` tries before these two, is refined along a touched
+  equator with no strip and keeps the corner inside the chord's circle
+  (#1128); and a bore ending a short way past the equator leans inward
+  faster than the strip does, since the sphere's grid is a multiple of the
+  bore's rather than the same, and the bore's triangle from an equator
+  chord to its rim reaches a sample of the rim a step of the sphere's grid
+  round, over a height too short to hide it (#1129).
 - **Contact.** Chords sag towards their own cylinder's axis, so against a plane
   or a convex neighbour they retreat. Where two curved faces face each other on
   their hollow side closer than a chord's sag — an internal tangency, a near
