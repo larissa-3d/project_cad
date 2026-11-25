@@ -402,3 +402,37 @@ fn a_crossing_whose_place_is_not_kept_or_whose_step_the_circle_withholds_is_left
         widened.rays
     );
 }
+
+/// A cone about z from a radius of 4 at h = 0 to 8 at h = 4, and a wall of
+/// 6 about z meeting it along the circle at h = 2, the body's only circle:
+/// no other wall stands close to the wall, and no circle stands a hair from
+/// the cone between its rims. The wall takes no group of the cone's rays,
+/// as it takes none where it stands close to nothing.
+#[test]
+fn a_wall_meeting_a_cone_along_its_one_circle_and_close_to_no_other_wall_takes_no_group_of_the_cone_s_rays()
+ {
+    use glam::DVec2;
+
+    use crate::brep::surface::{Cone, Surface};
+    use crate::brep::tessellation::tests::fixtures::Build;
+
+    let mut build = Build::new();
+    build.surface(Surface::Cone(Cone::through(
+        DVec3::ZERO,
+        DVec3::Z,
+        [DVec2::new(0.0, 4.0), DVec2::new(4.0, 8.0)],
+    )));
+    let wall = build.cylinder(DVec3::ZERO, DVec3::Z, 6.0);
+    build.circle(wall, 2.0, None);
+    let body = build.finish(10.0);
+    let fineness = (1e-2, 10.0);
+    let grids = super::super::cone::grids(&body, fineness);
+
+    let axes = Axes::of(&body, &grids, &contact::walls(&body), fineness);
+
+    assert!(
+        !axes.given().contains_key(&wall),
+        "the wall of 6 took the cone's rays: {:?}",
+        axes.given().keys().collect::<Vec<_>>()
+    );
+}

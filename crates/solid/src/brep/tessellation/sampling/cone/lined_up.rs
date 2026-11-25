@@ -192,3 +192,6 @@ fn greatest_common(one: usize, other: usize) -> usize {
         greatest_common(other, one % other)
     }
 }
+
+#[cfg(test)]
+mod tests;
