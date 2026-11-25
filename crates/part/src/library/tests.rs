@@ -155,6 +155,36 @@ fn an_empty_filter_keeps_the_whole_library() {
 }
 
 #[test]
+fn a_folder_counts_every_part_under_it_subfolders_included() {
+    let files = library_of(&[
+        "/CAO/support.caopart",
+        "/CAO/notes.txt",
+        "/CAO/drafts/plate.caopart",
+        "/CAO/drafts/old/bride.caopart",
+        "/CAO/drafts/old/bride 2.caopart",
+    ]);
+    files
+        .create(Path::new("/CAO/empty"))
+        .expect("the folder is made");
+    let library = read(&files, Path::new("/CAO")).expect("reads");
+    let drafts = &library.folders[0];
+    let old = &drafts.folders[0];
+    let empty = &library.folders[1];
+
+    assert_eq!(
+        [
+            library.count_of_parts(),
+            drafts.count_of_parts(),
+            old.count_of_parts(),
+            empty.count_of_parts(),
+        ],
+        [4, 3, 2, 0],
+        "the library, `drafts`, `drafts/old` and `empty`: each counts its own parts and \
+         those of every folder under it, and a file that is not a part counts for none",
+    );
+}
+
+#[test]
 fn a_library_nobody_has_started_reads_as_an_empty_one() {
     let library = read(&InMemoryFiles::default(), Path::new("/CAO")).expect("reads");
 

@@ -16,6 +16,18 @@ pub struct Folder {
     pub parts: Vec<Part>,
 }
 
+impl Folder {
+    /// Its own parts and those of every folder under it.
+    pub fn count_of_parts(&self) -> usize {
+        self.parts.len()
+            + self
+                .folders
+                .iter()
+                .map(Folder::count_of_parts)
+                .sum::<usize>()
+    }
+}
+
 /// A part file, named by what its file is called rather than by what the
 /// archive says inside: browsing a hundred parts must not mean opening a
 /// hundred archives, and `create_in` writes the two the same.
