@@ -2768,10 +2768,10 @@ pointed cone's flank waits on #711.
   a zone across the equator reaches `r`, a ring `R + r`, read off the surface
   and the face's extent along the meridian, not off its edges alone, and made
   a multiple of the grid of every cylinder of the body on the round's axis
-  touching it along an equator, or sharing a rim with it within twice the
-  sag of its own chords of the circle of a row of the round's grid about
-  that rim — as two walls are told close — whose grid starts the same way
-  round (#644, #1123): a ring round a post of its inner radius is touched
+  standing within twice the sag of its own chords of an equator — as two
+  walls are told close — or sharing a rim with it within that of the
+  circle of a row of the round's grid about that rim, whose grid starts the
+  same way round (#644, #1123): a ring round a post of its inner radius is touched
   along a circle that parts neither face, and its chords along it, on its
   own grid, cut across the post's between two of its steps (5576855166) —
   and one of rows along the meridian, cut for the tube's radius; each takes
@@ -2784,9 +2784,13 @@ pointed cone's flank waits on #711.
   the strip reached across from a step of the wall's to the next, through
   the wall's chords (#1123); on a multiple of the wall's grid each of its
   columns stands where the rim has a sample, and the strip stays outside
-  the wall's chords. A wall of a row's radius sharing no rim with the round
-  — a rod on the end of a post a ring touches, far along the axis from the
-  row — is not counted. The walls are taken one at a time, those touching
+  the wall's chords. A wall a hair off an equator — a bore a hair narrower
+  than a ring's inner one, a shaft a hair wider than a ball — shares no
+  rim with the round, and the chords of either sag through the hair between
+  them (956002773, 956002803, 956000000, 956006352); a wall of a row's
+  radius sharing no rim with the round — a rod on the end of a post a ring
+  touches, far along the axis from the row — is not counted. The walls are
+  taken one at a time, those touching
   the round first, then the nearest a row, and one whose multiple with
   those taken would pass the most a turn is cut into is left out alone:
   leaving them all out gave a ring round its post back its own steps for a

@@ -311,12 +311,14 @@ const ALIGNED: f64 = 1e-9;
 
 /// Whether `wall`, on the axis of `round`, stands apart from it rather than
 /// touching it along an equator within `eps`, and how far from the circle
-/// it stands nearest; or none. Apart, it shares one of `rims`, the round's
-/// latitude circles, within `reach` of the circle of either row about it
-/// of the round's grid of `rows` a turn — twice the sag of the wall's
-/// chords, as two walls are told close. A wall a hair from a row's circle
-/// far along the axis from it — a rod on the end of a post a ring touches
-/// — shares no rim with the round, and stands beside it nowhere.
+/// it stands nearest; or none. Apart, it stands within `reach` — twice the
+/// sag of its chords, as two walls are told close — of an equator, a bore
+/// a hair narrower than a ring's inner one (956002773), or shares one of
+/// `rims`, the round's latitude circles, within `reach` of the circle of
+/// either row about it of the round's grid of `rows` a turn. A wall a hair
+/// from a row's circle far along the axis from it — a rod on the end of a
+/// post a ring touches — shares no rim with the round, and stands beside
+/// it nowhere.
 fn beside(
     round: &Rounded,
     wall: &Cylinder,
@@ -343,6 +345,7 @@ fn beside(
             [under, under + 1.0]
         })
         .map(|rank| (outer - round.radius() * (1.0 - (rank * step).cos()) - wall.radius).abs())
+        .chain([touch])
         .filter(|gap| *gap <= reach)
         .min_by(f64::total_cmp)
         .map(|gap| (true, gap))
