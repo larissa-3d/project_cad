@@ -175,18 +175,22 @@ impl Axes {
         let (mut joined, close) = Joined::close(&about, walls, eps, fineness);
         rims.retain(|(held, near, _)| !near.is_empty() || held.iter().any(|id| close.contains(id)));
         // A round's rims are kept apart by its rows, and the strip from a rim
-        // to the next stands on the round's own columns: a rim standing close
-        // to no wall, given another wall's rays, had the strip reach across
-        // them where it was a hair thin, at a shaft's rim under a ring's
-        // equator beside a rod at its inner one (#1123).
+        // to the next stands on the round's own columns: a rim given the rays
+        // of a wall it stands close to through another rim of the round, not
+        // itself, had the strip reach across them where it was a hair thin,
+        // at a shaft's rim under a ring's equator beside a rod at its inner
+        // one (#1123). Each rim of a round standing close to a wall takes the
+        // round's rays in that wall's group alone.
         for (held, _, grid) in &mut rims {
             if let Spun::Round(_) = grid.spun {
                 held.retain(|id| close.contains(id));
             }
         }
-        for (held, near, _) in &rims {
-            for id in held.iter().chain(near) {
-                joined.join(held[0], *id);
+        for (held, near, grid) in &rims {
+            if let Spun::Cone(_) = grid.spun {
+                for id in held.iter().chain(near) {
+                    joined.join(held[0], *id);
+                }
             }
         }
         let mut axes = Axes {
@@ -196,8 +200,14 @@ impl Axes {
             of_wall: BTreeMap::new(),
         };
         for (held, _, grid) in rims {
-            let group = axes.group(joined.root(held[0]), grid);
-            axes.groups[group].rays.extend(grid.rays());
+            let rooted = match grid.spun {
+                Spun::Cone(_) => &held[..1],
+                Spun::Round(_) => &held[..],
+            };
+            for id in rooted {
+                let group = axes.group(joined.root(*id), grid);
+                axes.groups[group].rays.extend(grid.rays());
+            }
         }
         for (id, wall) in about {
             let Some(&group) = axes.of_wall.get(&joined.root(*id)) else {

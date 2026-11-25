@@ -59,7 +59,8 @@ pub(super) fn kept_by_walls(
         let turn = wall.u.dot(round.v()).atan2(wall.u.dot(round.u()));
         let ranks = turn / TAU * theirs as f64;
         let reach = 2.0 * wall.radius * (1.0 - (PI / theirs as f64).cos());
-        let reaching = || reaches_the_equators(body, SurfaceId(id as u32), round, reach);
+        let window = (2.0 * round.radius() * reach).sqrt();
+        let reaching = || reaches_the_equators(body, SurfaceId(id as u32), round, window);
         if (ranks - ranks.round()).abs() <= ALIGNED
             && let Some(near) = beside(round, wall, &rims, rows, (eps, reach), reaching)
         {
@@ -105,17 +106,19 @@ impl Beside {
     }
 }
 
-/// How `wall`, on the axis of `round`, stands beside it, if it does. Along
-/// an equator, within `eps` or `reach` of its circle — twice the sag of the
-/// wall's chords, as two walls are told close — where its faces stand
-/// beside the equator along the axis, `reaching` its plane: a ring round a
-/// post of its inner radius, a bore a hair narrower than a ring's inner
-/// equator (956002773). Or apart, sharing one of `rims`, the round's
-/// latitude circles, within `reach` of the circle of either row about it of
-/// the round's grid of `rows` a turn. A wall a hair from an equator's
-/// circle or a row's far along the axis from it — a rod a hair outside a
-/// ring's inner equator above its tube, a rod on the end of a post a ring
-/// touches — stands beside it nowhere.
+/// How `wall`, on the axis of `round`, stands beside it, if it does.
+/// Touching it, its radius an equator's within `eps`, wherever it stands
+/// along the axis, as #644 counts it: a ring round a post of its inner
+/// radius, the post stopping a hair short of the equator or not. Apart,
+/// within `reach` of an equator's circle — twice the sag of the wall's
+/// chords, as two walls are told close — where its faces stand beside the
+/// equator along the axis, `reaching` its plane: a bore a hair narrower
+/// than a ring's inner equator (956002773). Or apart, sharing one of
+/// `rims`, the round's latitude circles, within `reach` of the circle of
+/// either row about it of the round's grid of `rows` a turn. A wall a hair
+/// off an equator's circle or a row's far along the axis from it — a rod a
+/// hair outside a ring's inner equator above its tube, a rod on the end of
+/// a post a ring touches — stands beside it nowhere.
 fn beside(
     round: &Rounded,
     wall: &Cylinder,
@@ -132,10 +135,10 @@ fn beside(
     }
     let (outer, inner) = (round.widest(), round.widest() - 2.0 * round.radius());
     let touch = (outer - wall.radius).abs().min((inner - wall.radius).abs());
-    let along = touch <= reach.max(eps) && reaching();
-    if along && touch <= eps {
+    if touch <= eps {
         return Some(Beside::Touching(touch));
     }
+    let along = touch <= reach && reaching();
     let step = TAU / rows as f64;
     rims.iter()
         .filter(|rim| lies_on(rim, wall, eps))
@@ -155,10 +158,12 @@ fn beside(
 /// meets another wall along reaches between its ends.
 const PLACES: usize = 8;
 
-/// Whether a face of the wall `surface` stands within `reach` of the plane
+/// Whether a face of the wall `surface` stands within `window` of the plane
 /// of the equators of `round`, along its axis: its edges read at their ends
-/// and at [`PLACES`] places between.
-fn reaches_the_equators(body: &Body, surface: SurfaceId, round: &Rounded, reach: f64) -> bool {
+/// and at [`PLACES`] places between. A round stays within a wall's reach of
+/// it, `h`, over √(2 r h) either side of the equator it stands beside, the
+/// band `window` is given.
+fn reaches_the_equators(body: &Body, surface: SurfaceId, round: &Rounded, window: f64) -> bool {
     let height = |point: DVec3| (point - round.origin()).dot(round.axis());
     let level = height(round.point(DVec2::ZERO));
     let (low, high) = body
@@ -177,7 +182,7 @@ fn reaches_the_equators(body: &Body, surface: SurfaceId, round: &Rounded, reach:
         .fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), at| {
             (low.min(at), high.max(at))
         });
-    low - reach <= level && level <= high + reach
+    low - window <= level && level <= high + window
 }
 
 fn greatest_common(one: usize, other: usize) -> usize {

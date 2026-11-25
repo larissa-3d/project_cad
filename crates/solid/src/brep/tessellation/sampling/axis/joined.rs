@@ -48,10 +48,10 @@ fn together(one: &Cylinder, other: &Cylinder, (tolerance, span): (f64, f64)) -> 
 /// but square to its axis stands that close to the circles of a plane all
 /// but lying on it only along the axis, and is left as it was. A sphere or a
 /// torus stands close to no circle this way (#576): a coaxial wall touching
-/// it along an equator or a hair off one, where its faces reach the
-/// equators' plane, or sharing a rim with it a hair from a row of its grid,
-/// makes that grid a multiple of its own instead (`cone/lined_up.rs`,
-/// #1123).
+/// it along an equator, one a hair off an equator where its faces stand
+/// beside it along the axis, or one sharing a rim with it a hair from a row
+/// of its grid, makes that grid a multiple of its own instead
+/// (`cone/lined_up.rs`, #1123).
 pub(super) fn beside(circle: &Circle, grid: &Grid, (tolerance, span): (f64, f64)) -> bool {
     let Spun::Cone(cone) = &grid.spun else {
         return false;
