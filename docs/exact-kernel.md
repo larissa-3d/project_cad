@@ -147,7 +147,11 @@ It can:
   of every piece parted before it, an earlier cut's included: when an
   earlier change starts or stops parting a face, the pieces a later cut
   leaves answer to other numbers, and a drawing laid on such a piece lands
-  on another piece or loses its face. Edge names hold, a piece naming its
+  on another piece or loses its face. A chamfer or a fillet step, laid in
+  several cuts, parts its faces once, on leaving `cut_off`, off the body it
+  ends with: a number its own cuts handed out does not survive it, and a face
+  one cut parts and a later one takes a piece of whole keeps its number
+  whichever edge is named first (#954). Edge names hold, a piece naming its
   edges by its root, and so does every face a step made. A number read off
   the face a piece was parted from and the piece's rank among its pieces,
   set aside in #682, is what would lift it. Two edges a join bridges into

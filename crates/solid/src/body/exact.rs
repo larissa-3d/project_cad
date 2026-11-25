@@ -315,6 +315,30 @@ impl Exact {
         self.drawn().flats(&self.brep)
     }
 
+    /// The body a step laid in several cuts, its faces parted as one cut
+    /// from `before` would have parted them: each piece a cut of the step
+    /// numbered answers again to the number it was parted from, and the
+    /// faces then left apart are told apart once. A face one cut parts and
+    /// a later one takes a piece of whole keeps its number, as it does in
+    /// the order that never parts it (#954).
+    fn parted_as_one(self, before: &Exact) -> Exact {
+        let first = PIECES + before.pieces;
+        let roots = &self.roots;
+        let brep = self.brep.renamed_by(|number| {
+            lineage(roots, number)
+                .find(|&up| up < first)
+                .unwrap_or(number)
+        });
+        let mut pieces = before.pieces;
+        let mut roots = before.roots.clone();
+        let brep = parted(brep, &mut pieces, &mut roots);
+        let exact = Exact::of(brep, self.next, pieces, roots);
+        if let Some(drawn) = self.drawn.into_inner() {
+            let _ = exact.drawn.set(drawn);
+        }
+        exact
+    }
+
     fn named(&self, face: usize) -> impl Iterator<Item = FaceId> + '_ {
         self.brep
             .face_ids()

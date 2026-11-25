@@ -93,7 +93,10 @@ pub(super) const GEOMETRY_ENTRY: &str = "geometry.json";
 /// 34: a curve's centre slid along a trait to the curve's fixed end stops short
 /// of shrinking the curve below a tenth of its size or turning it inside out,
 /// where it shrank or flipped it (#1065).
-const REBUILT_BY: u32 = 34;
+/// 35: a face a chamfer or a fillet step parts in one cut and takes a piece of
+/// whole in another keeps its number whichever edge is named first, where it
+/// answered to a piece number in one order (#954).
+const REBUILT_BY: u32 = 35;
 
 #[derive(Serialize, Deserialize)]
 struct Cached<S> {

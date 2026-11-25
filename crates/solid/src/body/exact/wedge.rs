@@ -205,11 +205,12 @@ impl Exact {
             let step = self.step(names, &kind)?;
             let taken = step.bound(&self.brep, asked, &kind);
             let odd = odd::corners(&self.brep, &step)?;
-            if odd.is_empty() {
+            let (cut, taken, pairs) = if odd.is_empty() {
                 self.in_turn(names, step, taken, &kind)
             } else {
                 self.round_the_odd(names, &step, &odd, taken, &kind)
-            }
+            }?;
+            Ok((cut.parted_as_one(self), taken, pairs))
         })
     }
 
