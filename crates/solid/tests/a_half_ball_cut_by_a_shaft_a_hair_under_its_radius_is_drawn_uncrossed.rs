@@ -6,9 +6,12 @@
 //!
 //! Closes #1123.
 //! - The half ball of 5 about z, cut by the shaft along z from −10 to 0 of
-//!   radius 5 − h, for h in 4e-7, 1e-6 and a few between up to where
-//!   decision 12 no longer lays it: built, exact, closed, uncrossed, the
-//!   arithmetic's volume —
+//!   radius 5 − h, for h from just past decision 12's reach (2e-7: nearer,
+//!   the shaft is laid onto the touch and the cut drawn sound) up through
+//!   the band where it is drawn crossed today (to about 4e-4; 5e-4 and
+//!   beyond draw sound) — 2.1e-7, 4e-7, 6e-7, 8e-7, 1e-6, 1e-5, 1e-4, 4e-4:
+//!   built, exact, closed, uncrossed, the arithmetic's volume (at the
+//!   shaft's radius) —
 //!   `a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_too_far_under_its_radius_to_be_laid_onto_the_touch_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 //!   Read as: decision 12 lays the shaft onto the ball's equator only within
 //!   `Scale::HAIR` tolerances of it, 2e-7 at the pair's reach of 10, the
@@ -18,11 +21,12 @@
 //!   4e-4 it is built, exact, closed, of the volume at the shaft's radius,
 //!   and crossed, always at the seam where the half ball's flat face meets
 //!   the ring under the equator; from 5e-4 to 1.5e-3 it is drawn sound. The
-//!   words "up to where decision 12 no longer lays it" would ask for nothing
-//!   past 2e-7, so they are read as the band the issue's hairs belong to,
-//!   and held from end to end: 2.1e-7, just past decision 12's reach; the
-//!   issue's 4e-7 and 1e-6 with 6e-7 and 8e-7 between; and on up the band to
-//!   its top, 1e-5, 1e-4 and 4e-4. The arithmetic is the one at the shaft's
+//!   issue first asked for the hairs "up to where decision 12 no longer lays
+//!   it", which would have asked for nothing past 2e-7; its Done when was
+//!   corrected to this band after that measure, and the band is held from
+//!   end to end: 2.1e-7, just past decision 12's reach; 4e-7 and 1e-6 with
+//!   6e-7 and 8e-7 between; and on up to its top, 1e-5, 1e-4 and 4e-4. The
+//!   arithmetic is the one at the shaft's
 //!   radius at every one of them, since no decision lays the shaft there,
 //!   and it is held to the kernel's billionth: from 1e-5 on, that tells it
 //!   apart from what the ball would hold with the shaft laid onto the touch
