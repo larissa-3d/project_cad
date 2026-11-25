@@ -60,7 +60,7 @@ pub(in crate::body::exact) fn rounded_across(
 ) -> Result<Exact, Declined> {
     let centre = corner.crossings[0] - corner.facing[0] * corner.value;
     ahead(body, corner, centre)?;
-    let cut = body.cut_by(&Exact {
+    let cut = body.cut_in_a_step(Exact {
         next: 1,
         ..short_of(corner, centre)?
     })?;
@@ -80,7 +80,7 @@ pub(in crate::body::exact) fn hollowed_across(
 ) -> Result<Exact, Declined> {
     let centre = corner.crossings[0] + corner.facing[0] * corner.value;
     ahead(body, corner, centre)?;
-    let joined = body.joined(&Exact {
+    let joined = body.joined_in_a_step(Exact {
         next: 1,
         ..filling(corner, centre)?
     })?;

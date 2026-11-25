@@ -9,7 +9,15 @@ use serde::{Deserialize, Serialize};
 /// keeps apart the rules see apart, and a thousand times below the tolerance
 /// of a line of measure, so a merge never shows as matter gained or lost. The
 /// result of an operation carries the larger reach of its operands, so a
-/// later operation never decides with a finer tolerance than an earlier one.
+/// later operation never decides with a finer tolerance than an earlier one
+/// — with one exception (#1023). A solid a chamfer or a fillet lays on its
+/// part is read at the part's scale, at its own reach where it is joined and
+/// reaches further, rather than at the reach of the boxes it was built from,
+/// which stand past the part, and its own pairs, decided at that coarser
+/// reach, are decided again finer. That is sound only because every
+/// coincidence inside such a solid is exact up to rounding and every near
+/// miss a gap it was built with far above either tolerance, as
+/// `Body::read_at` says.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Scale {
     reach: f64,

@@ -1,10 +1,14 @@
 //! How far a face's number is followed back through the roots of parted
 //! faces: to the first face, as the kernel writes them, and no further than
-//! once round, as a hand may edit them into a cycle.
+//! once round, as a hand may edit them into a cycle; and the scale a step
+//! joins a solid it lays on the part at (#1023).
 
 use std::collections::BTreeMap;
 
-use super::{PIECES, lineage, root};
+use glam::DVec3;
+
+use super::{Exact, PIECES, lineage, root};
+use crate::profile::{Contour, Frame};
 
 /// The lineage of `number`, read no further than one number past the longest
 /// lineage `roots` could hold without a cycle: one number for each root, and
@@ -57,4 +61,40 @@ fn two_pieces_whose_roots_were_edited_into_each_other_end_their_lineage_where_ro
         "the earlier piece, written down as parted from a later one, is not followed forward"
     );
     assert_eq!(root(&roots, PIECES), PIECES);
+}
+
+/// A box from `low` to `high`, square to the world's axes, raised as a step
+/// raises it.
+fn box_from(low: DVec3, high: DVec3) -> Exact {
+    let frame = Frame {
+        origin: DVec3::Z * low.z,
+        u: DVec3::X,
+        v: DVec3::Y,
+    };
+    let rectangle = Contour::rectangle(low.truncate(), high.truncate());
+    Exact::raised(&rectangle, &[], frame, DVec3::Z * (high.z - low.z)).expect("the box raises")
+}
+
+#[test]
+fn a_solid_a_step_joins_to_the_part_reaching_past_it_leaves_the_part_carrying_its_own_reach() {
+    let part = box_from(DVec3::ZERO, DVec3::splat(10.0));
+    let bar = box_from(DVec3::new(5.0, 2.0, 2.0), DVec3::new(80.0, 8.0, 6.0));
+    let past = box_from(DVec3::new(50.0, 0.0, 0.0), DVec3::new(90.0, 10.0, 10.0));
+    let tool = bar.cut_by(&past).expect("the bar is cut back");
+    assert_eq!(
+        (part.reach(), tool.reach(), tool.brep.reach()),
+        (10.0, 90.0, 50.0),
+        "the part reaches 10; the tool carries the 90 of the boxes it was cut from, and stands \
+         out to 50"
+    );
+
+    let joined = part.joined_in_a_step(tool).expect("the tool is joined");
+
+    assert_eq!(
+        joined.reach(),
+        50.0,
+        "the part joined to the tool carries a reach of {}, where what the join leaves stands \
+         out to 50",
+        joined.reach()
+    );
 }

@@ -325,7 +325,7 @@ impl Exact {
         for overlap in &flush.overlaps {
             trimmed = trimmed.joined(&overlap.solid)?;
         }
-        let cut = self.cut_by(&Exact { next: 1, ..trimmed })?;
+        let cut = self.cut_in_a_step(Exact { next: 1, ..trimmed })?;
         if stops.is_empty() {
             return Ok(cut);
         }

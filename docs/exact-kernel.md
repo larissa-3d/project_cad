@@ -202,9 +202,11 @@ It can:
   tolerance times the part's reach, more as the edge flattens: a raise
   refuses a section whose area is under its tolerance times its reach. So
   the prism stands outside the part by no more than about the distance
-  taken, or that least margin where it is larger, which matters: a result
-  carries the larger reach of its operands, and every later step decides
-  and draws at it. Its wall on the chamfer's plane is the one face the step
+  taken, or that least margin where it is larger. However far it stands
+  out, the step lays it at the part's scale, as it lays every solid it
+  cuts or joins — at that solid's own reach where a join takes the part
+  further — so that neither the step nor any later one decides or draws
+  coarser for it (#1023). Its wall on the chamfer's plane is the one face the step
   names, numbered where the steps' numbers ended, and the count moves on by
   one, so no other face changes its number. The chamfer is trimmed by the
   faces it meets at the edge's ends, as the usual CAD tools trim it: where
@@ -420,9 +422,11 @@ It can:
   it crosses it — on an L cut down to a leaning top, higher on one wall than
   on the other. Where that face is a cylinder or a cone (#788), the solid cut
   from the prism is bounded by the round itself and starts where the prism's
-  long edges leave it, so the fill ends on the round. A result carries the
-  larger reach of its operands, and a solid standing out of the part's box
-  would draw every later step coarser. A cylinder's is raised along its
+  long edges leave it, so the fill ends on the round. A boolean decides at
+  the larger reach of its operands, so a solid standing far out of the
+  part's box would cut the prism coarser than the part asks; the fill is
+  then joined to the part at the part's scale whatever its trims reach
+  (#1023). A cylinder's is raised along its
   axis, the rectangle round the long edges less the cylinder's disc, from a
   line across them where every one that meets the round stands inside it,
   and stands no further out than the prism. A cone, which no raise bounds,
@@ -455,8 +459,8 @@ It can:
   past it between its planes, and the whole turn's disc stands all round
   the axis, each by no more than about the box's furthest distance from the
   axis; the reach its profile is laid at, its corners' place plus their
-  furthest from the axis, is larger still. A large fill near its part's
-  edge may so widen the part's reach a little, never by the dome's size. A
+  furthest from the axis, is larger still. The fill is joined to its part
+  at the part's scale all the same, and leaves its reach as it was (#1023). A
   fillet on a
   sphere end, which meets it along a cylinder of
   another axis, and a torus end are still declined. The trimmed prism is
@@ -761,7 +765,21 @@ A later leaf growing the reach, however many operations later, does not
 make one of two walls of a crescent a hair wide, crossing along two rulings
 the operand's own corners stand on. The second operand's own pairs are
 read at the operation's scale: it is a leaf, whose surfaces stand far
-apart.
+apart, read a little coarser than it decided them.
+
+There is one exception, where a pair is decided again finer than it was
+(#1023). A chamfer or a fillet reads each solid it lays on its part at the
+part's scale, or at that solid's own reach where a join takes the part
+further, never at the reach of the boxes it was built from: those stand past
+the part, and would widen the step's tolerance and every later one's. The
+solid's own pairs, decided at that coarser reach, are decided again at the
+part's. That is sound only because every coincidence inside such a solid is
+exact up to rounding — laid on the part's own surfaces and on exact crossings
+of planes and lines — and every near miss is a gap it was built with, far
+above either tolerance: a prism's margin, a trim's clearance, the depth a
+corner's piece is sunk. Its reach stays within a few times the part's, so
+none of its pairs lies between the two tolerances. A solid built otherwise
+is not to be read so.
 
 The decisions, in the order taken, once per operation:
 

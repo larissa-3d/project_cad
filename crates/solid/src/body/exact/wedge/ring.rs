@@ -150,7 +150,7 @@ impl Exact {
             next: laid,
             ..raised
         };
-        let cut = self.cut_by(&tool)?;
+        let cut = self.cut_in_a_step(tool)?;
         let wedges: Vec<&Wedge> = wedges.iter().collect();
         if !cut.cut_along(&wedges, self, laid, &[], &[], &[]) {
             return Err(Declined::Unsupported);

@@ -137,6 +137,39 @@ fn the_corners_of_a_face_bounded_by_an_ellipse_hold_points_along_it_that_move_wi
     }
 }
 
+#[test]
+fn a_body_read_at_a_part_s_scale_has_every_surface_arrive_at_that_scale() {
+    let block = Body::raised(
+        &Contour::rectangle(DVec2::ZERO, DVec2::new(50.0, 10.0)),
+        &[],
+        ground(),
+        DVec3::Z * 10.0,
+    )
+    .expect("the block raises");
+    let (own, part) = (Scale::of(50.0), Scale::of(30.0));
+    let surfaces: Vec<SurfaceId> = (0..block.surfaces.len() as u32).map(SurfaceId).collect();
+    assert!(
+        surfaces.len() == 6
+            && surfaces
+                .iter()
+                .all(|&surface| block.arrived(surface) == own),
+        "the block's six surfaces arrived at its own scale, {own:?}"
+    );
+
+    let read = block.read_at(part);
+
+    assert_eq!(read.scale(), part, "the block read at the part's scale");
+    for surface in surfaces {
+        assert_eq!(
+            read.arrived(surface),
+            part,
+            "surface {surface:?} of the block read at the part's scale arrived at {:?}, where \
+             the part's is {part:?}",
+            read.arrived(surface)
+        );
+    }
+}
+
 pub(in crate::brep) mod conic;
 mod meet;
 mod rotated;

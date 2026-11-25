@@ -252,7 +252,7 @@ impl Exact {
                     next: 0,
                     ..solid
                 };
-                let cut = body.cut_by(&tool)?;
+                let cut = body.cut_in_a_step(tool)?;
                 let left = (cut.brep.face_ids())
                     .filter(|&face| cut.brep.numbers(face).contains(&(number + body.next)))
                     .count();
