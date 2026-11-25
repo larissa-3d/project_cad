@@ -41,11 +41,16 @@
 //! Beyond the criteria — pins, not criteria of #1123 — the same family
 //! elsewhere: a coaxial wall a hair from the circle of a row of a round's
 //! grid. They widen the criterion's family because they are what the fix
-//! answers, not the issue's hairs alone. The drawing lines the round's grid
-//! up with the wall's wherever the wall stands within twice its chords' sag
-//! of any row's circle, not only at an equator (`kept_by_walls`, in
-//! `tessellation/sampling/cone.rs`). The probe of that fix found each of
-//! them, and the first two were crossed on `main`.
+//! answers, not the issue's hairs alone. The drawing lines a round's grid
+//! up with the grid of each coaxial wall that touches it along an equator
+//! within the tolerance, stands within twice its chords' sag of an equator,
+//! or shares a rim with it within twice its sag of the circle of either row
+//! about that rim. The walls are taken one at a time, touching ones first,
+//! then the nearest; one whose multiple with those taken would pass the
+//! most a turn is cut into is left out alone (`kept_by_walls`, in
+//! `tessellation/sampling/cone.rs`). The probe of the fix's first rule,
+//! which took a wall within that sag of any row's circle, found the three
+//! cases below, and the first two were crossed on `main`.
 //!
 //! The half ball cut by the shaft 1.9e-3 and 2.2e-3 under its radius, its
 //! rim a hair under the row below the equator rather than under the
@@ -61,23 +66,36 @@
 //! the post's now, and the pin holds it sound there:
 //! `a_ring_joined_with_or_cut_by_a_coaxial_post_up_to_its_centre_plane_a_hair_outside_its_inner_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 //!
-//! The rule counts a wall only where it stands beside a row of the round's
-//! grid, and a wall counted must not undo the grid it lines up with another
-//! wall. Two pins hold that, against walls that do not stand beside the
-//! round where it needs them, each found by the review of the fix. A rod
-//! whose radius is a hair from the circle of a row of a ring's grid, but
-//! which stands far along the axis from it, on the end of a post the ring
-//! touches along its inner equator: drawn sound on `main`, crossed at the
-//! post's touch by the fix's first rule (8b973844), which read only the
-//! rod's radius, counted it, and gave the ring back its own steps since no
-//! grid a multiple of the post's and the rod's stood under the most a turn
-//! is cut into —
+//! The rule counts a wall only where it stands beside the round, and a
+//! wall counted must not undo the grid it lines up with another. The review
+//! of the fix found the pins below. A rod whose radius is a hair from the
+//! circle of a row of a ring's grid, but which stands far along the axis
+//! from it, on the end of a post the ring touches along its inner equator:
+//! drawn sound on `main`, crossed at the post's touch by the fix's first
+//! rule (8b973844), which read only the rod's radius, counted it, and gave
+//! the ring back its own steps since no grid a multiple of the post's and
+//! the rod's stood under the most a turn is cut into —
 //! `a_ring_round_a_post_of_its_inner_radius_with_a_rod_on_the_post_s_end_clear_of_the_ring_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
-//! And the same undoing in the criterion's own case: the half ball cut by
-//! the shaft 1e-6 under its radius, then bored by a pin beside another row,
+//! Under the current rule the rod shares no rim with the ring and is not
+//! counted at all, so that pin no longer holds which wall is taken first.
+//! This one does: the same ring and post, bored from above by a wall that
+//! crosses the tube a hair from a row, counted with the post, their grids
+//! with no multiple under that most. The post, touching, is taken first and
+//! the bore left out; taken the other way round, the post's touch crossed —
+//! `a_ring_round_a_post_of_its_inner_radius_then_bored_from_above_across_its_tube_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//! The same undoing in the criterion's own case: the half ball cut by the
+//! shaft 1e-6 under its radius, then bored by a pin beside another row,
 //! whose grid and the shaft's have no multiple under that most, crossed at
 //! the shaft's rim again —
 //! `a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_under_its_radius_then_bored_blind_from_its_top_by_a_pin_beside_a_row_of_its_grid_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//! And a wall a hair off an equator but standing nowhere beside the round:
+//! the ring cut by the shaft a hair inside its outer equator, then joined
+//! with a hub above its tube and a rod on the hub, a millionth outside the
+//! ring's inner equator and 3 above its tube. The fix's third rule
+//! (f92cb341) counted the rod by its gap to the equator alone, took it
+//! before the shaft for that gap being the smaller, and left the shaft out,
+//! and the shaft's rim crossed again —
+//! `a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_a_hair_outside_its_inner_one_standing_above_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 //!
 //! A wall within twice its chords' sag of a round's equator counts too,
 //! though the two share no rim: a bore a hair inside a groove's bottom, or
@@ -265,6 +283,25 @@ fn pinned(radius: f64) -> f64 {
     let meets = (RADIUS * RADIUS - radius * radius).sqrt();
     let cap = RADIUS - meets;
     (PI * radius * radius * (meets - 1.0) + PI * cap * cap * (3.0 * RADIUS - cap) / 3.0) / 2.0
+}
+
+/// What a wall of radius `wall` about the axis of the ring of `major` and
+/// `minor`, between its inner equator and its tube's centre, holds of the
+/// tube above the plane z = `from`, from there up to where the wall leaves
+/// the tube: π ∫ (H² − (R − √(r² − z²))²) dz, with H the wall's radius,
+/// which is π [(H² − R² − r²) z + z³ / 3 + 2R ((z / 2) √(r² − z²)
+/// + (r² / 2) asin(z / r))] from `from` up to √(r² − (R − H)²).
+fn wall_in_the_tube(major: f64, minor: f64, wall: f64, from: f64) -> f64 {
+    let primitive = |z: f64| {
+        (wall * wall - major * major - minor * minor) * z
+            + z.powi(3) / 3.0
+            + 2.0
+                * major
+                * (z / 2.0 * (minor * minor - z * z).sqrt()
+                    + minor * minor / 2.0 * (z / minor).asin())
+    };
+    let leaves = (minor * minor - (major - wall).powi(2)).sqrt();
+    PI * (primitive(leaves) - primitive(from))
 }
 
 /// Holds that a boolean built a body that is exact, holds `volume` to the
@@ -634,4 +671,74 @@ fn seed_956006352_a_round_bowed_down_to_an_equator_of_one_and_a_half_cut_by_a_co
             360.0,
         ))],
     ));
+}
+
+/// 5576855166's ring, of tube 45 about a ring radius of 60, joined to a
+/// coaxial post of radius 15 along z from z = −45 to 45, which touches it
+/// along its inner equator, then bored from above by a wall of radius
+/// 24.035 from z = 20 to 60: the bore crosses the tube along a rim at
+/// z ≈ 27, a hair from a row of the ring's grid, and takes the post's top.
+/// The post's grid and the bore's have no multiple under the most a turn is
+/// cut into, so only one of them can line the ring up; the post touches the
+/// ring and is taken first. Built, exact, holding the ring and the post less
+/// what the bore takes of each, its triangles closed and uncrossed, the
+/// post's touch along the inner equator among them.
+#[test]
+fn a_ring_round_a_post_of_its_inner_radius_then_bored_from_above_across_its_tube_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let (major, minor, bore) = (60.0, 45.0, 24.035);
+    let post_radius = major - minor;
+    let ring = ring_of(major, minor);
+    let post = shaft_along_z(&ring, post_radius, -minor, minor);
+    let posted = ring
+        .union(&post)
+        .unwrap_or_else(|declined| panic!("the ring round its post: declined, {declined:?}"));
+    let from_above = shaft_along_z(&posted, bore, 20.0, 60.0);
+
+    let bored = posted.difference(&from_above);
+
+    built_sound_holding(
+        bored,
+        2.0 * PI * PI * major * minor * minor + PI * post_radius * post_radius * (2.0 * minor)
+            - PI * post_radius * post_radius * (minor - 20.0)
+            - wall_in_the_tube(major, minor, bore, 20.0),
+        "the ring round a post of its inner radius, bored from above at 24.035",
+    );
+}
+
+/// The ring of [`MAJOR`] and [`MINOR`] cut by a shaft along z from z = −5 up
+/// to its centre plane, 1e-5 and 1e-4 inside its outer equator, as pinned
+/// above, then joined with a hub of radius 9.05 from z = 1 to 5, which
+/// takes in the top of the tube's inner side, and with a rod of radius
+/// 8 + 1e-6 from z = 5 to 10 on the hub: a millionth outside the ring's
+/// inner equator, 3 above the tube's top, beside the ring nowhere. Built,
+/// exact, holding the cut ring, the hub less what it shares with the tube,
+/// and the rod, its triangles closed and uncrossed — the shaft's rim under
+/// the outer equator among them.
+#[test]
+fn a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_a_hair_outside_its_inner_one_standing_above_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let (hub, rod) = (9.05, MAJOR - MINOR + 1e-6);
+    let ring = ring_of(MAJOR, MINOR);
+    for hair in [1e-5, 1e-4] {
+        let shaft = shaft_up_to_the_centre(&ring, MAJOR + MINOR - hair, -5.0);
+        let cut = ring
+            .difference(&shaft)
+            .unwrap_or_else(|declined| panic!("the ring cut by its shaft: declined, {declined:?}"));
+        let hub_on_the_tube = shaft_along_z(&cut, hub, 1.0, 5.0);
+        let hubbed = cut
+            .union(&hub_on_the_tube)
+            .unwrap_or_else(|declined| panic!("the ring with its hub: declined, {declined:?}"));
+        let rod_on_the_hub = shaft_along_z(&hubbed, rod, 5.0, 10.0);
+        let [outside, _] = sliver(hair);
+
+        let built = hubbed.union(&rod_on_the_hub);
+
+        built_sound_holding(
+            built,
+            RING / 2.0 + outside + PI * hub * hub * 4.0 - wall_in_the_tube(MAJOR, MINOR, hub, 1.0)
+                + PI * rod * rod * 5.0,
+            &format!("the ring cut by a shaft {hair:e} inside its outer equator, a hub and a rod"),
+        );
+    }
 }

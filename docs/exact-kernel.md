@@ -2769,9 +2769,10 @@ pointed cone's flank waits on #711.
   and the face's extent along the meridian, not off its edges alone, and made
   a multiple of the grid of every cylinder of the body on the round's axis
   standing within twice the sag of its own chords of an equator — as two
-  walls are told close — or sharing a rim with it within that of the
-  circle of a row of the round's grid about that rim, whose grid starts the
-  same way round (#644, #1123): a ring round a post of its inner radius is touched
+  walls are told close — where its faces reach the equators' plane along
+  the axis, or sharing a rim with it within that of the circle of a row of
+  the round's grid about that rim, whose grid starts the same way round
+  (#644, #1123): a ring round a post of its inner radius is touched
   along a circle that parts neither face, and its chords along it, on its
   own grid, cut across the post's between two of its steps (5576855166) —
   and one of rows along the meridian, cut for the tube's radius; each takes
@@ -2787,16 +2788,22 @@ pointed cone's flank waits on #711.
   the wall's chords. A wall a hair off an equator — a bore a hair narrower
   than a ring's inner one, a shaft a hair wider than a ball — shares no
   rim with the round, and the chords of either sag through the hair between
-  them (956002773, 956002803, 956000000, 956006352); a wall of a row's
-  radius sharing no rim with the round — a rod on the end of a post a ring
-  touches, far along the axis from the row — is not counted. The walls are
-  taken one at a time, those touching
-  the round first, then the nearest a row, and one whose multiple with
-  those taken would pass the most a turn is cut into is left out alone:
-  leaving them all out gave a ring round its post back its own steps for a
-  rod clear of it, and a half ball cut by a shaft a hair under its radius
-  for a pin bored beside another row, and both crossed again at the wall
-  they had lined up with. Every latitude circle is sampled on the
+  them (956002773, 956002803, 956000000, 956006352); a wall of an
+  equator's or a row's radius far along the axis from it — a rod a hair
+  outside a ring's inner equator standing above its tube, a rod on the end
+  of a post a ring touches — is not counted. The walls are taken one at a
+  time, those touching the round first, then the nearest, and one whose
+  multiple with those taken would pass the most a turn is cut into is left
+  out alone: leaving them all out gave a ring round its post back its own
+  steps for a rod clear of it, and a half ball cut by a shaft a hair under
+  its radius for a pin bored beside another row, and both crossed again at
+  the wall they had lined up with. A round's rims join a group of walls
+  closer than twice a chord's sag about its axis (`sampling/axis.rs`)
+  only where each stands close to one of them itself, not all of them
+  together as a cone's do: a round's strips stand on its own columns
+  between its rows, not from rim to rim, and a shaft's rim a hair under a
+  ring's outer equator, given the rays of a rod close to its inner one,
+  had the strip from it reach across them (#1123). Every latitude circle is sampled on the
   round's angles as a cone's rim is on the cone's, and every meridian arc on
   the round's rows, the opening and the closing meridian of a turn on the
   same rows whatever circle each lies on, none within the round's room of a

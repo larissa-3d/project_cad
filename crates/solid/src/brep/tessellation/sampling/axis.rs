@@ -174,6 +174,16 @@ impl Axes {
             .collect();
         let (mut joined, close) = Joined::close(&about, walls, eps, fineness);
         rims.retain(|(held, near, _)| !near.is_empty() || held.iter().any(|id| close.contains(id)));
+        // A round's rims are kept apart by its rows, and the strip from a rim
+        // to the next stands on the round's own columns: a rim standing close
+        // to no wall, given another wall's rays, had the strip reach across
+        // them where it was a hair thin, at a shaft's rim under a ring's
+        // equator beside a rod at its inner one (#1123).
+        for (held, _, grid) in &mut rims {
+            if let Spun::Round(_) = grid.spun {
+                held.retain(|id| close.contains(id));
+            }
+        }
         for (held, near, _) in &rims {
             for id in held.iter().chain(near) {
                 joined.join(held[0], *id);
