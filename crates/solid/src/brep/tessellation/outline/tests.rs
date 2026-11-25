@@ -6,6 +6,7 @@ use std::f64::consts::{PI, TAU};
 use glam::{DVec2, DVec3};
 
 use super::Outline;
+use super::cylinder::{CLEAR, clear_first};
 use super::pierced::pierces;
 use super::round::Read;
 use crate::brep::curve::{Curve, Wall};
@@ -258,4 +259,121 @@ fn the_fallback_lays_out_a_sphere_face_unless_a_curve_comes_within_a_twentieth_o
     for (what, body) in &refused {
         assert_eq!(by_the_fallback(body), None, "{what}");
     }
+}
+
+/// The ranks of the grid's `steps` angles [`clear_first`] tries a face cut
+/// open at, read back from the angles it gives.
+fn tried(raws: &[Vec<DVec2>], steps: usize) -> Vec<usize> {
+    let step = TAU / steps as f64;
+    clear_first(raws, steps)
+        .into_iter()
+        .map(|angle| {
+            let rank = (angle / step).round();
+            assert!(
+                (angle - rank * step).abs() <= 1e-12,
+                "{angle} is not an angle of a grid of {steps} steps"
+            );
+            rank as usize
+        })
+        .collect()
+}
+
+/// The ranks of a grid of `steps` angles, those of `beside` taken out and
+/// put last in the order given.
+fn clear_then(steps: usize, beside: &[usize]) -> Vec<usize> {
+    (0..steps)
+        .filter(|rank| !beside.contains(rank))
+        .chain(beside.iter().copied())
+        .collect()
+}
+
+/// A sample at `height`, `share` of a step past the angle `rank` of a grid
+/// of `steps` angles a turn.
+fn off_the_grid(steps: usize, rank: f64, share: f64, height: f64) -> DVec2 {
+    let step = TAU / steps as f64;
+    DVec2::new(rank * step + share * step, height)
+}
+
+/// Of a grid of 24 steps, a face whose samples stand a twentieth of a step
+/// past the angle 3 and nine hundredths short of it, eight hundredths short
+/// of 15 and two past 20, over two loops, is tried cut open at every other
+/// angle first, by rank — 7 among them, its sample three tenths of a step
+/// off — then at 15, 3 and 20: the angle whose nearest sample stands
+/// furthest first.
+#[test]
+fn a_face_is_tried_cut_open_at_every_angle_no_sample_is_beside_first_then_where_the_nearest_stands_furthest()
+ {
+    let steps = 24;
+    let at = |rank, share| off_the_grid(steps, rank, share, 1.0);
+    let raws = vec![
+        vec![at(3.0, 0.05), at(7.0, -0.3), at(3.0, -0.09)],
+        vec![at(20.0, 0.02), at(15.0, -0.08)],
+    ];
+    assert_eq!(tried(&raws, steps), clear_then(steps, &[15, 3, 20]));
+}
+
+/// A sample no further than [`CLEAR`] from an angle of the grid stands on
+/// it and leaves it clear: on the angle 5, a tenth of `CLEAR` past 9 and
+/// exactly `CLEAR` past 0. Twice `CLEAR` past 12 is beside it.
+#[test]
+fn a_sample_no_further_than_clear_from_an_angle_stands_on_it_and_leaves_it_clear() {
+    let steps = 24;
+    let step = TAU / steps as f64;
+    let raws = vec![vec![
+        DVec2::new(5.0 * step, 0.0),
+        DVec2::new(9.0 * step + CLEAR / 10.0, 0.0),
+        DVec2::new(CLEAR, 0.0),
+        DVec2::new(12.0 * step + 2.0 * CLEAR, 0.0),
+    ]];
+    assert_eq!(tried(&raws, steps), clear_then(steps, &[12]));
+}
+
+/// A sample a tenth of a step from an angle of the grid, or eleven
+/// hundredths, leaves it clear; nine hundredths is beside it — on a grid of
+/// 8, 24 or 32 steps a turn.
+#[test]
+fn a_sample_is_beside_an_angle_of_the_grid_under_a_tenth_of_a_step_from_it() {
+    for steps in [8, 24, 32] {
+        let step = TAU / steps as f64;
+        let raws = vec![vec![
+            DVec2::new(0.1 * step, 0.0),
+            off_the_grid(steps, 4.0, 0.11, 0.0),
+            off_the_grid(steps, 6.0, -0.09, 0.0),
+        ]];
+        assert_eq!(
+            tried(&raws, steps),
+            clear_then(steps, &[6]),
+            "{steps} steps"
+        );
+    }
+}
+
+/// A sample read a turn away from an angle of the grid is beside it: of a
+/// grid of 24 steps, four hundredths of a step short of a whole turn is
+/// beside the angle 0, six past half a turn back beside 12, and two short
+/// of three steps back beside 21.
+#[test]
+fn a_sample_read_a_turn_away_from_an_angle_of_the_grid_is_beside_it() {
+    let steps = 24;
+    let at = |rank, share| off_the_grid(steps, rank, share, 2.0);
+    let raws = vec![vec![at(24.0, -0.04), at(-12.0, 0.06), at(-3.0, -0.02)]];
+    assert_eq!(tried(&raws, steps), clear_then(steps, &[12, 0, 21]));
+}
+
+/// Two angles whose nearest samples stand as near are tried by rank, the
+/// lowest first, whichever sample comes first: of a grid of 24 steps, a
+/// sixty-fourth of a radian past the angle 17 and short of 5 — a power of
+/// two, so that both stand exactly as far — after eight hundredths of a
+/// step past 2.
+#[test]
+fn two_angles_whose_nearest_samples_stand_as_near_are_tried_lowest_rank_first() {
+    let steps = 24;
+    let step = TAU / steps as f64;
+    let hair = 1.0 / 64.0;
+    let raws = vec![vec![
+        DVec2::new(17.0 * step + hair, 0.0),
+        DVec2::new(5.0 * step - hair, 0.0),
+        off_the_grid(steps, 2.0, 0.08, 0.0),
+    ]];
+    assert_eq!(tried(&raws, steps), clear_then(steps, &[2, 5, 17]));
 }
