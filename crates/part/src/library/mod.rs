@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 mod tidying;
 
-pub use tidying::{create_folder, discard, rename_folder, rename_part};
+pub use tidying::{create_folder, discard, move_part, rename_folder, rename_part};
 
 use crate::file_name::PART_EXTENSION;
 use crate::ports::{FileError, Folders};
