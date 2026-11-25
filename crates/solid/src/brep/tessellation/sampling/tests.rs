@@ -11,6 +11,7 @@ use crate::brep::surface::Surface;
 use crate::brep::topology::{Body, EdgeId};
 
 mod conic;
+pub(super) mod crossed;
 mod rows;
 mod touching;
 

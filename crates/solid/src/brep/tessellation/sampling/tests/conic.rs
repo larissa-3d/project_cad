@@ -202,6 +202,58 @@ fn a_conic_is_sampled_at_the_angle_of_every_ray_the_circles_of_its_wall_take() {
     }
 }
 
+/// The stock cut at a slant leaning 0.1, −0.45 and 0.8: the ellipse is
+/// sampled on its wall's grid and, leaning far enough, halved between two of
+/// its rays where a chord would leave it. The ring at the stock's foot, on
+/// the same wall, is sampled at the angle of every sample of the ellipse, as
+/// the walls of a meet take its samples.
+#[test]
+fn the_ring_of_a_wall_a_plane_cuts_at_a_slant_is_sampled_at_the_angle_of_every_sample_of_the_ellipse()
+ {
+    for (lean, halved) in [(0.1, false), (-0.45, true), (0.8, true)] {
+        let body = fixtures::stock_cut_at_a_slant(lean);
+        let [(ellipse, _)] = conics(&body)[..] else {
+            panic!("one ellipse");
+        };
+        let [ring] = body
+            .edge_ids()
+            .filter(|id| matches!(body.curve(body.edge(*id).curve), Curve::Circle(_)))
+            .collect::<Vec<_>>()[..]
+        else {
+            panic!("one ring");
+        };
+        let Surface::Cylinder(cylinder) = *body.surface(SurfaceId(0)) else {
+            panic!("the stock's wall comes first");
+        };
+        for tolerance in [1e-3, 0.02, 0.5] {
+            let samples = Samples::of(&body, tolerance);
+            let angles = |edge: EdgeId| -> Vec<f64> {
+                samples
+                    .edge(edge)
+                    .iter()
+                    .map(|id| cylinder.parameters(samples.point(*id)).x)
+                    .collect()
+            };
+            let (on_the_ring, on_the_ellipse) = (angles(ring), angles(ellipse));
+            let steps = divisions_in(cylinder.radius, tolerance, span_of(&body));
+            if halved && tolerance < 0.5 {
+                assert!(
+                    on_the_ellipse.len() > steps + 1,
+                    "{lean} within {tolerance}: the ellipse is halved off its wall's grid of \
+                     {steps} steps, at {} samples",
+                    on_the_ellipse.len()
+                );
+            }
+            for angle in on_the_ellipse {
+                assert!(
+                    on_the_ring.iter().any(|on| apart(*on, angle) <= CLEAR),
+                    "{lean} within {tolerance}: the ring has no sample at the ellipse's {angle}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn a_conic_on_a_cone_widens_the_cone_s_grid() {
     for lean in [0.3, -0.9, 1.5] {
