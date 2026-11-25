@@ -27,7 +27,7 @@ pub struct CaoApp {
     remembered: Remembered,
     settings_open: bool,
     settings_editor: crate::screens::settings::SettingsEditor,
-    new_part_name: String,
+    new_card: crate::screens::new_card::NewCard,
     error: Option<String>,
     /// The library panel, held by the shell rather than by the start menu:
     /// what it read and folded is still there on the way back from a part.
@@ -70,7 +70,7 @@ impl CaoApp {
             remembered,
             settings_open: false,
             settings_editor: crate::screens::settings::SettingsEditor::default(),
-            new_part_name: String::new(),
+            new_card: Default::default(),
             error: None,
             explorer,
             painter,
@@ -151,7 +151,7 @@ impl CaoApp {
                 screens::start_menu::show(
                     ui,
                     self.remembered.recents(),
-                    &mut self.new_part_name,
+                    &mut self.new_card,
                     &self.explorer,
                     self.remembered.lang(),
                 )

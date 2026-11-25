@@ -2,11 +2,19 @@ use std::path::PathBuf;
 
 use cao_prefs::RecentEntry;
 
+use egui::vec2;
+
 use crate::adapters::clock;
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
+use crate::screens::new_card::{self, NewCard};
 use crate::ui::segmented::{Segment, segmented};
-use crate::wording;
+use crate::ui::shown_field;
+use crate::ui::text_edit::tall_text_edit;
+
+/// How tall « Créer ↵ » stands across the card: the redesign's 44 px, which
+/// the tokens do not carry.
+const CREATE_HEIGHT: f32 = 44.0;
 
 pub enum StartMenuAction {
     None,
@@ -21,7 +29,7 @@ pub enum StartMenuAction {
 pub fn show(
     ui: &mut egui::Ui,
     recents: &[RecentEntry],
-    new_part_name: &mut String,
+    card: &mut NewCard,
     explorer: &Explorer,
     lang: &Catalogue,
 ) -> StartMenuAction {
@@ -46,26 +54,23 @@ pub fn show(
                 .horizontal(|ui| {
                     ui.label(lang.t("start_menu.name"));
                     // A single-line field gives the keyboard up on ↵, the frame it is pressed.
-                    let field = ui.text_edit_singleline(new_part_name);
+                    let field = tall_text_edit(ui, card.name_mut(), shown_field::HEIGHT);
                     field.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter))
                 })
                 .inner;
             ui.add_space(8.0);
-            ui.label(lang.t("start_menu.saves_in"));
-            let (root, chosen) = (&explorer.library().path, explorer.chosen_folder());
-            ui.label(wording::library::folder(lang, root, &chosen));
-            ui.weak(lang.t("start_menu.saves_in_by_default"));
+            new_card::saves_in(ui, card, explorer, lang);
             ui.add_space(8.0);
-            let can_create = !new_part_name.trim().is_empty();
+            let room = vec2(ui.available_width(), CREATE_HEIGHT);
+            let create = egui::Button::new(lang.t("start_menu.create"));
             let clicked = ui
-                .add_enabled(can_create, egui::Button::new(lang.t("start_menu.create")))
+                .add_enabled_ui(card.can_make(), |ui| ui.add_sized(room, create))
+                .inner
                 .clicked();
-            if can_create && (clicked || entered) {
-                action = StartMenuAction::CreateNew {
-                    name: new_part_name.trim().to_string(),
-                    folder: chosen,
-                };
-                new_part_name.clear();
+            if (clicked || entered)
+                && let Some((name, folder)) = card.make(explorer)
+            {
+                action = StartMenuAction::CreateNew { name, folder };
             }
         });
 

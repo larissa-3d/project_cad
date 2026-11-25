@@ -4,6 +4,7 @@ mod blend_row;
 mod blinking;
 pub mod explorer;
 pub mod extrusion;
+pub mod new_card;
 pub mod origin_view;
 pub mod part_tree;
 pub mod ribbon;

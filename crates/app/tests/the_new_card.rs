@@ -27,7 +27,8 @@
 //!
 //! Readings settled while the tests were written, the issue left as it is: a
 //! part chosen in the column stands for its folder; the last of a click in the
-//! column and a pick in « Choisir… » is what the card shows; the popover opens
+//! column and a pick in « Choisir… » is what the card shows —
+//! `a_folder_clicked_in_the_column_after_a_pick_replaces_the_pick`; the popover opens
 //! on the root itself, « Dossier des pièces », then the folders by depth; the
 //! home screen listing the part means the column's tree; and ↵ in the name
 //! field making the part is new, not kept from before.
@@ -166,6 +167,60 @@ fn a_part_is_open(app: &driver::App) -> bool {
     app.state()
         .where_the_view_shows(glam::DVec3::ZERO)
         .is_some()
+}
+
+/// Every text on screen with where it stands. Only a node the tree gives a
+/// place is read: a container drawn around widgets has none.
+fn texts_and_places(app: &driver::App) -> Vec<(String, egui::Rect)> {
+    app.get_all_by(|_| true)
+        .filter(|node| node.accesskit_node().bounding_box().is_some())
+        .flat_map(|node| {
+            let at = node.rect();
+            texts_of(&node).into_iter().map(move |text| (text, at))
+        })
+        .collect()
+}
+
+/// Clicks « Choisir… » and says what it opened: every text on screen after
+/// the click that was not there before, where it stands. The field of
+/// « Enregistrer dans » and the column's rows read the same names, and are
+/// already there.
+fn open_the_choice(app: &mut driver::App) -> Vec<(String, egui::Rect)> {
+    assert!(
+        driver::shows(app, "Choisir"),
+        "no « Choisir… » on the card, showing {:?}",
+        driver::on_screen(app),
+    );
+    let before = texts_and_places(app);
+    driver::click(app, "Choisir");
+    texts_and_places(app)
+        .into_iter()
+        .filter(|text| !before.contains(text))
+        .collect()
+}
+
+/// Where the entries reading this name stand: the name whole, after whatever
+/// icon or indentation is drawn before it.
+fn entries_reading(opened: &[(String, egui::Rect)], name: &str) -> Vec<egui::Rect> {
+    opened
+        .iter()
+        .filter(|(text, _)| {
+            let text = text.trim_end();
+            text == name || text.ends_with(&format!(" {name}"))
+        })
+        .map(|(_, at)| *at)
+        .collect()
+}
+
+/// Where the one entry reading this name stands.
+fn the_entry(opened: &[(String, egui::Rect)], name: &str) -> egui::Rect {
+    match entries_reading(opened, name)[..] {
+        [at] => at,
+        ref found => panic!(
+            "« Choisir… » offers « {name} » {} times, opening {opened:?}",
+            found.len(),
+        ),
+    }
 }
 
 /// How many files stand in this folder itself, not under it, named this before
@@ -372,5 +427,95 @@ fn the_assembly_segment_is_disabled_and_creates_nothing() {
     assert!(
         is_chosen(&the_type(&app, "Pièce")) && !is_chosen(&the_type(&app, "Assemblage")),
         "clicking « Assemblage » took the card off « Pièce »",
+    );
+}
+
+#[test]
+fn choosing_lists_the_folders_inside_the_parts_folder_each_indented_by_its_depth() {
+    let test = "choosing_lists_the_folders_inside_the_parts_folder";
+    let mut app = driver::open(test);
+    let library = cao_prefs::default_projects_dir(&driver::locations_of(test));
+    let outside = library
+        .parent()
+        .expect("the parts folder has a parent")
+        .join("Ailleurs");
+    std::fs::create_dir_all(&outside).expect("a folder beside the parts folder");
+    parts_laid_by_hand(
+        &mut app,
+        test,
+        &["Plaque.caopart", "Brides/Équerre.caopart"],
+    );
+    folders_laid_by_hand(&mut app, test, &["Brides/Petites", "Boîtiers"]);
+
+    let opened = open_the_choice(&mut app);
+
+    let root = the_entry(&opened, THE_PARTS_FOLDER);
+    let brides = the_entry(&opened, "Brides");
+    let petites = the_entry(&opened, "Petites");
+    let boitiers = the_entry(&opened, "Boîtiers");
+    let not_offered: Vec<&str> = ["Ailleurs", "Plaque", "Équerre"]
+        .into_iter()
+        .filter(|name| !entries_reading(&opened, name).is_empty())
+        .collect();
+    assert!(
+        not_offered.is_empty(),
+        "« Choisir… » offers {not_offered:?}, which are no folders inside the parts \
+         folder, opening {opened:?}",
+    );
+    assert!(
+        [brides, petites, boitiers]
+            .iter()
+            .all(|folder| folder.top() >= root.bottom()),
+        "« Choisir… » does not open on the root: at {root:?}, the folders at \
+         {brides:?}, {petites:?} and {boitiers:?}",
+    );
+    assert!(
+        root.left() <= brides.left()
+            && (brides.left() - boitiers.left()).abs() < 0.5
+            && petites.left() > brides.left(),
+        "the entries are not indented by their depth: the root at {root:?}, \
+         « Brides » at {brides:?} and « Boîtiers » at {boitiers:?} inside it, \
+         « Petites » at {petites:?} inside « Brides »",
+    );
+
+    driver::click_at(&mut app, petites.center());
+
+    assert_eq!(
+        where_the_card_saves(&app).as_deref(),
+        Some("Dossier des pièces / Brides / Petites"),
+        "« Petites » picked, « Enregistrer dans » does not show it, showing {:?}",
+        driver::on_screen(&app),
+    );
+    driver::create_a_part(&mut app, "Support");
+    assert_eq!(
+        files_named(&library.join("Brides").join("Petites"), "Support"),
+        1,
+        "the part created once « Petites » was picked is not in it",
+    );
+}
+
+#[test]
+fn a_folder_clicked_in_the_column_after_a_pick_replaces_the_pick() {
+    let test = "a_folder_clicked_in_the_column_after_a_pick_replaces_the_pick";
+    let mut app = driver::open(test);
+    folders_laid_by_hand(&mut app, test, &["Brides", "Boîtiers"]);
+    let opened = open_the_choice(&mut app);
+    driver::click_at(&mut app, the_entry(&opened, "Boîtiers").center());
+    assert_eq!(
+        where_the_card_saves(&app).as_deref(),
+        Some("Dossier des pièces / Boîtiers"),
+        "« Boîtiers » picked, « Enregistrer dans » does not show it, showing {:?}",
+        driver::on_screen(&app),
+    );
+
+    let brides = the_row_reading(&app, "Brides");
+    driver::click_at(&mut app, brides.center());
+
+    assert_eq!(
+        where_the_card_saves(&app).as_deref(),
+        Some("Dossier des pièces / Brides"),
+        "« Brides » clicked in the column after « Boîtiers » was picked, « Enregistrer \
+         dans » does not show it, showing {:?}",
+        driver::on_screen(&app),
     );
 }

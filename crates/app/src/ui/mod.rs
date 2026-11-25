@@ -20,6 +20,7 @@ pub mod reader_card;
 pub mod secondary_button;
 pub mod segmented;
 pub mod sheet;
+pub mod shown_field;
 pub mod slider;
 pub mod step_box;
 pub mod step_dot;

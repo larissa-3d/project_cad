@@ -121,6 +121,7 @@ embedded! {
     FILLET = "fillet";
     FINISH = "finish";
     FIXED = "fixed";
+    FOLDER = "folder";
     HISTORY = "history";
     HOME = "home";
     HOME_VIEW = "home-view";
