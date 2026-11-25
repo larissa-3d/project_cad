@@ -72,16 +72,35 @@
 //!   `the_column_s_plus_folder_button_makes_a_folder_in_it` and
 //!   `typing_in_the_filter_leaves_only_the_matching_parts_in_the_column`, in
 //!   `crates/app/tests/the_library_column.rs`
+//! - folders with their count of parts, the count drawn beside the folder's
+//!   name and the matches alone under a filter — no test: in this file, which
+//!   holds the counts the view reads; the drawing is held by
+//!   `a_folder_in_the_column_shows_how_many_parts_it_holds`, in
+//!   `crates/app/tests/the_library_column.rs`
+//! - Double-click opens a part — no test: in this file, since the gesture is
+//!   the view's; held by `a_part_double_clicked_in_the_column_opens`, in
+//!   `crates/app/tests/the_library_column.rs`. The second window, for a part
+//!   opened while another is, is set aside below
+//! - A part moved by drag opens from its new place and keeps its recent entry
+//!   pointing to it — no test: in this file; held by
+//!   `a_part_dragged_onto_a_folder_opens_from_its_new_place` and
+//!   `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`,
+//!   in `crates/app/tests/the_library_column.rs`
+//! - found on the way, not one of the issue's words: a part let go on the
+//!   blank of the column under the tree goes to the root of the library — no
+//!   test: in this file, since the blank is the view's; held by
+//!   `a_part_dropped_under_the_tree_goes_to_the_root_of_the_library`, in
+//!   `crates/app/tests/the_library_column.rs`
 //! - 280 to 320 px wide; « ↺ », « Renommer », « Supprimer »; folders that
 //!   fold; one part per line with its 22 × 18 thumbnail; the chosen part lit
 //!   amber; the drag drawn under the pointer — no test: drawing, in `view.rs`,
 //!   which decides nothing; what each gesture asks of the presenter is held
 //!   above, and the look is Tom's to try in the app
 //!
-//! Set aside when the work opened, not criteria: the double-click that opens a
-//! part, in a second window when one is already open, stays as it is today;
-//! the folder chosen in the tree as the default of the « Nouveau » card's
-//! « Enregistrer dans » waits for that card to exist.
+//! Set aside when the work opened, not criteria: a part double-clicked while
+//! another is open opens in a second window, as it does today; the folder
+//! chosen in the tree as the default of the « Nouveau » card's « Enregistrer
+//! dans » waits for that card to exist.
 
 use std::path::Path;
 

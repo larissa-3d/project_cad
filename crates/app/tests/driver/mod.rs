@@ -1187,6 +1187,12 @@ pub fn double_click(app: &mut App, label: &str) {
         .unwrap_or_else(|| panic!("no button reads « {label} »"))
         .rect()
         .center();
+    double_click_at(app, at);
+}
+
+/// The same at a place read off the frame: a row of the library's column,
+/// which the recent list beside it names the same.
+pub fn double_click_at(app: &mut App, at: egui::Pos2) {
     app.hover_at(at);
     app.run();
     let start = app.ctx.input(|input| input.time);

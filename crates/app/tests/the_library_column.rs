@@ -1,6 +1,7 @@
 //! The library's column on the home screen, driven whole: what it is called,
-//! the button that makes a folder, the filter typed above its tree, and a part
-//! dragged onto a folder (`docs/redesign/home-screen.md` A1).
+//! the button that makes a folder, the counts beside the folders, the filter
+//! typed above its tree, a part opened by a double-click, and a part dragged
+//! onto a folder (`docs/redesign/home-screen.md` A1).
 //!
 //! Closes #743 — the whole transcription is in
 //! `crates/app/src/screens/explorer/state/tests.rs`; these bullets are what
@@ -9,16 +10,174 @@
 //!   `the_home_screen_column_is_called_all_the_parts`
 //! - « + Dossier » — `the_column_s_plus_folder_button_makes_a_folder_in_it`;
 //!   « ↺ », « Renommer » and « Supprimer » read as they did
+//! - The tree: folders with their count of parts, drawn beside the folder's
+//!   name, the matches alone under a filter —
+//!   `a_folder_in_the_column_shows_how_many_parts_it_holds`
 //! - Filter, by name: typed in « Filtrer… », only the matching parts remain —
 //!   `typing_in_the_filter_leaves_only_the_matching_parts_in_the_column`
-//! - Drag a part onto a folder to move it there, and it keeps its recent entry
-//!   pointing to it — `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`
+//! - Double-click opens a part — `a_part_double_clicked_in_the_column_opens`;
+//!   the second window, for a part opened while another is, stays as it was
+//!   and is set aside here
+//! - Drag a part onto a folder to move it there —
+//!   `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`
+//! - A part moved by drag opens from its new place and keeps its recent entry
+//!   pointing to it —
+//!   `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`
+//!   for the entry, `a_part_dragged_onto_a_folder_opens_from_its_new_place`
+//!   for the opening, by its row under the folder and by its recent entry
+//! - found on the way, not one of the issue's words: a part let go on the
+//!   blank of the column under the tree goes to the root of the library, the
+//!   one place no row stands for —
+//!   `a_part_dropped_under_the_tree_goes_to_the_root_of_the_library`
 
 mod driver;
 
 use std::path::PathBuf;
 
 use cao_app::adapters::files::DiskFiles;
+use egui_kittest::kittest::{NodeT, Queryable};
+
+fn a_part_is_open(app: &driver::App) -> bool {
+    app.state()
+        .where_the_view_shows(glam::DVec3::ZERO)
+        .is_some()
+}
+
+/// Where the recent list beside the column names this part: a button reading
+/// it that is no row of the column.
+fn the_recent_entry(app: &driver::App, name: &str) -> egui::Pos2 {
+    let rows = driver::rows_of_the_file_list_reading(app, name);
+    app.query_all_by_label(name)
+        .filter(|node| node.accesskit_node().role() == egui::accesskit::Role::Button)
+        .map(|node| node.rect())
+        .find(|at| !rows.contains(at))
+        .unwrap_or_else(|| panic!("no recent entry reads « {name} »"))
+        .center()
+}
+
+/// What the count beside a folder's row reads: the number standing on its
+/// row, to the right of its name.
+fn the_count_beside(app: &driver::App, folder: &str) -> Option<String> {
+    let row = *driver::rows_of_the_file_list_reading(app, folder).first()?;
+    app.query_all_by_role(egui::accesskit::Role::Label)
+        .filter(|node| {
+            let at = node.rect();
+            at.left() >= row.right() - 1.0
+                && at.top() <= row.center().y
+                && row.center().y <= at.bottom()
+        })
+        .filter_map(|node| node.accesskit_node().value())
+        .find(|said| said.parse::<usize>().is_ok())
+}
+
+/// Lays these part files in the library, then reads the library again with
+/// « ↺ », as a user who had put them there by hand would.
+fn parts_laid_by_hand(app: &mut driver::App, test: &str, parts: &[&str]) -> PathBuf {
+    let library = cao_prefs::default_projects_dir(&driver::locations_of(test));
+    for part in parts {
+        let path = library.join(part);
+        std::fs::create_dir_all(path.parent().expect("a folder")).expect("the folder is made");
+        std::fs::write(&path, b"PK").expect("the part file is written");
+    }
+    driver::click(app, "↺");
+    library
+}
+
+#[test]
+fn a_folder_in_the_column_shows_how_many_parts_it_holds() {
+    let test = "a_folder_in_the_column_shows_how_many_parts_it_holds";
+    let mut app = driver::open(test);
+    parts_laid_by_hand(
+        &mut app,
+        test,
+        &[
+            "Brides/bride.caopart",
+            "Brides/plate.caopart",
+            "Brides/old/bride 2.caopart",
+        ],
+    );
+
+    assert_eq!(
+        the_count_beside(&app, "Brides").as_deref(),
+        Some("3"),
+        "« Brides » holds three parts, one of them in a folder under it, showing {:?}",
+        driver::on_screen(&app),
+    );
+    driver::type_into(&mut app, "Filtrer…", "bri");
+    assert_eq!(
+        the_count_beside(&app, "Brides").as_deref(),
+        Some("2"),
+        "under « bri », « Brides » counts the two parts it still shows",
+    );
+}
+
+#[test]
+fn a_part_double_clicked_in_the_column_opens() {
+    let mut app = driver::open("a_part_double_clicked_in_the_column_opens");
+    driver::create_a_part(&mut app, "Support");
+    driver::click(&mut app, "Accueil");
+    assert!(!a_part_is_open(&app), "the home screen draws a part");
+    let row = driver::rows_of_the_file_list_reading(&app, "Support")[0];
+
+    driver::double_click_at(&mut app, row.center());
+
+    assert!(
+        a_part_is_open(&app),
+        "the part double-clicked in the column is not open, showing {:?}",
+        driver::on_screen(&app),
+    );
+}
+
+#[test]
+fn a_part_dragged_onto_a_folder_opens_from_its_new_place() {
+    let test = "a_part_dragged_onto_a_folder_opens_from_its_new_place";
+    let mut app = driver::open(test);
+    let brides = cao_prefs::default_projects_dir(&driver::locations_of(test)).join("Brides");
+    std::fs::create_dir_all(&brides).expect("a folder to drop the part on");
+    driver::create_a_part(&mut app, "Support");
+    driver::click(&mut app, "Accueil");
+    let part = driver::rows_of_the_file_list_reading(&app, "Support")[0];
+    let folder = driver::rows_of_the_file_list_reading(&app, "Brides")[0];
+    driver::drag_and_drop(&mut app, part.center(), folder.center());
+    let under_the_folder = driver::rows_of_the_file_list_reading(&app, "Support")[0];
+    assert!(
+        under_the_folder.top() > folder.top() && under_the_folder.left() > folder.left(),
+        "the part is not drawn inside « Brides »",
+    );
+
+    driver::double_click_at(&mut app, under_the_folder.center());
+
+    assert!(
+        a_part_is_open(&app),
+        "double-clicked under « Brides », the part moved there does not open, showing {:?}",
+        driver::on_screen(&app),
+    );
+    driver::click(&mut app, "Accueil");
+    let entry = the_recent_entry(&app, "Support");
+    driver::click_at(&mut app, entry);
+    assert!(
+        a_part_is_open(&app),
+        "the recent entry does not open the part moved into « Brides », showing {:?}",
+        driver::on_screen(&app),
+    );
+}
+
+#[test]
+fn a_part_dropped_under_the_tree_goes_to_the_root_of_the_library() {
+    let test = "a_part_dropped_under_the_tree_goes_to_the_root";
+    let mut app = driver::open(test);
+    let library = parts_laid_by_hand(&mut app, test, &["Brides/support.caopart"]);
+    let part = driver::rows_of_the_file_list_reading(&app, "support")[0];
+    let under_the_tree = egui::pos2(part.center().x, part.bottom() + 3.0 * part.height());
+
+    driver::drag_and_drop(&mut app, part.center(), under_the_tree);
+
+    assert!(
+        library.join("support.caopart").exists()
+            && !library.join("Brides/support.caopart").exists(),
+        "the part let go under the tree is not at the root of the library alone",
+    );
+}
 
 #[test]
 fn the_home_screen_column_is_called_all_the_parts() {
