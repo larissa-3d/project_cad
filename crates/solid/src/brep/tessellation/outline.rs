@@ -18,6 +18,7 @@ use super::sampling::{Rounded, Samples, divisions_in};
 use super::sweep;
 use crate::brep::surface::Surface;
 use crate::brep::topology::{Body, FaceId};
+pub(in crate::brep) use central::FRONT;
 
 /// Points of the parameters, each standing for a sample, and the segments
 /// between them. A face of a sphere or a torus is cut in strips between the

@@ -28,7 +28,7 @@ use super::canonical::{
 use super::scale::Scale;
 use super::selection::selected;
 use super::topology::{Body, SurfaceId};
-use charted::charted;
+use charted::{aligned, charted};
 pub(super) use operands::Operands;
 use related::Special;
 use seamed::{reseamed, seamed};
@@ -73,13 +73,17 @@ impl Body {
     }
 }
 
-/// The boolean of two bodies, once the canonical decisions have moved the
+/// The boolean of two bodies, once the spheres they share are read about one
+/// axis (#956, `charted.rs`) and the canonical decisions have moved the
 /// second. Declined `Unsupported`, it is asked once more of the operands
 /// with every sphere a plane of the other cuts through a pole of its chart
 /// read about that circle's axis (#938, `charted.rs`), so that a step that
 /// builds is never read so; where no sphere is read so, it stays declined.
 pub(super) fn combine(first: &Body, second: &Body, operation: Operation) -> Result<Body, Declined> {
     let scale = first.scale().joined(second.scale());
+    let [first_aligned, second_aligned] = aligned(first, second, scale);
+    let first = first_aligned.as_ref().unwrap_or(first);
+    let second = second_aligned.as_ref().unwrap_or(second);
     let squared = squared(first, second, scale);
     let second = squared.as_ref().unwrap_or(second);
     let closed = closed(first, second, scale);

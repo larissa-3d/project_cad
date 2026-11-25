@@ -7,11 +7,13 @@
 //! its centre, and keeping the one it was turned about, with the `origin`,
 //! `u` and `v` every cylinder of that axis has, makes every coaxial circle it
 //! meets the very circle a cylinder or a cone of the axis has there. A
-//! surface of another axis through its centre is exact mathematics: the
-//! circle a plane at a slant cuts it along is read in this chart as `seen.rs`
-//! reads it (#805), a cylinder of another axis meets it along the loops of
-//! `meet/pierced.rs` (#805), and a cone or a round of another axis is
-//! declined.
+//! surface of another axis is exact mathematics: the circle a plane at a
+//! slant cuts it along is read in this chart as `seen.rs` reads it (#805),
+//! as are the circles a cylinder, a cone or a round whose axis holds its
+//! centre meets it along, met as the sphere read about that axis meets them
+//! (#956); a cylinder whose axis misses its centre meets it along the loops
+//! of `meet/pierced.rs` (#805), and a cone or a round of another axis off
+//! its centre is declined.
 
 mod seen;
 

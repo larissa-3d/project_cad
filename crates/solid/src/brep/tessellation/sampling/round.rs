@@ -253,9 +253,26 @@ pub(super) fn levels_along(
         .collect()
 }
 
+/// How near an end or a level of a face, as a share of a step of its grid,
+/// a row a face is cut at is left out: the strip it would leave there is a
+/// sliver, its triangles a hair from the edge, nearer a face across a sharp
+/// edge than that face's chords sag — a ball cut by a ball whose rim falls
+/// 7e-5 rad from a row of the smaller's grid was crossed there, and its
+/// folds never undone (#956). The strip beside it grows by as much, its sag
+/// by about twice that share. No edge is sampled at these rows: a meridian
+/// arc keeps every row ([`on_meridian`]), and where one of its samples
+/// stands on a row a face leaves out, the face's column runs on through
+/// that point (`Outline::passing`) rather than the face being cut there, so
+/// the faces either side still share every sample of the arc. An arc that
+/// left the row out too opened the drawing where a face turned a corner a
+/// hair from it (#956).
+const SLIVER: f64 = 0.01;
+
 /// The rows of a grid of `steps` rows a turn strictly between `low` and
-/// `high` along the meridian, none within `room` of an angle of `levels` a
-/// whole number of turns on, ascending.
+/// `high` along the meridian, none within `room`, or within [`SLIVER`] of a
+/// step, of either or of an angle of `levels` a whole number of turns on,
+/// ascending: the rows a face is cut at, never those an edge is sampled
+/// at, which `grid_rows` gives.
 pub(in crate::brep::tessellation) fn rows(
     steps: usize,
     low: f64,
@@ -263,6 +280,14 @@ pub(in crate::brep::tessellation) fn rows(
     levels: &[f64],
     room: f64,
 ) -> Vec<f64> {
+    let step = TAU / steps as f64;
+    grid_rows(steps, low, high, levels, room.max(SLIVER * step))
+}
+
+/// The rows of a grid of `steps` rows a turn strictly between `low` and
+/// `high`, none within `room` of either or of an angle of `levels` a whole
+/// number of turns on, ascending.
+fn grid_rows(steps: usize, low: f64, high: f64, levels: &[f64], room: f64) -> Vec<f64> {
     let step = TAU / steps as f64;
     ((low / step).floor() as i64..=(high / step).ceil() as i64)
         .map(|rank| TAU * rank as f64 / steps as f64)
@@ -318,7 +343,7 @@ pub(super) fn on_meridian(
         let (low, high) = (one.min(other), one.max(other));
         let mut levels = levels.to_vec();
         levels.extend([one, other]);
-        let mut taken = rows(steps, low, high, &levels, room);
+        let mut taken = grid_rows(steps, low, high, &levels, room);
         for level in &crossed {
             let first = ((low + room - level) / TAU).floor() as i64 + 1;
             let last = ((high - room - level) / TAU).floor() as i64;

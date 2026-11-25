@@ -13,12 +13,19 @@
 //! the poles of the new chart it holds. A sphere is read so only where every
 //! circle on its faces, and every circle a plane of the other operand cuts
 //! it along, stands clear of the new poles, and no surface but a plane, in
-//! either operand, meets it along curves its axis decides; anywhere else it
-//! is left as it is, and the step stays declined.
+//! either operand, meets it, along circles its axis decides or another's;
+//! anywhere else it is left as it is, and the step stays declined.
+//!
+//! Two spheres of one centre and radius are one surface whatever axes their
+//! charts were laid about (#956), and a boolean between them is built as if
+//! they shared one chart: before it, the second operand's sphere is read
+//! about the first's axis, or, where a circle on its faces runs through a
+//! pole of that chart, the first's about the second's, laid again whole as
+//! above; where neither may be, both are left as they are.
 
 use crate::brep::assembly::tidied;
-use crate::brep::curve::{Circle, Curve};
-use crate::brep::relation::{Relation, relation};
+use crate::brep::curve::Curve;
+use crate::brep::relation::{Relation, read_about_another_axis, relation};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Sphere, Surface};
 use crate::brep::topology::{Body, FaceId, SurfaceId};
@@ -43,6 +50,54 @@ fn recharted(body: &Body, other: &Body, scale: Scale) -> Option<Body> {
             | Surface::Torus(_) => None,
         })
         .collect();
+    laid_again(body, read)
+}
+
+/// The two operands with the spheres one shares with the other, read about
+/// another axis there, read about the other's axis: the second's, or else
+/// the first's, as the module says; none for an operand left as it is.
+pub(super) fn aligned(first: &Body, second: &Body, scale: Scale) -> [Option<Body>; 2] {
+    match onto(second, first, scale) {
+        Some(second) => [None, Some(second)],
+        None => [onto(first, second, scale), None],
+    }
+}
+
+/// `body` with each of its spheres that `other` holds about another axis
+/// read about that one; none where it holds no such sphere, or where a curve
+/// on the faces of one is no circle or runs through a pole of the chart it
+/// would be read in.
+fn onto(body: &Body, other: &Body, scale: Scale) -> Option<Body> {
+    let eps = scale.eps();
+    let mut read = Vec::new();
+    for (rank, surface) in body.surfaces.iter().enumerate() {
+        let Surface::Sphere(sphere) = surface else {
+            continue;
+        };
+        let Some(chart) = other.surfaces.iter().find_map(|theirs| match theirs {
+            Surface::Sphere(chart)
+                if sphere.axis.cross(chart.axis).length() * sphere.radius > eps
+                    && matches!(relation(surface, theirs, scale), Relation::Same { .. }) =>
+            {
+                Some(chart)
+            }
+            _ => None,
+        }) else {
+            continue;
+        };
+        let about = sphere.about(chart.axis);
+        let lying = lying(body, SurfaceId(rank as u32));
+        if !off_the_poles(&about, edged(body, &lying), eps) {
+            return None;
+        }
+        read.push((rank, about));
+    }
+    laid_again(body, read)
+}
+
+/// `body` with each surface `read` names replaced by its sphere, laid again
+/// whole; none where nothing is read, or where it cannot be laid so.
+fn laid_again(body: &Body, read: Vec<(usize, Sphere)>) -> Option<Body> {
     if read.is_empty() {
         return None;
     }
@@ -69,10 +124,7 @@ fn about(
 ) -> Option<Sphere> {
     let eps = scale.eps();
     let own = Surface::Sphere(*sphere);
-    let lying: Vec<FaceId> = body
-        .face_ids()
-        .filter(|&face| body.face(face).surface == rank)
-        .collect();
+    let lying = lying(body, rank);
     let planes = || {
         (other.surfaces.iter().enumerate())
             .filter(|(_, surface)| matches!(surface, Surface::Plane(_)))
@@ -91,32 +143,39 @@ fn about(
         .map(|(_, surface)| surface);
     let ruled_by_the_axis = (other.surfaces.iter().chain(besides)).any(|surface| {
         !matches!(surface, Surface::Plane(_))
+            && !read_about_another_axis(&own, surface, scale)
             && relation(&own, surface, scale) != Relation::Unsupported
     });
     if ruled_by_the_axis {
         return None;
     }
     let cut = planes().flat_map(|(_, found)| found.curves());
-    let edged = lying
-        .iter()
-        .flat_map(|&face| body.face(face).loops.iter().flatten())
-        .map(|coedge| *body.curve(body.edge(coedge.edge).curve));
     let about = sphere.about(through.axis);
-    circles(cut.chain(edged).collect())?
-        .iter()
-        .all(|circle| !about.through_a_pole(circle, eps))
-        .then_some(about)
+    off_the_poles(&about, cut.chain(edged(body, &lying)), eps).then_some(about)
 }
 
-/// The circles among `curves`; none where one is no circle.
-fn circles(curves: Vec<Curve>) -> Option<Vec<Circle>> {
-    curves
-        .into_iter()
-        .map(|curve| match curve {
-            Curve::Circle(circle) => Some(circle),
-            Curve::Line(_) | Curve::Meet(_) | Curve::Conic(_) => None,
-        })
+/// The faces of `body` lying on its surface `rank`.
+fn lying(body: &Body, rank: SurfaceId) -> Vec<FaceId> {
+    body.face_ids()
+        .filter(|&face| body.face(face).surface == rank)
         .collect()
+}
+
+/// The curves of the edges bounding `faces` of `body`.
+fn edged<'a>(body: &'a Body, faces: &'a [FaceId]) -> impl Iterator<Item = Curve> + 'a {
+    faces
+        .iter()
+        .flat_map(|&face| body.face(face).loops.iter().flatten())
+        .map(|coedge| *body.curve(body.edge(coedge.edge).curve))
+}
+
+/// Whether every one of `curves` is a circle standing clear of the poles of
+/// `sphere`.
+fn off_the_poles(sphere: &Sphere, mut curves: impl Iterator<Item = Curve>, eps: f64) -> bool {
+    curves.all(|curve| match curve {
+        Curve::Circle(circle) => !sphere.through_a_pole(&circle, eps),
+        Curve::Line(_) | Curve::Meet(_) | Curve::Conic(_) => false,
+    })
 }
 
 /// Whether a face of `other` on `plane` stands in a box meeting that of one

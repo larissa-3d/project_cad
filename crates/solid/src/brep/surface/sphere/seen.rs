@@ -1,7 +1,9 @@
 //! A circle the sphere carries neither as a latitude nor as a meridian —
 //! the section of a plane at a slant to its axis, or holding a direction of
-//! it off it (#805) — seen in its `(θ, φ)`, with `θ` unwrapped so that it
-//! never jumps by a turn along the circle.
+//! it off it (#805), or a rim a cylinder, a cone or a round whose axis holds
+//! its centre off its chart's axis meets it along (#956) — seen in its
+//! `(θ, φ)`, with `θ` unwrapped so that it never jumps by a turn along the
+//! circle.
 //!
 //! Seen down the axis the circle is an ellipse, whose angle about the axis
 //! runs round once a turn, the way the circle's axis points along the
@@ -23,6 +25,16 @@ use super::Sphere;
 use crate::brep::curve::Circle;
 
 impl Sphere {
+    /// Whether `circle`, one the sphere carries, comes nearer a pole than
+    /// `front`, the cosine of the angle off the axis each of its points must
+    /// stand at: its point highest along the axis, either way, past
+    /// `√(1 − front²)` of the radius.
+    pub(in crate::brep) fn near_a_pole(&self, circle: &Circle, front: f64) -> bool {
+        let over = (circle.center - self.middle()).dot(self.axis);
+        let across = circle.u.dot(self.axis).hypot(circle.v.dot(self.axis));
+        (over.abs() + circle.radius * across) / self.radius > (1.0 - front * front).sqrt()
+    }
+
     /// Whether the circle passes within `eps` of a pole.
     pub(in crate::brep) fn through_a_pole(&self, circle: &Circle, eps: f64) -> bool {
         [-1.0, 1.0].into_iter().any(|side| {

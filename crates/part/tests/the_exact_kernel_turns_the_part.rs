@@ -2085,9 +2085,24 @@ fn a_cone_within_another_s_slope_either_way_is_a_broken_step_with_its_reason() {
 }
 /// A ball of radius 3 about `(at, 0, 0)`, then the turn of
 /// `turned_at_thirty_degrees_beside_a_cylinder_at` with its far run
-/// slanting to 4: a cone, which crosses the ball off its centre — a pair
-/// the kernel declines — where the ball stands at the origin.
+/// slanting to 4, about a line 1.5 off the origin: a cone, which crosses the
+/// ball off its centre — a pair the kernel declines — where the ball stands
+/// at the origin. There its other faces meet the ball as the kernel builds
+/// it: the inner wall pierces it right through, its axis off the centre, and
+/// the near end cuts it at a slant. About a line through the centre the cone
+/// stands clear of the ball, and the step is built:
+/// `a_turn_whose_inner_wall_runs_through_a_ball_s_centre_at_thirty_degrees_is_built_and_holds_the_arithmetic_s_volume`.
 fn a_cone_turned_at_thirty_degrees_beside_a_ball_at(at: f64) -> History {
+    turned_at_thirty_degrees_beside_a_ball_at(at, 1.5)
+}
+
+/// A ball of radius 3 about `(at, 0, 0)`, then the turn of
+/// `turned_at_thirty_degrees_beside_a_cylinder_at` with its far run
+/// slanting to 4, about the line at thirty degrees `off` from the origin in
+/// the plane of the drawing: a tube whose inner wall stands 1 from that
+/// line, from 1 to 6 along it, and whose outer wall is a cone from 4 down to
+/// 3.
+fn turned_at_thirty_degrees_beside_a_ball_at(at: f64, off: f64) -> History {
     let mut history = History::default();
     sketch_on(
         &mut history,
@@ -2120,7 +2135,7 @@ fn a_cone_turned_at_thirty_degrees_beside_a_ball_at(at: f64) -> History {
     );
     sketch_on(&mut history, WorkPlane::XY);
     let along = DVec2::from_angle(PI / 6.0);
-    let at = |h: f64, s: f64| along * h + along.perp() * s;
+    let at = |h: f64, s: f64| along * h + along.perp() * (s - off);
     history.push(Operation::AddSegment {
         sketch: 1,
         start: PointRef::New(at(-3.0, 0.0)),
@@ -2141,6 +2156,33 @@ fn a_cone_turned_at_thirty_degrees_beside_a_ball_at(at: f64) -> History {
         ExtrusionMode::Add,
     );
     history
+}
+
+/// The turn of `turned_at_thirty_degrees_beside_a_ball_at` about a line
+/// through the ball's centre: its inner wall runs through the ball along
+/// the line, a cylinder of another axis than the sphere's chart through its
+/// centre, which meets it as the sphere read about the line does (#956), and
+/// its cone stands clear of the ball. The step is built, exact, holding the
+/// ball, the tube π (5/3 (4² + 4·3 + 3²) − 5) and less what they share,
+/// π ∫ (8 − h²) dh from 1 to √8 along the line: π (301 − 32√2) / 3.
+#[test]
+fn a_turn_whose_inner_wall_runs_through_a_ball_s_centre_at_thirty_degrees_is_built_and_holds_the_arithmetic_s_volume()
+ {
+    let history = turned_at_thirty_degrees_beside_a_ball_at(0.0, 0.0);
+
+    let part = applied_live(&history);
+
+    assert!(
+        !part.is_declined(last_step(&history)),
+        "the turn through the ball's centre is built, where it was declined {:?}",
+        part.declined_because(last_step(&history))
+    );
+    assert!(part.body().is_exact(), "the turn stood, exact");
+    assert_near(
+        part.body().volume(),
+        PI * (301.0 - 32.0 * 2f64.sqrt()) / 3.0,
+        "a ball of 3 joined to a tube turned at thirty degrees about a line through its centre",
+    );
 }
 
 #[test]

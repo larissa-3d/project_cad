@@ -4,7 +4,11 @@
 //! the foot of the centre on the plane (#805), or, within the tolerance of
 //! touching it off its poles, at the one point it touches (#939); a sphere
 //! and a cylinder of another axis along the loops where the cylinder's
-//! rulings pierce it (#805); everything else declined.
+//! rulings pierce it (#805); a sphere and a round whose axis holds its
+//! centre as the sphere turned about that axis, so that two spheres of one
+//! centre and radius are one surface whatever their axes (#956, whose
+//! criteria are in `tests/spheres_of_one_centre_and_radius_are_one_surface_whatever_their_axes.rs`);
+//! everything else declined.
 //!
 //! Closes #805 — its second slice's relation only, a cylinder of another axis
 //! against a sphere. The slice's crossings are answered in
@@ -46,8 +50,9 @@ use glam::{DVec2, DVec3};
 
 use super::{REACH, assert_on_both, cylinder, plane, scale};
 use crate::brep::curve::{Circle, Curve};
-use crate::brep::relation::{Relation, Rim, at_a_slant, relation};
+use crate::brep::relation::{Relation, Rim, at_a_slant, off_the_rim, relation, untouched};
 use crate::brep::surface::{Cone, Cylinder, EllipticCylinder, Sphere, Surface, Torus};
+use crate::brep::tessellation::FRONT;
 
 /// A ball of radius 3 about `(0, 0, 5)`, turned about Z.
 fn ball() -> Surface {
@@ -1031,13 +1036,13 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
             DVec3::X * 3.0,
             2.0,
         )),
-        Surface::Sphere(Sphere::through(
-            DVec3::new(0.0, 0.0, 5.0),
-            DVec3::X,
-            0.0,
-            3.0,
-        )),
     ];
+    let one_centre_about_x = Surface::Sphere(Sphere::through(
+        DVec3::new(0.0, 0.0, 5.0),
+        DVec3::X,
+        0.0,
+        3.0,
+    ));
     for (round, unsupported) in [
         (ball(), others.to_vec()),
         (
@@ -1057,9 +1062,375 @@ fn every_other_pair_with_a_round_is_unsupported_and_none_is_at_a_slant() {
                 "{round:?} {other:?}"
             );
         }
-        for other in planes.iter().chain(&walls).chain(&others) {
+        for other in planes
+            .iter()
+            .chain(&walls)
+            .chain(&others)
+            .chain([&one_centre_about_x])
+        {
             assert!(!at_a_slant(&round, other, scale()));
             assert!(!at_a_slant(other, &round, scale()));
         }
+    }
+}
+
+/// The sphere about `(0, 0, h)` of `radius`, turned about `axis`: at
+/// `h = 5`, of [`ball`]'s centre.
+fn ball_on_z_about(axis: DVec3, h: f64, radius: f64) -> Surface {
+    Surface::Sphere(Sphere::through(DVec3::new(0.0, 0.0, h), axis, 0.0, radius))
+}
+
+/// Axes through a sphere's centre other than [`ball`]'s: square to it, at a
+/// slant, and square to it the other way round.
+const OTHER_AXES: [DVec3; 3] = [DVec3::X, DVec3::new(2.0, -1.0, 3.0), DVec3::NEG_Y];
+
+#[test]
+fn two_balls_of_one_centre_and_radius_are_one_surface_whatever_axes_they_were_turned_about_and_a_hair_apart_in_radius_are_not()
+ {
+    let eps = scale().eps();
+    for axis in OTHER_AXES.map(DVec3::normalize) {
+        for radius in [3.0, 3.0 + eps / 2.0] {
+            assert_eq!(
+                between(&ball(), &ball_on_z_about(axis, 5.0, radius)),
+                Relation::Same { agree: true },
+                "the ball about z and the sphere of its centre and radius {radius} about {axis}"
+            );
+        }
+        for radius in [3.0 + 3.0 * eps, 1.0] {
+            assert_eq!(
+                between(&ball(), &ball_on_z_about(axis, 5.0, radius)),
+                Relation::Apart,
+                "the ball about z and the sphere of its centre and radius {radius} about {axis}"
+            );
+        }
+    }
+}
+
+/// The [`ring`] against spheres whose centres its axis holds, turned about
+/// another axis: about the tube's height, touching its root along one
+/// circle, crossing the tube along two, and holding it inside; and
+/// [`ball`]'s, clear above it. Each meets it as the same sphere turned about
+/// the ring's axis does, in either order: apart, or along the same circles,
+/// touching where those touch, on both surfaces — but the root circle, the
+/// sphere's equator about z, which runs through the poles of its charts
+/// about x and about y, and is unsupported there.
+#[test]
+fn a_ball_whose_centre_a_ring_s_axis_holds_meets_it_whatever_axis_it_was_turned_about_as_it_does_turned_about_the_ring_s()
+ {
+    let mut declined = 0;
+    for (h, radius, circles) in [(2.0, 3.0, 1), (2.0, 3.5, 2), (2.0, 6.0, 0), (5.0, 3.0, 0)] {
+        let coaxial = between(&ring(), &ball_on_z_about(DVec3::Z, h, radius));
+        assert_eq!(
+            coaxial.curves().len(),
+            circles,
+            "the ring and the sphere about (0, 0, {h}) of {radius}, about z: {coaxial:?}"
+        );
+        for axis in OTHER_AXES.map(DVec3::normalize) {
+            let other = ball_on_z_about(axis, h, radius);
+            declined += usize::from(as_read_about_the_axis(
+                [&ring(), &other],
+                &coaxial,
+                (DVec3::Z, 1e-12 * REACH),
+                &format!("the ring and the sphere about (0, 0, {h}) of {radius}, about {axis}"),
+            ));
+        }
+    }
+    assert_eq!(
+        declined, 2,
+        "the root circle, the equator about z of the sphere about (0, 0, 2) of 3, runs through \
+         the poles of its charts about x and about y, and of none other"
+    );
+}
+
+/// Whether a point of one of `rims` stands nearer a pole of `sphere`'s
+/// chart than the drawing lays a circle of another axis, [`FRONT`]: within
+/// the angle whose sine it is of the chart's axis, read at a tenth of a
+/// degree all round each rim.
+fn near_a_pole_of_its_chart(sphere: &Sphere, rims: &[Rim]) -> bool {
+    let beyond = (1.0 - FRONT * FRONT).sqrt();
+    rims.iter().any(|rim| {
+        (0..3600).any(|step| {
+            let point = rim.circle.point(TAU * f64::from(step) / 3600.0);
+            ((point - sphere.middle()).dot(sphere.axis) / sphere.radius).abs() > beyond
+        })
+    })
+}
+
+/// Holds that `pair`, a sphere and a round whose axis holds its centre,
+/// along `along`, the two of other axes, relate as `about` says the sphere
+/// read about `along` relates to the round, in either order: apart, one
+/// surface, touching at the same point, or meeting along the same circles,
+/// touching where those touch, on both surfaces within `within`. Where one
+/// of those circles comes nearer a pole of the sphere's own chart than the
+/// drawing lays a circle of another axis (#962), the pair is unsupported:
+/// through such a pole no trace of the sphere reads the circle, and the
+/// drawing leaves the face it bounds open. Whether it was so.
+fn as_read_about_the_axis(
+    pair: [&Surface; 2],
+    about: &Relation,
+    (along, within): (DVec3, f64),
+    what: &str,
+) -> bool {
+    let eps = scale().eps();
+    let found = between(pair[0], pair[1]);
+    let sphere = pair.iter().find_map(|surface| match surface {
+        Surface::Sphere(sphere) if sphere.axis.cross(along).length() > 1e-12 => Some(sphere),
+        _ => None,
+    });
+    if let (Some(sphere), Relation::Rims(rims)) = (sphere, about)
+        && near_a_pole_of_its_chart(sphere, rims)
+    {
+        assert_eq!(
+            found,
+            Relation::Unsupported,
+            "{what}: read about the axis it meets it along {rims:?}, near a pole of its chart"
+        );
+        return true;
+    }
+    match (about, &found) {
+        (Relation::Apart, Relation::Apart) => {}
+        (Relation::Same { agree }, Relation::Same { agree: found }) if agree == found => {}
+        (Relation::Apex(expected), Relation::Apex(found)) => assert!(
+            found.distance(*expected) <= eps,
+            "{what}: touches at {found}, where read about the axis it touches at {expected}"
+        ),
+        (Relation::Rims(expected), Relation::Rims(_)) => {
+            let mut found = rims(pair[0], pair[1], within);
+            let mut expected = expected.clone();
+            for rims in [&mut found, &mut expected] {
+                rims.sort_by(|one, other| {
+                    let height = one.circle.center.dot(along);
+                    let height = height.total_cmp(&other.circle.center.dot(along));
+                    height.then(one.circle.radius.total_cmp(&other.circle.radius))
+                });
+            }
+            assert_eq!(found.len(), expected.len(), "{what}: {found:?}");
+            for (found, expected) in found.iter().zip(&expected) {
+                assert_eq!(found.touching, expected.touching, "{what}: {found:?}");
+                assert!(
+                    found.circle.center.distance(expected.circle.center) <= eps
+                        && (found.circle.radius - expected.circle.radius).abs() <= eps
+                        && found.circle.axis.cross(expected.circle.axis).length() <= 1e-12,
+                    "{what}: {found:?}, where read about the axis it meets it along {expected:?}"
+                );
+            }
+        }
+        _ => panic!("{what}: {found:?}, where read about the axis it is {about:?}"),
+    }
+    false
+}
+
+/// A cone through `(0, 0, 5)`, [`ball`]'s centre, along `axis`, through two
+/// corners `(h, ρ)` read from that centre.
+fn cone_through_the_centre(axis: DVec3, corners: [[f64; 2]; 2]) -> Surface {
+    Surface::Cone(Cone::through(
+        DVec3::new(0.0, 0.0, 5.0),
+        axis,
+        corners.map(DVec2::from),
+    ))
+}
+
+/// [`ball`], turned about z, against cones whose axis runs through its
+/// centre along another: crossing it along two circles, touching it along
+/// one, resting on it at a point, and clear of it — the cones of
+/// `a_coaxial_cone_cuts_a_ball_along_two_circles_touches_it_along_one_or_rests_on_its_pole`,
+/// laid along the other axis. Each relates to it as it relates to the ball
+/// turned about that axis, in either order.
+#[test]
+fn a_cone_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the_ball_was_turned_about_as_it_meets_the_ball_turned_about_the_cone_s()
+ {
+    for (corners, circles) in [
+        ([[5.0, 0.0], [-5.0, 5.0]], 2),
+        ([[5.0, 0.0], [-3.0, 6.0]], 1),
+        ([[3.0, 0.0], [5.0, 4.0]], 1),
+        ([[7.0, 0.0], [15.0, 2.0]], 0),
+    ] {
+        for axis in OTHER_AXES.map(DVec3::normalize) {
+            let cone = cone_through_the_centre(axis, corners);
+            let about = between(&ball_on_z_about(axis, 5.0, 3.0), &cone);
+            assert_eq!(
+                about.curves().len() + about.points().len(),
+                circles,
+                "the ball turned about {axis} and the cone through {corners:?} along it: \
+                 {about:?}"
+            );
+            let declined = as_read_about_the_axis(
+                [&ball(), &cone],
+                &about,
+                (axis, 1e-12 * REACH),
+                &format!("the ball about z and the cone through {corners:?} along {axis}"),
+            );
+            assert!(
+                !declined,
+                "the cone through {corners:?} along {axis} meets the ball off its chart's poles"
+            );
+        }
+    }
+}
+
+/// [`ball`], turned about z, against cylinders whose axis runs through its
+/// centre along another, or within half the tolerance of it: crossing it
+/// along two circles, touching it at its equator about that axis, within
+/// twice the tolerance of touching it inside, and apart a hair outside it
+/// and further. Each relates to it as it relates to the ball turned about
+/// that axis, in either order — but where the circles run within the
+/// drawing's reach of the ball's poles about z, along x and along y, the
+/// touch at the great circle through them and the two circles a hair either
+/// side of it, which are unsupported; twice the tolerance off the centre, a
+/// cylinder of another axis meets it along the two loops its rulings
+/// pierce it along (#805), on both surfaces within the tolerance — at a
+/// slant so near the centre, a loop's points stand a fifth of it off the
+/// sphere, where `loops` holds them to a trillionth of the reach.
+#[test]
+fn a_cylinder_whose_axis_runs_through_a_ball_s_centre_meets_it_whatever_axis_the_ball_was_turned_about_as_it_meets_the_ball_turned_about_the_cylinder_s()
+ {
+    let eps = scale().eps();
+    let mut declined = 0;
+    for axis in OTHER_AXES.map(DVec3::normalize) {
+        let square = axis.any_orthonormal_vector();
+        for (off, radius, circles) in [
+            (0.0, 2.0, 2),
+            (eps / 2.0, 2.0, 2),
+            (0.0, 3.0, 1),
+            (eps / 2.0, 3.0, 1),
+            (0.0, 3.0 - 2.0 * eps, 2),
+            (0.0, 3.0 + 2.0 * eps, 0),
+            (0.0, 4.0, 0),
+        ] {
+            let wall = cylinder(DVec3::new(0.0, 0.0, 5.0) + square * off, axis, radius);
+            let about = between(&ball_on_z_about(axis, 5.0, 3.0), &wall);
+            assert_eq!(
+                about.curves().len(),
+                circles,
+                "the ball turned about {axis} and the cylinder of {radius} {off:e} off its \
+                 centre along it: {about:?}"
+            );
+            declined += usize::from(as_read_about_the_axis(
+                [&ball(), &wall],
+                &about,
+                (axis, eps),
+                &format!(
+                    "the ball about z and the cylinder of {radius} along {axis}, {off:e} off its \
+                     centre"
+                ),
+            ));
+        }
+        let off = cylinder(DVec3::new(0.0, 0.0, 5.0) + square * (2.0 * eps), axis, 2.0);
+        let found = between(&ball(), &off);
+        assert!(
+            matches!(&found, Relation::Meet(_)) && found.curves().len() == 2,
+            "a cylinder of 2 along {axis}, twice the tolerance off the ball's centre: {found:?}"
+        );
+        assert_on_both(&found, &ball(), &off, eps);
+    }
+    assert_eq!(
+        declined, 6,
+        "the cylinders of 3 along x and along y, through the centre or half the tolerance off it, \
+         touch the ball along a great circle through its poles, and the one twice the tolerance \
+         under crosses it along two within a few ten-thousandths of them; along the slant, none"
+    );
+}
+
+/// A plane square to [`ball`]'s axis a hair past its pole at (0, 0, 8), or
+/// a hair short of it, and the same at its other pole (0, 0, 2): each stands
+/// that hair from touching the ball at the pole, the circle of no radius
+/// there, read in the meridian half-plane at the foot of the ball's centre
+/// on the axis — which decision 12 moves it onto.
+#[test]
+fn a_plane_square_to_a_ball_s_axis_a_hair_off_its_pole_stands_that_hair_from_touching_it_there() {
+    let hair = 5.0 * scale().eps();
+    for (pole, outward) in [(8.0, 1.0), (2.0, -1.0)] {
+        for off in [hair, -hair] {
+            let level = plane(DVec3::new(0.0, 0.0, pole + outward * off), DVec3::Z);
+            let what = format!("the plane square to z {off:e} past the pole at {pole}");
+
+            let gap = untouched(&ball(), &level, scale())
+                .unwrap_or_else(|| panic!("{what}: no gap to touching"));
+
+            assert!(
+                (gap.gap - off).abs() <= 1e-12 * REACH,
+                "{what}: stands {} from touching",
+                gap.gap
+            );
+            assert!(
+                gap.at.center.distance(DVec3::new(0.0, 0.0, pole)) <= 1e-12 * REACH
+                    && gap.at.radius.abs() <= 1e-12 * REACH,
+                "{what}: touches along {:?}, where the pole is",
+                gap.at
+            );
+        }
+    }
+}
+
+/// A cone about [`ball`]'s axis opening at 45° away from the ball, its
+/// apex past the ball's top so that its mirror nappe, which is no surface of
+/// it, stands a hair from touching the ball: no gap to touching. The same
+/// cone opening towards the ball from below it, its own nappe a hair from
+/// touching it, stands that hair off.
+#[test]
+fn a_cone_whose_mirror_nappe_stands_a_hair_from_touching_a_ball_does_not_stand_a_hair_from_touching_it()
+ {
+    let hair = 5.0 * scale().eps();
+    let reach = (3.0 + hair) * 2f64.sqrt();
+    let opening_up_from = |apex: f64| cone([apex, 0.0], [apex + 4.0, 4.0]);
+
+    let beyond = opening_up_from(5.0 + reach);
+    assert_eq!(
+        untouched(&ball(), &beyond, scale()),
+        None,
+        "a cone whose mirror nappe stands {hair:e} from touching the ball"
+    );
+
+    let below = opening_up_from(5.0 - reach);
+    let gap = untouched(&ball(), &below, scale())
+        .expect("a cone opening towards the ball stands a hair from touching it");
+    assert!(
+        (gap.gap - hair).abs() <= 1e-12 * REACH,
+        "the cone below the ball stands {} from touching it, where it stands {hair:e}",
+        gap.gap
+    );
+}
+
+/// A plane square to [`ball`]'s axis through its centre: every direction
+/// in the meridian half-plane stands it as far from touching the ball, and
+/// it stands from touching it nowhere.
+#[test]
+fn a_plane_square_to_a_ball_s_axis_through_its_centre_stands_from_touching_it_nowhere() {
+    let equator = plane(DVec3::new(0.0, 0.0, 5.0), DVec3::Z);
+
+    assert_eq!(untouched(&ball(), &equator, scale()), None);
+}
+
+/// A cylinder and a cone parallel to [`ball`]'s axis but off it, their axes
+/// missing its centre, and a cylinder of another axis missing it too: no
+/// line of the ball's meridian half-plane, they stand from touching it, or
+/// from passing through a rim on it, as nothing decision 12 moves — where
+/// the same cylinder about the ball's axis stands its own gap off.
+#[test]
+fn a_cylinder_or_a_cone_off_a_ball_s_axis_and_missing_its_centre_stands_from_touching_it_or_its_rim_as_no_line_of_its_half_plane()
+ {
+    let eps = scale().eps();
+    let Surface::Sphere(sphere) = ball() else {
+        unreachable!()
+    };
+    let rim = sphere.circle(6.0, 8f64.sqrt());
+    let about = cylinder(DVec3::ZERO, DVec3::Z, 3.0 - 5.0 * eps);
+    let gap = untouched(&ball(), &about, scale()).expect("a coaxial cylinder stands a gap off");
+    assert!((gap.gap + 5.0 * eps).abs() <= 1e-12 * REACH, "{gap:?}");
+    for other in [
+        cylinder(DVec3::new(0.0, 4.0, 0.0), DVec3::Z, 3.0 - 5.0 * eps),
+        Surface::Cone(Cone::through(
+            DVec3::new(4.0, 0.0, 0.0),
+            DVec3::Z,
+            [DVec2::new(10.0, 0.0), DVec2::new(0.0, 5.0)],
+        )),
+        cylinder(DVec3::new(0.0, 1.0, 5.0), DVec3::X, 2.0),
+    ] {
+        assert_eq!(untouched(&ball(), &other, scale()), None, "{other:?}");
+        assert_eq!(
+            off_the_rim(&ball(), &rim, &other, scale()),
+            None,
+            "{other:?}"
+        );
     }
 }

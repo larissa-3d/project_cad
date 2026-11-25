@@ -1,8 +1,9 @@
 //! Which side of each other a sphere or a torus and a surface of its axis
 //! stand on (#576), read off the rims their pair was decided along, in the
-//! meridian half-plane of the axis. Along a rim the two only touch along,
-//! the one whose meridian bends more towards the other's normal there stands
-//! on that side of it: a shaft of a ball's radius stands outside the ball
+//! meridian half-plane of the axis: a sphere's read about the rims' axis,
+//! which holds its centre, whatever its chart's (#956). Along a rim the two
+//! only touch along, the one whose meridian bends more towards the other's
+//! normal there stands on that side of it: a shaft of a ball's radius stands outside the ball
 //! along its equator and the ball inside the shaft, a bore touching a
 //! groove's root stands on the groove's side. Between two rims the two cross
 //! along, or beyond them, they stand one above the other all along each
@@ -30,8 +31,23 @@ pub(super) fn across_the_rims(
     if let Some(touch) = rims.iter().find(|rim| rim.touching) {
         return bending_more(first, second, touch.circle.point(0.0));
     }
-    let middle = middle_of_the_stretch(first, second, rims, place)?;
-    measured(first, second, middle, rounding)
+    let [first, second] = [first, second].map(|surface| about_the_rims(surface, rims, rounding));
+    let middle = middle_of_the_stretch(&first, &second, rims, place)?;
+    measured(&first, &second, middle, rounding)
+}
+
+/// `surface` as the rims are read: a sphere about their axis where its
+/// chart's poles stand further than `rounding` from it (#956), anything
+/// else as it is.
+fn about_the_rims(surface: &Surface, rims: &[Rim], rounding: f64) -> Surface {
+    match (surface, rims.first()) {
+        (Surface::Sphere(sphere), Some(rim))
+            if sphere.axis.cross(rim.circle.axis).length() * sphere.radius > rounding =>
+        {
+            Surface::Sphere(sphere.about(rim.circle.axis))
+        }
+        _ => *surface,
+    }
 }
 
 /// Whether a sphere or a torus is among the two.
