@@ -106,6 +106,41 @@ fn folders_laid_by_hand(app: &mut driver::App, test: &str, folders: &[&str]) -> 
     library
 }
 
+/// What a part laid by hand holds: no part the application writes reads this,
+/// so finding it still there says nothing was written over it.
+const LAID_BY_HAND: &[u8] = b"PK, laid by hand";
+
+/// Lays these part files in the library, then reads the library again with
+/// « ↺ », as a user who had put them there by hand would. Says where the
+/// library is.
+fn parts_laid_by_hand(app: &mut driver::App, test: &str, parts: &[&str]) -> PathBuf {
+    let library = cao_prefs::default_projects_dir(&driver::locations_of(test));
+    for part in parts {
+        let path = library.join(part);
+        std::fs::create_dir_all(path.parent().expect("a folder")).expect("the folder is made");
+        std::fs::write(&path, LAID_BY_HAND).expect("the part file is written");
+    }
+    driver::click(app, "↺");
+    library
+}
+
+/// Whether the part laid by hand there still holds what it was laid with.
+fn still_as_laid(part: &Path) -> bool {
+    std::fs::read(part).is_ok_and(|held| held == LAID_BY_HAND)
+}
+
+/// Clicks this folder's row in the column, and makes sure the card took it.
+fn choose_in_the_column(app: &mut driver::App, folder: &str) {
+    let row = the_row_reading(app, folder);
+    driver::click_at(app, row.center());
+    assert_eq!(
+        where_the_card_saves(app),
+        Some(format!("{THE_PARTS_FOLDER} / {folder}")),
+        "the card does not show « {folder} » once it is chosen, showing {:?}",
+        driver::on_screen(app),
+    );
+}
+
 /// How many files stand in this folder itself, not under it, named this before
 /// their extension.
 fn files_named(folder: &Path, name: &str) -> usize {
@@ -223,5 +258,60 @@ fn with_no_folder_chosen_a_name_and_enter_create_the_part_at_the_root() {
         (1, 0),
         "« Support » typed with nothing chosen and ↵ pressed is not one part at the \
          root of the parts folder: (at the root, in « Brides »)",
+    );
+}
+
+#[test]
+fn a_name_taken_in_the_target_folder_takes_the_next_free_name() {
+    let test = "a_name_taken_in_the_target_folder_takes_the_next_free_name";
+    let mut app = driver::open(test);
+    let library = parts_laid_by_hand(&mut app, test, &["Brides/Support.caopart"]);
+    choose_in_the_column(&mut app, "Brides");
+
+    driver::create_a_part(&mut app, "Support");
+    driver::click(&mut app, "Accueil");
+
+    let brides = library.join("Brides");
+    assert!(
+        still_as_laid(&brides.join("Support.caopart")),
+        "the « Support » already in « Brides » was written over",
+    );
+    assert_eq!(
+        (
+            files_named(&brides, "Support 2"),
+            files_named(&library, "Support"),
+        ),
+        (1, 0),
+        "« Support » created in « Brides », which holds one, is not « Support 2 » \
+         there: (« Support 2 » in « Brides », « Support » at the root)",
+    );
+}
+
+#[test]
+fn a_name_taken_only_in_another_folder_is_kept_as_typed() {
+    let test = "a_name_taken_only_in_another_folder_is_kept_as_typed";
+    let mut app = driver::open(test);
+    let library = parts_laid_by_hand(&mut app, test, &["Support.caopart"]);
+    folders_laid_by_hand(&mut app, test, &["Brides"]);
+    choose_in_the_column(&mut app, "Brides");
+
+    driver::create_a_part(&mut app, "Support");
+    driver::click(&mut app, "Accueil");
+
+    let brides = library.join("Brides");
+    assert!(
+        still_as_laid(&library.join("Support.caopart")),
+        "the « Support » at the root was written over",
+    );
+    assert_eq!(
+        (
+            files_named(&brides, "Support"),
+            files_named(&brides, "Support 2"),
+            files_named(&library, "Support 2"),
+        ),
+        (1, 0, 0),
+        "« Support » created in « Brides », taken only at the root, is not kept as \
+         typed there: (« Support » in « Brides », « Support 2 » in « Brides », \
+         « Support 2 » at the root)",
     );
 }
