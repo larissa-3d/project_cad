@@ -17,28 +17,57 @@
 //!   sound there, as #956 pins it. Past 2e-7 it is not laid: from 2.02e-7 to
 //!   4e-4 it is built, exact, closed, of the volume at the shaft's radius,
 //!   and crossed, always at the seam where the half ball's flat face meets
-//!   the ring under the equator. From 5e-4 it is drawn sound. The words
-//!   "up to where decision 12 no longer lays it" would ask for nothing past
-//!   2e-7, so they are read as the band the issue's hairs belong to, and
-//!   held from end to end: 2.1e-7, just past decision 12's reach; the
+//!   the ring under the equator; from 5e-4 to 1.5e-3 it is drawn sound. The
+//!   words "up to where decision 12 no longer lays it" would ask for nothing
+//!   past 2e-7, so they are read as the band the issue's hairs belong to,
+//!   and held from end to end: 2.1e-7, just past decision 12's reach; the
 //!   issue's 4e-7 and 1e-6 with 6e-7 and 8e-7 between; and on up the band to
 //!   its top, 1e-5, 1e-4 and 4e-4. The arithmetic is the one at the shaft's
 //!   radius at every one of them, since no decision lays the shaft there,
 //!   and it is held to the kernel's billionth: from 1e-5 on, that tells it
 //!   apart from what the ball would hold with the shaft laid onto the touch
-//! - The hairs #956 pins keep their bodies — no test: they are #956's,
+//! - The hairs #956 pins keep their bodies —
+//!   `a_shaft_within_decision_twelve_s_reach_of_a_half_ball_s_radius_is_laid_onto_its_equator_with_the_half_ball_first_and_left_as_drawn_with_the_shaft_first`,
+//!   which holds the bodies those hairs leave on `main`, joined either way
+//!   and each cut by the other: their volumes, and as many flat and curved
+//!   faces. #956's own pin,
 //!   `a_half_ball_on_a_shaft_s_top_a_hair_wider_than_it_whose_meridian_arcs_end_a_hair_from_a_row_of_its_grid_is_drawn_closed`
 //!   in `spheres_of_one_centre_and_radius_are_one_surface_whatever_their_axes.rs`,
-//!   which holds the hairs 5e-8, 1e-7 and 2e-7 built, exact, closed,
-//!   uncrossed and of the arithmetic's volume, joined either way and each
-//!   cut by the other. Running it is the answer
+//!   holds them drawn: built, exact, closed, uncrossed, and of the volume at
+//!   the shaft's radius or the ball's. That pin alone takes either volume,
+//!   and so would not tell a hair that stopped being laid from one that
+//!   still is
+//!
+//! Beyond the criteria — pins, not criteria of #1123 — the same family
+//! elsewhere: a coaxial wall a hair from the circle of a row of a round's
+//! grid. They widen the criterion's family because they are what the fix
+//! answers, not the issue's hairs alone. The drawing lines the round's grid
+//! up with the wall's wherever the wall stands within twice its chords' sag
+//! of any row's circle, not only at an equator (`kept_by_walls`, in
+//! `tessellation/sampling/cone.rs`). The probe of that fix found each of
+//! them, and the first two were crossed on `main`.
+//!
+//! The half ball cut by the shaft 1.9e-3 and 2.2e-3 under its radius, its
+//! rim a hair under the row below the equator rather than under the
+//! equator itself:
+//! `a_half_ball_cut_up_to_its_centre_by_a_shaft_whose_rim_falls_a_hair_under_the_row_below_its_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//!
+//! A ring cut by a coaxial shaft a hair inside its outer equator, crossed on
+//! `main` from 1e-6 to 1e-3:
+//! `a_ring_cut_up_to_its_centre_plane_by_a_coaxial_shaft_a_hair_inside_its_outer_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//!
+//! The same ring joined with or cut by a coaxial post a hair outside its
+//! inner equator, drawn sound on `main` already. Its grid is lined up with
+//! the post's now, and the pin holds it sound there:
+//! `a_ring_joined_with_or_cut_by_a_coaxial_post_up_to_its_centre_plane_a_hair_outside_its_inner_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 
+use std::collections::BTreeSet;
 use std::f64::consts::{PI, TAU};
 
 use cao_solid::profile::{Contour, Frame, Profile, Run};
 use cao_solid::soundness::{closed, uncrossed};
 use cao_solid::turning::{Axis, Turn};
-use cao_solid::{Body, Loop};
+use cao_solid::{Body, Declined, Loop};
 use glam::{DVec2, DVec3};
 
 /// How far the matter a body holds may stand from what the arithmetic
@@ -54,6 +83,15 @@ const BALL: f64 = 4.0 * PI / 3.0 * RADIUS * RADIUS * RADIUS;
 /// How far under the ball's radius each shaft stands: past decision 12's
 /// reach, the whole band over which the cut is crossed on `main`.
 const HAIRS: [f64; 8] = [2.1e-7, 4e-7, 6e-7, 8e-7, 1e-6, 1e-5, 1e-4, 4e-4];
+
+/// The radius of the ring's axis circle, about z through the origin.
+const MAJOR: f64 = 10.0;
+
+/// The radius of the ring's tube.
+const MINOR: f64 = 2.0;
+
+/// The ring: 2π² R r².
+const RING: f64 = 2.0 * PI * PI * MAJOR * MINOR * MINOR;
 
 /// The half disc of [`RADIUS`] about the origin standing on the side of x,
 /// turned half a turn about z from x towards y: the half ball y ≥ 0, its
@@ -75,8 +113,36 @@ fn half_ball() -> Body {
             Run::Straight,
         ],
     };
+    turned_whole_or_half(half, sampled, PI)
+}
+
+/// The disc of [`MINOR`] about (`MAJOR`, 0) in the plane y = 0, turned whole
+/// about z: a ring about the origin, its outer equator of radius 12 and its
+/// inner one of 8 on the plane z = 0.
+fn ring() -> Body {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..64)
+            .map(|step| {
+                DVec2::new(MAJOR, 0.0) + DVec2::from_angle(TAU * f64::from(step) / 64.0) * MINOR
+            })
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let disc = Contour {
+        corners: vec![DVec2::new(MAJOR + MINOR, 0.0)],
+        runs: vec![Run::Round {
+            center: DVec2::new(MAJOR, 0.0),
+            turn: TAU,
+        }],
+    };
+    turned_whole_or_half(disc, sampled, TAU)
+}
+
+/// `outline`, drawn in the plane y = 0 with x across and z up, turned
+/// `angle` about z from x towards y.
+fn turned_whole_or_half(outline: Contour, sampled: &'static [DVec2], angle: f64) -> Body {
     let profile = Profile {
-        exact: Some((half, Vec::new())),
+        exact: Some((outline, Vec::new())),
         sampled: Loop::straight(sampled),
         sampled_holes: Vec::new(),
         triangles: &[],
@@ -91,13 +157,13 @@ fn half_ball() -> Body {
         direction: DVec2::Y,
     };
     Body::default()
-        .tool_turned(&profile, frame, &Turn::of(along_v, PI, 0.0, &profile))
-        .expect("the exact kernel turns the half ball")
+        .tool_turned(&profile, frame, &Turn::of(along_v, angle, 0.0, &profile))
+        .expect("the exact kernel turns the profile")
 }
 
-/// A shaft of `radius` along z from z = −10 up to the ball's centre, a tool
-/// of `part`. #956's.
-fn shaft_up_to_the_centre(part: &Body, radius: f64) -> Body {
+/// A shaft of `radius` along z from z = `from` up to the origin, a tool of
+/// `part`. #956's.
+fn shaft_up_to_the_centre(part: &Body, radius: f64, from: f64) -> Body {
     part.tool_raised(
         &Profile {
             exact: Some((
@@ -115,11 +181,11 @@ fn shaft_up_to_the_centre(part: &Body, radius: f64) -> Body {
             triangles: &[],
         },
         Frame {
-            origin: DVec3::Z * -10.0,
+            origin: DVec3::Z * from,
             u: DVec3::X,
             v: DVec3::Y,
         },
-        DVec3::Z * 10.0,
+        DVec3::Z * -from,
     )
     .expect("the shaft raises")
 }
@@ -134,6 +200,43 @@ fn kept(hair: f64) -> f64 {
     BALL / 4.0 + PI * reach.powi(3) / 3.0
 }
 
+/// The matter of the ring under z = 0 a coaxial wall `hair` inside its
+/// outer equator leaves outside it, and the matter a wall `hair` outside its
+/// inner equator takes inside it: the half segment of the tube's disc past
+/// the chord `hair` in from its edge, turned about z. Its area is
+/// r² (2θ − sin 2θ) / 4, cos θ = 1 − h / r, and its moment about the
+/// tube's centre r³ sin³θ / 3, outwards or inwards; by Pappus, 2π (R A ± M).
+fn sliver(hair: f64) -> [f64; 2] {
+    let angle = 2.0 * (hair / (2.0 * MINOR)).sqrt().asin();
+    let area = MINOR * MINOR * (2.0 * angle - (2.0 * angle).sin()) / 4.0;
+    let moment = MINOR.powi(3) * angle.sin().powi(3) / 3.0;
+    [TAU * (MAJOR * area + moment), TAU * (MAJOR * area - moment)]
+}
+
+/// Holds that a boolean built a body that is exact, holds `volume` to the
+/// kernel's billionth, its triangles closed and uncrossed.
+fn built_sound_holding(built: Result<Body, Declined>, volume: f64, what: &str) {
+    let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    assert!(
+        body.is_exact() && (body.volume() - volume).abs() <= EXACT * volume,
+        "{what}: holds {}, where the arithmetic leaves {volume}",
+        body.volume()
+    );
+    let triangles = body.triangles();
+    assert_eq!(closed(&triangles), Ok(()), "{what}");
+    assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
+}
+
+/// How many faces of `body` are flat, and how many are not.
+fn kinds(body: &Body) -> [usize; 2] {
+    let faces: BTreeSet<usize> = (0..body.faces_end())
+        .filter(|&face| body.has_face(face))
+        .chain(body.pieces())
+        .collect();
+    let flat = faces.iter().filter(|&&face| body.is_flat(face)).count();
+    [flat, faces.len() - flat]
+}
+
 /// The half ball y ≥ 0 cut by a shaft along z from z = −10 up to its centre,
 /// each of [`HAIRS`] under its radius: too far off the ball's equator for
 /// decision 12 to lay the shaft onto it, so the sphere crosses the wall
@@ -146,22 +249,157 @@ fn a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_too_far_under_its_radius_t
  {
     let half = half_ball();
     for hair in HAIRS {
-        let what =
-            format!("the half ball cut up to its centre by a shaft {hair:e} under its radius");
-        let shaft = shaft_up_to_the_centre(&half, RADIUS - hair);
+        let shaft = shaft_up_to_the_centre(&half, RADIUS - hair, -10.0);
 
-        let cut = half
-            .difference(&shaft)
-            .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+        let cut = half.difference(&shaft);
 
-        let kept = kept(hair);
-        assert!(
-            cut.is_exact() && (cut.volume() - kept).abs() <= EXACT * kept,
-            "{what}: holds {}, where the arithmetic leaves {kept}",
-            cut.volume()
+        built_sound_holding(
+            cut,
+            kept(hair),
+            &format!("the half ball cut up to its centre by a shaft {hair:e} under its radius"),
         );
-        let triangles = cut.triangles();
-        assert_eq!(closed(&triangles), Ok(()), "{what}");
-        assert_eq!(uncrossed(&triangles), Ok(()), "{what}");
+    }
+}
+
+/// The shafts #956 pins, 5, 10 and 20 hundred-millionths under the half
+/// ball's radius, along z from z = −10 up to its centre: within decision
+/// 12's reach, 20 tolerances at the pair's reach of 10. With the half ball
+/// first, the shaft is laid onto the equator: joined, the ball's quarter
+/// above its centre on a shaft of its radius, 250π + the quarter; cut, the
+/// quarter alone, its three flat faces — the two halves of the meridian
+/// plane and the equator's — and one on the sphere, no wall left. With the
+/// shaft first, it carries no round and the sphere is not moved onto it, so
+/// it is left as drawn: joined, the shaft and what the cut leaves beside it,
+/// the quarter and the ring under the equator; cut, the shaft less the half
+/// ball's part inside it. Each exact, holding that to
+/// the kernel's billionth, which tells the shaft laid from the shaft as
+/// drawn for every one but the cut, and with as many flat and curved faces
+/// as on `main` — which tells them apart for the cut.
+#[test]
+fn a_shaft_within_decision_twelve_s_reach_of_a_half_ball_s_radius_is_laid_onto_its_equator_with_the_half_ball_first_and_left_as_drawn_with_the_shaft_first()
+ {
+    let half = half_ball();
+    for hair in [5e-8, 1e-7, 2e-7] {
+        let radius = RADIUS - hair;
+        let shaft = shaft_up_to_the_centre(&half, radius, -10.0);
+        let drawn = PI * radius * radius * 10.0;
+        for (way, built, volume, faces) in [
+            (
+                "the half ball joined with",
+                half.union(&shaft),
+                250.0 * PI + BALL / 4.0,
+                [4, 2],
+            ),
+            (
+                "the half ball cut by",
+                half.difference(&shaft),
+                BALL / 4.0,
+                [3, 1],
+            ),
+            (
+                "the half ball joined to, the shaft first,",
+                shaft.union(&half),
+                drawn + kept(hair),
+                [4, 2],
+            ),
+            (
+                "the half ball cut from",
+                shaft.difference(&half),
+                drawn - (BALL / 2.0 - kept(hair)),
+                [4, 2],
+            ),
+        ] {
+            let what = format!("{way} a shaft {hair:e} under its radius up to its centre");
+            let body = built.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            assert!(
+                body.is_exact() && (body.volume() - volume).abs() <= EXACT * volume,
+                "{what}: holds {}, where the arithmetic leaves {volume}",
+                body.volume()
+            );
+            assert_eq!(
+                kinds(&body),
+                faces,
+                "{what}: as many flat and curved faces as on main"
+            );
+        }
+    }
+}
+
+/// The half ball cut by a shaft from z = −10 up to its centre 1.9e-3 and
+/// 2.2e-3 under its radius: the sphere crosses the wall along a rim 0.138
+/// and 0.148 under the equator, a hair under the row of the sphere's grid
+/// below it, at z = −0.133 — the same ring thinner than the chords sag, beside
+/// another row than the equator. Each built, exact, holding what the
+/// arithmetic leaves at the shaft's radius, its triangles closed and
+/// uncrossed.
+#[test]
+fn a_half_ball_cut_up_to_its_centre_by_a_shaft_whose_rim_falls_a_hair_under_the_row_below_its_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let half = half_ball();
+    for hair in [1.9e-3, 2.2e-3] {
+        let shaft = shaft_up_to_the_centre(&half, RADIUS - hair, -10.0);
+
+        let cut = half.difference(&shaft);
+
+        built_sound_holding(
+            cut,
+            kept(hair),
+            &format!("the half ball cut up to its centre by a shaft {hair:e} under its radius"),
+        );
+    }
+}
+
+/// The ring cut by a shaft along z from z = −5 up to its centre plane, a
+/// millionth to a thousandth inside its outer equator, of radius 12 − h: the
+/// tube crosses the wall along a rim under the equator, and the cut keeps
+/// the upper half of the ring and the sliver of the lower half outside the
+/// wall. Each built, exact, holding what the arithmetic leaves, its
+/// triangles closed and uncrossed.
+#[test]
+fn a_ring_cut_up_to_its_centre_plane_by_a_coaxial_shaft_a_hair_inside_its_outer_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let ring = ring();
+    for hair in [1e-6, 1e-5, 1e-4, 4e-4, 1e-3] {
+        let shaft = shaft_up_to_the_centre(&ring, MAJOR + MINOR - hair, -5.0);
+        let [outside, _] = sliver(hair);
+
+        let cut = ring.difference(&shaft);
+
+        built_sound_holding(
+            cut,
+            RING / 2.0 + outside,
+            &format!("the ring cut by a shaft {hair:e} inside its outer equator"),
+        );
+    }
+}
+
+/// The ring joined with, and cut by, a post along z from z = −5 up to its
+/// centre plane, a millionth to a thousandth outside its inner equator, of
+/// radius 8 + h: the tube crosses the post's wall along a rim under the
+/// equator. Joined, the ring and the post less the sliver they share; cut,
+/// the ring less that sliver. Each built, exact, holding what the arithmetic
+/// leaves, its triangles closed and uncrossed.
+#[test]
+fn a_ring_joined_with_or_cut_by_a_coaxial_post_up_to_its_centre_plane_a_hair_outside_its_inner_equator_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let ring = ring();
+    for hair in [1e-6, 1e-4, 1e-3] {
+        let radius = MAJOR - MINOR + hair;
+        let post = shaft_up_to_the_centre(&ring, radius, -5.0);
+        let [_, inside] = sliver(hair);
+        for (way, built, volume) in [
+            (
+                "joined with",
+                ring.union(&post),
+                RING + PI * radius * radius * 5.0 - inside,
+            ),
+            ("cut by", ring.difference(&post), RING - inside),
+        ] {
+            built_sound_holding(
+                built,
+                volume,
+                &format!("the ring {way} a post {hair:e} outside its inner equator"),
+            );
+        }
     }
 }
