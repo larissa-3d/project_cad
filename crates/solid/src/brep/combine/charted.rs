@@ -13,8 +13,10 @@
 //! the poles of the new chart it holds. A sphere is read so only where every
 //! circle on its faces, and every circle a plane of the other operand cuts
 //! it along, stands clear of the new poles, and no surface but a plane, in
-//! either operand, meets it, along circles its axis decides or another's;
-//! anywhere else it is left as it is, and the step stays declined.
+//! either operand, meets it but one whose axis holds its centre — a bore, a
+//! knob or a ring about its chart's axis or another, which meets it along
+//! the same circles whatever axis it is read about (#956, #1107); anywhere
+//! else it is left as it is, and the step stays declined.
 //!
 //! Two spheres of one centre and radius are one surface whatever axes their
 //! charts were laid about (#956), and a boolean between them is built as if
@@ -25,7 +27,7 @@
 
 use crate::brep::assembly::tidied;
 use crate::brep::curve::Curve;
-use crate::brep::relation::{Relation, read_about_another_axis, relation};
+use crate::brep::relation::{Relation, about_its_centre, relation};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Sphere, Surface};
 use crate::brep::topology::{Body, FaceId, SurfaceId};
@@ -143,7 +145,7 @@ fn about(
         .map(|(_, surface)| surface);
     let ruled_by_the_axis = (other.surfaces.iter().chain(besides)).any(|surface| {
         !matches!(surface, Surface::Plane(_))
-            && !read_about_another_axis(&own, surface, scale)
+            && !about_its_centre(&own, surface, scale)
             && relation(&own, surface, scale) != Relation::Unsupported
     });
     if ruled_by_the_axis {

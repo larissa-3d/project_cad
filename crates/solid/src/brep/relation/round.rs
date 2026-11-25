@@ -183,25 +183,22 @@ fn holds(origin: DVec3, axis: DVec3, point: DVec3, scale: Scale) -> bool {
     (between - axis * axis.dot(between)).length() <= scale.eps()
 }
 
-/// Whether `one` and `other` are related as a sphere read about another
-/// axis than its chart's (#956): a surface of revolution whose axis holds
-/// the centre of a sphere off its chart's axis, which the relation reads
-/// alike whatever the chart.
-pub(in crate::brep) fn read_about_another_axis(
-    one: &Surface,
-    other: &Surface,
-    scale: Scale,
-) -> bool {
-    let off = |round: &Surface, line: &Surface| match line {
-        Surface::Cylinder(Cylinder { origin, axis, .. })
-        | Surface::Cone(Cone { origin, axis, .. })
-        | Surface::Sphere(Sphere { origin, axis, .. })
-        | Surface::Torus(Torus { origin, axis, .. }) => {
-            read_about(round, *origin, *axis, scale).is_some()
-        }
-        Surface::Plane(_) | Surface::Elliptic(_) => false,
+/// Whether `one` and `other` are related as a sphere and a surface of
+/// revolution whose axis holds its centre, of its chart's axis or of
+/// another: read about that axis whatever the chart (#956), so that the
+/// sphere read about any other meets it along the same circles (#1107).
+pub(in crate::brep) fn about_its_centre(one: &Surface, other: &Surface, scale: Scale) -> bool {
+    let through = |round: &Surface, line: &Surface| match (round, line) {
+        (
+            Surface::Sphere(sphere),
+            Surface::Cylinder(Cylinder { origin, axis, .. })
+            | Surface::Cone(Cone { origin, axis, .. })
+            | Surface::Sphere(Sphere { origin, axis, .. })
+            | Surface::Torus(Torus { origin, axis, .. }),
+        ) => holds(*origin, *axis, sphere.middle(), scale),
+        _ => false,
     };
-    off(one, other) || off(other, one)
+    through(one, other) || through(other, one)
 }
 
 /// `surface`, a sphere, read about the line through `origin` along `axis`
