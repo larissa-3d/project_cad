@@ -78,6 +78,24 @@
 //! whose grid and the shaft's have no multiple under that most, crossed at
 //! the shaft's rim again —
 //! `a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_under_its_radius_then_bored_blind_from_its_top_by_a_pin_beside_a_row_of_its_grid_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//!
+//! A wall within twice its chords' sag of a round's equator counts too,
+//! though the two share no rim: a bore a hair inside a groove's bottom, or
+//! a wall on one ball's equator a hair outside a smaller one's. Four seeds of
+//! `a_campaign_of_rounded_solids_on_the_exact_kernel_keeps_every_rule`
+//! were crossed on the fix's second rule (816767ba), which counted a wall
+//! only where it shares a rim with the round or touches an equator within
+//! the tolerance; each is held as the campaign draws it and as the triage
+//! shrinks it —
+//! `seed_956000000_a_half_cylinder_on_a_ball_s_equator_added_to_the_shell_a_ball_a_hair_smaller_leaves_of_it_keeps_every_rule`,
+//! `seed_956002773_a_groove_bowed_down_to_a_round_s_inner_equator_cut_by_a_coaxial_bore_a_hair_inside_it_keeps_every_rule`,
+//! `seed_956002803_the_same_groove_larger_cut_by_a_coaxial_bore_a_hair_inside_its_bottom_keeps_every_rule`,
+//! `seed_956006352_a_round_bowed_down_to_an_equator_of_one_and_a_half_cut_by_a_coaxial_bore_a_hair_inside_it_keeps_every_rule`.
+
+// The campaigns' harness, of which only the seeds below use a corner: the
+// rest of it is dead code here.
+#[allow(dead_code, unused_imports)]
+mod random_solids;
 
 use std::collections::BTreeSet;
 use std::f64::consts::{PI, TAU};
@@ -87,6 +105,7 @@ use cao_solid::soundness::{closed, uncrossed};
 use cao_solid::turning::{Axis, Turn};
 use cao_solid::{Body, Declined, Loop};
 use glam::{DVec2, DVec3};
+use random_solids::{Case, Leaf, Plane, Section, Step};
 
 /// How far the matter a body holds may stand from what the arithmetic
 /// leaves, as a share of it: the kernel's billionth.
@@ -498,4 +517,121 @@ fn a_half_ball_cut_up_to_its_centre_by_a_shaft_a_hair_under_its_radius_then_bore
         kept(hair) - pinned(pin),
         "the half ball cut by a shaft 1e-6 under its radius, then bored by a pin of 1.0554",
     );
+}
+
+/// Seed 956000000, rounded. Shrunk: a ball of 3.5 turned about the line
+/// along y through (0, 0, −2), cut by a ball of its centre and axis
+/// 6e-8 smaller, which leaves a shell 6e-8 thick, then joined with a half
+/// cylinder of 3.5 about that line, from y = −4.5 to 4.5: its wall stands on
+/// the outer sphere's equator, and 6e-8 outside the inner one's, with which
+/// it shares no rim. The two spheres of the shell, drawn on grids of their
+/// own, crossed near the pole.
+#[test]
+fn seed_956000000_a_half_cylinder_on_a_ball_s_equator_added_to_the_shell_a_ball_a_hair_smaller_leaves_of_it_keeps_every_rule()
+ {
+    random_solids::holds_exactly(&Case::drawn_rounded_off_the_lattice(956000000));
+    random_solids::holds_exactly(&Case::new(
+        Leaf::turned(
+            Plane::xy(-2.0),
+            random_solids::Axis::second(0.0),
+            Section::bands(-3.5, &[[7.0, 0.0, 0.0]]).bowed(&[[[0.0, 0.0, 0.0], [0.0, 0.0, 3.5]]]),
+            360.0,
+        ),
+        vec![
+            Step::cut(Leaf::turned(
+                Plane::yz(0.0),
+                random_solids::Axis::first(-2.0),
+                Section::bands(-3.49999994, &[[6.99999988, 0.0, 0.0]])
+                    .bowed(&[[[0.0, 0.0, 0.0], [-0.0, 0.0, 3.49999994]]]),
+                360.0,
+            )),
+            Step::add(Leaf::turned(
+                Plane::xy(-2.0),
+                random_solids::Axis::second(0.0),
+                Section::bands(-4.5, &[[9.0, 0.0, 3.5]]),
+                180.0,
+            )),
+        ],
+    ));
+}
+
+/// Seed 956002773, rounded. Shrunk: a rod of 17.5 along x, grooved by a
+/// round of 5 whose bottom is a circle of 12.5 about the axis, the round's
+/// inner equator, then bored along the axis at 12.49999: the bore's
+/// wall passes a hundred-thousandth inside that equator and shares no rim
+/// with the round. The round's triangles crossed the bore's.
+#[test]
+fn seed_956002773_a_groove_bowed_down_to_a_round_s_inner_equator_cut_by_a_coaxial_bore_a_hair_inside_it_keeps_every_rule()
+ {
+    random_solids::holds_exactly(&Case::drawn_rounded_off_the_lattice(956002773));
+    random_solids::holds_exactly(&Case::new(
+        Leaf::turned(
+            Plane::xy(0.0),
+            random_solids::Axis::first(0.0),
+            Section::bands(20.0, &[[5.0, 0.0, 17.5], [10.0, 0.0, 17.5]]).bowed(&[
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [30.0, 17.5, -5.0]],
+            ]),
+            360.0,
+        ),
+        vec![Step::cut(Leaf::turned(
+            Plane::xy(0.0),
+            random_solids::Axis::first(0.0),
+            Section::bands(17.5, &[[25.0, 0.0, 12.49999]]),
+            360.0,
+        ))],
+    ));
+}
+
+/// Seed 956002803, rounded. Shrunk: the same groove on a rod of 120, its
+/// round of 30 bowed down to an inner equator of 90 about the axis, bored at
+/// 89.99999 from the other end. The round's triangles crossed the bore's.
+#[test]
+fn seed_956002803_the_same_groove_larger_cut_by_a_coaxial_bore_a_hair_inside_its_bottom_keeps_every_rule()
+ {
+    random_solids::holds_exactly(&Case::drawn_rounded_off_the_lattice(956002803));
+    random_solids::holds_exactly(&Case::new(
+        Leaf::turned(
+            Plane::xy(150.0),
+            random_solids::Axis::first(0.0),
+            Section::bands(75.0, &[[30.0, -120.0, 0.0], [60.0, -120.0, 0.0]]).bowed(&[
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[135.0, -120.0, 30.0], [0.0, 0.0, 0.0]],
+            ]),
+            360.0,
+        ),
+        vec![Step::cut(Leaf::turned(
+            Plane::xy(150.0),
+            random_solids::Axis::first(0.0).backwards(),
+            Section::bands(-195.0, &[[120.0, -89.99999, -0.0]]),
+            360.0,
+        ))],
+    ));
+}
+
+/// Seed 956006352, rounded. Shrunk: a rod of 4 ending in a neck of 2,
+/// grooved by a round of 0.5 down to an inner equator of 1.5 about its axis,
+/// bored along the axis at 1.4999998, two ten-millionths inside that equator, sharing no rim
+/// with the round. The round's triangles crossed the bore's.
+#[test]
+fn seed_956006352_a_round_bowed_down_to_an_equator_of_one_and_a_half_cut_by_a_coaxial_bore_a_hair_inside_it_keeps_every_rule()
+ {
+    random_solids::holds_exactly(&Case::drawn_rounded_off_the_lattice(956006352));
+    random_solids::holds_exactly(&Case::new(
+        Leaf::turned(
+            Plane::yz(-2.0),
+            random_solids::Axis::second(-3.0).backwards(),
+            Section::bands(1.0, &[[3.0, -4.0, 0.0], [1.0, -2.0, 0.0]]).bowed(&[
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[4.5, -2.0, 0.5], [0.0, 0.0, 0.0]],
+            ]),
+            360.0,
+        ),
+        vec![Step::cut(Leaf::turned(
+            Plane::xz(-3.0),
+            random_solids::Axis::second(-2.0).backwards(),
+            Section::bands(3.5, &[[2.0, -1.4999998, -0.0]]),
+            360.0,
+        ))],
+    ));
 }
