@@ -34,8 +34,9 @@
 //!   place and its name under the new path; one that would then repeat a path
 //!   already listed is listed once, as a push does — no test: in this file;
 //!   held by
-//!   `a_recent_part_moved_elsewhere_keeps_its_place_and_its_name_under_its_new_path`
-//!   and `a_recent_part_moved_onto_a_path_already_listed_is_listed_once`, in
+//!   `a_recent_part_moved_elsewhere_keeps_its_place_and_its_name_under_its_new_path`,
+//!   `a_part_moved_that_was_never_opened_stays_off_the_list` and
+//!   `a_recent_part_moved_onto_a_path_already_listed_is_listed_once`, in
 //!   `crates/prefs/src/recents/tests.rs`
 //! - the column holds what is typed in « Filtrer… », and the tree it draws is
 //!   the filtered one — `the_tree_drawn_keeps_only_what_the_filter_keeps`

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -61,6 +61,19 @@ impl RecentList {
             },
         );
         self.entries.truncate(MAX_RECENTS);
+    }
+
+    /// Points the entry of a part moved from `from` at `to`, where it keeps
+    /// its place, its name and its hour: moving a part is not opening it.
+    /// What the list remembered at `to` goes, as a push would drop it.
+    pub fn moved(&mut self, from: &Path, to: &Path) {
+        if !self.entries.iter().any(|e| e.path == from) {
+            return;
+        }
+        self.entries.retain(|e| e.path == from || e.path != to);
+        if let Some(entry) = self.entries.iter_mut().find(|e| e.path == from) {
+            entry.path = to.to_path_buf();
+        }
     }
 
     /// Drops entries whose file is no longer where it was opened from.
