@@ -35,7 +35,7 @@ mod parallel;
 mod point;
 mod together;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::mem::discriminant;
 
 use glam::DVec3;
@@ -45,6 +45,7 @@ use crate::brep::curve::{Circle, Curve, Meet, Wall as Round};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Cylinder, EllipticCylinder, Surface};
 use crate::brep::topology::{Body, EdgeId, SurfaceId, Vertex};
+use facing::Facing;
 pub(super) use facing::Zones;
 pub(super) use gap::Gap;
 use own::{Through, along_meets, ovals, through_vertices};
@@ -206,6 +207,57 @@ pub(in crate::brep::tessellation) fn held(body: &Body, edge: EdgeId, meet: &Meet
     }
 }
 
+/// The walls standing close to another, parallel and facing it within twice
+/// a chord's sag, which [`contacts`] samples on rays both take.
+pub(super) fn paired(
+    walls: &[Wall],
+    zones: &Zones,
+    fineness: (f64, f64),
+    eps: f64,
+) -> BTreeSet<SurfaceId> {
+    let mut paired = BTreeSet::new();
+    for (at, one) in walls.iter().enumerate() {
+        for other in &walls[at + 1..] {
+            let Some(facing) = zones.between(one.0, other.0) else {
+                continue;
+            };
+            let parallel = one.1.axis.cross(other.1.axis).length() <= Scale::RELATIVE;
+            if parallel && close_pair(one, other, facing, fineness, eps).is_some() {
+                paired.extend([one.0, other.0]);
+            }
+        }
+    }
+    paired
+}
+
+/// Two parallel walls facing each other, the outer first, where they stand
+/// within twice a chord's sag of each other as [`together::sampled`] reads
+/// them; none further apart.
+fn close_pair<'w>(
+    one: &'w Wall,
+    other: &'w Wall,
+    facing: &Facing,
+    fineness: (f64, f64),
+    eps: f64,
+) -> Option<(&'w Wall, &'w Wall)> {
+    let (outer, inner) = if one.1.radius >= other.1.radius {
+        (one, other)
+    } else {
+        (other, one)
+    };
+    let alone = [&[][..]; 2];
+    let sampled = together::sampled(
+        (outer, &[]),
+        (inner, &[]),
+        facing,
+        None,
+        alone,
+        fineness,
+        eps,
+    );
+    sampled.map(|_| (outer, inner))
+}
+
 /// Whether a vertex lies on a wall: as decided, on a surface of the body; by
 /// its distance, on a wall that is none.
 fn bears(body: &Body, vertex: &Vertex, (id, cylinder): &Wall) -> bool {
@@ -268,22 +320,7 @@ pub(super) fn contacts(
                     pinned.entry(wall.0).or_default().push(way);
                 }
             }
-            let (outer, inner) = if one.1.radius >= other.1.radius {
-                (one, other)
-            } else {
-                (other, one)
-            };
-            let alone = [&[][..]; 2];
-            let sampled = together::sampled(
-                (outer, &[]),
-                (inner, &[]),
-                facing,
-                None,
-                alone,
-                fineness,
-                eps,
-            );
-            if sampled.is_some() {
+            if let Some((outer, inner)) = close_pair(one, other, facing, fineness, eps) {
                 close.push((outer, inner, facing));
                 continue;
             }

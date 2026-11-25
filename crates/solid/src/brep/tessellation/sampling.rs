@@ -33,8 +33,8 @@
 //! cone, it widens the cone's grid to the furthest it stands from the axis.
 //! A latitude circle of a sphere or a torus is sampled on the round's grid
 //! as a cone's rim is, a circle lying on a sphere about another line also
-//! where it crosses each angle of the sphere's grid, and every circle of its
-//! wall and of a wall close to it there too ([`axis`]), and a
+//! where it crosses each angle of the sphere's grid, and, where its wall
+//! stands close to another, every circle of both there too ([`axis`]), and a
 //! meridian arc on the round's rows along the meridian ([`round`]), where the
 //! faces of the round are cut in strips; the lattice points those strips add
 //! inside a face are numbered on past every edge's samples.
@@ -155,7 +155,11 @@ impl Samples {
         let alone = BTreeMap::new();
         let abreast = Abreast::of(body, fineness);
         let axes = Axes::of(body, grids, walls, fineness);
-        let crossed = axes.crossed(body, walls, eps, |wall, point| !zones.crowded(wall, point));
+        let mut crossed = axes.crossed(body, walls, eps, |wall, point| !zones.crowded(wall, point));
+        if !crossed.is_empty() {
+            let paired = contact::paired(walls, zones, fineness, eps);
+            crossed.retain(|wall, _| paired.contains(wall));
+        }
         let own = |axes: &Axes| {
             let mut given = abreast.joined(axes.given());
             for (wall, rays) in &crossed {

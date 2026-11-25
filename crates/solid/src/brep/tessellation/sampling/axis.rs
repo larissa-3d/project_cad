@@ -9,12 +9,17 @@
 //! Nor where it only touches a step's half-plane, which rounding reads as
 //! two crossings a hair apart; nor on a circle standing in a group, whose
 //! other circles would not take them, nor where a ray of the group would
-//! not be taken. Every other circle of its wall takes them too, and every
-//! wall close to it, as [`contact`] shares the rays a wall takes on its own:
-//! a shaft laid onto a ball's touch, its end a hair inside the ball, leaves
-//! a ring a hair wide on its end plane between the ball's circle and its own
-//! rim, and the rim, sampled on its grid alone, had its chords sag inside
-//! the circle's crossings, the ring left open along it (#1109).
+//! not be taken. Where its wall stands close to another, as [`contact`]
+//! pairs two parallel walls it samples on common rays, they are handed to
+//! contact as the wall's own, and every circle of both takes them: a shaft
+//! laid onto a ball's touch, its end a hair inside the ball, leaves a ring a
+//! hair wide on its end plane between the ball's circle and its own rim, and
+//! the rim, sampled on its grid alone, had its chords sag inside the
+//! circle's crossings, the ring left open along it (#1109). They come back
+//! to the circle among the pair's rays, which it takes at a step its contact
+//! withholds too. A wall close to none keeps them on the circle alone:
+//! handed to its other circles, they cost a shaft through a ball turned at a
+//! slant up to half again its triangles, for nothing.
 //!
 //! A circle lying on a cone takes the cone's grid and the angles of its
 //! vertices ([`cone`]). That leaves a cone's narrow rim with angles of its
@@ -258,8 +263,8 @@ impl Axes {
 
     /// For each wall standing in no group, the places its circles lying on
     /// a sphere about another line cross the steps of the sphere's grid at,
-    /// where `kept` says a sample stands on the wall: what the wall takes on
-    /// its own in contact, which shares it with every wall close to it.
+    /// where `kept` says a sample stands on the wall; none for a wall with
+    /// no such place.
     pub(super) fn crossed(
         &self,
         body: &Body,
@@ -278,9 +283,10 @@ impl Axes {
             if self.of_wall.contains_key(wall) {
                 continue;
             }
-            let rays = self.across_spheres(circle, eps);
-            let taken = crossed.entry(*wall).or_default();
-            taken.extend(rays.filter(|way| kept(cylinder, circle.center + *way * circle.radius)));
+            let kept = |way: &DVec3| kept(cylinder, circle.center + *way * circle.radius);
+            for way in self.across_spheres(circle, eps).filter(kept) {
+                crossed.entry(*wall).or_default().push(way);
+            }
         }
         crossed
     }
