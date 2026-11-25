@@ -355,18 +355,18 @@ fn round_about(latitude: f64, cap: bool) -> Vec<Trace> {
 #[test]
 fn a_cap_about_a_point_a_hair_off_the_equator_holds_neither_pole_and_the_rest_of_the_ball_both() {
     let poles = poles_of(&ball(), 1e-9);
-    for latitude in [0.0, 9.5e-8, -9.5e-8, 1e-7, -1e-7, 1e-6, -1e-6, 1e-8, -1e-8] {
-        let cap = vec![round_about(latitude, true)];
-        let rest = vec![round_about(latitude, false)];
+    for off in [0.0, 9.5e-8, -9.5e-8, 1e-7, -1e-7, 1e-6, -1e-6, 1e-8, -1e-8] {
+        let cap = vec![round_about(off, true)];
+        let rest = vec![round_about(off, false)];
         for pole in &poles {
             let which = if pole.high { "high" } else { "low" };
             assert!(
                 !holds(&cap, pole, false),
-                "the cap about {latitude} of latitude holds the {which} pole"
+                "the cap about {off} of latitude holds the {which} pole"
             );
             assert!(
                 holds(&rest, pole, false),
-                "the rest of the ball about {latitude} of latitude leaves the {which} pole out"
+                "the rest of the ball about {off} of latitude leaves the {which} pole out"
             );
         }
     }
