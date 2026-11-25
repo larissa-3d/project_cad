@@ -1,7 +1,15 @@
 //! A ball already bored or knobbed along the axis it was turned about is cut
 //! by a plane at a slant through a pole of that axis as the ball alone is
-//! (#938), and as the cut ball is bored after (#956): the order of the two
-//! steps no longer decides whether the part builds.
+//! (#938), and as the cut ball is bored after (#956): at #938's tilts, the
+//! order of the two steps no longer decides whether the part builds.
+//!
+//! It still does in one band, which #1133 is about: where the bore's or the
+//! knob's rim on the ball passes within `FRONT`, some 2.9° about a pole
+//! (`brep/tessellation/outline/central.rs`), of a pole of the chart the cut
+//! reads the sphere on (#962). For this ball and bore, whose rim stands
+//! 11.5° from the pole, that is tilts of some 9° to 14°. There, the order of
+//! the steps and the side kept decide whether the part builds, and why it
+//! declines when it does not.
 //!
 //! Closes #1107.
 //! - A ball about z bored along z through its centre, then cut through its
@@ -40,6 +48,15 @@
 //!   `src/body/tests.rs`, `src/brep/relation/tests/round.rs` and
 //!   `src/brep/relation/tests/crossing/pierced.rs`. Running them unedited is
 //!   the answer
+//!
+//! Beyond the criteria — a pin, not a criterion of #1107 — inside #1133's
+//! band, at 12°, each order and each side is held to what it does today, so
+//! that a change there is seen. The ball bored then cut is built, sound and
+//! of the arithmetic's volume keeping the cap, and declined `Undrawn`
+//! keeping the rest. Knobbed then cut, it does the same. Cut first, then
+//! bored or knobbed, it is declined `Unsupported`. #1133 is what
+//! turns those declines into bodies, and this test with them:
+//! `a_ball_bored_or_knobbed_along_z_cut_through_its_pole_where_the_rim_runs_near_a_pole_of_the_cut_s_chart_is_built_or_declined_as_today_by_order_and_side`.
 
 use std::f64::consts::{PI, TAU};
 
@@ -47,7 +64,7 @@ use cao_solid::brep::Scale;
 use cao_solid::profile::{Contour, Frame, Profile, Run};
 use cao_solid::soundness::{closed, enclosed, uncrossed};
 use cao_solid::turning::{Axis, Turn};
-use cao_solid::{Body, Loop};
+use cao_solid::{Body, Declined, Loop};
 use glam::{DVec2, DVec3};
 
 /// How far the matter a body holds may stand from what the arithmetic
@@ -127,10 +144,10 @@ fn ball_about_z() -> Body {
     ball_of(&Body::default(), DVec3::ZERO, DVec3::Z, RADIUS)
 }
 
-/// The knob of [`KNOB`] about z centred on the ball's pole at (0, 0, −5), a
-/// tool of `part`. #938's.
-fn knob_of(part: &Body) -> Body {
-    ball_of(part, DVec3::Z * -RADIUS, DVec3::Z, KNOB)
+/// The knob of [`KNOB`] about z centred on the ball's pole 5 along `pole`, a
+/// tool of `part`. #938's, at (0, 0, −5).
+fn knob_at(part: &Body, pole: DVec3) -> Body {
+    ball_of(part, pole * RADIUS, DVec3::Z, KNOB)
 }
 
 /// A slab 20 thick along `normal` from the plane `offset` along it, its
@@ -457,7 +474,7 @@ fn a_ball_turned_about_z_with_a_coaxial_knob_at_one_pole_cut_at_a_slant_through_
  {
     let ball = ball_about_z();
     let knobbed = ball
-        .union(&knob_of(&ball))
+        .union(&knob_at(&ball, -DVec3::Z))
         .expect("a coaxial knob joins the ball");
     for tilt in TILTS {
         for towards in ways_square_to(DVec3::Z) {
@@ -481,16 +498,135 @@ fn a_ball_turned_about_z_with_a_coaxial_knob_at_one_pole_cut_at_a_slant_through_
                     });
                 let reference = match side {
                     Side::Cap => first_cut,
-                    Side::Rest => {
-                        first_cut
-                            .union(&knob_of(&first_cut))
-                            .unwrap_or_else(|declined| {
-                                panic!("{what}: the cut then the knob declined, {declined:?}")
-                            })
-                    }
+                    Side::Rest => first_cut
+                        .union(&knob_at(&first_cut, -DVec3::Z))
+                        .unwrap_or_else(|declined| {
+                            panic!("{what}: the cut then the knob declined, {declined:?}")
+                        }),
                 };
                 the_same_body(&cut, &reference, &what);
             }
         }
     }
+}
+
+/// The tilt, in degrees from z, of a plane through a pole that lays a pole
+/// of the chart the cut reads the sphere on within half a degree of the
+/// bore's rim on the ball, 11.54° from the ball's pole (asin(1/5)), and of
+/// the knob's, 11.48° from the other (acos(4.9/5)): inside `FRONT`, #962's
+/// reach about a pole, where #1133 stands.
+const NEAR_A_POLE_OF_THE_CUT_S_CHART: f64 = 12.0;
+
+/// What a step leaves today: a body, which is then held built, sound and of
+/// the arithmetic's volume, or a decline and its reason.
+#[derive(Debug, PartialEq)]
+enum Today {
+    Built,
+    Declined(Declined),
+}
+
+impl Today {
+    /// What `step` left, a body held to `kept` and `curved` as
+    /// [`built_and_drawn`] holds it.
+    fn of(step: Result<Body, Declined>, kept: f64, curved: f64, what: &str) -> Today {
+        match step {
+            Ok(body) => {
+                built_and_drawn(&body, kept, curved, what);
+                Today::Built
+            }
+            Err(declined) => Today::Declined(declined),
+        }
+    }
+}
+
+/// Inside #1133's band, at [`NEAR_A_POLE_OF_THE_CUT_S_CHART`], through
+/// either pole and towards three ways, either side kept, each order held to
+/// what it does today, so that a change there is seen. The ball bored along
+/// z then cut: built, sound and of the arithmetic's volume keeping the cap,
+/// declined `Undrawn` keeping the rest. Cut then bored: declined
+/// `Unsupported` either side, keeping the cap as #962 declines it. Knobbed
+/// at the other pole then cut: built keeping the cap, declined `Undrawn`
+/// keeping the rest. Cut then knobbed, keeping the rest, which the knob
+/// stands clear of: declined `Unsupported`, as the cut then the bore. #1133
+/// turns the declines into bodies, and this test with them.
+#[test]
+fn a_ball_bored_or_knobbed_along_z_cut_through_its_pole_where_the_rim_runs_near_a_pole_of_the_cut_s_chart_is_built_or_declined_as_today_by_order_and_side()
+ {
+    let tilt = NEAR_A_POLE_OF_THE_CUT_S_CHART;
+    let ball = ball_about_z();
+    let bored = ball
+        .difference(&bore_along_z(&ball))
+        .expect("a ball bored along the axis it was turned about");
+    let mut drifted = Vec::new();
+    for pole in [DVec3::Z, -DVec3::Z] {
+        let knobbed = ball
+            .union(&knob_at(&ball, -pole))
+            .expect("a coaxial knob joins the ball");
+        for towards in ways_square_to(DVec3::Z) {
+            let normal = leaning(pole, tilt, towards);
+            let offset = RADIUS * normal.dot(pole);
+            for side in SIDES {
+                let what = format!(
+                    "the ball about z cut through its pole at {} by a plane leaning {tilt}° \
+                     towards {towards}, keeping its {side:?}",
+                    pole * RADIUS
+                );
+                let first_cut = ball
+                    .difference(&side.slab(&ball, normal, offset))
+                    .unwrap_or_else(|declined| {
+                        panic!("{what}: the cut, which #938 builds, declined, {declined:?}")
+                    });
+                let bore_then_cut = match side {
+                    Side::Cap => Today::Built,
+                    Side::Rest => Today::Declined(Declined::Undrawn),
+                };
+                let mut steps = vec![
+                    (
+                        "bored first",
+                        bored.difference(&side.slab(&bored, normal, offset)),
+                        side.bored(tilt),
+                        side.bored_curved(tilt),
+                        bore_then_cut,
+                    ),
+                    (
+                        "bored after",
+                        first_cut.difference(&bore_along_z(&first_cut)),
+                        side.bored(tilt),
+                        side.bored_curved(tilt),
+                        Today::Declined(Declined::Unsupported),
+                    ),
+                    (
+                        "knobbed first at the other pole",
+                        knobbed.difference(&side.slab(&knobbed, normal, offset)),
+                        side.knobbed(tilt),
+                        side.knobbed_curved(tilt),
+                        match side {
+                            Side::Cap => Today::Built,
+                            Side::Rest => Today::Declined(Declined::Undrawn),
+                        },
+                    ),
+                ];
+                if let Side::Rest = side {
+                    steps.push((
+                        "knobbed after at the other pole",
+                        first_cut.union(&knob_at(&first_cut, -pole)),
+                        side.knobbed(tilt),
+                        side.knobbed_curved(tilt),
+                        Today::Declined(Declined::Unsupported),
+                    ));
+                }
+                for (order, step, kept, curved, was) in steps {
+                    let what = format!("{what}, {order}");
+                    let today = Today::of(step, kept, curved, &what);
+                    if today != was {
+                        drifted.push(format!("{what}: {today:?}, where it was {was:?}"));
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        drifted.is_empty(),
+        "inside #1133's band, steps no longer do what they did: {drifted:#?}"
+    );
 }

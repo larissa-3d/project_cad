@@ -673,7 +673,11 @@ Known and still open:
   about no other axis then (#938). A bore, a knob or a ring whose axis
   holds the centre, the chart's or another, no longer keeps it so: a ball
   bored or knobbed along its axis and then cut at a slant through its pole
-  is built, the body the other order leaves (#1107);
+  is built, the body the other order leaves (#1107) — but at the tilts
+  where the bore's or the knob's rim passes within `FRONT`, some 3°, of a
+  pole of the chart the cut reads the sphere in: there the result depends
+  on the order and on the side kept, the cut first declined (#962), the
+  bore first with the rest kept left undrawn (#1133);
 - a cut at a slant a few tolerances off a pole, past where the sphere is
   read again, is built along the tilted circle, its volume off by up to a
   few units of 1e-7 there, held to 1e-6, where elsewhere it is good to a

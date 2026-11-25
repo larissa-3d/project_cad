@@ -184,9 +184,15 @@ fn holds(origin: DVec3, axis: DVec3, point: DVec3, scale: Scale) -> bool {
 }
 
 /// Whether `one` and `other` are related as a sphere and a surface of
-/// revolution whose axis holds its centre, of its chart's axis or of
-/// another: read about that axis whatever the chart (#956), so that the
-/// sphere read about any other meets it along the same circles (#1107).
+/// revolution whose axis holds its centre, either way round. Where the
+/// surface's axis holds the sphere's centre, of its chart's axis or of
+/// another, the pair is read about that axis whatever the chart (#956), and
+/// the sphere read about any other axis meets it along the same circles
+/// (#1107). The other way round, `other` a sphere whose centre the axis of
+/// `one` holds, answers alike so that both sides of a pair are excused as
+/// #956 excused them; where `one` is a sphere read about another axis, that
+/// pair no longer meets along circles of the old one and is unsupported, and
+/// a boolean asked again declines where their faces meet.
 pub(in crate::brep) fn about_its_centre(one: &Surface, other: &Surface, scale: Scale) -> bool {
     let through = |round: &Surface, line: &Surface| match (round, line) {
         (
