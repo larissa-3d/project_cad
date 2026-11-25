@@ -200,3 +200,28 @@ fn a_part_created_goes_in_the_folder_shown_and_the_column_lists_it_under_that_fo
          folder at {folder:?}, a part at the root at {at_the_root:?}",
     );
 }
+
+#[test]
+fn with_no_folder_chosen_a_name_and_enter_create_the_part_at_the_root() {
+    let test = "with_no_folder_chosen_a_name_and_enter_create_the_part";
+    let mut app = driver::open(test);
+    let library = folders_laid_by_hand(&mut app, test, &["Brides"]);
+
+    driver::type_beside(&mut app, "Nom :", "Support");
+    assert_eq!(
+        driver::field_beside(&app, "Nom :"),
+        "Support",
+        "the name never reached the field beside « Nom : »",
+    );
+    driver::press(&mut app, egui::Key::Enter);
+
+    assert_eq!(
+        (
+            files_named(&library, "Support"),
+            files_named(&library.join("Brides"), "Support"),
+        ),
+        (1, 0),
+        "« Support » typed with nothing chosen and ↵ pressed is not one part at the \
+         root of the parts folder: (at the root, in « Brides »)",
+    );
+}

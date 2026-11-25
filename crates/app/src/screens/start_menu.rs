@@ -39,10 +39,14 @@ pub fn show(
         columns[0].vertical(|ui| {
             ui.heading(lang.t("start_menu.new_part"));
             ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.label(lang.t("start_menu.name"));
-                ui.text_edit_singleline(new_part_name);
-            });
+            let entered = ui
+                .horizontal(|ui| {
+                    ui.label(lang.t("start_menu.name"));
+                    // A single-line field gives the keyboard up on ↵, the frame it is pressed.
+                    let field = ui.text_edit_singleline(new_part_name);
+                    field.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter))
+                })
+                .inner;
             ui.add_space(8.0);
             ui.label(lang.t("start_menu.saves_in"));
             let (root, chosen) = (&explorer.library().path, explorer.chosen_folder());
@@ -50,10 +54,10 @@ pub fn show(
             ui.weak(lang.t("start_menu.saves_in_by_default"));
             ui.add_space(8.0);
             let can_create = !new_part_name.trim().is_empty();
-            if ui
+            let clicked = ui
                 .add_enabled(can_create, egui::Button::new(lang.t("start_menu.create")))
-                .clicked()
-            {
+                .clicked();
+            if can_create && (clicked || entered) {
                 action = StartMenuAction::CreateNew {
                     name: new_part_name.trim().to_string(),
                     folder: chosen,
