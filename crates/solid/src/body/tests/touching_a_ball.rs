@@ -112,12 +112,35 @@
 //! first, on the mirror meridian of +Z and on the meridians 10° and 45° from
 //! +X, whose plane holds no angle of the grid, are built and drawn whole as
 //! on −Z —
-//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`
-//! — but one, older than #1110 and declined under #960's cut order as
-//! well: on +Z, the caps of 45° crossing at 0.05°, the flat about the
-//! equator cut first, which the kernel declines `Unverified` at the second
-//! cut, its own listing failing before anything is drawn. The test holds it
-//! declined so, never accepted crossed, for #1117 to turn round.
+//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`.
+//!
+//! One of them, older than #1110 and declined under #960's cut order as
+//! well, was declined `Unverified` at the second cut, the kernel's own
+//! listing failing before anything was drawn: on +Z, the caps of 45°
+//! crossing at 0.05°, the flat about the equator cut first. The other order
+//! built it sound, closed and uncrossed. #1110 held it declined, never
+//! accepted crossed; it is held built now, the same body either way, as
+//! every other placement is.
+//!
+//! Closes #1117.
+//! - That placement, both orders: built, sound, drawn uncrossed, of the
+//!   right volume — the case
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`
+//!   (#1110's branch, `touching_a_ball.rs`) leaves aside holds — that test,
+//!   the case no longer left aside
+//! - #1110's and #960's tests keep passing — the tests closing them above,
+//!   run as they stand:
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first`,
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`,
+//!   `a_block_a_hair_inside_a_ball_whose_floor_halves_their_small_circle_is_joined_and_cut_as_the_block_touching_it_is`,
+//!   `a_slab_a_hair_inside_a_half_ball_just_under_its_rim_is_joined_and_cut_as_the_slab_touching_it_is`;
+//!   and the one above, holding every other placement it held
+//!
+//! Read as: "built, sound, drawn uncrossed, of the right volume", what
+//! `built_whole` holds, as for #1110's placements; "the right volume", the
+//! ball less both caps of 45° whole, the sliver they share at 0.05° left out
+//! of it as #1110's test leaves it. "Both orders" give the same body as
+//! #822 has it: each is held to that one volume, by the same checks.
 
 use super::*;
 use crate::soundness::listed;
@@ -529,20 +552,12 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass
 /// of a degree or a twentieth — with [`two_flats_about`]'s directions, in the
 /// plane of the meridian of +X, `turned` about Y into that of the meridian
 /// `named`. Cut by either flat first, each is built, listed sound, drawn
-/// whole and closed, uncrossed, holding the ball less both caps — but the
-/// placement `unverified`, which the kernel declines `Unverified` (#1117).
-fn cut_by_two_flats_on_the_meridian(
-    turned: impl Fn(DVec3) -> DVec3,
-    named: &str,
-    unverified: Option<Placement>,
-) {
-    for (pair, (caps, latitude)) in [([30f64, 50.0], 60f64), ([45.0, 45.0], 45.0)]
-        .into_iter()
-        .enumerate()
-    {
+/// whole and closed, uncrossed, holding the ball less both caps.
+fn cut_by_two_flats_on_the_meridian(turned: impl Fn(DVec3) -> DVec3, named: &str) {
+    for (caps, latitude) in [([30f64, 50.0], 60f64), ([45.0, 45.0], 45.0)] {
         let offsets = caps.map(|cap| 5.0 * cap.to_radians().cos());
         let [first, second] = offsets.map(|offset| 5.0 - offset);
-        for (crossing, degrees) in [0.1f64, 0.05].into_iter().enumerate() {
+        for degrees in [0.1f64, 0.05] {
             let apart = apart_crossing_at(offsets, degrees.to_radians());
             let flats = two_flats_about(offsets, apart, latitude.to_radians()).map(&turned);
             for [one, other] in [[0, 1], [1, 0]] {
@@ -558,19 +573,6 @@ fn cut_by_two_flats_on_the_meridian(
                     caps[other],
                     flats[other].y.asin().to_degrees()
                 );
-                let placement = Placement {
-                    caps: pair,
-                    crossing,
-                    first: one,
-                };
-                if unverified == Some(placement) {
-                    assert_eq!(
-                        cut.err(),
-                        Some(Declined::Unverified),
-                        "{what}: declined as #1117 has it"
-                    );
-                    continue;
-                }
                 built_whole(
                     cut,
                     BALL_OF_5 - cap_of_5(first) - cap_of_5(second),
@@ -582,25 +584,6 @@ fn cut_by_two_flats_on_the_meridian(
     }
 }
 
-/// One of [`cut_by_two_flats_on_the_meridian`]'s placements, by rank: of
-/// its pair of caps, of the crossing, and of the flat cut first, the one
-/// about the pole being the first.
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct Placement {
-    caps: usize,
-    crossing: usize,
-    first: usize,
-}
-
-/// #1117's placement: the caps of 45° each, crossing at 0.05°, the flat
-/// about the equator cut first, which the kernel declines `Unverified` at
-/// the second cut on the meridian of +Z.
-const UNVERIFIED_ON_PLUS_Z: Placement = Placement {
-    caps: 1,
-    crossing: 1,
-    first: 1,
-};
-
 /// The ball cut by two flats whose circles meet in the plane of its
 /// meridian of −Z: caps of 30° and 50° meeting at 60° of latitude, or of 45°
 /// each meeting at 45°, their circles crossing at a tenth of a degree or a
@@ -611,7 +594,7 @@ const UNVERIFIED_ON_PLUS_Z: Placement = Placement {
 #[test]
 fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first()
  {
-    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, -way.x), "−Z", None);
+    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, -way.x), "−Z");
 }
 
 /// The same placements on the mirror meridian, +Z, whose plane holds the
@@ -620,23 +603,18 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_mer
 /// in, a hair off the pole — holds none of the grid's angles, a step of
 /// some 1.5° here: the first circle's samples stand otherwise against the
 /// angle the face is cut open at. Each is built, listed sound, drawn whole
-/// and closed, uncrossed, as on the meridian of −Z — but
-/// [`UNVERIFIED_ON_PLUS_Z`], declined `Unverified` at its second cut, as
-/// #1117 has it.
+/// and closed, uncrossed, as on the meridian of −Z — #1117's among them, on
+/// +Z the caps of 45° crossing at 0.05°, the flat about the equator cut
+/// first, which #1117 found declined `Unverified` at its second cut.
 #[test]
 fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first()
  {
-    cut_by_two_flats_on_the_meridian(
-        |way| DVec3::new(0.0, way.y, way.x),
-        "+Z",
-        Some(UNVERIFIED_ON_PLUS_Z),
-    );
+    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, way.x), "+Z");
     for longitude in [10f64, 45.0] {
         let (across, along) = longitude.to_radians().sin_cos();
         cut_by_two_flats_on_the_meridian(
             |way| DVec3::new(way.x * along, way.y, -way.x * across),
             &format!("{longitude}° from +X towards −Z"),
-            None,
         );
     }
 }

@@ -1998,7 +1998,17 @@ same input gives the same bits.
   the face on either side — bounds nothing there (#644,
   `topology/poles.rs`): a ball a half band touches along half its equator
   was read as holding one pole of two, and was listed `Pointed` and refused
-  through the body (5585606550). A
+  through the body (5585606550). The parity is read from the place, of the
+  middles of the face's traces, then their quarters and three quarters,
+  where a trace runs most steeply across the meridian (#1117): the middle
+  of the first trace was taken unless it ran along the meridian within a
+  billionth of its pace, and a circle about a point a hair off the equator
+  turns back there a hair off the meridian. Its own crossing, which the meridian all
+  but touches, was found by rounding further than the pole's room from it
+  and counted on the way, and a ball cut by such a flat was read as holding
+  one pole of two; a second flat taking the cap about the pole it held left
+  the rest of the sphere unbounded in the chart, no face, and its listing
+  failed. A
   face of a ring reaching across the cut is closed along what it reaches of
   it (#623, `domain/floor/round/ring.rs`): along each stretch between the
   meridians crossing the cut, read off the way each runs, and along the
