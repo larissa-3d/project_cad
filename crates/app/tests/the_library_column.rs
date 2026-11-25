@@ -29,6 +29,9 @@
 //!   blank of the column under the tree goes to the root of the library, the
 //!   one place no row stands for —
 //!   `a_part_dropped_under_the_tree_goes_to_the_root_of_the_library`
+//! - found in review, not one of the issue's words: a folder made while the
+//!   filter holds text shows in the column, the filter cleared as the naming
+//!   starts — `a_folder_made_under_a_filter_shows_in_the_column`
 
 mod driver;
 
@@ -201,6 +204,24 @@ fn the_column_s_plus_folder_button_makes_a_folder_in_it() {
     assert!(
         !driver::rows_of_the_file_list_reading(&app, "Brides").is_empty(),
         "no folder « Brides » in the column, showing {:?}",
+        driver::on_screen(&app),
+    );
+}
+
+#[test]
+fn a_folder_made_under_a_filter_shows_in_the_column() {
+    let test = "a_folder_made_under_a_filter_shows_in_the_column";
+    let mut app = driver::open(test);
+    parts_laid_by_hand(&mut app, test, &["bride.caopart", "support.caopart"]);
+    driver::type_into(&mut app, "Filtrer…", "bri");
+
+    driver::click(&mut app, "+ Dossier");
+    driver::type_into(&mut app, "Nom", "Plates");
+    driver::press(&mut app, egui::Key::Enter);
+
+    assert!(
+        !driver::rows_of_the_file_list_reading(&app, "Plates").is_empty(),
+        "the folder made under « bri » is not in the column, showing {:?}",
         driver::on_screen(&app),
     );
 }

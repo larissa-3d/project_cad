@@ -91,16 +91,29 @@
 //!   test: in this file, since the blank is the view's; held by
 //!   `a_part_dropped_under_the_tree_goes_to_the_root_of_the_library`, in
 //!   `crates/app/tests/the_library_column.rs`
+//! - found in review, not one of the issue's words: a name started under a
+//!   filter — a folder made, a part the filter hides renamed — clears the
+//!   filter, so the field and what it names are drawn; an empty folder made
+//!   under « bri » would otherwise vanish as it is made, and a rename would
+//!   have no field on screen —
+//!   `a_naming_started_under_a_filter_clears_it_so_the_field_is_drawn`, and the
+//!   folder seen in the column by `a_folder_made_under_a_filter_shows_in_the_column`,
+//!   in `crates/app/tests/the_library_column.rs`
 //! - 280 to 320 px wide; « ↺ », « Renommer », « Supprimer »; folders that
 //!   fold; one part per line with its 22 × 18 thumbnail; the chosen part lit
-//!   amber; the drag drawn under the pointer — no test: drawing, in `view.rs`,
-//!   which decides nothing; what each gesture asks of the presenter is held
-//!   above, and the look is Tom's to try in the app
+//!   amber; while a part is carried, the grabbing hand and the outline of the
+//!   folder under the pointer — no test: drawing, in `view.rs`, which decides
+//!   nothing; what each gesture asks of the presenter is held above, and the
+//!   look is Tom's to try in the app
 //!
 //! Set aside when the work opened, not criteria: a part double-clicked while
 //! another is open opens in a second window, as it does today; the folder
 //! chosen in the tree as the default of the « Nouveau » card's « Enregistrer
 //! dans » waits for that card to exist.
+//!
+//! Set aside in review: the row carried is not drawn under the pointer. The
+//! row hands its path over with `dnd_set_drag_payload` and keeps its click and
+//! its double-click; `dnd_drag_source`, which would draw it, takes both.
 
 use std::path::Path;
 
@@ -397,7 +410,7 @@ fn the_tree_drawn_keeps_only_what_the_filter_keeps() {
     explorer.set_query("éQU");
 
     assert_eq!(
-        everything_in(&explorer.tree()),
+        everything_in(explorer.tree()),
         [
             "/CAO/drafts",
             "/CAO/drafts/équerre 2.caopart",
@@ -425,7 +438,7 @@ fn a_part_dropped_on_a_folder_moves_there_and_the_counts_follow() {
     );
 
     assert_eq!(
-        counts_of(&explorer.tree()),
+        counts_of(explorer.tree()),
         [("Brides".to_string(), 2)],
         "under a filter a folder counts the matches it shows, the part just dropped among them",
     );
@@ -435,7 +448,7 @@ fn a_part_dropped_on_a_folder_moves_there_and_the_counts_follow() {
     );
     explorer.set_query("");
     assert_eq!(
-        counts_of(&explorer.tree()),
+        counts_of(explorer.tree()),
         [("Brides".to_string(), 3), ("drafts".to_string(), 1)],
     );
 }
@@ -499,4 +512,35 @@ fn a_part_a_folder_refuses_stays_where_it_was_and_the_panel_says_why() {
         Some(PartFileError::NameTaken(_))
     ));
     assert_eq!(explorer.tree().parts[0].name, "support");
+}
+
+#[test]
+fn a_naming_started_under_a_filter_clears_it_so_the_field_is_drawn() {
+    let files = library_of(&["/CAO/bride.caopart", "/CAO/support.caopart"]);
+    let mut explorer = panel_on(&files);
+
+    explorer.select(Path::new("/CAO/support.caopart"));
+    explorer.set_query("bri");
+    explorer.start_rename();
+    let while_renaming = (
+        explorer.query().to_string(),
+        everything_in(explorer.tree()).contains(&"/CAO/support.caopart".to_string()),
+    );
+    explorer.cancel_naming();
+
+    explorer.set_query("bri");
+    explorer.start_new_folder();
+    typing(&mut explorer, "Plates");
+    explorer.confirm_naming(&files, &files);
+    let once_made = (
+        explorer.query().to_string(),
+        everything_in(explorer.tree()).contains(&"/CAO/Plates".to_string()),
+    );
+
+    assert_eq!(
+        [while_renaming, once_made],
+        [(String::new(), true), (String::new(), true)],
+        "a part the filter hides being renamed, then an empty folder made under `bri`: \
+         (what the filter holds, whether the tree drawn shows what is named)",
+    );
 }

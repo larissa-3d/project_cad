@@ -31,6 +31,9 @@ pub struct Explorer {
     root: PathBuf,
     library: Folder,
     query: String,
+    /// The library as `query` leaves it, filtered again only when one of the
+    /// two changes rather than every frame.
+    tree: Folder,
     folded: BTreeSet<PathBuf>,
     selected: Option<PathBuf>,
     naming: Option<Naming>,
@@ -46,13 +49,15 @@ pub struct Explorer {
 
 impl Explorer {
     pub fn at(root: PathBuf) -> Self {
+        let library = Folder {
+            path: root.clone(),
+            name: String::new(),
+            folders: Vec::new(),
+            parts: Vec::new(),
+        };
         Self {
-            library: Folder {
-                path: root.clone(),
-                name: String::new(),
-                folders: Vec::new(),
-                parts: Vec::new(),
-            },
+            tree: library.clone(),
+            library,
             root,
             query: String::new(),
             folded: BTreeSet::new(),
@@ -76,11 +81,23 @@ impl Explorer {
 
     pub fn set_query(&mut self, query: &str) {
         self.query = query.to_string();
+        self.filter_again();
     }
 
     /// The library as the filter typed leaves it, which is what the panel draws.
-    pub fn tree(&self) -> Folder {
-        library::filter(&self.library, &self.query)
+    pub fn tree(&self) -> &Folder {
+        &self.tree
+    }
+
+    fn filter_again(&mut self) {
+        self.tree = library::filter(&self.library, &self.query);
+    }
+
+    /// A name being typed is drawn where what it names stands in the tree, so
+    /// the filter goes: under it, the field of an empty folder just asked for
+    /// or of a part it hides would be nowhere on screen.
+    fn clear_the_filter(&mut self) {
+        self.set_query("");
     }
 
     /// The picture of a part, if it has been read yet.
@@ -117,6 +134,7 @@ impl Explorer {
             Ok(library) => self.library = library,
             Err(fate) => self.trouble = Some(PartFileError::File(fate)),
         }
+        self.filter_again();
     }
 
     /// Says the library on the disk has moved on without the panel — a part
@@ -192,6 +210,7 @@ impl Explorer {
     pub fn start_new_folder(&mut self) {
         let inside = self.holding(self.selected.as_deref());
         self.fold(&inside, true);
+        self.clear_the_filter();
         self.naming = Some(Naming::NewFolder {
             inside,
             typed: String::new(),
@@ -203,6 +222,7 @@ impl Explorer {
         let Some(path) = self.selected.clone() else {
             return;
         };
+        self.clear_the_filter();
         self.naming = Some(Naming::Rename {
             typed: library::name_of(&path),
             path,

@@ -112,10 +112,10 @@ fn show(ui: &mut egui::Ui, explorer: &mut Explorer, lang: &Catalogue) -> Explore
         .show(ui, |ui| {
             let reading: &Explorer = explorer;
             let tree = reading.tree();
-            contents(ui, reading, &tree, &mut naming, &mut touched, lang);
+            contents(ui, reading, tree, &mut naming, &mut touched, lang);
             if holds_nothing(reading.library()) {
                 ui.weak(lang.t("explorer.empty"));
-            } else if holds_nothing(&tree) {
+            } else if holds_nothing(tree) {
                 ui.weak(lang.t("explorer.nothing_found"));
             }
             // What is left of the column below the tree stands for the root,
