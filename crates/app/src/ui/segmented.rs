@@ -100,3 +100,6 @@ fn one_segment(ui: &mut Ui, segment: &Segment<'_>, chosen: bool) -> Response {
     }
     response
 }
+
+#[cfg(test)]
+mod tests;

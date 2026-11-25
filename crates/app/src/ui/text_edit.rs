@@ -17,3 +17,6 @@ pub fn tall_text_edit(ui: &mut egui::Ui, value: &mut String, height: f32) -> egu
             .vertical_align(egui::Align::Center),
     )
 }
+
+#[cfg(test)]
+mod tests;

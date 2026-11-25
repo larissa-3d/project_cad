@@ -75,3 +75,6 @@ pub fn folders_offered(library: &Folder) -> Vec<(usize, &Folder)> {
     walk(library, 0, &mut offered);
     offered
 }
+
+#[cfg(test)]
+mod tests;

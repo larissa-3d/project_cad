@@ -51,3 +51,6 @@ pub fn shown_field(ui: &mut Ui, icon: Icon, shown: &str, width: f32) -> Response
         .galley(at.min, written, TEXT_TITLE);
     response
 }
+
+#[cfg(test)]
+mod tests;
