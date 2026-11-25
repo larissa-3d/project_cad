@@ -741,8 +741,10 @@ fn shafts() -> Vec<(f64, f64, bool)> {
 /// triangles closed and uncrossed, holding what the arithmetic leaves — at
 /// the shaft's radius, or at the ball's for a shaft laid onto the touch;
 /// never a crossed body, nor the matter of a face kept on the wrong side. A
-/// shaft from within the band, the shaft second, may decline: #1109 carries
-/// it, and the ball joined with it declines `Undrawn` today.
+/// shaft from within the band, the shaft second, is built since #1109:
+/// `a_shaft_a_hair_under_a_ball_s_radius_its_end_inside_the_band_is_laid_onto_the_touch_whatever_axis_the_ball_was_turned_about.rs`
+/// holds it built, sound and holding what the same step holds beside the
+/// ball turned about z. Here it is only held sound where it is built.
 #[test]
 fn a_ball_turned_at_a_slant_joined_with_or_cut_by_a_shaft_along_z_through_its_centre_even_a_hair_under_its_radius_is_built_sound_and_of_the_arithmetic_s_volume()
  {
