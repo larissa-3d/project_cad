@@ -624,9 +624,6 @@ Known and still open:
   a multiple of a thousandth, it is under 3 in a thousand.
   `exact-kernel-failures.md` counts them by family. A ball joined with a
   quarter shaft over its pole is left too;
-- a shaft a hair under the radius of a ball turned about another axis, its
-  end plane standing inside the band, declines `Tie` when the shaft is the
-  second operand, where the coaxial case builds (#1109);
 - a face bounded by the curve two perpendicular cylinders meet is never
   decided clear of a face at a slant, so such a pair still declines;
 - the conics (#552): a plane a hair off square to, or along, a wall's
@@ -2959,7 +2956,15 @@ pointed cone's flank waits on #711.
   touches a step's half-plane, and not on a circle whose wall stands in a
   group of walls close about one axis, whose other circles would not take
   those places; a crossing is left out, as a ray of the group is, where the
-  circle's contact withholds the step or another wall crowds it. Faces drawn
+  circle's contact withholds the step or another wall crowds it. Every
+  other circle of its wall takes those places too, and so does every wall
+  close to it, as contact shares the rays a wall takes on its own (#1109): a
+  shaft laid onto a ball's touch by decision 12, its end plane a hair
+  inside the ball, leaves a ring a hair wide on that plane between the
+  ball's circle and the shaft's rim, and the rim, sampled on its grid
+  alone, had its chords sag inside the circle's crossings — the ring left
+  open, and the ball turned at a slant joined with the shaft declined
+  `Undrawn` where the ball turned about the shaft's axis was built. Faces drawn
   before #940 along such a circle — a ball cut at a slant, a sector of
   great-circle arcs, the flat beside them — gain those samples: on the
   tests that draw them, a few in a hundred more triangles for most, about a

@@ -9,7 +9,12 @@
 //! Nor where it only touches a step's half-plane, which rounding reads as
 //! two crossings a hair apart; nor on a circle standing in a group, whose
 //! other circles would not take them, nor where a ray of the group would
-//! not be taken.
+//! not be taken. Every other circle of its wall takes them too, and every
+//! wall close to it, as [`contact`] shares the rays a wall takes on its own:
+//! a shaft laid onto a ball's touch, its end a hair inside the ball, leaves
+//! a ring a hair wide on its end plane between the ball's circle and its own
+//! rim, and the rim, sampled on its grid alone, had its chords sag inside
+//! the circle's crossings, the ring left open along it (#1109).
 //!
 //! A circle lying on a cone takes the cone's grid and the angles of its
 //! vertices ([`cone`]). That leaves a cone's narrow rim with angles of its
@@ -72,6 +77,7 @@ use super::divisions_in;
 use super::round::Rounded;
 use crate::brep::Scale;
 use crate::brep::curve::{Circle, Curve};
+use crate::brep::surface::Cylinder;
 use crate::brep::topology::{Body, SurfaceId};
 use joined::{Joined, along, beside};
 
@@ -250,6 +256,50 @@ impl Axes {
             .collect()
     }
 
+    /// For each wall standing in no group, the places its circles lying on
+    /// a sphere about another line cross the steps of the sphere's grid at,
+    /// where `kept` says a sample stands on the wall: what the wall takes on
+    /// its own in contact, which shares it with every wall close to it.
+    pub(super) fn crossed(
+        &self,
+        body: &Body,
+        walls: &[Wall],
+        eps: f64,
+        kept: impl Fn(&Cylinder, DVec3) -> bool,
+    ) -> BTreeMap<SurfaceId, Vec<DVec3>> {
+        let mut crossed: BTreeMap<SurfaceId, Vec<DVec3>> = BTreeMap::new();
+        for id in body.edge_ids() {
+            let Curve::Circle(circle) = body.curve(body.edge(id).curve) else {
+                continue;
+            };
+            let Some((wall, cylinder)) = contact::wall_of(circle, walls, eps) else {
+                continue;
+            };
+            if self.of_wall.contains_key(wall) {
+                continue;
+            }
+            let rays = self.across_spheres(circle, eps);
+            let taken = crossed.entry(*wall).or_default();
+            taken.extend(rays.filter(|way| kept(cylinder, circle.center + *way * circle.radius)));
+        }
+        crossed
+    }
+
+    /// Where `circle` crosses the steps of the grid of each sphere carrying
+    /// it about another line.
+    fn across_spheres<'a>(
+        &'a self,
+        circle: &'a Circle,
+        eps: f64,
+    ) -> impl Iterator<Item = DVec3> + 'a {
+        (self.steps.iter())
+            .filter(move |(round, _)| round.carries(circle, eps) && !round.holds(circle, eps))
+            .flat_map(move |(round, steps)| {
+                let line = (round.origin(), round.axis());
+                (steps.iter()).flat_map(move |way| crossings(circle, line, *way))
+            })
+    }
+
     /// Every group's rays and every ray one of its walls takes in contact.
     pub(super) fn gathered(mut self, contacts: &BTreeMap<SurfaceId, Contact>) -> Axes {
         for (id, group) in &self.of_wall {
@@ -304,14 +354,9 @@ impl Axes {
             .flat_map(|group| group.rays.iter())
             .filter(|way| !withheld(way) && kept(circle.center + **way * circle.radius))
             .copied();
-        let across_spheres = (self.steps.iter())
-            .filter(|(round, _)| {
-                group.is_none() && round.carries(circle, eps) && !round.holds(circle, eps)
-            })
-            .flat_map(|(round, steps)| {
-                let line = (round.origin(), round.axis());
-                (steps.iter()).flat_map(move |way| crossings(circle, line, *way))
-            })
+        let across_spheres = (group.is_none().then(|| self.across_spheres(circle, eps)))
+            .into_iter()
+            .flatten()
             .filter(|way| !withheld(way) && kept(circle.center + *way * circle.radius));
         let rays: Vec<DVec3> = contact
             .rays

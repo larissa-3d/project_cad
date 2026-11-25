@@ -33,7 +33,8 @@
 //! cone, it widens the cone's grid to the furthest it stands from the axis.
 //! A latitude circle of a sphere or a torus is sampled on the round's grid
 //! as a cone's rim is, a circle lying on a sphere about another line also
-//! where it crosses each angle of the sphere's grid ([`axis`]), and a
+//! where it crosses each angle of the sphere's grid, and every circle of its
+//! wall and of a wall close to it there too ([`axis`]), and a
 //! meridian arc on the round's rows along the meridian ([`round`]), where the
 //! faces of the round are cut in strips; the lattice points those strips add
 //! inside a face are numbered on past every edge's samples.
@@ -154,7 +155,15 @@ impl Samples {
         let alone = BTreeMap::new();
         let abreast = Abreast::of(body, fineness);
         let axes = Axes::of(body, grids, walls, fineness);
-        let given = abreast.joined(axes.given());
+        let crossed = axes.crossed(body, walls, eps, |wall, point| !zones.crowded(wall, point));
+        let own = |axes: &Axes| {
+            let mut given = abreast.joined(axes.given());
+            for (wall, rays) in &crossed {
+                given.entry(*wall).or_default().extend(rays);
+            }
+            given
+        };
+        let given = own(&axes);
         let mut meets = on_meets(body, walls, zones, &alone, grids, fineness);
         let mut contacts = contact::contacts(body, walls, zones, &meets, beneath, &given, fineness);
         let meeting = body
@@ -165,14 +174,14 @@ impl Samples {
             contacts = contact::contacts(body, walls, zones, &meets, beneath, &given, fineness);
         }
         let mut axes = axes.gathered(&contacts);
-        let gathered = abreast.joined(axes.given());
+        let gathered = own(&axes);
         if gathered != given {
             contacts = contact::contacts(body, walls, zones, &meets, beneath, &gathered, fineness);
             axes = axes.gathered(&contacts);
         }
         let along = conic::rays_along(body, walls, zones, grids, &contacts, fineness);
         if !along.is_empty() {
-            let mut given = abreast.joined(axes.given());
+            let mut given = own(&axes);
             for (wall, rays) in along {
                 given.entry(wall).or_default().extend(rays);
             }
