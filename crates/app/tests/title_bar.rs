@@ -1063,9 +1063,9 @@ fn icons_painted_within(app: &driver::App, within: egui::Rect) -> Vec<String> {
     found
 }
 
-/// Whether the files panel is drawn: its « Nouveau dossier » is its own.
+/// Whether the files panel is drawn: its « + Dossier » is its own.
 fn the_files_are_shown(app: &driver::App) -> bool {
-    driver::shows(app, "Nouveau dossier")
+    driver::shows(app, "+ Dossier")
 }
 
 /// Whether the history is unfolded at the bottom of the Part panel, where it

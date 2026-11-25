@@ -70,7 +70,7 @@ impl Remembered {
     }
 
     /// Whether the platform offered nowhere at all, in which case nothing is
-    /// ever written and the two methods below have nothing to report.
+    /// ever written and the methods below have nothing to report.
     pub fn has_nowhere_to_keep(&self) -> bool {
         self.at.is_none()
     }
@@ -89,6 +89,17 @@ impl Remembered {
         now: DateTime<Utc>,
     ) -> Option<StorageError> {
         self.recents.push(path.to_path_buf(), name, now);
+        self.save_recents()
+    }
+
+    /// Points the entry of a part moved from `from` at `to`, and writes the
+    /// list down.
+    pub fn part_moved(&mut self, from: &Path, to: &Path) -> Option<StorageError> {
+        self.recents.moved(from, to);
+        self.save_recents()
+    }
+
+    fn save_recents(&self) -> Option<StorageError> {
         self.at
             .as_ref()
             .and_then(|at| self.recents.save(&DiskFiles, at).err())

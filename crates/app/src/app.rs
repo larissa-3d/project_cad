@@ -15,6 +15,7 @@ use crate::screens::{
 use crate::shortcuts::shortcuts_pressed;
 use crate::{MSAA_SAMPLES, adapters::files::DiskFiles, autosave::Autosave, wording};
 use crate::{commands, export};
+mod library_column;
 pub mod on_screen;
 mod put_away;
 mod settings_window;
@@ -136,14 +137,7 @@ impl CaoApp {
 
     fn show_start_menu(&mut self, ui: &mut egui::Ui) {
         // Always here: choosing a part is the whole of what this screen is for.
-        if let Some(part) = screens::explorer::run(
-            &mut self.explorer,
-            ui,
-            self.remembered.lang(),
-            &DiskFiles,
-            &DiskFiles,
-        ) {
-            self.open_part(part);
+        if self.show_the_library(ui) {
             return;
         }
         let settings = self.remembered.lang().t("app.settings");

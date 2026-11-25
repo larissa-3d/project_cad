@@ -53,10 +53,11 @@
 //!   nothing is handed to the recent list — not one of the issue's words: the
 //!   presenter's share of the refusal above —
 //!   `a_part_a_folder_refuses_stays_where_it_was_and_the_panel_says_why`
-//! - the call that hands that pair to the recent list — no test: a line of
-//!   wiring in the shell, between this presenter and `Remembered`, which reads
-//!   and writes the real disk; the headless driver could reach it only through
-//!   a drag drawn by hand on the column. Both ends of it are held above
+//! - the call that hands that pair to the recent list — no test: in this file,
+//!   since `Remembered` reads and writes the real disk; held by
+//!   `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`,
+//!   in `crates/app/tests/the_library_column.rs`, which drags a part onto a
+//!   folder in the application driven whole and reads the recent list back
 //! - Everything the Files panel does today, as it was: refresh, new folder,
 //!   rename, delete confirmed and to the bin, thumbnails —
 //!   `a_panel_just_opened_shows_the_folders_and_the_parts_of_the_library`,
@@ -65,12 +66,17 @@
 //!   `nothing_is_thrown_away_before_the_question_is_answered`,
 //!   `a_part_thrown_away_leaves_the_library_and_the_selection`,
 //!   `only_the_parts_a_row_was_drawn_for_are_read_off_the_disk`
-//! - The column « Toutes les pièces », 280 to 320 px wide; « ↺ »,
-//!   « + Dossier », « Renommer », « Supprimer » and the « Filtrer… » field;
-//!   folders that fold; one part per line with its 22 × 18 thumbnail; the
-//!   chosen part lit amber; the drag drawn under the pointer — no test:
-//!   drawing, in `view.rs`, which decides nothing; what each gesture asks of
-//!   the presenter is held above, and the look is Tom's to try in the app
+//! - The column « Toutes les pièces », its « + Dossier », and the « Filtrer… »
+//!   field leaving only the matching parts — no test: in this file; held, the
+//!   application driven whole, by `the_home_screen_column_is_called_all_the_parts`,
+//!   `the_column_s_plus_folder_button_makes_a_folder_in_it` and
+//!   `typing_in_the_filter_leaves_only_the_matching_parts_in_the_column`, in
+//!   `crates/app/tests/the_library_column.rs`
+//! - 280 to 320 px wide; « ↺ », « Renommer », « Supprimer »; folders that
+//!   fold; one part per line with its 22 × 18 thumbnail; the chosen part lit
+//!   amber; the drag drawn under the pointer — no test: drawing, in `view.rs`,
+//!   which decides nothing; what each gesture asks of the presenter is held
+//!   above, and the look is Tom's to try in the app
 //!
 //! Set aside when the work opened, not criteria: the double-click that opens a
 //! part, in a second window when one is already open, stays as it is today;
