@@ -1,14 +1,48 @@
 //! A name dragged from where it is listed and dropped into a field: taken by
 //! a grip beside it, and put in where it lands — in place of the text
 //! selected or of a plain number, or else at the point of the text nearest
-//! the drop.
+//! the drop. And a row dragged onto another, carrying the path it stands for.
 
 use std::ops::Range;
+use std::path::{Path, PathBuf};
 
 use super::formula_field::{place_the_cursor, replaced};
 
 /// What is carried while a name is dragged.
 pub struct DraggedName(pub String);
+
+/// What is carried while a row is dragged onto another.
+pub struct DraggedPath(pub PathBuf);
+
+/// Lets the hand take `row` away, carrying `path`. The row still answers a
+/// click: a press that does not travel is not a drag.
+pub fn carry(row: egui::Response, path: &Path) -> egui::Response {
+    let row = row.interact(egui::Sense::drag());
+    if row.drag_started() {
+        row.dnd_set_drag_payload(DraggedPath(path.to_path_buf()));
+    }
+    row
+}
+
+/// The path let go over `target`, which is outlined while one is carried
+/// over it.
+pub fn take_a_dropped_path(ui: &egui::Ui, target: &egui::Response) -> Option<PathBuf> {
+    if target.dnd_hover_payload::<DraggedPath>().is_some() {
+        outline(ui, target.rect);
+    }
+    target
+        .dnd_release_payload::<DraggedPath>()
+        .map(|dropped| dropped.0.clone())
+}
+
+fn outline(ui: &egui::Ui, rect: egui::Rect) {
+    ui.painter().rect_stroke(
+        rect,
+        2.0,
+        ui.visuals().selection.stroke,
+        egui::StrokeKind::Outside,
+    );
+}
 
 /// The mark a row is taken by.
 const GRIP: &str = "☰";
@@ -36,12 +70,7 @@ pub fn take_a_dropped_name(
 ) -> bool {
     let response = &output.response.response;
     if response.dnd_hover_payload::<DraggedName>().is_some() {
-        ui.painter().rect_stroke(
-            response.rect,
-            2.0,
-            ui.visuals().selection.stroke,
-            egui::StrokeKind::Outside,
-        );
+        outline(ui, response.rect);
     }
     let Some(dropped) = response.dnd_release_payload::<DraggedName>() else {
         return false;

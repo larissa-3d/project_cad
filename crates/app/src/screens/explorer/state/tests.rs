@@ -1,3 +1,120 @@
+//! What app · screens/explorer/state.rs is held to.
+//!
+//! Closes #743 — the issue has no Done when of its own; these are the points of
+//! its « What it does » and « What must not break », read as its criteria when
+//! the work opened, after a survey of the code had found the column already on
+//! the home screen and already gone from the part screen. The bullets the
+//! library and the recent list hold are transcribed again, checked, beside
+//! them: in `crates/part/src/library/tests.rs`,
+//! `crates/part/src/library/tidying/tests.rs` and
+//! `crates/prefs/src/recents/tests.rs`.
+//! - Filter, by name, keeping the folders that hold a match: the library hands
+//!   back its tree keeping only the parts whose name holds the query, whatever
+//!   the case, and the folders that hold one at any depth; an empty query keeps
+//!   everything; a folder whose own name holds the query but which holds no
+//!   matching part is not kept for its name — no test: in this file; held by
+//!   `a_filter_keeps_the_parts_whose_name_holds_it_and_the_folders_that_lead_to_them`
+//!   and `an_empty_filter_keeps_the_whole_library`, in
+//!   `crates/part/src/library/tests.rs`
+//! - Folders with their count of parts: a folder counts every part under it,
+//!   its subfolders' included — no test: in this file; held by
+//!   `a_folder_counts_every_part_under_it_subfolders_included`, in
+//!   `crates/part/src/library/tests.rs`
+//! - Drag a part onto a folder to move it there: the part lands in the folder
+//!   under the file name it had, with what its archive holds, its picture and
+//!   its name among it, and the new path is handed back; it is refused where
+//!   the folder already holds a part of that name; moved into the folder it is
+//!   already in, it stays where it is — no test: in this file; held by
+//!   `a_part_moved_into_a_folder_keeps_its_file_name_its_picture_and_its_name`,
+//!   `a_part_is_not_moved_into_a_folder_already_holding_one_of_that_name` and
+//!   `a_part_moved_into_the_folder_it_is_in_stays_where_it_is`, in
+//!   `crates/part/src/library/tidying/tests.rs`
+//! - A part moved by drag keeps its recent entry pointing to it: the recent
+//!   list can be told that a path became another, and the entry keeps its
+//!   place and its name under the new path; one that would then repeat a path
+//!   already listed is listed once, as a push does — no test: in this file;
+//!   held by
+//!   `a_recent_part_moved_elsewhere_keeps_its_place_and_its_name_under_its_new_path`,
+//!   `a_part_moved_that_was_never_opened_stays_off_the_list` and
+//!   `a_recent_part_moved_onto_a_path_already_listed_is_listed_once`, in
+//!   `crates/prefs/src/recents/tests.rs`
+//! - the column holds what is typed in « Filtrer… », and the tree it draws is
+//!   the filtered one, a capital accent matched as its small letter —
+//!   `the_tree_drawn_keeps_only_what_the_filter_keeps`
+//! - a part dropped on a folder moves there, and the counts follow; under a
+//!   filter, a folder counts the matches it shows — decided when the work
+//!   opened — `a_part_dropped_on_a_folder_moves_there_and_the_counts_follow`
+//! - the selection follows the part to its new place —
+//!   `the_selection_follows_a_part_dropped_on_a_folder`
+//! - the move says where the part was and where it went, which is what the
+//!   application hands the recent list —
+//!   `a_part_dropped_on_a_folder_says_where_it_was_and_where_it_went`
+//! - a part a folder refuses stays where it was, the panel says why, and
+//!   nothing is handed to the recent list — not one of the issue's words: the
+//!   presenter's share of the refusal above —
+//!   `a_part_a_folder_refuses_stays_where_it_was_and_the_panel_says_why`
+//! - the call that hands that pair to the recent list — no test: in this file,
+//!   since `Remembered` reads and writes the real disk; held by
+//!   `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`,
+//!   in `crates/app/tests/the_library_column.rs`, which drags a part onto a
+//!   folder in the application driven whole and reads the recent list back
+//! - Everything the Files panel does today, as it was: refresh, new folder,
+//!   rename, delete confirmed and to the bin, thumbnails —
+//!   `a_panel_just_opened_shows_the_folders_and_the_parts_of_the_library`,
+//!   `a_new_folder_lands_inside_the_folder_selected`,
+//!   `renaming_a_part_leaves_the_selection_on_it_under_its_new_name`,
+//!   `nothing_is_thrown_away_before_the_question_is_answered`,
+//!   `a_part_thrown_away_leaves_the_library_and_the_selection`,
+//!   `only_the_parts_a_row_was_drawn_for_are_read_off_the_disk`
+//! - The column « Toutes les pièces », its « + Dossier », and the « Filtrer… »
+//!   field leaving only the matching parts — no test: in this file; held, the
+//!   application driven whole, by `the_home_screen_column_is_called_all_the_parts`,
+//!   `the_column_s_plus_folder_button_makes_a_folder_in_it` and
+//!   `typing_in_the_filter_leaves_only_the_matching_parts_in_the_column`, in
+//!   `crates/app/tests/the_library_column.rs`
+//! - folders with their count of parts, the count drawn beside the folder's
+//!   name and the matches alone under a filter — no test: in this file, which
+//!   holds the counts the view reads; the drawing is held by
+//!   `a_folder_in_the_column_shows_how_many_parts_it_holds`, in
+//!   `crates/app/tests/the_library_column.rs`
+//! - Double-click opens a part — no test: in this file, since the gesture is
+//!   the view's; held by `a_part_double_clicked_in_the_column_opens`, in
+//!   `crates/app/tests/the_library_column.rs`. The second window, for a part
+//!   opened while another is, is set aside below
+//! - A part moved by drag opens from its new place and keeps its recent entry
+//!   pointing to it — no test: in this file; held by
+//!   `a_part_dragged_onto_a_folder_opens_from_its_new_place` and
+//!   `a_part_dragged_onto_a_folder_moves_there_and_its_recent_entry_follows`,
+//!   in `crates/app/tests/the_library_column.rs`
+//! - found on the way, not one of the issue's words: a part let go on the
+//!   blank of the column under the tree goes to the root of the library — no
+//!   test: in this file, since the blank is the view's; held by
+//!   `a_part_dropped_under_the_tree_goes_to_the_root_of_the_library`, in
+//!   `crates/app/tests/the_library_column.rs`
+//! - found in review, not one of the issue's words: a name started under a
+//!   filter — a folder made, a part the filter hides renamed — clears the
+//!   filter, so the field and what it names are drawn; an empty folder made
+//!   under « bri » would otherwise vanish as it is made, and a rename would
+//!   have no field on screen —
+//!   `a_naming_started_under_a_filter_clears_it_so_the_field_is_drawn`, and the
+//!   folder seen in the column by `a_folder_made_under_a_filter_shows_in_the_column`,
+//!   in `crates/app/tests/the_library_column.rs`
+//! - 280 to 320 px wide; « ↺ », « Renommer », « Supprimer »; folders that
+//!   fold; one part per line with its 22 × 18 thumbnail; the chosen part lit
+//!   amber; while a part is carried, the grabbing hand and the outline of the
+//!   folder under the pointer — no test: drawing, in `view.rs`, which decides
+//!   nothing; what each gesture asks of the presenter is held above, and the
+//!   look is Tom's to try in the app
+//!
+//! Set aside when the work opened, not criteria: a part double-clicked while
+//! another is open opens in a second window, as it does today; the folder
+//! chosen in the tree as the default of the « Nouveau » card's « Enregistrer
+//! dans » waits for that card to exist.
+//!
+//! Set aside in review: the row carried is not drawn under the pointer. The
+//! row hands its path over with `dnd_set_drag_payload` and keeps its click and
+//! its double-click; `dnd_drag_source`, which would draw it, takes both.
+
 use std::path::Path;
 
 use cao_part::{Files, InMemoryFiles, PartDocument, PartFileError};
@@ -255,4 +372,175 @@ fn a_question_answered_no_leaves_the_part_where_it_is() {
     explorer.discard(&files);
 
     assert_eq!(explorer.library().parts.len(), 1);
+}
+
+fn everything_in(folder: &Folder) -> Vec<String> {
+    let mut laid = Vec::new();
+    for under in &folder.folders {
+        laid.push(under.path.display().to_string());
+        laid.extend(everything_in(under));
+    }
+    laid.extend(
+        folder
+            .parts
+            .iter()
+            .map(|part| part.path.display().to_string()),
+    );
+    laid
+}
+
+fn counts_of(folder: &Folder) -> Vec<(String, usize)> {
+    folder
+        .folders
+        .iter()
+        .map(|under| (under.name.clone(), under.count_of_parts()))
+        .collect()
+}
+
+#[test]
+fn the_tree_drawn_keeps_only_what_the_filter_keeps() {
+    let files = library_of(&[
+        "/CAO/Équerre.caopart",
+        "/CAO/support.caopart",
+        "/CAO/drafts/équerre 2.caopart",
+        "/CAO/drafts/plate.caopart",
+    ]);
+    let mut explorer = panel_on(&files);
+
+    explorer.set_query("éQU");
+
+    assert_eq!(
+        everything_in(explorer.tree()),
+        [
+            "/CAO/drafts",
+            "/CAO/drafts/équerre 2.caopart",
+            "/CAO/Équerre.caopart",
+        ],
+        "a French name starting with a capital É answers to a small é typed",
+    );
+}
+
+#[test]
+fn a_part_dropped_on_a_folder_moves_there_and_the_counts_follow() {
+    let files = library_of(&[
+        "/CAO/bride.caopart",
+        "/CAO/Brides/bride 2.caopart",
+        "/CAO/Brides/plate.caopart",
+        "/CAO/drafts/support.caopart",
+    ]);
+    let mut explorer = panel_on(&files);
+    explorer.set_query("bri");
+
+    explorer.drop_on(
+        &files,
+        Path::new("/CAO/bride.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        counts_of(explorer.tree()),
+        [("Brides".to_string(), 2)],
+        "under a filter a folder counts the matches it shows, the part just dropped among them",
+    );
+    assert!(
+        explorer.tree().parts.is_empty(),
+        "the part is still at the root"
+    );
+    explorer.set_query("");
+    assert_eq!(
+        counts_of(explorer.tree()),
+        [("Brides".to_string(), 3), ("drafts".to_string(), 1)],
+    );
+}
+
+#[test]
+fn the_selection_follows_a_part_dropped_on_a_folder() {
+    let files = library_of(&["/CAO/support.caopart", "/CAO/Brides/bride.caopart"]);
+    let mut explorer = panel_on(&files);
+    explorer.select(Path::new("/CAO/support.caopart"));
+
+    explorer.drop_on(
+        &files,
+        Path::new("/CAO/support.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        explorer.selected(),
+        Some(Path::new("/CAO/Brides/support.caopart")),
+    );
+}
+
+#[test]
+fn a_part_dropped_on_a_folder_says_where_it_was_and_where_it_went() {
+    let files = library_of(&["/CAO/support.caopart", "/CAO/Brides/bride.caopart"]);
+    let mut explorer = panel_on(&files);
+
+    let moved = explorer.drop_on(
+        &files,
+        Path::new("/CAO/support.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        moved,
+        Some((
+            PathBuf::from("/CAO/support.caopart"),
+            PathBuf::from("/CAO/Brides/support.caopart"),
+        )),
+        "the application hands this pair to the recent list",
+    );
+}
+
+#[test]
+fn a_part_a_folder_refuses_stays_where_it_was_and_the_panel_says_why() {
+    let files = library_of(&["/CAO/support.caopart", "/CAO/Brides/support.caopart"]);
+    let mut explorer = panel_on(&files);
+
+    let moved = explorer.drop_on(
+        &files,
+        Path::new("/CAO/support.caopart"),
+        Path::new("/CAO/Brides"),
+    );
+
+    assert_eq!(
+        moved, None,
+        "the recent list would follow a move that never happened"
+    );
+    assert!(matches!(
+        explorer.trouble(),
+        Some(PartFileError::NameTaken(_))
+    ));
+    assert_eq!(explorer.tree().parts[0].name, "support");
+}
+
+#[test]
+fn a_naming_started_under_a_filter_clears_it_so_the_field_is_drawn() {
+    let files = library_of(&["/CAO/bride.caopart", "/CAO/support.caopart"]);
+    let mut explorer = panel_on(&files);
+
+    explorer.select(Path::new("/CAO/support.caopart"));
+    explorer.set_query("bri");
+    explorer.start_rename();
+    let while_renaming = (
+        explorer.query().to_string(),
+        everything_in(explorer.tree()).contains(&"/CAO/support.caopart".to_string()),
+    );
+    explorer.cancel_naming();
+
+    explorer.set_query("bri");
+    explorer.start_new_folder();
+    typing(&mut explorer, "Plates");
+    explorer.confirm_naming(&files, &files);
+    let once_made = (
+        explorer.query().to_string(),
+        everything_in(explorer.tree()).contains(&"/CAO/Plates".to_string()),
+    );
+
+    assert_eq!(
+        [while_renaming, once_made],
+        [(String::new(), true), (String::new(), true)],
+        "a part the filter hides being renamed, then an empty folder made under `bri`: \
+         (what the filter holds, whether the tree drawn shows what is named)",
+    );
 }

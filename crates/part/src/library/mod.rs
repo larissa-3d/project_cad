@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 mod tidying;
 
-pub use tidying::{create_folder, discard, rename_folder, rename_part};
+pub use tidying::{create_folder, discard, move_part, rename_folder, rename_part};
 
 use crate::file_name::PART_EXTENSION;
 use crate::ports::{FileError, Folders};
@@ -14,6 +14,18 @@ pub struct Folder {
     pub name: String,
     pub folders: Vec<Folder>,
     pub parts: Vec<Part>,
+}
+
+impl Folder {
+    /// Its own parts and those of every folder under it.
+    pub fn count_of_parts(&self) -> usize {
+        self.parts.len()
+            + self
+                .folders
+                .iter()
+                .map(Folder::count_of_parts)
+                .sum::<usize>()
+    }
 }
 
 /// A part file, named by what its file is called rather than by what the
@@ -58,6 +70,34 @@ pub fn read(folders: &impl Folders, root: &Path) -> Result<Folder, FileError> {
         .parts
         .sort_by(|a, b| in_reading_order(&a.name, &b.name));
     Ok(folder)
+}
+
+/// The library as `query` leaves it: the parts whose name holds it whatever
+/// the case, and the folders on the way to one. A folder is never kept for
+/// its own name; nothing typed hides nothing.
+pub fn filter(library: &Folder, query: &str) -> Folder {
+    keep_matching(library, &query.to_lowercase())
+}
+
+fn keep_matching(folder: &Folder, query: &str) -> Folder {
+    Folder {
+        path: folder.path.clone(),
+        name: folder.name.clone(),
+        folders: folder
+            .folders
+            .iter()
+            .map(|under| keep_matching(under, query))
+            .filter(|under| {
+                query.is_empty() || !(under.folders.is_empty() && under.parts.is_empty())
+            })
+            .collect(),
+        parts: folder
+            .parts
+            .iter()
+            .filter(|part| part.name.to_lowercase().contains(query))
+            .cloned()
+            .collect(),
+    }
 }
 
 fn is_a_part(path: &Path) -> bool {

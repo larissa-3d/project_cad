@@ -68,6 +68,25 @@ pub fn rename_part(
     Ok(path)
 }
 
+/// Puts `part` inside the folder `into`, under the file name it had. Its
+/// archive is left as it was: moving a part is not working on it.
+pub fn move_part(
+    folders: &impl Folders,
+    part: &Path,
+    into: &Path,
+) -> Result<PathBuf, PartFileError> {
+    let file_name = part
+        .file_name()
+        .ok_or_else(|| PartFileError::File(FileError::Absent(part.to_path_buf())))?;
+    let path = into.join(file_name);
+    if path == part {
+        return Ok(path);
+    }
+    refuse_if_taken(folders, into, &path)?;
+    folders.rename(part, &path)?;
+    Ok(path)
+}
+
 /// Hands a part or a folder to wherever the platform keeps what was thrown
 /// away, so a wrong click can be undone outside the application.
 pub fn discard(folders: &impl Folders, path: &Path) -> Result<(), PartFileError> {

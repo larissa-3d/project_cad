@@ -10,8 +10,18 @@ pub use view::ExplorerAction;
 
 use crate::lang::Catalogue;
 
+/// What the panel hands back to the shell after a frame.
+#[derive(Default)]
+pub struct Handed {
+    /// A part double-clicked, to open.
+    pub open: Option<PathBuf>,
+    /// A part moved: where it was and where it went, for the recent list.
+    pub moved: Option<(PathBuf, PathBuf)>,
+}
+
 /// Puts the library panel on screen and carries out what was asked of it,
-/// handing back a part to open when one was double-clicked.
+/// handing back a part to open when one was double-clicked and a part moved
+/// when one was dropped on a folder.
 ///
 /// The panel's wiring lives here rather than in the shell: which presenter
 /// call an action leads to is the screen's own business, and the one branch
@@ -22,17 +32,20 @@ pub fn run(
     lang: &Catalogue,
     files: &impl Files,
     folders: &impl Folders,
-) -> Option<PathBuf> {
+) -> Handed {
     explorer.refresh_if_stale(folders);
 
-    let mut opening = None;
+    let mut handed = Handed::default();
     match view::panel(ui, explorer, lang) {
-        ExplorerAction::Open(part) => opening = Some(part),
+        ExplorerAction::Open(part) => handed.open = Some(part),
         ExplorerAction::NewFolder => explorer.start_new_folder(),
         ExplorerAction::Rename => explorer.start_rename(),
         ExplorerAction::ConfirmNaming => explorer.confirm_naming(files, folders),
         ExplorerAction::Discard => explorer.ask_to_discard(),
         ExplorerAction::Refresh => explorer.went_stale(),
+        ExplorerAction::DropOn { part, folder } => {
+            handed.moved = explorer.drop_on(folders, &part, &folder);
+        }
         ExplorerAction::None => {}
     }
 
@@ -45,5 +58,5 @@ pub fn run(
             None => {}
         }
     }
-    opening
+    handed
 }

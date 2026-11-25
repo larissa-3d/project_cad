@@ -540,9 +540,38 @@ pub fn shows(app: &App, text: &str) -> bool {
     on_screen(app).iter().any(|label| label.contains(text))
 }
 
+/// Types the name beside « Nom : » on the home screen and makes the part: the
+/// field the user reads as the new part's name, not the first one drawn — the
+/// library's column has a filter of its own since #743.
 pub fn create_a_part(app: &mut App, named: &str) {
-    type_into_the_only_field(app, named);
+    type_beside(app, "Nom :", named);
     click(app, "Créer");
+}
+
+/// Where the library's column on the home screen shows a row reading this:
+/// below its buttons, and no further right than the widest of them, where the
+/// list of recent parts beside it never reaches. The column is on the home
+/// screen alone since #726.
+pub fn rows_of_the_file_list_reading(app: &App, name: &str) -> Vec<egui::Rect> {
+    let header =
+        ["+ Dossier", "Renommer", "Supprimer"].map(|button| the_column_s_button(app, button));
+    let below = header.iter().map(|at| at.bottom()).fold(f32::MIN, f32::max);
+    let column = header.iter().map(|at| at.right()).fold(f32::MIN, f32::max);
+    app.query_all_by_label(name)
+        .map(|node| node.rect())
+        .filter(|at| at.top() >= below && at.right() <= column)
+        .collect()
+}
+
+fn the_column_s_button(app: &App, label: &str) -> egui::Rect {
+    app.query_by_label(label)
+        .unwrap_or_else(|| {
+            panic!(
+                "no « {label} » button heads the library's column, showing {:?}",
+                on_screen(app),
+            )
+        })
+        .rect()
 }
 
 pub fn start_a_sketch(app: &mut App) {
@@ -1158,6 +1187,12 @@ pub fn double_click(app: &mut App, label: &str) {
         .unwrap_or_else(|| panic!("no button reads « {label} »"))
         .rect()
         .center();
+    double_click_at(app, at);
+}
+
+/// The same at a place read off the frame: a row of the library's column,
+/// which the recent list beside it names the same.
+pub fn double_click_at(app: &mut App, at: egui::Pos2) {
     app.hover_at(at);
     app.run();
     let start = app.ctx.input(|input| input.time);

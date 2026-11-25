@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use cao_part::library::{self, Folder};
 
 use crate::lang::Catalogue;
+use crate::ui::badge::badge;
+use crate::ui::dropping::{carry, take_a_dropped_path};
 use crate::ui::text_edit::text_edit;
 use crate::ui::theme::tokens;
 use crate::wording;
@@ -26,6 +28,11 @@ pub enum ExplorerAction {
     Discard,
     /// Read the library off the disk again.
     Refresh,
+    /// Move this part into this folder.
+    DropOn {
+        part: PathBuf,
+        folder: PathBuf,
+    },
 }
 
 /// Where each name typed in the panel is given room to be read.
@@ -38,6 +45,8 @@ struct Touched {
     select: Option<PathBuf>,
     open: Option<PathBuf>,
     fold: Option<(PathBuf, bool)>,
+    /// A part let go over a folder: the part, then the folder.
+    dropped: Option<(PathBuf, PathBuf)>,
     /// The parts a row was drawn for this frame. Their pictures are read after
     /// the walk, so only what is on screen is ever read off the disk.
     shown: Vec<PathBuf>,
@@ -47,7 +56,8 @@ struct Touched {
 pub fn panel(ui: &mut egui::Ui, explorer: &mut Explorer, lang: &Catalogue) -> ExplorerAction {
     egui::Panel::left("explorer_panel")
         .resizable(true)
-        .default_size(230.0)
+        .default_size(300.0)
+        .size_range(280.0..=320.0)
         .show(ui, |ui| show(ui, explorer, lang))
         .inner
 }
@@ -79,34 +89,44 @@ fn show(ui: &mut egui::Ui, explorer: &mut Explorer, lang: &Catalogue) -> Explore
             }
         });
     });
+    let mut query = explorer.query().to_string();
+    let width = ui.available_width();
+    if text_edit(ui, &mut query, width, &lang.t("explorer.filter_hint")).changed() {
+        explorer.set_query(&query);
+    }
+    // Above the tree, which takes the rest of the column down to its foot.
+    if let Some(fate) = explorer.trouble() {
+        ui.colored_label(
+            tokens::STATE_ERROR_TEXT,
+            wording::part_file::say(lang, fate),
+        );
+    }
     ui.separator();
 
     // The name being typed is taken out for the length of the walk and put
     // back at the end: that is what lets the tree be read while the field it
     // holds is written to.
     let mut naming = explorer.naming().cloned();
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        let reading: &Explorer = explorer;
-        contents(
-            ui,
-            reading,
-            reading.library(),
-            &mut naming,
-            &mut touched,
-            lang,
-        );
-        if reading.library().folders.is_empty() && reading.library().parts.is_empty() {
-            ui.weak(lang.t("explorer.empty"));
-        }
-    });
-
-    if let Some(fate) = explorer.trouble() {
-        ui.separator();
-        ui.colored_label(
-            tokens::STATE_ERROR_TEXT,
-            wording::part_file::say(lang, fate),
-        );
-    }
+    egui::ScrollArea::vertical()
+        .auto_shrink(false)
+        .show(ui, |ui| {
+            let reading: &Explorer = explorer;
+            let tree = reading.tree();
+            contents(ui, reading, tree, &mut naming, &mut touched, lang);
+            if holds_nothing(reading.library()) {
+                ui.weak(lang.t("explorer.empty"));
+            } else if holds_nothing(tree) {
+                ui.weak(lang.t("explorer.nothing_found"));
+            }
+            // What is left of the column below the tree stands for the root,
+            // a row high at least once the tree fills the column.
+            let height = ui.available_height().max(ui.spacing().interact_size.y);
+            let room = egui::vec2(ui.available_width(), height);
+            let below = ui.allocate_response(room, egui::Sense::hover());
+            if let Some(part) = take_a_dropped_path(ui, &below) {
+                touched.dropped = Some((part, tree.path.clone()));
+            }
+        });
 
     explorer.set_naming(naming);
     if let Some((path, open)) = touched.fold {
@@ -117,6 +137,9 @@ fn show(ui: &mut egui::Ui, explorer: &mut Explorer, lang: &Catalogue) -> Explore
     }
     if let Some(path) = touched.open {
         action = ExplorerAction::Open(path);
+    }
+    if let Some((part, folder)) = touched.dropped {
+        action = ExplorerAction::DropOn { part, folder };
     }
     explorer.wants_pictures_of(touched.shown);
     if explorer.naming().is_some() {
@@ -144,7 +167,7 @@ fn contents(
             continue;
         }
         let unfolded = explorer.unfolded(&under.path);
-        ui.horizontal(|ui| {
+        let row = ui.horizontal(|ui| {
             let arrow = lang.t(if unfolded {
                 "explorer.unfolded"
             } else {
@@ -159,7 +182,16 @@ fn contents(
             {
                 touched.select = Some(under.path.clone());
             }
+            let count = under.count_of_parts().to_string();
+            badge(
+                ui,
+                &count,
+                (tokens::BACKGROUND_ACTIVE_NEUTRAL, tokens::TEXT_SUBDUED),
+            );
         });
+        if let Some(part) = take_a_dropped_path(ui, &row.response) {
+            touched.dropped = Some((part, under.path.clone()));
+        }
         if unfolded {
             ui.indent(&under.path, |ui| {
                 contents(ui, explorer, under, naming, touched, lang);
@@ -173,13 +205,13 @@ fn contents(
             continue;
         }
         touched.shown.push(part.path.clone());
-        let response = ui
+        let named = ui
             .horizontal(|ui| {
                 thumbnail(ui, explorer.picture_of(&part.path));
                 ui.selectable_label(explorer.selected() == Some(&part.path), &part.name)
             })
-            .inner
-            .on_hover_text(lang.t("explorer.open_hint"));
+            .inner;
+        let response = carry(named, &part.path).on_hover_text(lang.t("explorer.open_hint"));
         if response.clicked() {
             touched.select = Some(part.path.clone());
         }
@@ -195,22 +227,21 @@ fn contents(
     }
 }
 
-/// How wide a part's picture is drawn beside its name.
-const THUMBNAIL: f32 = 28.0;
+/// How wide and how high a part's picture is drawn beside its name.
+const THUMBNAIL: egui::Vec2 = egui::vec2(22.0, 18.0);
 
 /// The part's picture, or the room it will take once it has one.
 ///
 /// A quiet frame rather than nothing, so a folder half of whose parts have
 /// been put away since does not read as two columns.
 fn thumbnail(ui: &mut egui::Ui, picture: Option<&cao_part::Picture>) {
-    let side = egui::vec2(THUMBNAIL, THUMBNAIL);
     let Some(picture) = picture else {
-        let (rect, _) = ui.allocate_exact_size(side, egui::Sense::hover());
+        let (rect, _) = ui.allocate_exact_size(THUMBNAIL, egui::Sense::hover());
         ui.painter()
             .rect_filled(rect, 2.0, ui.visuals().faint_bg_color);
         return;
     };
-    ui.add(egui::Image::new(&texture(ui, picture)).fit_to_exact_size(side));
+    ui.add(egui::Image::new(&texture(ui, picture)).fit_to_exact_size(THUMBNAIL));
 }
 
 /// The part's pixels as something the GPU can draw, kept in egui's own store
@@ -230,6 +261,10 @@ fn texture(ui: &egui::Ui, picture: &cao_part::Picture) -> egui::TextureHandle {
         .load_texture("explorer_thumbnail", image, egui::TextureOptions::LINEAR);
     ui.data_mut(|data| data.insert_temp(id, made.clone()));
     made
+}
+
+fn holds_nothing(folder: &Folder) -> bool {
+    folder.folders.is_empty() && folder.parts.is_empty()
 }
 
 fn being_renamed(naming: &Option<Naming>, path: &Path) -> bool {

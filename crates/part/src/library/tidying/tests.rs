@@ -1,4 +1,16 @@
 //! What part · library/tidying.rs is held to.
+//!
+//! Closes #743 — the whole transcription is in
+//! `crates/app/src/screens/explorer/state/tests.rs`; these bullets are the
+//! move's share.
+//! - Drag a part onto a folder to move it there: the part lands in the folder
+//!   under the file name it had, with what its archive holds, its picture and
+//!   its name among it, and the new path is handed back —
+//!   `a_part_moved_into_a_folder_keeps_its_file_name_its_picture_and_its_name`
+//! - it is refused where the folder already holds a part of that name —
+//!   `a_part_is_not_moved_into_a_folder_already_holding_one_of_that_name`
+//! - moved into the folder it is already in, it stays where it is —
+//!   `a_part_moved_into_the_folder_it_is_in_stays_where_it_is`
 
 use super::*;
 
@@ -206,6 +218,76 @@ fn a_renamed_part_keeps_its_picture() {
         Some(&picture),
         "a rename reads the part and writes it back, and would drop it",
     );
+}
+
+#[test]
+fn a_part_moved_into_a_folder_keeps_its_file_name_its_picture_and_its_name() {
+    let (files, path) = library_with("Support");
+    let mut document = PartDocument::load(&files, &path).expect("reads");
+    let picture = crate::Picture::new(2, 2, (0..16).collect()).expect("a picture");
+    document.set_picture(picture.clone());
+    document
+        .save(&files, &path, at("2026-01-02T09:00:00Z"))
+        .expect("the part is written");
+    let archive = files.read(&path).expect("reads");
+    let brides = create_folder(&files, Path::new("/CAO"), "Brides").expect("the folder is made");
+
+    let moved = move_part(&files, &path, &brides).expect("the part is moved");
+
+    assert_eq!(moved, PathBuf::from("/CAO/Brides/Support.caopart"));
+    assert!(
+        !files.exists(&path),
+        "a copy of the part is left behind where it was",
+    );
+    let document = PartDocument::load(&files, &moved).expect("reads");
+    assert_eq!(document.name(), "Support");
+    assert_eq!(document.picture(), Some(&picture));
+    assert_eq!(
+        files.read(&moved).expect("reads"),
+        archive,
+        "moving a part is not working on it: its archive holds what it held, its hour with it",
+    );
+}
+
+#[test]
+fn a_part_is_not_moved_into_a_folder_already_holding_one_of_that_name() {
+    let (files, path) = library_with("Support");
+    let (_, there) = PartDocument::create_in(
+        &files,
+        Path::new("/CAO/Brides"),
+        "support",
+        at("2026-03-04T10:00:00Z"),
+    )
+    .expect("the part is written");
+    let occupant = files.read(&there).expect("reads");
+
+    let moved = move_part(&files, &path, Path::new("/CAO/Brides"));
+
+    assert!(
+        matches!(moved, Err(PartFileError::NameTaken(_))),
+        "`support` in `Brides` is the same file as `Support` on a disk that ignores case: \
+         {moved:?}",
+    );
+    assert!(
+        PartDocument::load(&files, &path).is_ok(),
+        "the part that was to be moved is gone",
+    );
+    assert_eq!(
+        files.read(&there).expect("reads"),
+        occupant,
+        "the part already in the folder was written over",
+    );
+}
+
+#[test]
+fn a_part_moved_into_the_folder_it_is_in_stays_where_it_is() {
+    let (files, path) = library_with("Support");
+    let archive = files.read(&path).expect("reads");
+
+    let moved = move_part(&files, &path, Path::new("/CAO")).expect("nothing to do");
+
+    assert_eq!(moved, path);
+    assert_eq!(files.read(&path).expect("reads"), archive);
 }
 
 #[test]

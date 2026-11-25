@@ -61,27 +61,10 @@ fn a_part_created_from_the_start_menu_joins_the_file_list() {
     driver::click(&mut app, "Accueil");
 
     assert!(
-        !rows_of_the_file_list_reading(&app, "Équerre").is_empty(),
+        !driver::rows_of_the_file_list_reading(&app, "Équerre").is_empty(),
         "the file list names the part that was just created, showing {:?}",
         driver::on_screen(&app),
     );
-}
-
-/// Where the file list of the home screen shows a row reading this: below its
-/// buttons, and no further right than the widest of them, where the list of
-/// recent parts beside it never reaches. The file list is on the home screen
-/// alone since #726.
-fn rows_of_the_file_list_reading(app: &driver::App, name: &str) -> Vec<egui::Rect> {
-    use egui_kittest::kittest::Queryable;
-
-    let header =
-        ["Nouveau dossier", "Renommer", "Supprimer"].map(|button| app.get_by_label(button).rect());
-    let below = header.iter().map(|at| at.bottom()).fold(f32::MIN, f32::max);
-    let column = header.iter().map(|at| at.right()).fold(f32::MIN, f32::max);
-    app.query_all_by_label(name)
-        .map(|node| node.rect())
-        .filter(|at| at.top() >= below && at.right() <= column)
-        .collect()
 }
 
 #[test]
