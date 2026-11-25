@@ -92,14 +92,14 @@ impl CaoApp {
         }
     }
 
-    fn create_new_part(&mut self, name: String) {
-        let Some(dir) = self.remembered.projects_dir() else {
+    fn create_new_part(&mut self, name: String, folder: PathBuf) {
+        if self.remembered.projects_dir().is_none() {
             self.error = Some(wording::storage::nowhere_to_keep_settings(
                 self.remembered.lang(),
             ));
             return;
-        };
-        match PartDocument::create_in(&DiskFiles, &dir, name, chrono::Utc::now()) {
+        }
+        match PartDocument::create_in(&DiskFiles, &folder, name, chrono::Utc::now()) {
             Ok((doc, path)) => {
                 self.explorer.went_stale();
                 self.open_document(doc, path)
@@ -159,7 +159,7 @@ impl CaoApp {
             .inner;
 
         match action {
-            StartMenuAction::CreateNew(name) => self.create_new_part(name),
+            StartMenuAction::CreateNew { name, folder } => self.create_new_part(name, folder),
             StartMenuAction::Open(path) => self.open_part(path),
             StartMenuAction::None => {}
         }

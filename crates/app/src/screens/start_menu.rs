@@ -9,7 +9,11 @@ use crate::wording;
 
 pub enum StartMenuAction {
     None,
-    CreateNew(String),
+    /// A part of this name, in the folder the card shows.
+    CreateNew {
+        name: String,
+        folder: PathBuf,
+    },
     Open(PathBuf),
 }
 
@@ -50,7 +54,10 @@ pub fn show(
                 .add_enabled(can_create, egui::Button::new(lang.t("start_menu.create")))
                 .clicked()
             {
-                action = StartMenuAction::CreateNew(new_part_name.trim().to_string());
+                action = StartMenuAction::CreateNew {
+                    name: new_part_name.trim().to_string(),
+                    folder: chosen,
+                };
                 new_part_name.clear();
             }
         });

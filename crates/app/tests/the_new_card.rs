@@ -34,6 +34,8 @@
 
 mod driver;
 
+use std::path::{Path, PathBuf};
+
 use egui_kittest::kittest::{NodeT, Queryable};
 
 /// How « Enregistrer dans » names the root of the parts folder, and what every
@@ -93,13 +95,41 @@ fn where_the_card_saves(app: &driver::App) -> Option<String> {
 }
 
 /// Makes these folders in the library, then reads the library again with
-/// « ↺ », as a user who had made them by hand would.
-fn folders_laid_by_hand(app: &mut driver::App, test: &str, folders: &[&str]) {
+/// « ↺ », as a user who had made them by hand would. Says where the library
+/// is.
+fn folders_laid_by_hand(app: &mut driver::App, test: &str, folders: &[&str]) -> PathBuf {
     let library = cao_prefs::default_projects_dir(&driver::locations_of(test));
     for folder in folders {
         std::fs::create_dir_all(library.join(folder)).expect("the folder is made");
     }
     driver::click(app, "↺");
+    library
+}
+
+/// How many files stand in this folder itself, not under it, named this before
+/// their extension.
+fn files_named(folder: &Path, name: &str) -> usize {
+    std::fs::read_dir(folder)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| entry.path())
+                .filter(|path| path.is_file() && path.file_stem().is_some_and(|stem| stem == name))
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+/// Where the column draws the one row reading this.
+fn the_row_reading(app: &driver::App, name: &str) -> egui::Rect {
+    *driver::rows_of_the_file_list_reading(app, name)
+        .first()
+        .unwrap_or_else(|| {
+            panic!(
+                "no row of the column reads « {name} », showing {:?}",
+                driver::on_screen(app),
+            )
+        })
 }
 
 #[test]
@@ -130,5 +160,43 @@ fn the_card_saves_in_the_folder_chosen_in_the_column_else_at_the_root() {
         "« Brides » chosen in « Toutes les pièces », « Enregistrer dans » does not \
          show it, showing {:?}",
         driver::on_screen(&app),
+    );
+}
+
+#[test]
+fn a_part_created_goes_in_the_folder_shown_and_the_column_lists_it_under_that_folder() {
+    let test = "a_part_created_goes_in_the_folder_shown";
+    let mut app = driver::open(test);
+    let library = folders_laid_by_hand(&mut app, test, &["Brides"]);
+    driver::create_a_part(&mut app, "Plaque");
+    driver::click(&mut app, "Accueil");
+    let brides = the_row_reading(&app, "Brides");
+    driver::click_at(&mut app, brides.center());
+    assert_eq!(
+        where_the_card_saves(&app).as_deref(),
+        Some("Dossier des pièces / Brides"),
+        "the card does not show « Brides » once it is chosen, showing {:?}",
+        driver::on_screen(&app),
+    );
+
+    driver::create_a_part(&mut app, "Support");
+    driver::click(&mut app, "Accueil");
+
+    assert_eq!(
+        (
+            files_named(&library.join("Brides"), "Support"),
+            files_named(&library, "Support"),
+        ),
+        (1, 0),
+        "the part created with « Brides » shown is not in « Brides » alone: \
+         (in « Brides », at the root)",
+    );
+    let support = the_row_reading(&app, "Support");
+    let folder = the_row_reading(&app, "Brides");
+    let at_the_root = the_row_reading(&app, "Plaque");
+    assert!(
+        support.top() > folder.top() && support.left() > at_the_root.left(),
+        "the column does not draw « Support » under « Brides »: at {support:?}, the \
+         folder at {folder:?}, a part at the root at {at_the_root:?}",
     );
 }
