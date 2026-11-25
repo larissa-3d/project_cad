@@ -47,8 +47,9 @@ fn together(one: &Cylinder, other: &Cylinder, (tolerance, span): (f64, f64)) -> 
 /// across the axis at the circle's height, the way a chord sags. A cone all
 /// but square to its axis stands that close to the circles of a plane all
 /// but lying on it only along the axis, and is left as it was. A sphere or a
-/// torus stands close to no circle this way yet (#576): a coaxial wall a
-/// hair inside a ball is a family the campaign measures.
+/// torus stands close to no circle this way (#576): a coaxial wall a hair
+/// from a row of its grid makes that grid a multiple of its own instead
+/// (`cone::kept_by_walls`, #1123).
 pub(super) fn beside(circle: &Circle, grid: &Grid, (tolerance, span): (f64, f64)) -> bool {
     let Spun::Cone(cone) = &grid.spun else {
         return false;

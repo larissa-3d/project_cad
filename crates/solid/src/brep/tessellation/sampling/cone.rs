@@ -28,7 +28,7 @@
 //! [`round`]: super::round
 
 use std::collections::BTreeMap;
-use std::f64::consts::TAU;
+use std::f64::consts::{PI, TAU};
 
 use glam::DVec3;
 
@@ -216,15 +216,16 @@ pub(super) fn grids(body: &Body, (tolerance, span): (f64, f64)) -> BTreeMap<Surf
                         widest = widest.max(round.widest());
                     }
                     let steps = divisions_in(widest, tolerance * SHARE, span);
+                    let rows = divisions_in(round.radius(), tolerance * SHARE, span);
                     (
                         kept_by_walls(
                             body,
                             &round,
-                            (steps, most(widest, span)),
+                            (steps, rows, most(widest, span)),
                             (tolerance, span),
                             eps,
                         ),
-                        divisions_in(round.radius(), tolerance * SHARE, span),
+                        rows,
                         beyond_most(widest, tolerance * SHARE, span)
                             || beyond_most(round.radius(), tolerance * SHARE, span),
                     )
@@ -245,18 +246,28 @@ pub(super) fn grids(body: &Body, (tolerance, span): (f64, f64)) -> BTreeMap<Surf
 }
 
 /// A round's `steps` a turn, made a multiple of the grid of every cylinder
-/// of the body that stands on its axis and touches it along an equator — a
-/// ring round a post of its inner radius or in a bore of its outer one, a
-/// ball in a bore of its own — where the two grids start the same way round.
-/// A circle another surface only touches a round along parts neither face
-/// (#576), so neither face samples it, and a chord of the round along it
-/// cut across the cylinder's between two of its steps: the two crossed
-/// beside the circle they share (5576855166, 5585606550). Left as they are
-/// where no such multiple stands under the most a turn is cut into.
+/// of the body that stands on its axis within twice the sag of its own
+/// chords of the circle of a row of the round's grid of `rows` a turn — as
+/// two walls are told close — where the two grids start the same way round.
+/// A wall touching a round along an equator — a ring round a post of its
+/// inner radius or in a bore of its outer one, a ball in a bore of its own
+/// — touches it along a circle that parts neither face (#576), so neither
+/// face samples it, and a chord of the round along it cut across the
+/// cylinder's between two of its steps: the two crossed beside the circle
+/// they share (5576855166, 5585606550). A wall crossing the round a hair
+/// from a row leaves between them, along the strip from the rim to that
+/// row, a ring thinner than their chords sag, and the strip, on columns of
+/// its own, reached across from a step of the wall's to the next, through
+/// the wall's chords: a half ball cut by a shaft 2.1e-7 to 4e-4 under its
+/// radius, its rim a hair under the equator, or 1.9e-3 and 2.2e-3, a hair
+/// under the row below, was crossed there (#1123). On a multiple of the
+/// wall's grid each column of the strip stands where the rim has a sample,
+/// and the strip stays outside the wall's chords. Left as they are where no
+/// such multiple stands under the most a turn is cut into.
 fn kept_by_walls(
     body: &Body,
     round: &Rounded,
-    (steps, cap): (usize, usize),
+    (steps, rows, cap): (usize, usize, usize),
     (tolerance, span): (f64, f64),
     eps: f64,
 ) -> usize {
@@ -265,10 +276,11 @@ fn kept_by_walls(
         let Surface::Cylinder(wall) = surface else {
             continue;
         };
-        if !touching(round, wall, eps) {
+        let theirs = divisions_in(wall.radius, tolerance, span);
+        let sag = wall.radius * (1.0 - (PI / theirs as f64).cos());
+        if !beside_a_row(round, wall, rows, (eps, 2.0 * sag)) {
             continue;
         }
-        let theirs = divisions_in(wall.radius, tolerance, span);
         let turn = wall.u.dot(round.v()).atan2(wall.u.dot(round.u()));
         let ranks = turn / TAU * theirs as f64;
         if (ranks - ranks.round()).abs() <= ALIGNED {
@@ -282,18 +294,21 @@ fn kept_by_walls(
 /// Under this share of a step, two grids start at one angle.
 const ALIGNED: f64 = 1e-9;
 
-/// Whether `wall` stands on the axis of `round` and touches it along an
-/// equator: its radius the round's furthest from the axis or nearest.
-fn touching(round: &Rounded, wall: &Cylinder, eps: f64) -> bool {
+/// Whether `wall` stands on the axis of `round` and within `reach` of the
+/// circle of one of the round's `rows` a turn along the meridian — its
+/// equators among them, the furthest from the axis and the nearest, which a
+/// wall touching it stands at within `eps`.
+fn beside_a_row(round: &Rounded, wall: &Cylinder, rows: usize, (eps, reach): (f64, f64)) -> bool {
     let from = round.origin() - wall.origin;
     let off = (from - wall.axis * wall.axis.dot(from)).length();
     let leaning = wall.axis.cross(round.axis()).length() * wall.radius;
-    let (outer, inner) = (round.widest(), round.widest() - 2.0 * round.radius());
+    let centre = round.widest() - round.radius();
     off <= eps
         && leaning <= eps
-        && [outer, inner]
-            .iter()
-            .any(|equator| (equator - wall.radius).abs() <= eps)
+        && (0..rows).any(|row| {
+            let across = centre + round.radius() * (TAU * row as f64 / rows as f64).cos();
+            (across - wall.radius).abs() <= reach.max(eps)
+        })
 }
 
 fn greatest_common(one: usize, other: usize) -> usize {
