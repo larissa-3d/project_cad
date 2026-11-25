@@ -74,10 +74,10 @@ fn a_wall_touches_a_sphere_face_only_along_an_edge_of_its_own_radius_about_its_a
         .expect("the zone joins the tube");
     let touched = touched_on_each_sphere_face(&in_the_bore);
     assert_eq!(touched.len(), 2, "two sphere faces: {touched:?}");
-    for latitudes in &touched {
+    for found in &touched {
         assert!(
-            matches!(latitudes[..], [equator] if equator.abs() <= 1e-12),
-            "the equator alone: {latitudes:?}"
+            matches!(found[..], [equator] if equator.abs() <= 1e-12),
+            "the equator alone: {found:?}"
         );
     }
 
