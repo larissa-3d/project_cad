@@ -306,6 +306,7 @@ found [`exact-kernel-failures.md`](exact-kernel-failures.md).
 | Writing one out, and timing what it costs | `part/examples/draw_a_part.rs` | `cargo run --release -p cao_part --features test-support --example draw_a_part -- /tmp/big.caopart sketches=6 storeys=4` |
 | The picture a part carries of itself | `part/src/picture.rs` | `Picture` |
 | Pulling that picture out without replaying | `part/src/document.rs`, `part/src/document/picture_entries.rs` | `PartDocument::picture_in`, `picture_entries::read` |
+| Counting a part's sketches and extrusions in effect from its index alone, no step's folder read (#745) | `part/src/document/step_counts.rs`, `part/src/document/design.rs` | `PartDocument::step_counts_in`, `StepCounts`, `design::index_in` |
 | What fails when opening a part | `part/src/errors.rs` | `PartFileError` |
 | What a part asks of a filesystem | `part/src/ports/files.rs` | `Files`, `FileError` |
 | What browsing a folder of parts asks of it | `part/src/ports/folders.rs` | `Folders`, `Entry` |

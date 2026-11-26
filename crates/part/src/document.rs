@@ -22,9 +22,11 @@ mod matter;
 mod picture_entries;
 mod rule_in_place;
 mod sections;
+mod step_counts;
 mod variables;
 
 use sections::SectionChoices;
+pub use step_counts::StepCounts;
 pub use variables::{Refused, Use};
 
 /// Bumped whenever the layout of a saved part changes.
