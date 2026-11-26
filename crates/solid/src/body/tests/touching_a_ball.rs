@@ -112,12 +112,59 @@
 //! first, on the mirror meridian of +Z and on the meridians 10° and 45° from
 //! +X, whose plane holds no angle of the grid, are built and drawn whole as
 //! on −Z —
-//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`
-//! — but one, older than #1110 and declined under #960's cut order as
-//! well: on +Z, the caps of 45° crossing at 0.05°, the flat about the
-//! equator cut first, which the kernel declines `Unverified` at the second
-//! cut, its own listing failing before anything is drawn. The test holds it
-//! declined so, never accepted crossed, for #1117 to turn round.
+//! `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`.
+//!
+//! One of them, older than #1110 and declined under #960's cut order as
+//! well, was declined `Unverified` at the second cut, the kernel's own
+//! listing failing before anything was drawn: on +Z, the caps of 45°
+//! crossing at 0.05°, the flat about the equator cut first. The other order
+//! built it sound, closed and uncrossed. #1110 held it declined, never
+//! accepted crossed; it is held built now, the same body either way, as
+//! every other placement is.
+//!
+//! Closes #1117.
+//! - That placement, both orders: built, sound, drawn uncrossed, of the
+//!   right volume — the case
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first`
+//!   (#1110's branch, `touching_a_ball.rs`) leaves aside holds — that test,
+//!   the case no longer left aside
+//! - #1110's and #960's tests keep passing — the tests closing them above,
+//!   run as they stand:
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first`,
+//!   `a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass_within_half_the_drawing_s_tolerance_is_built_and_drawn_whole`,
+//!   `a_block_a_hair_inside_a_ball_whose_floor_halves_their_small_circle_is_joined_and_cut_as_the_block_touching_it_is`,
+//!   `a_slab_a_hair_inside_a_half_ball_just_under_its_rim_is_joined_and_cut_as_the_slab_touching_it_is`;
+//!   and the one above, holding every other placement it held
+//!
+//! Read as: "built, sound, drawn uncrossed, of the right volume", what
+//! `built_whole` holds, as for #1110's placements; "the right volume", the
+//! ball less both caps of 45° whole, the sliver they share at 0.05° left out
+//! of it as #1110's test leaves it. "Both orders" give the same body as
+//! #822 has it: each is held to that one volume, by the same checks.
+//!
+//! Beyond the criteria, the review's case: the place the parity is read
+//! from, where a trace runs most steeply across the meridian, is never on a
+//! slit, an edge the face runs both ways with the face on either side of
+//! it, which runs across the meridian squarely along a latitude and bounds
+//! nothing. The ball a half band touches along half its equator, its face
+//! slit there (5585606550), cut by a flat whose cap takes in the pole
+//! towards −Y or +Y, joined then cut or cut then joined, the band turned
+//! either way, holds the ball and the band less the cap —
+//! `a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first`.
+//! It is held built, listed sound, of the arithmetic's volume and drawn
+//! closed, not drawn uncrossed: the ball's chords and the band's still cross
+//! beside the circle the two only touch, wherever the ball is cut as well,
+//! before #1117 as after it (`tessellation/sampling/cone.rs`) — #1140, which
+//! lifts the waiver.
+//!
+//! And a case another review found: a shaft of radius 4.9 along Z, from
+//! z = −10 to the centre of a ball of 5 or 2 past it, less the half ball
+//! turned half a turn about an axis through that centre at a slant, held
+//! 166.2 and 224.9 about (1, 0, 1)/√2 where its own triangles enclosed 689.5
+//! and 748.2, and is built and listed sound holding what the slices give
+//! once the poles are read as #1117 reads them —
+//! `a_shaft_less_a_half_ball_turned_at_a_slant_about_its_centre_holds_what_the_slices_give`.
+//! The other slants and the shaft's own axis held it already.
 
 use super::*;
 use crate::soundness::listed;
@@ -529,20 +576,12 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_fraction_of_a_degree_or_pass
 /// of a degree or a twentieth — with [`two_flats_about`]'s directions, in the
 /// plane of the meridian of +X, `turned` about Y into that of the meridian
 /// `named`. Cut by either flat first, each is built, listed sound, drawn
-/// whole and closed, uncrossed, holding the ball less both caps — but the
-/// placement `unverified`, which the kernel declines `Unverified` (#1117).
-fn cut_by_two_flats_on_the_meridian(
-    turned: impl Fn(DVec3) -> DVec3,
-    named: &str,
-    unverified: Option<Placement>,
-) {
-    for (pair, (caps, latitude)) in [([30f64, 50.0], 60f64), ([45.0, 45.0], 45.0)]
-        .into_iter()
-        .enumerate()
-    {
+/// whole and closed, uncrossed, holding the ball less both caps.
+fn cut_by_two_flats_on_the_meridian(turned: impl Fn(DVec3) -> DVec3, named: &str) {
+    for (caps, latitude) in [([30f64, 50.0], 60f64), ([45.0, 45.0], 45.0)] {
         let offsets = caps.map(|cap| 5.0 * cap.to_radians().cos());
         let [first, second] = offsets.map(|offset| 5.0 - offset);
-        for (crossing, degrees) in [0.1f64, 0.05].into_iter().enumerate() {
+        for degrees in [0.1f64, 0.05] {
             let apart = apart_crossing_at(offsets, degrees.to_radians());
             let flats = two_flats_about(offsets, apart, latitude.to_radians()).map(&turned);
             for [one, other] in [[0, 1], [1, 0]] {
@@ -558,19 +597,6 @@ fn cut_by_two_flats_on_the_meridian(
                     caps[other],
                     flats[other].y.asin().to_degrees()
                 );
-                let placement = Placement {
-                    caps: pair,
-                    crossing,
-                    first: one,
-                };
-                if unverified == Some(placement) {
-                    assert_eq!(
-                        cut.err(),
-                        Some(Declined::Unverified),
-                        "{what}: declined as #1117 has it"
-                    );
-                    continue;
-                }
                 built_whole(
                     cut,
                     BALL_OF_5 - cap_of_5(first) - cap_of_5(second),
@@ -582,25 +608,6 @@ fn cut_by_two_flats_on_the_meridian(
     }
 }
 
-/// One of [`cut_by_two_flats_on_the_meridian`]'s placements, by rank: of
-/// its pair of caps, of the crossing, and of the flat cut first, the one
-/// about the pole being the first.
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct Placement {
-    caps: usize,
-    crossing: usize,
-    first: usize,
-}
-
-/// #1117's placement: the caps of 45° each, crossing at 0.05°, the flat
-/// about the equator cut first, which the kernel declines `Unverified` at
-/// the second cut on the meridian of +Z.
-const UNVERIFIED_ON_PLUS_Z: Placement = Placement {
-    caps: 1,
-    crossing: 1,
-    first: 1,
-};
-
 /// The ball cut by two flats whose circles meet in the plane of its
 /// meridian of −Z: caps of 30° and 50° meeting at 60° of latitude, or of 45°
 /// each meeting at 45°, their circles crossing at a tenth of a degree or a
@@ -611,7 +618,7 @@ const UNVERIFIED_ON_PLUS_Z: Placement = Placement {
 #[test]
 fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_minus_z_is_drawn_uncrossed_whichever_is_cut_first()
  {
-    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, -way.x), "−Z", None);
+    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, -way.x), "−Z");
 }
 
 /// The same placements on the mirror meridian, +Z, whose plane holds the
@@ -620,23 +627,254 @@ fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_mer
 /// in, a hair off the pole — holds none of the grid's angles, a step of
 /// some 1.5° here: the first circle's samples stand otherwise against the
 /// angle the face is cut open at. Each is built, listed sound, drawn whole
-/// and closed, uncrossed, as on the meridian of −Z — but
-/// [`UNVERIFIED_ON_PLUS_Z`], declined `Unverified` at its second cut, as
-/// #1117 has it.
+/// and closed, uncrossed, as on the meridian of −Z — #1117's among them, on
+/// +Z the caps of 45° crossing at 0.05°, the flat about the equator cut
+/// first, which #1117 found declined `Unverified` at its second cut.
 #[test]
 fn a_ball_cut_by_two_flats_whose_circles_cross_at_a_tenth_of_a_degree_on_its_meridian_of_plus_z_or_between_the_grid_s_angles_is_drawn_uncrossed_whichever_is_cut_first()
  {
-    cut_by_two_flats_on_the_meridian(
-        |way| DVec3::new(0.0, way.y, way.x),
-        "+Z",
-        Some(UNVERIFIED_ON_PLUS_Z),
-    );
+    cut_by_two_flats_on_the_meridian(|way| DVec3::new(0.0, way.y, way.x), "+Z");
     for longitude in [10f64, 45.0] {
         let (across, along) = longitude.to_radians().sin_cos();
         cut_by_two_flats_on_the_meridian(
             |way| DVec3::new(way.x * along, way.y, -way.x * across),
             &format!("{longitude}° from +X towards −Z"),
-            None,
         );
+    }
+}
+
+/// The band from radius 5 to 6, from y = −0.5 to 0.5, turned half a turn
+/// about Y `way`: its inner wall touches [`ball_about_y`] along half its
+/// equator, the ball's face slit there (5585606550).
+fn half_band_about_y(way: f64) -> Body {
+    let corners = Contour::rectangle(DVec2::new(5.0, -0.5), DVec2::new(6.0, 0.5)).corners;
+    let triangles = fan(&corners);
+    let profile = straight(&corners, &triangles);
+    Body::default()
+        .tool_turned(&profile, FLAT, &about_v(&profile, way * PI))
+        .expect("the exact kernel turns the band")
+}
+
+/// Holds that `result` is built by the exact kernel, listed sound, holds
+/// `kept` within a billionth of it, and that its triangles are closed:
+/// what [`built_whole`] holds short of the drawing, whose chords of a ball
+/// and of a wall along a circle the two only touch still cross beside it
+/// where the ball is cut as well (`tessellation/sampling/cone.rs`,
+/// 5585606550).
+fn built_sound(result: Result<Body, Declined>, kept: f64, what: &str) {
+    let body = result.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+    let exact = body.brep().expect("the exact kernel computed the step");
+    assert_eq!(
+        listed(&exact.listing(), exact.scale().reach()),
+        Ok(()),
+        "{what}: listed sound"
+    );
+    assert!(
+        (body.volume() - kept).abs() <= 1e-9 * kept,
+        "{what}: holds {}, where the arithmetic gives {kept}",
+        body.volume()
+    );
+    assert_eq!(
+        crate::soundness::closed(&body.triangles()),
+        Ok(()),
+        "{what}: drawn closed"
+    );
+}
+
+/// The ball joined to a half band its equator touches, the ball's face slit
+/// along that half, and cut by a flat 4 from its centre whose cap takes in
+/// the pole towards −Y or +Y — its normal (0.3, ±1, 0.18) or (0, ±1, 0.18)
+/// — joined then cut, or cut then joined, the band turned either way: each
+/// is built, listed sound, drawn closed, holding the ball and the band less
+/// the cap, which misses the band. The ball's face holds the pole the cap
+/// leaves it, the slit bounding nothing.
+#[test]
+fn a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first()
+ {
+    let ball = ball_about_y();
+    for way in [1.0, -1.0] {
+        let half = half_band_about_y(way);
+        for up in [-1.0, 1.0] {
+            for tilt in [0.3, 0.0] {
+                let towards = DVec3::new(tilt, up, 0.18);
+                let flat = slab_along(towards, 4.0);
+                for (how, built) in [
+                    (
+                        "joined then cut",
+                        ball.union(&half)
+                            .and_then(|joined| joined.difference(&flat)),
+                    ),
+                    (
+                        "cut then joined",
+                        ball.difference(&flat).and_then(|cut| cut.union(&half)),
+                    ),
+                ] {
+                    built_sound(
+                        built,
+                        BALL_OF_5 + 5.5 * PI - cap_of_5(1.0),
+                        &format!(
+                            "the ball and the half band turned {way} of a half turn, {how} by \
+                             the flat along {towards}"
+                        ),
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// The half disc of radius 5 about the origin, on the side of
+/// `axis.any_orthonormal_vector()` in the plane it spans with `axis`, turned
+/// half a turn about `axis` — and the normal of that plane pointing away
+/// from the half ball, which [`about_v`] lays on the side it lays
+/// [`ball_turned_about_y`]'s, under z = 0.
+fn half_ball_about(axis: DVec3) -> (Body, DVec3) {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..=32)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * 5.0)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let half = Contour {
+        corners: vec![DVec2::new(0.0, -5.0), DVec2::new(0.0, 5.0)],
+        runs: vec![
+            Run::Round {
+                center: DVec2::ZERO,
+                turn: PI,
+            },
+            Run::Straight,
+        ],
+    };
+    let profile = Profile {
+        exact: Some((half, Vec::new())),
+        sampled: Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    let u = axis.any_orthonormal_vector();
+    let body = Body::default()
+        .tool_turned(
+            &profile,
+            Frame {
+                origin: DVec3::ZERO,
+                u,
+                v: axis,
+            },
+            &about_v(&profile, PI),
+        )
+        .expect("the exact kernel turns the half ball");
+    (body, u.cross(axis))
+}
+
+/// A shaft of `radius` along Z, from z = `from` to z = `to`.
+fn shaft_along_z(radius: f64, from: f64, to: f64) -> Body {
+    let round = Contour {
+        corners: vec![DVec2::X * radius],
+        runs: vec![Run::Round {
+            center: DVec2::ZERO,
+            turn: TAU,
+        }],
+    };
+    Body::default()
+        .tool_raised(
+            &exact(round, vec![]),
+            Frame {
+                origin: DVec3::Z * from,
+                ..FLAT
+            },
+            DVec3::Z * (to - from),
+        )
+        .expect("the kernel raises the shaft")
+}
+
+/// What a shaft of `radius` along Z from `from` to `to` keeps outside the
+/// half of the ball of 5 about the origin that lies where `away` points
+/// away from: the shaft less, slice by slice along Z, the disc the shaft and
+/// the ball share — of the shaft's radius or the ball's, the smaller — on
+/// the side of the chord the half's flat face cuts it along. The slices are
+/// summed by Simpson's rule between the heights where the disc's radius or
+/// the chord's reach changes how a slice is read, where the area runs as a
+/// power three halves: a tenth of the steps comes within 1e-11 of all of
+/// them.
+fn kept_beside_a_half_ball(radius: f64, [from, to]: [f64; 2], away: DVec3) -> f64 {
+    let across = DVec2::new(away.x, away.y).length();
+    let lean = -away.z / across;
+    let disc = |z: f64| radius.min((25.0 - z * z).max(0.0).sqrt());
+    let beyond = |reach: f64, chord: f64| {
+        if chord >= reach {
+            0.0
+        } else if chord <= -reach {
+            PI * reach * reach
+        } else {
+            reach * reach * (chord / reach).acos() - chord * (reach * reach - chord * chord).sqrt()
+        }
+    };
+    let taken = |z: f64| {
+        let reach = disc(z);
+        PI * reach * reach - beyond(reach, lean * z)
+    };
+    let (low, high) = (from.max(-5.0), to.min(5.0));
+    let wall = (25.0 - radius * radius).sqrt();
+    let sphere = 5.0 / (1.0 + lean * lean).sqrt();
+    let mut cuts = vec![low, high, -wall, wall, -sphere, sphere, 0.0];
+    if lean != 0.0 {
+        cuts.extend([-radius / lean.abs(), radius / lean.abs()]);
+    }
+    cuts.retain(|cut| (low..=high).contains(cut));
+    cuts.sort_by(f64::total_cmp);
+    cuts.dedup();
+    let steps = 20_000;
+    let simpson = |a: f64, b: f64| {
+        let step = (b - a) / f64::from(steps);
+        let inner: f64 = (1..steps)
+            .map(|rank| {
+                let weight = if rank % 2 == 1 { 4.0 } else { 2.0 };
+                weight * taken(a + step * f64::from(rank))
+            })
+            .sum();
+        (taken(a) + inner + taken(b)) * step / 3.0
+    };
+    let shared: f64 = cuts
+        .windows(2)
+        .map(|piece| simpson(piece[0], piece[1]))
+        .sum();
+    PI * radius * radius * (to - from) - shared
+}
+
+/// A shaft of radius 4.9 along Z, from z = −10 to the centre of the ball of
+/// 5 or 2 past it, less the half ball turned half a turn about an axis
+/// through that centre — at a slant, (1, 0, 1)/√2, (−1, 0, 1)/√2 or
+/// (0, 1, 1)/√2, or along the shaft: built, listed sound, holding what the
+/// slices give. About (1, 0, 1)/√2, before #1117 read the poles its faces
+/// hold from the squarest crossing, the body held 166.2 and 224.9 where the
+/// slices give 689.8 and 748.5.
+#[test]
+fn a_shaft_less_a_half_ball_turned_at_a_slant_about_its_centre_holds_what_the_slices_give() {
+    let slant = std::f64::consts::FRAC_1_SQRT_2;
+    for axis in [
+        DVec3::new(slant, 0.0, slant),
+        DVec3::new(-slant, 0.0, slant),
+        DVec3::new(0.0, slant, slant),
+        DVec3::Z,
+    ] {
+        let (half, away) = half_ball_about(axis);
+        for to in [0.0, 2.0] {
+            let what = format!("the shaft of 4.9 from −10 to {to} less the half ball about {axis}");
+            let body = shaft_along_z(4.9, -10.0, to)
+                .difference(&half)
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            let exact = body.brep().expect("the exact kernel computed the cut");
+            assert_eq!(
+                listed(&exact.listing(), exact.scale().reach()),
+                Ok(()),
+                "{what}: listed sound"
+            );
+            let kept = kept_beside_a_half_ball(4.9, [-10.0, to], away);
+            assert!(
+                (body.volume() - kept).abs() <= 1e-9 * kept,
+                "{what}: holds {}, where the slices give {kept}",
+                body.volume()
+            );
+        }
     }
 }

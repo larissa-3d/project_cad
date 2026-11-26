@@ -1998,7 +1998,35 @@ same input gives the same bits.
   the face on either side — bounds nothing there (#644,
   `topology/poles.rs`): a ball a half band touches along half its equator
   was read as holding one pole of two, and was listed `Pointed` and refused
-  through the body (5585606550). A
+  through the body (5585606550). The parity is read from the place, of the
+  middles of the face's traces, then their quarters and three quarters,
+  where a trace runs most steeply across the meridian (#1117): the middle
+  of the first trace was taken unless it ran along the meridian within a
+  billionth of its pace, and a circle about a point a hair off the equator
+  turns back there a hair off the meridian. Its own crossing, which the meridian all
+  but touches, was found by rounding further than the pole's room from it
+  and counted on the way, and a ball cut by such a flat was read as holding
+  one pole of two; a second flat taking the cap about the pole it held left
+  the rest of the sphere unbounded in the chart, no face, and its listing
+  failed. A loop through the other pole is crossed there on that pole's
+  floor, at its height: read as traced, the trace arriving at the pole ran
+  on to where the next one leaves it, and every meridian between the two
+  crossed it halfway up, below the place the parity is read from as often
+  as above it. A sector of a ball turned a quarter, its arc hanging between
+  the two meridians it reaches its pole by, was read as holding the far
+  pole too once the place moved up that arc, and listed backwards. Nor is
+  the parity ever read from a slit, a trace the face's loops also run the
+  other way (`domain/floor/round.rs`, `holds`). The poles a body's faces
+  are listed with were read with their slits left out (`topology/poles.rs`),
+  but the volume and the domain, closed along the floors of the poles a
+  face holds, read them off the loops as they stand; `holds` now passes
+  over the slits itself, for all three. A slit along a latitude runs across
+  the meridian as squarely as any trace, the face on either side of it,
+  and the ball a half band touches along half its equator, cut by a flat
+  about a pole, was read as holding the wrong pole and held 2.6 where the
+  arithmetic gives 526. Crossed twice at one height, a slit changes no
+  parity on the way; a face whose traces are slits alone holds every pole,
+  as one with no loop does. A
   face of a ring reaching across the cut is closed along what it reaches of
   it (#623, `domain/floor/round/ring.rs`): along each stretch between the
   meridians crossing the cut, read off the way each runs, and along the
