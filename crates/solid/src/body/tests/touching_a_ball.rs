@@ -156,6 +156,15 @@
 //! beside the circle the two only touch, wherever the ball is cut as well,
 //! before #1117 as after it (`tessellation/sampling/cone.rs`) — #1140, which
 //! lifts the waiver.
+//!
+//! And a case another review found: a shaft of radius 4.9 along Z, from
+//! z = −10 to the centre of a ball of 5 or 2 past it, less the half ball
+//! turned half a turn about an axis through that centre at a slant, held
+//! 166.2 and 224.9 about (1, 0, 1)/√2 where its own triangles enclosed 689.5
+//! and 748.2, and is built and listed sound holding what the slices give
+//! once the poles are read as #1117 reads them —
+//! `a_shaft_less_a_half_ball_turned_at_a_slant_about_its_centre_holds_what_the_slices_give`.
+//! The other slants and the shaft's own axis held it already.
 
 use super::*;
 use crate::soundness::listed;
@@ -710,6 +719,162 @@ fn a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_
                     );
                 }
             }
+        }
+    }
+}
+
+/// The half disc of radius 5 about the origin, on the side of
+/// `axis.any_orthonormal_vector()` in the plane it spans with `axis`, turned
+/// half a turn about `axis` — and the normal of that plane pointing away
+/// from the half ball, which [`about_v`] lays on the side it lays
+/// [`ball_turned_about_y`]'s, under z = 0.
+fn half_ball_about(axis: DVec3) -> (Body, DVec3) {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..=32)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * 5.0)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let half = Contour {
+        corners: vec![DVec2::new(0.0, -5.0), DVec2::new(0.0, 5.0)],
+        runs: vec![
+            Run::Round {
+                center: DVec2::ZERO,
+                turn: PI,
+            },
+            Run::Straight,
+        ],
+    };
+    let profile = Profile {
+        exact: Some((half, Vec::new())),
+        sampled: Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    let u = axis.any_orthonormal_vector();
+    let body = Body::default()
+        .tool_turned(
+            &profile,
+            Frame {
+                origin: DVec3::ZERO,
+                u,
+                v: axis,
+            },
+            &about_v(&profile, PI),
+        )
+        .expect("the exact kernel turns the half ball");
+    (body, u.cross(axis))
+}
+
+/// A shaft of `radius` along Z, from z = `from` to z = `to`.
+fn shaft_along_z(radius: f64, from: f64, to: f64) -> Body {
+    let round = Contour {
+        corners: vec![DVec2::X * radius],
+        runs: vec![Run::Round {
+            center: DVec2::ZERO,
+            turn: TAU,
+        }],
+    };
+    Body::default()
+        .tool_raised(
+            &exact(round, vec![]),
+            Frame {
+                origin: DVec3::Z * from,
+                ..FLAT
+            },
+            DVec3::Z * (to - from),
+        )
+        .expect("the kernel raises the shaft")
+}
+
+/// What a shaft of `radius` along Z from `from` to `to` keeps outside the
+/// half of the ball of 5 about the origin that lies where `away` points
+/// away from: the shaft less, slice by slice along Z, the disc the shaft and
+/// the ball share — of the shaft's radius or the ball's, the smaller — on
+/// the side of the chord the half's flat face cuts it along. The slices are
+/// summed by Simpson's rule between the heights where the disc's radius or
+/// the chord's reach changes how a slice is read, where the area runs as a
+/// power three halves: a tenth of the steps comes within 1e-11 of all of
+/// them.
+fn kept_beside_a_half_ball(radius: f64, [from, to]: [f64; 2], away: DVec3) -> f64 {
+    let across = DVec2::new(away.x, away.y).length();
+    let lean = -away.z / across;
+    let disc = |z: f64| radius.min((25.0 - z * z).max(0.0).sqrt());
+    let beyond = |reach: f64, chord: f64| {
+        if chord >= reach {
+            0.0
+        } else if chord <= -reach {
+            PI * reach * reach
+        } else {
+            reach * reach * (chord / reach).acos() - chord * (reach * reach - chord * chord).sqrt()
+        }
+    };
+    let taken = |z: f64| {
+        let reach = disc(z);
+        PI * reach * reach - beyond(reach, lean * z)
+    };
+    let (low, high) = (from.max(-5.0), to.min(5.0));
+    let wall = (25.0 - radius * radius).sqrt();
+    let sphere = 5.0 / (1.0 + lean * lean).sqrt();
+    let mut cuts = vec![low, high, -wall, wall, -sphere, sphere, 0.0];
+    if lean != 0.0 {
+        cuts.extend([-radius / lean.abs(), radius / lean.abs()]);
+    }
+    cuts.retain(|cut| (low..=high).contains(cut));
+    cuts.sort_by(f64::total_cmp);
+    cuts.dedup();
+    let steps = 20_000;
+    let simpson = |a: f64, b: f64| {
+        let step = (b - a) / f64::from(steps);
+        let inner: f64 = (1..steps)
+            .map(|rank| {
+                let weight = if rank % 2 == 1 { 4.0 } else { 2.0 };
+                weight * taken(a + step * f64::from(rank))
+            })
+            .sum();
+        (taken(a) + inner + taken(b)) * step / 3.0
+    };
+    let shared: f64 = cuts
+        .windows(2)
+        .map(|piece| simpson(piece[0], piece[1]))
+        .sum();
+    PI * radius * radius * (to - from) - shared
+}
+
+/// A shaft of radius 4.9 along Z, from z = −10 to the centre of the ball of
+/// 5 or 2 past it, less the half ball turned half a turn about an axis
+/// through that centre — at a slant, (1, 0, 1)/√2, (−1, 0, 1)/√2 or
+/// (0, 1, 1)/√2, or along the shaft: built, listed sound, holding what the
+/// slices give. About (1, 0, 1)/√2, before #1117 read the poles its faces
+/// hold from the squarest crossing, the body held 166.2 and 224.9 where the
+/// slices give 689.8 and 748.5.
+#[test]
+fn a_shaft_less_a_half_ball_turned_at_a_slant_about_its_centre_holds_what_the_slices_give() {
+    let slant = std::f64::consts::FRAC_1_SQRT_2;
+    for axis in [
+        DVec3::new(slant, 0.0, slant),
+        DVec3::new(-slant, 0.0, slant),
+        DVec3::new(0.0, slant, slant),
+        DVec3::Z,
+    ] {
+        let (half, away) = half_ball_about(axis);
+        for to in [0.0, 2.0] {
+            let what = format!("the shaft of 4.9 from −10 to {to} less the half ball about {axis}");
+            let body = shaft_along_z(4.9, -10.0, to)
+                .difference(&half)
+                .unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
+            let exact = body.brep().expect("the exact kernel computed the cut");
+            assert_eq!(
+                listed(&exact.listing(), exact.scale().reach()),
+                Ok(()),
+                "{what}: listed sound"
+            );
+            let kept = kept_beside_a_half_ball(4.9, [-10.0, to], away);
+            assert!(
+                (body.volume() - kept).abs() <= 1e-9 * kept,
+                "{what}: holds {}, where the slices give {kept}",
+                body.volume()
+            );
         }
     }
 }
