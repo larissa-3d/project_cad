@@ -6,7 +6,9 @@ use std::f64::consts::{FRAC_PI_4, TAU};
 
 use glam::DVec3;
 
+use super::spheres::crossings;
 use super::*;
+use crate::brep::Scale;
 use crate::brep::surface::Sphere;
 
 /// The circle a plane `offset` from `centre` along `normal` cuts the sphere
@@ -435,4 +437,82 @@ fn a_wall_meeting_a_cone_along_its_one_circle_and_close_to_no_other_wall_takes_n
         "the wall of 6 took the cone's rays: {:?}",
         axes.given().keys().collect::<Vec<_>>()
     );
+}
+
+/// A ball turned at a slant and a shaft of 4.9 along z through its centre,
+/// whose wall meets the sphere along two circles of another axis: the wall
+/// is given the places they cross the steps of the sphere's grid at, on
+/// either side of the plane x = 0. Asked again with `kept` turning down every
+/// place with x ≤ 0, it is given the crossings on the other side alone, in
+/// the same order; and every place `kept` is asked about is one of the
+/// circles' own points at one of those crossings, on the wall.
+#[test]
+fn a_wall_is_given_the_crossings_of_its_circles_on_a_sphere_about_another_line_whose_places_are_kept()
+ {
+    let part = super::super::tests::crossed::ball_through_a_shaft();
+    let body = part.brep().expect("the ball and the shaft are exact");
+    let walls = contact::walls(body);
+    let fineness = (2e-3, super::super::steps::span(body));
+    let axes = Axes::of(
+        body,
+        &super::super::cone::grids(body, fineness),
+        &walls,
+        fineness,
+    );
+    let eps = body.scale().eps();
+    let every = axes.crossed(body, &walls, eps, |_, _| true);
+    let [(wall, crossings)] = every.iter().collect::<Vec<_>>()[..] else {
+        panic!("the shaft's wall alone is crossed: {every:?}");
+    };
+    let (_, cylinder) = walls
+        .iter()
+        .find(|(id, _)| id == wall)
+        .expect("the crossed wall is one of the body's");
+    let on_the_sphere: Vec<Circle> = body
+        .edge_ids()
+        .filter_map(|id| match body.curve(body.edge(id).curve) {
+            Curve::Circle(circle) if circle.center.z.abs() < 5.0 => Some(*circle),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        on_the_sphere.len(),
+        2,
+        "two circles of the wall on the sphere"
+    );
+    assert!(
+        crossings.iter().all(|way| way.x.abs() > 1e-6)
+            && crossings.iter().any(|way| way.x > 0.0)
+            && crossings.iter().any(|way| way.x < 0.0),
+        "crossings either side of x = 0, none on it: {crossings:?}"
+    );
+
+    let asked = RefCell::new(Vec::new());
+    let kept = axes.crossed(body, &walls, eps, |on, point| {
+        asked.borrow_mut().push((*on, point));
+        point.x > 0.0
+    });
+    let beyond: Vec<DVec3> = crossings
+        .iter()
+        .copied()
+        .filter(|way| way.x > 0.0)
+        .collect();
+    assert_eq!(
+        kept.get(wall),
+        Some(&beyond),
+        "the crossings whose places stand at x > 0"
+    );
+    let asked = asked.into_inner();
+    assert_eq!(asked.len(), crossings.len(), "each place asked about once");
+    for (on, point) in asked {
+        assert_eq!(on, *cylinder, "{point} asked about on another wall");
+        assert!(
+            on_the_sphere.iter().any(|circle| {
+                crossings
+                    .iter()
+                    .any(|way| point.distance(circle.center + *way * circle.radius) <= 1e-12)
+            }),
+            "the place {point} asked about is no crossing of the wall's circles"
+        );
+    }
 }

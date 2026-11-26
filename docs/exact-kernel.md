@@ -624,9 +624,6 @@ Known and still open:
   a multiple of a thousandth, it is under 3 in a thousand.
   `exact-kernel-failures.md` counts them by family. A ball joined with a
   quarter shaft over its pole is left too;
-- a shaft a hair under the radius of a ball turned about another axis, its
-  end plane standing inside the band, declines `Tie` when the shaft is the
-  second operand, where the coaxial case builds (#1109);
 - a face bounded by the curve two perpendicular cylinders meet is never
   decided clear of a face at a slant, so such a pair still declines;
 - the conics (#552): a plane a hair off square to, or along, a wall's
@@ -2958,9 +2955,25 @@ pointed cone's flank waits on #711.
   rounding would leave a sample a hair from the corner —, not where it only
   touches a step's half-plane, and not on a circle whose wall stands in a
   group of walls close about one axis, whose other circles would not take
-  those places; a crossing is left out, as a ray of the group is, where the
-  circle's contact withholds the step or another wall crowds it. Faces drawn
-  before #940 along such a circle — a ball cut at a slant, a sector of
+  those places; a crossing is left out, as a ray of the group is, where
+  another wall crowds it, and where the circle's contact withholds the step
+  but on a wall standing close to another. There, two parallel walls within
+  twice a chord's sag of each other, which contact samples on common rays,
+  the crossings are handed to contact as the wall's own, and every circle
+  of both takes them, the circle itself among the pair's rays, at a step
+  withheld too (#1109): a shaft laid onto a ball's touch by decision 12,
+  its end plane a hair inside the ball, leaves a ring a hair wide on that
+  plane between the ball's circle and the shaft's rim, and the rim, sampled
+  on its grid alone, had its chords sag inside the circle's crossings — the
+  ring left open, and the ball turned at a slant joined with the shaft
+  declined `Undrawn` where the ball turned about the shaft's axis was
+  built. A wall close to none keeps them on the circle alone: handed to its
+  other circles, they cost a shaft through a ball turned at a slant up to
+  half again its triangles, and a third more time, for nothing. On a pair
+  they are paid: a peg a hair inside a bore through such a ball, or a bore
+  ending where the ball's circle on its floor stands within a chord's sag
+  of its wall, takes up to a third more triangles and a fifth more time.
+  Faces drawn before #940 along such a circle — a ball cut at a slant, a sector of
   great-circle arcs, the flat beside them — gain those samples: on the
   tests that draw them, a few in a hundred more triangles for most, about a
   tenth more for a sector, and an extra one in a hundred over all of

@@ -9,7 +9,17 @@
 //! Nor where it only touches a step's half-plane, which rounding reads as
 //! two crossings a hair apart; nor on a circle standing in a group, whose
 //! other circles would not take them, nor where a ray of the group would
-//! not be taken.
+//! not be taken. Where its wall stands close to another, as [`contact`]
+//! pairs two parallel walls it samples on common rays, they are handed to
+//! contact as the wall's own, and every circle of both takes them: a shaft
+//! laid onto a ball's touch, its end a hair inside the ball, leaves a ring a
+//! hair wide on its end plane between the ball's circle and its own rim, and
+//! the rim, sampled on its grid alone, had its chords sag inside the
+//! circle's crossings, the ring left open along it (#1109). They come back
+//! to the circle among the pair's rays, which it takes at a step its contact
+//! withholds too. A wall close to none keeps them on the circle alone:
+//! handed to its other circles, they cost a shaft through a ball turned at a
+//! slant up to half again its triangles, for nothing.
 //!
 //! A circle lying on a cone takes the cone's grid and the angles of its
 //! vertices ([`cone`]). That leaves a cone's narrow rim with angles of its
@@ -60,6 +70,7 @@
 //! [`contact`]: super::super::contact
 
 mod joined;
+mod spheres;
 
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
@@ -70,8 +81,8 @@ use super::super::contact::{self, Contact, Wall};
 use super::cone::{Grid, Spun};
 use super::divisions_in;
 use super::round::Rounded;
-use crate::brep::Scale;
 use crate::brep::curve::{Circle, Curve};
+use crate::brep::surface::Cylinder;
 use crate::brep::topology::{Body, SurfaceId};
 use joined::{Joined, along, beside};
 
@@ -250,6 +261,36 @@ impl Axes {
             .collect()
     }
 
+    /// For each wall standing in no group, the places its circles lying on
+    /// a sphere about another line cross the steps of the sphere's grid at,
+    /// where `kept` says a sample stands on the wall; none for a wall with
+    /// no such place.
+    pub(super) fn crossed(
+        &self,
+        body: &Body,
+        walls: &[Wall],
+        eps: f64,
+        kept: impl Fn(&Cylinder, DVec3) -> bool,
+    ) -> BTreeMap<SurfaceId, Vec<DVec3>> {
+        let mut crossed: BTreeMap<SurfaceId, Vec<DVec3>> = BTreeMap::new();
+        for id in body.edge_ids() {
+            let Curve::Circle(circle) = body.curve(body.edge(id).curve) else {
+                continue;
+            };
+            let Some((wall, cylinder)) = contact::wall_of(circle, walls, eps) else {
+                continue;
+            };
+            if self.of_wall.contains_key(wall) {
+                continue;
+            }
+            let kept = |way: &DVec3| kept(cylinder, circle.center + *way * circle.radius);
+            for way in self.across_spheres(circle, eps).filter(kept) {
+                crossed.entry(*wall).or_default().push(way);
+            }
+        }
+        crossed
+    }
+
     /// Every group's rays and every ray one of its walls takes in contact.
     pub(super) fn gathered(mut self, contacts: &BTreeMap<SurfaceId, Contact>) -> Axes {
         for (id, group) in &self.of_wall {
@@ -304,14 +345,9 @@ impl Axes {
             .flat_map(|group| group.rays.iter())
             .filter(|way| !withheld(way) && kept(circle.center + **way * circle.radius))
             .copied();
-        let across_spheres = (self.steps.iter())
-            .filter(|(round, _)| {
-                group.is_none() && round.carries(circle, eps) && !round.holds(circle, eps)
-            })
-            .flat_map(|(round, steps)| {
-                let line = (round.origin(), round.axis());
-                (steps.iter()).flat_map(move |way| crossings(circle, line, *way))
-            })
+        let across_spheres = (group.is_none().then(|| self.across_spheres(circle, eps)))
+            .into_iter()
+            .flatten()
             .filter(|way| !withheld(way) && kept(circle.center + *way * circle.radius));
         let rays: Vec<DVec3> = contact
             .rays
@@ -333,28 +369,6 @@ impl Axes {
             oval: contact.oval,
         })
     }
-}
-
-/// The directions from the centre of `circle` to where it crosses the
-/// half-plane from the line through `origin` along `axis` out along `way`,
-/// square to it: none where it passes it by or only touches it, reaching
-/// past the half-plane's plane by no more than the kernel's relative
-/// tolerance of its radius. Read with rounding, a touch would cross it
-/// twice, the square root of a rounding apart.
-fn crossings(circle: &Circle, (origin, axis): (DVec3, DVec3), way: DVec3) -> Vec<DVec3> {
-    let across = axis.cross(way);
-    let (along_u, along_v) = (circle.u.dot(across), circle.v.dot(across));
-    let off = (circle.center - origin).dot(across) / circle.radius;
-    let reach = along_u.hypot(along_v);
-    if reach - off.abs() <= Scale::RELATIVE {
-        return Vec::new();
-    }
-    let (crest, spread) = (along_v.atan2(along_u), (-off / reach).acos());
-    [crest - spread, crest + spread]
-        .into_iter()
-        .map(|at| circle.u * at.cos() + circle.v * at.sin())
-        .filter(|ray| (circle.center + *ray * circle.radius - origin).dot(way) > 0.0)
-        .collect()
 }
 
 /// How close two rays of a group stand, in angle, to be one: far under any
