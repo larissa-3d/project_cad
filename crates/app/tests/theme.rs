@@ -447,6 +447,11 @@ fn every_token_the_chrome_holds_is_the_design_file_s() {
             tokens::TYPOGRAPHY_SIZES_MONO_VALUE,
             "typography.sizes.mono_value",
         ),
+        (
+            "TYPOGRAPHY_SIZES_SCREEN_TITLE",
+            tokens::TYPOGRAPHY_SIZES_SCREEN_TITLE,
+            "typography.sizes.screen_title",
+        ),
     ];
 
     let menu = design.shadow("menu");

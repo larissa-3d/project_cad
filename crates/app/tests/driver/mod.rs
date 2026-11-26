@@ -179,6 +179,55 @@ pub fn open_on_remembering(test: &str, size: egui::Vec2, place: cao_prefs::Windo
     launched(at, size)
 }
 
+/// A part laid in the parts folder before the application opens, and
+/// remembered as opened at `opened_at`.
+pub struct RecentPart {
+    /// Where it lies: below the parts folder when relative —
+    /// `Brides/support.caopart` — and anywhere when absolute.
+    pub lies_at: PathBuf,
+    pub part: cao_part::PartDocument,
+    pub opened_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// The application on the default window, these parts already in its parts
+/// folder and among its recent parts, the first given the most recently
+/// opened, as a user who had opened them before would find it.
+pub fn open_remembering_parts(test: &str, parts: Vec<RecentPart>) -> App {
+    let files = cao_app::adapters::files::DiskFiles;
+    let at = laid_out(test, cao_prefs::Settings::default());
+    let library = cao_prefs::default_projects_dir(&at);
+    let mut recents = cao_prefs::RecentList::default();
+    for recent in parts.iter().rev() {
+        let path = library.join(&recent.lies_at);
+        std::fs::create_dir_all(path.parent().expect("a folder holds the part"))
+            .expect("the part's folder is made");
+        recent
+            .part
+            .put_away(&files, &path, recent.opened_at)
+            .expect("the part is written");
+        recents.push(path, recent.part.name(), recent.opened_at);
+    }
+    recents
+        .save(&files, &at)
+        .expect("the recent parts are written where the application reads them");
+    let mut app = launched(at, SCREEN);
+    app.ctx
+        .data_mut(|data| data.insert_temp(held_canvas(), HeldCanvas));
+    hold_the_canvas(&mut app);
+    app
+}
+
+/// The application opened for `test` once more, on the default window, over
+/// everything the last one left behind: what a user who quit would find on
+/// starting it again.
+pub fn open_again(test: &str) -> App {
+    let mut app = launched(locations_of(test), SCREEN);
+    app.ctx
+        .data_mut(|data| data.insert_temp(held_canvas(), HeldCanvas));
+    hold_the_canvas(&mut app);
+    app
+}
+
 /// Where the application opened for `test` keeps the window's place.
 pub fn window_place_file(test: &str) -> PathBuf {
     locations_of(test).config.join("window.json")
@@ -542,10 +591,16 @@ pub fn shows(app: &App, text: &str) -> bool {
 
 /// Types the name beside « Nom : » on the home screen and makes the part: the
 /// field the user reads as the new part's name, not the first one drawn — the
-/// library's column has a filter of its own since #743.
+/// library's column has a filter of its own since #743. The button is pressed
+/// by its whole name and its role: the home screen's help, « Donnez un nom à
+/// gauche, puis Créer. », names it too.
 pub fn create_a_part(app: &mut App, named: &str) {
     type_beside(app, "Nom :", named);
-    click(app, "Créer");
+    let create = app.get(by().role(egui::accesskit::Role::Button).label("Créer ↵"));
+    within_reach("Créer ↵", create.rect().center(), app.ctx.content_rect());
+    create.click();
+    app.run();
+    hold_the_canvas(app);
 }
 
 /// Where the library's column on the home screen shows a row reading this:
@@ -561,6 +616,38 @@ pub fn rows_of_the_file_list_reading(app: &App, name: &str) -> Vec<egui::Rect> {
         .map(|node| node.rect())
         .filter(|at| at.top() >= below && at.right() <= column)
         .collect()
+}
+
+/// Where the home screen's recent parts name this part: the smallest text
+/// holding its name right of the library's column, no field being typed in —
+/// the name itself rather than a line drawn around it.
+pub fn the_recent_part_named(app: &App, name: &str) -> egui::Rect {
+    among_the_recent_parts(app, name).unwrap_or_else(|| {
+        panic!(
+            "no recent part on the home screen reads « {name} », showing {:?}",
+            on_screen(app),
+        )
+    })
+}
+
+/// The same, `None` when no recent part reads this name.
+pub fn among_the_recent_parts(app: &App, name: &str) -> Option<egui::Rect> {
+    let column = ["+ Dossier", "Renommer", "Supprimer"]
+        .map(|button| the_column_s_button(app, button).right())
+        .into_iter()
+        .fold(f32::MIN, f32::max);
+    app.get_all_by(|node| node.role() != egui::accesskit::Role::TextInput)
+        .filter(|node| text_of(node).is_some_and(|text| text.contains(name)))
+        .map(|node| node.rect())
+        .filter(|at| at.left() >= column)
+        .min_by(|one, other| one.area().total_cmp(&other.area()))
+}
+
+/// Opens a part from the home screen by a click on its name among the recent
+/// parts.
+pub fn open_the_recent_part(app: &mut App, name: &str) {
+    let at = the_recent_part_named(app, name).center();
+    click_at(app, at);
 }
 
 fn the_column_s_button(app: &App, label: &str) -> egui::Rect {

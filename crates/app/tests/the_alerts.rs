@@ -922,11 +922,7 @@ fn a_part_opened_from(test: &str, laid: fn(&mut PartDocument)) -> driver::App {
             chrono::Utc::now(),
         )
         .unwrap_or_else(|err| panic!("the part is not written at {file:?}: {err:?}"));
-    app.query_all_by_label("Platine")
-        .last()
-        .expect("the home screen lists « Platine »")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Platine");
     driver::hold_the_canvas(&mut app);
     app
 }

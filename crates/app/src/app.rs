@@ -27,7 +27,7 @@ pub struct CaoApp {
     remembered: Remembered,
     settings_open: bool,
     settings_editor: crate::screens::settings::SettingsEditor,
-    new_card: crate::screens::new_card::NewCard,
+    start_menu: crate::screens::start_menu::StartMenu,
     error: Option<String>,
     /// The library panel, held by the shell rather than by the start menu:
     /// what it read and folded is still there on the way back from a part.
@@ -70,7 +70,7 @@ impl CaoApp {
             remembered,
             settings_open: false,
             settings_editor: crate::screens::settings::SettingsEditor::default(),
-            new_card: Default::default(),
+            start_menu: Default::default(),
             error: None,
             explorer,
             painter,
@@ -146,17 +146,14 @@ impl CaoApp {
                 self.settings_open = true;
             }
         });
-        let action = egui::CentralPanel::default_margins()
-            .show(ui, |ui| {
-                screens::start_menu::show(
-                    ui,
-                    self.remembered.recents(),
-                    &mut self.new_card,
-                    &self.explorer,
-                    self.remembered.lang(),
-                )
-            })
-            .inner;
+        let action = screens::start_menu::show(
+            ui,
+            &mut self.start_menu,
+            self.remembered.recents(),
+            &self.explorer,
+            self.remembered.lang(),
+            &DiskFiles,
+        );
 
         match action {
             StartMenuAction::CreateNew { name, folder } => self.create_new_part(name, folder),

@@ -152,11 +152,7 @@ fn the_line_tool_over_the_plate(test: &str) -> driver::App {
             "2026-11-18T10:00:00Z".parse().expect("a date"),
         )
         .expect("the part is written");
-    app.query_all_by_label("Plaque")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Plaque");
     driver::double_click(&mut app, "Esquisse 1");
     driver::click(&mut app, "Ligne (L)");
     app

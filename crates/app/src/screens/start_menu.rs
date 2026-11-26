@@ -1,11 +1,19 @@
+//! The home screen: the title, then the « Nouveau » card beside the parts
+//! lately opened, each saying where it lies and what it holds.
+
+mod state;
+mod view;
+
 use std::path::PathBuf;
 
+use cao_part::Files;
 use cao_prefs::RecentEntry;
+
+pub use state::StartMenu;
 
 use crate::adapters::clock;
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
-use crate::screens::new_card::{self, NewCard};
 
 pub enum StartMenuAction {
     None,
@@ -17,55 +25,19 @@ pub enum StartMenuAction {
     Open(PathBuf),
 }
 
+/// Puts the home screen in the middle of the window, what each recent part
+/// holds and its picture read from `files` only once the list has changed.
 pub fn show(
     ui: &mut egui::Ui,
+    menu: &mut StartMenu,
     recents: &[RecentEntry],
-    card: &mut NewCard,
     explorer: &Explorer,
     lang: &Catalogue,
+    files: &impl Files,
 ) -> StartMenuAction {
-    let mut action = StartMenuAction::None;
-
-    ui.vertical_centered(|ui| {
-        ui.add_space(24.0);
-        ui.heading(lang.t("start_menu.title"));
-        ui.label(lang.t("start_menu.subtitle"));
-        ui.add_space(24.0);
-    });
-
-    ui.separator();
-
-    ui.columns(2, |columns| {
-        columns[0].vertical(|ui| {
-            if let Some((name, folder)) = new_card::show(ui, card, explorer, lang) {
-                action = StartMenuAction::CreateNew { name, folder };
-            }
-        });
-
-        columns[1].vertical(|ui| {
-            ui.heading(lang.t("start_menu.recents"));
-            ui.add_space(8.0);
-            if recents.is_empty() {
-                ui.weak(lang.t("start_menu.no_recents"));
-            } else {
-                let zone = clock::reader_zone();
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for entry in recents {
-                        ui.horizontal(|ui| {
-                            if ui.button(&entry.name).clicked() {
-                                action = StartMenuAction::Open(entry.path.clone());
-                            }
-                            ui.weak(lang.t_moment(
-                                "start_menu.recent_date",
-                                entry.opened_at,
-                                &zone,
-                            ));
-                        });
-                    }
-                });
-            }
-        });
-    });
-
-    action
+    menu.follow(recents, files);
+    let lines = menu.lines(&explorer.library().path, lang, &clock::reader_zone());
+    egui::CentralPanel::default_margins()
+        .show(ui, |ui| view::show(ui, menu, &lines, explorer, lang))
+        .inner
 }

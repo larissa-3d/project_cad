@@ -17,14 +17,18 @@ use crate::state::PartState;
 
 mod design;
 mod geometry_cache;
+mod glance;
 mod insertion;
 mod matter;
 mod picture_entries;
 mod rule_in_place;
 mod sections;
+mod step_counts;
 mod variables;
 
+pub use glance::Glance;
 use sections::SectionChoices;
+pub use step_counts::StepCounts;
 pub use variables::{Refused, Use};
 
 /// Bumped whenever the layout of a saved part changes.
@@ -312,9 +316,7 @@ impl PartDocument {
     /// Opening the part would replay its whole history — the cost the picture
     /// exists to avoid. A panel listing a folder must not pay it once a row.
     pub fn picture_in(files: &impl Files, path: &Path) -> Option<Picture> {
-        let bytes = files.read(path).ok()?;
-        let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).ok()?;
-        picture_entries::read(&mut archive)
+        picture_entries::read(&mut archive_in(files, path)?)
     }
 
     pub fn load(files: &impl Files, path: &Path) -> Result<Self, PartFileError> {
@@ -352,6 +354,12 @@ impl PartDocument {
             section_choices,
         })
     }
+}
+
+/// The archive at `path`, opened to look at an entry or two without reading the
+/// part; nothing when there is no archive there.
+fn archive_in(files: &impl Files, path: &Path) -> Option<zip::ZipArchive<Cursor<Vec<u8>>>> {
+    zip::ZipArchive::new(Cursor::new(files.read(path).ok()?)).ok()
 }
 
 pub(super) fn read_entry<R: Read + std::io::Seek>(

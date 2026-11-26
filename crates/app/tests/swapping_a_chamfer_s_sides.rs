@@ -80,11 +80,7 @@ fn its_sketch_open(test: &str) -> driver::App {
             "2026-11-16T10:00:00Z".parse().expect("a date"),
         )
         .expect("the part is written");
-    app.query_all_by_label("Plaque")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Plaque");
     driver::double_click(&mut app, "Esquisse 1");
     driver::click(&mut app, "Sélection (S)");
     app

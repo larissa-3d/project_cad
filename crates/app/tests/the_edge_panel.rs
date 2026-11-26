@@ -875,11 +875,7 @@ fn a_chamfer_whose_edge_is_lost_is_an_alert_saying_so_in_the_user_s_words() {
             "2026-11-12T10:00:00Z".parse().expect("a date"),
         )
         .expect("the part is written");
-    app.query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Bloc");
     assert!(
         driver::in_the_tree(&app, "Esquisse 2"),
         "the part holding the chamfer did not open, showing {:?}",
@@ -964,11 +960,7 @@ fn modifier_on_an_extrusion_s_alert_closes_the_edge_panel_and_the_chord_chamfers
             "2026-11-12T10:00:00Z".parse().expect("a date"),
         )
         .expect("the part is written");
-    app.query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Bloc");
     driver::open_the_history(&mut app);
     driver::click_exactly(&mut app, "Extrusion");
     driver::click_exactly(&mut app, "Chanfrein");

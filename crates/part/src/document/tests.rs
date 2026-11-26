@@ -1,3 +1,12 @@
+//! Closes #745 — the whole transcription is in
+//! `crates/app/tests/the_recent_parts.rs`; this is the part of it the archive
+//! answers for.
+//! - The sketch and extrusion counts are read without opening the whole part:
+//!   the recents list builds no `Part` to show a line —
+//!   `a_part_s_sketches_and_extrusions_are_counted_from_its_index_with_no_step_read`;
+//!   what is counted is what the part shows once opened, decided on the way —
+//!   `an_undone_extrusion_is_not_counted_among_what_a_part_holds`
+
 use cao_sketch::{DimensionTarget, SegmentId, WorkPlane};
 use std::path::Path;
 
@@ -337,6 +346,91 @@ fn a_part_whose_index_names_a_step_no_folder_holds_does_not_open() {
     assert!(
         matches!(&error, PartFileError::MissingEntry(entry) if entry.contains("sketch-0")),
         "the reader is told which step of the design is missing: {error:?}",
+    );
+}
+
+#[test]
+fn a_part_s_sketches_and_extrusions_are_counted_from_its_index_with_no_step_read() {
+    let files = InMemoryFiles::default();
+    let path = Path::new("/parts/piece.caopart");
+    let mut document = drawn_part();
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas: Vec::new(),
+        distance: 4.0.into(),
+        mode: crate::history::ExtrusionMode::Add,
+    });
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XZ,
+        on: None,
+    });
+    document
+        .save(&files, path, at("2026-01-02T10:00:00Z"))
+        .expect("the part is written");
+    for step in [
+        "design/sketch-0/steps.json",
+        "design/extrusion-0/steps.json",
+        "design/sketch-1/steps.json",
+    ] {
+        without(&files, path, step);
+    }
+    assert_eq!(
+        entries_of(&files, path),
+        ["part.json", "design/history.json"],
+        "nothing of the design is left but its index",
+    );
+    assert!(
+        PartDocument::load(&files, path).is_err(),
+        "with every step's folder gone, the part no longer opens: what is counted \
+         below can only come from the index",
+    );
+
+    assert_eq!(
+        PartDocument::step_counts_in(&files, path),
+        Some(StepCounts {
+            sketches: 2,
+            extrusions: 1,
+        }),
+        "a line of the recent parts says what a part holds without replaying it, \
+         nor reading what each of its steps did",
+    );
+}
+
+#[test]
+fn an_undone_extrusion_is_not_counted_among_what_a_part_holds() {
+    let files = InMemoryFiles::default();
+    let path = Path::new("/parts/piece.caopart");
+    let mut document = drawn_part();
+    document.apply(Operation::CreateSketch {
+        plane: WorkPlane::XZ,
+        on: None,
+    });
+    document.apply(Operation::Extrude {
+        sketch: 0,
+        areas: Vec::new(),
+        distance: 4.0.into(),
+        mode: crate::history::ExtrusionMode::Add,
+    });
+    assert!(document.undo(), "the extrusion is taken back");
+    document
+        .save(&files, path, at("2026-01-02T10:00:00Z"))
+        .expect("the part is written");
+    assert!(
+        PartDocument::load(&files, path)
+            .expect("the part opens")
+            .history
+            .can_redo(),
+        "the undone extrusion is still in the file, waiting to be redone",
+    );
+
+    assert_eq!(
+        PartDocument::step_counts_in(&files, path),
+        Some(StepCounts {
+            sketches: 2,
+            extrusions: 0,
+        }),
+        "the line says what the part shows once opened, and an extrusion waiting to \
+         be redone is not shown",
     );
 }
 

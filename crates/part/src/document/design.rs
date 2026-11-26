@@ -300,6 +300,26 @@ pub(super) fn read<R: Read + Seek>(
     Ok((history, read, contents.section_choices))
 }
 
+/// The index alone, with no step's folder read.
+pub(super) fn index_in<R: Read + Seek>(
+    archive: &mut zip::ZipArchive<R>,
+) -> Result<Index, PartFileError> {
+    let contents: Contents = serde_json::from_str(&super::read_entry(archive, INDEX_ENTRY)?)?;
+    Ok(Index {
+        steps: contents
+            .steps
+            .into_iter()
+            .map(|listed| {
+                Step::listed(kind_of(&listed.stands_on), listed.operations, listed.number)
+            })
+            .collect(),
+        variables: contents.variables,
+        applied: contents.applied,
+        last_operation_number: contents.last_operation_number,
+        last_sketch_number: contents.last_sketch_number,
+    })
+}
+
 /// How many steps of each kind have gone by in the order of the part, which is
 /// what names their folders. Until a step is put in among the others, it is
 /// also the rank the operations speak in, so that `sketch-1` is the sketch

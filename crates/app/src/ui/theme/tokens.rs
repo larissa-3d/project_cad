@@ -75,6 +75,7 @@ pub const SPACING_M: f32 = 6.0;
 pub const SPACING_L: f32 = 8.0;
 pub const SPACING_XXL: f32 = 14.0;
 
+pub const TYPOGRAPHY_SIZES_SCREEN_TITLE: f32 = 52.0;
 pub const TYPOGRAPHY_SIZES_SECTION_TITLE: f32 = 16.0;
 pub const TYPOGRAPHY_SIZES_BODY: f32 = 13.0;
 pub const TYPOGRAPHY_SIZES_BUTTON: f32 = 12.5;
