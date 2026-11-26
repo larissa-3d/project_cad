@@ -9,6 +9,7 @@ pub mod floating_panel;
 pub mod formula_field;
 pub mod history_line;
 pub mod icon;
+pub mod line_button;
 pub mod logo;
 pub mod number_field;
 pub mod panel_toggle;

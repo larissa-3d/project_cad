@@ -3,6 +3,7 @@ use super::state::{RecentLine, StartMenu};
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
 use crate::screens::new_card;
+use crate::ui::line_button::line_button;
 use crate::ui::thumbnail::thumbnail;
 
 /// How wide and how high a recent part's picture is drawn left of its name.
@@ -54,24 +55,22 @@ pub fn show(
 }
 
 /// The part's picture, its name over where it lies and what it holds, the hour
-/// it was opened and a chevron on the right. Says whether the name was
-/// clicked.
+/// it was opened and a chevron on the right. Says whether the line was
+/// clicked, anywhere on it.
 fn recent_line(ui: &mut egui::Ui, menu: &StartMenu, line: &RecentLine) -> bool {
-    ui.horizontal(|ui| {
-        let picture = menu.picture_of(&line.path).map(crate::picture::pixels);
-        thumbnail(ui, "recent_thumbnail", THUMBNAIL, picture);
-        let clicked = ui
-            .vertical(|ui| {
-                let clicked = ui.button(&line.name).clicked();
+    line_button(ui, &line.path, |ui| {
+        ui.horizontal(|ui| {
+            let picture = menu.picture_of(&line.path).map(crate::picture::pixels);
+            thumbnail(ui, "recent_thumbnail", THUMBNAIL, picture);
+            ui.vertical(|ui| {
+                ui.label(&line.name);
                 ui.weak(&line.detail);
-                clicked
-            })
-            .inner;
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.weak("›");
-            ui.monospace(&line.opened);
+            });
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.weak("›");
+                ui.monospace(&line.opened);
+            });
         });
-        clicked
     })
-    .inner
+    .clicked()
 }

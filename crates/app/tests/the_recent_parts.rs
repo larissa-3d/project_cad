@@ -74,14 +74,68 @@ fn two_sketches_and_an_extrusion(name: &str) -> PartDocument {
     part
 }
 
-/// Every text standing on the recent parts' line that reads this name: from
-/// its name rightwards and downwards, as low as a thumbnail reaches below it.
-fn the_line_of(app: &driver::App, name: &str) -> Vec<String> {
+/// Where the recent parts' line that reads this name stands: from its name
+/// rightwards and downwards, as low as a thumbnail reaches below it.
+fn the_band_of(app: &driver::App, name: &str) -> egui::Rect {
     let named = driver::the_recent_part_named(app, name);
-    let line = egui::Rect::from_min_max(
+    egui::Rect::from_min_max(
         egui::pos2(named.left() - 1.0, named.top() - 12.0),
         egui::pos2(f32::INFINITY, named.bottom() + 40.0),
+    )
+}
+
+/// Where a text reading exactly this stands on the recent line of this part.
+fn where_on_the_line_of(app: &driver::App, name: &str, text: &str) -> Option<egui::Rect> {
+    let line = the_band_of(app, name);
+    app.get_all_by(|_| true).find_map(|node| {
+        let read = node.accesskit_node();
+        let said = read.label().or_else(|| read.value())?;
+        let at = node.rect();
+        (said == text && line.contains(at.center())).then_some(at)
+    })
+}
+
+fn a_part_is_open(app: &driver::App) -> bool {
+    app.state()
+        .where_the_view_shows(glam::DVec3::ZERO)
+        .is_some()
+}
+
+#[test]
+fn a_click_on_a_recent_part_s_line_opens_it() {
+    let opened_at = at("2026-11-05T15:32:00Z");
+    let mut app = driver::open_remembering_parts(
+        "a_click_on_a_recent_part_s_line_opens_it",
+        vec![driver::RecentPart {
+            lies_at: "Support.caopart".into(),
+            part: two_sketches_and_an_extrusion("Support"),
+            opened_at,
+        }],
     );
+    driver::open_the_recent_part(&mut app, "Support");
+    assert!(
+        a_part_is_open(&app),
+        "a click on the recent part's name does not open it, showing {:?}",
+        driver::on_screen(&app),
+    );
+    driver::click(&mut app, "Accueil");
+    assert!(!a_part_is_open(&app), "back home, a part is still drawn");
+    let chevron = where_on_the_line_of(&app, "Support", "›")
+        .expect("the recent line of « Support » ends on a chevron");
+
+    driver::click_at(&mut app, chevron.center());
+
+    assert!(
+        a_part_is_open(&app),
+        "a click on the chevron of « Support »'s recent line, away from its name, does not \
+         open it, showing {:?}",
+        driver::on_screen(&app),
+    );
+}
+
+/// Every text standing on the recent parts' line that reads this name.
+fn the_line_of(app: &driver::App, name: &str) -> Vec<String> {
+    let line = the_band_of(app, name);
     app.get_all_by(|_| true)
         .filter_map(|node| {
             let read = node.accesskit_node();
