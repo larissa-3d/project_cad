@@ -2907,10 +2907,22 @@ pointed cone's flank waits on #711.
   round's latitude
   circle whose radius is a coaxial cylinder's — the equator a shaft ends in
   a ball at — lies on both and is sampled once, on the shaft's grid and the
-  round's. A coaxial wall a hair inside a ball whose rim stands further than
-  twice the sag of its chords from the circles of the rows about it, or
-  whose grid has no multiple with those taken under the most a turn is cut
-  into, is not drawn in common with it: a family the campaign measures.
+  round's. A coaxial wall a hair inside a ball, its face and the ball's
+  between them bounded by the same circles — a ball less a shaft a few tens
+  of tolerances under its radius, past decision 12's hair, ending inside the
+  band the wall meets the sphere across — leaves a ring of matter the
+  drawing's tolerance cannot tell from none: neither face of it is drawn
+  (`skins.rs`, #1137), as neither face of a skin of no thickness is, and the
+  faces beyond close against each other across its rims. Drawn, the ball's
+  face was cut at the row of its grid inside the band, its triangles fanned
+  from that row's points onto samples of its rims the row has not — the
+  wall's grid's among them — and leaning off the sphere by as far as a chord
+  sags, a thousand times as far as the ring is thick: they crossed the wall,
+  and the folds they left took tens of seconds not to be undone. A coaxial
+  wall a hair inside a ball otherwise, whose rim stands further than twice
+  the sag of its chords from the circles of the rows about it, or whose grid
+  has no multiple with those taken under the most a turn is cut into, is not
+  drawn in common with it: a family the campaign measures.
 - **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
   The strips cannot cut a face of a sphere such a circle bounds, since it
   runs along no line of the chart, nor can the central chart where the face
