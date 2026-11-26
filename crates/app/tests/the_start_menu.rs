@@ -111,11 +111,7 @@ fn an_error_on_the_start_menu_and_the_preferences_both_lie_inside_the_window() {
     let gone = driver::the_part_s_file(test, "Disparue");
     std::fs::remove_file(&gone).expect("the part was put away where the test looks for it");
 
-    app.get_all_by_label("Disparue")
-        .max_by(|one, other| one.rect().center().x.total_cmp(&other.rect().center().x))
-        .expect("the part just put away is among the recent parts, right of the files")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Disparue");
 
     let error = format!("Aucun fichier à {}.", gone.display());
     let window = app.ctx.content_rect();

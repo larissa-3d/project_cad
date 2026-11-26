@@ -46,16 +46,9 @@ fn a_part_is_open(app: &driver::App) -> bool {
         .is_some()
 }
 
-/// Where the recent list beside the column names this part: a button reading
-/// it that is no row of the column.
+/// Where the recent list beside the column names this part.
 fn the_recent_entry(app: &driver::App, name: &str) -> egui::Pos2 {
-    let rows = driver::rows_of_the_file_list_reading(app, name);
-    app.query_all_by_label(name)
-        .filter(|node| node.accesskit_node().role() == egui::accesskit::Role::Button)
-        .map(|node| node.rect())
-        .find(|at| !rows.contains(at))
-        .unwrap_or_else(|| panic!("no recent entry reads « {name} »"))
-        .center()
+    driver::the_recent_part_named(app, name).center()
 }
 
 /// What the count beside a folder's row reads: the number standing on its

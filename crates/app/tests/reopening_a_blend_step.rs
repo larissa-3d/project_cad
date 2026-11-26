@@ -597,11 +597,7 @@ fn open_in_the_app(app: &mut driver::App, test: &str, part: &cao_part::PartDocum
         "2026-11-17T10:00:00Z".parse().expect("a date"),
     )
     .expect("the part is written");
-    app.query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(app, "Bloc");
     driver::hold_the_canvas(app);
     assert!(
         !driver::a_sketch_is_open(app),

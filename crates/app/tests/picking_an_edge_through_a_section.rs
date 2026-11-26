@@ -152,11 +152,7 @@ fn opened_on(test: &str, part: cao_part::PartDocument) -> driver::App {
         "2026-11-16T10:00:00Z".parse().expect("a date"),
     )
     .expect("the part is written");
-    app.query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Bloc");
     assert!(
         driver::in_the_tree(&app, "Esquisse 2"),
         "the part written did not open, showing {:?}",

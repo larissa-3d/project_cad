@@ -345,12 +345,7 @@ fn a_part_saved_while_read_to_step_three_opens_read_to_the_end() {
         saved.history.operations().len(),
         "the part was put away with part of its history taken back",
     );
-    let recent = app
-        .query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part");
-    recent.click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Bloc");
 
     assert_eq!(
         read_of_six(&app),

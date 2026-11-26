@@ -260,12 +260,7 @@ fn the_part_file(app: &mut driver::App, test: &str) -> PartDocument {
 
 fn reopen_the_part(app: &mut driver::App) {
     driver::click(app, "Accueil");
-    let recent = app
-        .query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part");
-    recent.click();
-    app.run();
+    driver::open_the_recent_part(app, "Bloc");
 }
 
 #[test]
@@ -870,11 +865,7 @@ fn clicking_the_row_of_the_section_already_cut_changes_nothing_not_even_the_file
     let (read_clicked, file_clicked) = (what_reads(&app, &TWO), the_file_on_disk(test));
     let put_away = the_part_file(&mut app, test);
     let choices = (put_away.section_choice(0), put_away.section_choice(1));
-    app.query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part")
-        .click();
-    app.run();
+    driver::open_the_recent_part(&mut app, "Bloc");
     let file_reopened = the_file_on_disk(test);
     click_the_row_of(&mut app, "Coupe 1");
     let (read_another, file_another) = (what_reads(&app, &TWO), the_file_on_disk(test));

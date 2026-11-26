@@ -8,7 +8,7 @@ mod driver;
 
 use cao_part::PartDocument;
 use cao_sketch::WorkPlane;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::NodeT;
 use glam::DVec3;
 
 /// The ribbon's button that reads this, whichever tab it sits under.
@@ -93,12 +93,7 @@ fn the_part_file(app: &mut driver::App, test: &str) -> PartDocument {
 
 fn reopen_the_part(app: &mut driver::App) {
     driver::click(app, "Accueil");
-    let recent = app
-        .query_all_by_label("Bloc")
-        .last()
-        .expect("the start menu lists the part");
-    recent.click();
-    app.run();
+    driver::open_the_recent_part(app, "Bloc");
 }
 
 /// The middle of the block, where a section opened along a plane of the
