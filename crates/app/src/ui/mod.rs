@@ -17,6 +17,7 @@ pub mod pill;
 pub mod primary_button;
 pub mod question;
 pub mod quiet_link;
+pub mod quiet_note;
 pub mod reader_card;
 pub mod secondary_button;
 pub mod segmented;

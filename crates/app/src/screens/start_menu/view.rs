@@ -4,6 +4,7 @@ use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
 use crate::screens::new_card;
 use crate::ui::line_button::line_button;
+use crate::ui::quiet_note::quiet_note;
 use crate::ui::thumbnail::thumbnail;
 
 /// How wide and how high a recent part's picture is drawn left of its name.
@@ -35,7 +36,14 @@ pub fn show(
         });
 
         columns[1].vertical(|ui| {
-            ui.heading(lang.t("start_menu.recents"));
+            ui.horizontal(|ui| {
+                ui.heading(lang.t("start_menu.recents"));
+                if let Some(counted) = menu.lines_counted(lang) {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        quiet_note(ui, &counted);
+                    });
+                }
+            });
             ui.add_space(8.0);
             if lines.is_empty() {
                 ui.weak(lang.t("start_menu.no_recents"));

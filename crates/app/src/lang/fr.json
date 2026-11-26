@@ -968,6 +968,8 @@
   "start_menu.create": "Créer ↵",
   "start_menu.recents": "Pièces récentes",
   "start_menu.no_recents": "Aucune pièce ouverte pour le moment.",
+  "start_menu.parts_one": "{count} pièce",
+  "start_menu.parts_many": "{count} pièces",
   "start_menu.recent_detail": "{folder} · {sketches} · {extrusions}",
   "start_menu.sketches_one": "{count} esquisse",
   "start_menu.sketches_many": "{count} esquisses",

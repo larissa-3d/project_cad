@@ -20,7 +20,9 @@
 //!   reading it as the root would send the user looking in the wrong place
 //! - « Pièces récentes » carries « N pièces » on the right of the title, N
 //!   being the number of lines shown —
-//!   `the_recent_parts_title_counts_the_lines_shown_on_its_right`
+//!   `the_recent_parts_title_counts_the_lines_shown_on_its_right`; decided on
+//!   the way, after the mockup of the empty home screen: with no line, the
+//!   title carries no count
 //! - The sketch and extrusion counts are read without opening the whole part:
 //!   the recents list builds no `Part` to show a line —
 //!   `a_recent_part_whose_steps_cannot_be_read_still_says_what_it_holds`;
@@ -130,6 +132,71 @@ fn a_click_on_a_recent_part_s_line_opens_it() {
         "a click on the chevron of « Support »'s recent line, away from its name, does not \
          open it, showing {:?}",
         driver::on_screen(&app),
+    );
+}
+
+/// Every text standing on the row of the « Pièces récentes » title, right of
+/// it.
+fn right_of_the_title(app: &driver::App) -> Vec<String> {
+    let title = driver::where_it_reads(app, "Pièces récentes").unwrap_or_else(|| {
+        panic!(
+            "the recent parts are not titled « Pièces récentes », showing {:?}",
+            driver::on_screen(app),
+        )
+    });
+    app.get_all_by(|_| true)
+        .filter_map(|node| {
+            let read = node.accesskit_node();
+            let text = read.label().or_else(|| read.value())?;
+            let at = node.rect();
+            let on_its_row =
+                title.top() - 4.0 <= at.center().y && at.center().y <= title.bottom() + 4.0;
+            (on_its_row && at.left() >= title.right() - 1.0).then_some(text)
+        })
+        .collect()
+}
+
+#[test]
+fn the_recent_parts_title_counts_the_lines_shown_on_its_right() {
+    let opened_at = at("2026-11-05T15:32:00Z");
+    let remembered = |name: &str| driver::RecentPart {
+        lies_at: format!("{name}.caopart").into(),
+        part: PartDocument::new(name, opened_at),
+        opened_at,
+    };
+    let mut wrong = Vec::new();
+    for (test, parts, count) in [
+        (
+            "the_recent_parts_title_counts_two_lines",
+            vec![remembered("Équerre"), remembered("Support")],
+            vec!["2 pièces"],
+        ),
+        (
+            "the_recent_parts_title_counts_one_line",
+            vec![remembered("Support")],
+            vec!["1 pièce"],
+        ),
+        (
+            "the_recent_parts_title_counts_no_line",
+            Vec::new(),
+            Vec::new(),
+        ),
+    ] {
+        let lines = parts.len();
+        let app = driver::open_remembering_parts(test, parts);
+        let read = right_of_the_title(&app);
+        if read != count {
+            wrong.push(format!(
+                "lines shown: {lines}, read {read:?} where {count:?} was wanted"
+            ));
+        }
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "« Pièces récentes » does not count the lines it shows on its right — none when it \
+         shows none, as the empty frame of the mockup carries no count:\n  {}",
+        wrong.join("\n  "),
     );
 }
 

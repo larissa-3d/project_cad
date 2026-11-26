@@ -72,6 +72,17 @@ impl StartMenu {
             .as_ref()
     }
 
+    /// How many lines the recent parts show, « 2 pièces », said beside their
+    /// title; nothing while they show none.
+    pub fn lines_counted(&self, lang: &Catalogue) -> Option<String> {
+        let key = match self.recents.len() {
+            0 => return None,
+            1 => "start_menu.parts_one",
+            _ => "start_menu.parts_many",
+        };
+        Some(lang.t_with(key, &[("count", &self.recents.len().to_string())]))
+    }
+
     /// The lines of the recent parts, most recently opened first, their
     /// folders read below `root` and their hours on the clock of `zone`.
     pub fn lines(&self, root: &Path, lang: &Catalogue, zone: &impl TimeZone) -> Vec<RecentLine> {
