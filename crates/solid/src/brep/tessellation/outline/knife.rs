@@ -208,3 +208,6 @@ impl Rim {
         })
     }
 }
+
+#[cfg(test)]
+mod tests;
