@@ -2936,7 +2936,7 @@ pointed cone's flank waits on #711.
   some three quarters of a step of the grid. The strips' lattice points
   stand between the wall's steps, on no ray of the rim's samples, and a
   row inside the band — a shaft of 4.97, its row 0.0026 from the rim
-  against a band of 0.0036, where the hundredth of a step the strips keep
+  against a band of 0.0035, where the hundredth of a step the strips keep
   from a level is 0.0004 — put them outside the wall's chords. A row of
   the grid inside the band is moved to its edge rather than dropped: every
   strip beside the rim stays within a step, and the drawing within its
