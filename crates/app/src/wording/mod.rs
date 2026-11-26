@@ -23,6 +23,7 @@ pub mod export;
 pub mod file;
 pub mod formula;
 pub mod history;
+pub mod library;
 pub mod matter;
 pub mod measure;
 pub mod outcome;

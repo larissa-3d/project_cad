@@ -4,17 +4,24 @@ use cao_prefs::RecentEntry;
 
 use crate::adapters::clock;
 use crate::lang::Catalogue;
+use crate::screens::explorer::Explorer;
+use crate::screens::new_card::{self, NewCard};
 
 pub enum StartMenuAction {
     None,
-    CreateNew(String),
+    /// A part of this name, in the folder the card shows.
+    CreateNew {
+        name: String,
+        folder: PathBuf,
+    },
     Open(PathBuf),
 }
 
 pub fn show(
     ui: &mut egui::Ui,
     recents: &[RecentEntry],
-    new_part_name: &mut String,
+    card: &mut NewCard,
+    explorer: &Explorer,
     lang: &Catalogue,
 ) -> StartMenuAction {
     let mut action = StartMenuAction::None;
@@ -30,20 +37,8 @@ pub fn show(
 
     ui.columns(2, |columns| {
         columns[0].vertical(|ui| {
-            ui.heading(lang.t("start_menu.new_part"));
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.label(lang.t("start_menu.name"));
-                ui.text_edit_singleline(new_part_name);
-            });
-            ui.add_space(8.0);
-            let can_create = !new_part_name.trim().is_empty();
-            if ui
-                .add_enabled(can_create, egui::Button::new(lang.t("start_menu.create")))
-                .clicked()
-            {
-                action = StartMenuAction::CreateNew(new_part_name.trim().to_string());
-                new_part_name.clear();
+            if let Some((name, folder)) = new_card::show(ui, card, explorer, lang) {
+                action = StartMenuAction::CreateNew { name, folder };
             }
         });
 

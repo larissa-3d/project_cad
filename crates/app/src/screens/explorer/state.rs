@@ -190,17 +190,20 @@ impl Explorer {
         self.confirming.as_deref()
     }
 
-    /// Where a new folder would go: inside the folder selected, beside the
-    /// part selected, and at the root when nothing is.
-    fn holding(&self, path: Option<&Path>) -> PathBuf {
-        match path {
+    /// The folder the selection stands for: the folder selected, the one the
+    /// part selected sits in, and the root when nothing is. A new folder goes
+    /// there, and so does a new part by default.
+    pub fn chosen_folder(&self) -> PathBuf {
+        match self.selected.as_deref() {
             Some(path) if self.is_a_folder(path) => path.to_path_buf(),
             Some(path) => path.parent().unwrap_or(&self.root).to_path_buf(),
             None => self.root.clone(),
         }
     }
 
-    fn is_a_folder(&self, path: &Path) -> bool {
+    /// Whether `path` is the root or a folder anywhere under it, as the library
+    /// was last read.
+    pub fn is_a_folder(&self, path: &Path) -> bool {
         fn under(folder: &Folder, path: &Path) -> bool {
             folder.path == path || folder.folders.iter().any(|under_it| under(under_it, path))
         }
@@ -208,7 +211,7 @@ impl Explorer {
     }
 
     pub fn start_new_folder(&mut self) {
-        let inside = self.holding(self.selected.as_deref());
+        let inside = self.chosen_folder();
         self.fold(&inside, true);
         self.clear_the_filter();
         self.naming = Some(Naming::NewFolder {

@@ -27,7 +27,7 @@ pub struct CaoApp {
     remembered: Remembered,
     settings_open: bool,
     settings_editor: crate::screens::settings::SettingsEditor,
-    new_part_name: String,
+    new_card: crate::screens::new_card::NewCard,
     error: Option<String>,
     /// The library panel, held by the shell rather than by the start menu:
     /// what it read and folded is still there on the way back from a part.
@@ -70,7 +70,7 @@ impl CaoApp {
             remembered,
             settings_open: false,
             settings_editor: crate::screens::settings::SettingsEditor::default(),
-            new_part_name: String::new(),
+            new_card: Default::default(),
             error: None,
             explorer,
             painter,
@@ -92,14 +92,14 @@ impl CaoApp {
         }
     }
 
-    fn create_new_part(&mut self, name: String) {
-        let Some(dir) = self.remembered.projects_dir() else {
+    fn create_new_part(&mut self, name: String, folder: PathBuf) {
+        if self.remembered.projects_dir().is_none() {
             self.error = Some(wording::storage::nowhere_to_keep_settings(
                 self.remembered.lang(),
             ));
             return;
-        };
-        match PartDocument::create_in(&DiskFiles, &dir, name, chrono::Utc::now()) {
+        }
+        match PartDocument::create_in(&DiskFiles, &folder, name, chrono::Utc::now()) {
             Ok((doc, path)) => {
                 self.explorer.went_stale();
                 self.open_document(doc, path)
@@ -151,14 +151,15 @@ impl CaoApp {
                 screens::start_menu::show(
                     ui,
                     self.remembered.recents(),
-                    &mut self.new_part_name,
+                    &mut self.new_card,
+                    &self.explorer,
                     self.remembered.lang(),
                 )
             })
             .inner;
 
         match action {
-            StartMenuAction::CreateNew(name) => self.create_new_part(name),
+            StartMenuAction::CreateNew { name, folder } => self.create_new_part(name, folder),
             StartMenuAction::Open(path) => self.open_part(path),
             StartMenuAction::None => {}
         }

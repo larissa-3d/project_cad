@@ -278,10 +278,8 @@ const SENTENCES_STILL_WRITTEN_OUT: [(&str, usize); 0] = [];
 /// screen knows, a `view.rs` that draws it. The list may only shrink.
 const MODES_WITHOUT_A_PRESENTER: [&str; 2] = ["settings", "sketch"];
 
-const RAW_WIDGETS_LEFT_IN_THE_SCREENS: [(&str, usize); 2] = [
-    ("crates/app/src/screens/settings/viewport.rs", 3),
-    ("crates/app/src/screens/start_menu.rs", 1),
-];
+const RAW_WIDGETS_LEFT_IN_THE_SCREENS: [(&str, usize); 1] =
+    [("crates/app/src/screens/settings/viewport.rs", 3)];
 
 #[test]
 fn a_tests_file_nobody_declared_under_cfg_test_is_not_taken_for_tests() {
