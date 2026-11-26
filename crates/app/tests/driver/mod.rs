@@ -217,6 +217,17 @@ pub fn open_remembering_parts(test: &str, parts: Vec<RecentPart>) -> App {
     app
 }
 
+/// The application opened for `test` once more, on the default window, over
+/// everything the last one left behind: what a user who quit would find on
+/// starting it again.
+pub fn open_again(test: &str) -> App {
+    let mut app = launched(locations_of(test), SCREEN);
+    app.ctx
+        .data_mut(|data| data.insert_temp(held_canvas(), HeldCanvas));
+    hold_the_canvas(&mut app);
+    app
+}
+
 /// Where the application opened for `test` keeps the window's place.
 pub fn window_place_file(test: &str) -> PathBuf {
     locations_of(test).config.join("window.json")
@@ -605,6 +616,16 @@ pub fn rows_of_the_file_list_reading(app: &App, name: &str) -> Vec<egui::Rect> {
 /// holding its name right of the library's column, no field being typed in —
 /// the name itself rather than a line drawn around it.
 pub fn the_recent_part_named(app: &App, name: &str) -> egui::Rect {
+    among_the_recent_parts(app, name).unwrap_or_else(|| {
+        panic!(
+            "no recent part on the home screen reads « {name} », showing {:?}",
+            on_screen(app),
+        )
+    })
+}
+
+/// The same, `None` when no recent part reads this name.
+pub fn among_the_recent_parts(app: &App, name: &str) -> Option<egui::Rect> {
     let column = ["+ Dossier", "Renommer", "Supprimer"]
         .map(|button| the_column_s_button(app, button).right())
         .into_iter()
@@ -614,12 +635,6 @@ pub fn the_recent_part_named(app: &App, name: &str) -> egui::Rect {
         .map(|node| node.rect())
         .filter(|at| at.left() >= column)
         .min_by(|one, other| one.area().total_cmp(&other.area()))
-        .unwrap_or_else(|| {
-            panic!(
-                "no recent part on the home screen reads « {name} », showing {:?}",
-                on_screen(app),
-            )
-        })
 }
 
 /// Opens a part from the home screen by a click on its name among the recent

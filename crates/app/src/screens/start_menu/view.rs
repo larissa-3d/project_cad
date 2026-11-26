@@ -6,6 +6,7 @@ use crate::screens::new_card;
 use crate::ui::empty_state::empty_state;
 use crate::ui::icon;
 use crate::ui::line_button::line_button;
+use crate::ui::logo::screen_title;
 use crate::ui::quiet_note::quiet_note;
 use crate::ui::thumbnail::thumbnail;
 
@@ -23,7 +24,7 @@ pub fn show(
 
     ui.vertical_centered(|ui| {
         ui.add_space(24.0);
-        ui.heading(lang.t("start_menu.title"));
+        screen_title(ui, &lang.t("start_menu.title"));
         ui.label(lang.t("start_menu.subtitle"));
         ui.add_space(24.0);
     });

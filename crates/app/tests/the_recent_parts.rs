@@ -25,7 +25,8 @@
 //!   title carries no count
 //! - The sketch and extrusion counts are read without opening the whole part:
 //!   the recents list builds no `Part` to show a line —
-//!   `a_recent_part_whose_steps_cannot_be_read_still_says_what_it_holds`;
+//!   `a_recent_part_that_does_not_open_still_says_what_it_holds`, a part the
+//!   application refuses to open reading what it holds all the same;
 //!   beneath it, `crates/part/src/document/tests.rs` counts from the archive's
 //!   index alone, and `crates/app/src/screens/start_menu/state/tests.rs` reads
 //!   it once while the list stays as it was
@@ -35,8 +36,9 @@
 //!   `with_no_recent_part_the_card_says_none_was_opened_and_how_to_make_one`;
 //!   the dashed frame is looked at, in the last bullet
 //! - The header shows « CAO » large in amber above today's subtitle,
-//!   unchanged — `the_header_reads_cao_above_today_s_subtitle`; large and amber
-//!   are looked at, in the last bullet
+//!   unchanged — `the_header_reads_cao_above_today_s_subtitle`, « large » read
+//!   as at least twice as tall as the subtitle, the mockup's 52 px standing
+//!   about three times its subtitle; the amber is looked at, in the last bullet
 //! - A recent part moved or deleted outside the app behaves as today —
 //!   `a_recent_part_moved_or_deleted_outside_the_app_still_shows_and_says_its_file_is_gone`
 //! - no test: the amber, the dashed frame, the 64 × 48 proportions and the
@@ -299,6 +301,113 @@ fn with_no_recent_part_the_card_says_none_was_opened_and_how_to_make_one() {
         wrong.is_empty(),
         "with no recent part, the card under « Pièces récentes » does not say, once each, \
          that none was opened and how to make one, beside the part icon:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn a_recent_part_that_does_not_open_still_says_what_it_holds() {
+    let test = "a_recent_part_that_does_not_open";
+    let opened_at = at("2026-11-05T15:32:00Z");
+    let mut older = two_sketches_and_an_extrusion("Support");
+    older.metadata.schema_version = cao_part::SCHEMA_VERSION - 1;
+    let app = driver::open_remembering_parts(
+        test,
+        vec![driver::RecentPart {
+            lies_at: "Support.caopart".into(),
+            part: older,
+            opened_at,
+        }],
+    );
+    let laid = cao_prefs::default_projects_dir(&driver::locations_of(test)).join("Support.caopart");
+    assert!(
+        PartDocument::load(&DiskFiles, &laid).is_err(),
+        "the part laid down is one the application refuses to open: a line reading what it \
+         holds can then have built no part to read it",
+    );
+
+    assert_eq!(
+        the_detail_of(&app, "Support").as_deref(),
+        Some("Dossier des pièces · 2 esquisses · 1 extrusion"),
+    );
+}
+
+#[test]
+fn the_header_reads_cao_above_today_s_subtitle() {
+    let app = driver::open_remembering_parts("the_header_reads_cao", Vec::new());
+    let read = |text: &str| {
+        driver::where_it_reads(&app, text).unwrap_or_else(|| {
+            panic!(
+                "the home screen does not read « {text} », showing {:?}",
+                driver::on_screen(&app),
+            )
+        })
+    };
+    let cao = read("CAO");
+    let subtitle = read("Nouvelle pièce ou reprise d'une pièce récente");
+
+    assert!(
+        cao.bottom() <= subtitle.top(),
+        "« CAO » at {cao:?} does not stand above its subtitle, at {subtitle:?}",
+    );
+    assert!(
+        cao.height() >= 2.0 * subtitle.height(),
+        "« CAO » is {} points tall and its subtitle {}: the title is not large",
+        cao.height(),
+        subtitle.height(),
+    );
+}
+
+#[test]
+fn a_recent_part_moved_or_deleted_outside_the_app_still_shows_and_says_its_file_is_gone() {
+    let test = "a_recent_part_moved_or_deleted_outside_the_app";
+    let opened_at = at("2026-11-05T15:32:00Z");
+    let remembered = |name: &str| driver::RecentPart {
+        lies_at: format!("{name}.caopart").into(),
+        part: PartDocument::new(name, opened_at),
+        opened_at,
+    };
+    let mut app =
+        driver::open_remembering_parts(test, vec![remembered("Équerre"), remembered("Support")]);
+    let library = cao_prefs::default_projects_dir(&driver::locations_of(test));
+    let (deleted, moved) = (
+        library.join("Équerre.caopart"),
+        library.join("Support.caopart"),
+    );
+    std::fs::remove_file(&deleted).expect("the part is deleted outside the application");
+    std::fs::create_dir_all(library.join("Brides")).expect("a folder to move the part to");
+    std::fs::rename(&moved, library.join("Brides/Support.caopart"))
+        .expect("the part is moved outside the application");
+    app.run();
+
+    let mut wrong = Vec::new();
+    for (name, gone) in [("Équerre", &deleted), ("Support", &moved)] {
+        if driver::among_the_recent_parts(&app, name).is_none() {
+            wrong.push(format!("« {name} » is gone from the recent parts"));
+            continue;
+        }
+        driver::open_the_recent_part(&mut app, name);
+        let error = format!("Aucun fichier à {}.", gone.display());
+        if !driver::reads(&app, &error) {
+            wrong.push(format!(
+                "a click on « {name} » does not say « {error} », showing {:?}",
+                driver::on_screen(&app),
+            ));
+        }
+    }
+    let again = driver::open_again(test);
+    for name in ["Équerre", "Support"] {
+        if driver::among_the_recent_parts(&again, name).is_some() {
+            wrong.push(format!(
+                "started again, the recent parts still list « {name} », whose file is gone"
+            ));
+        }
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "a recent part moved or deleted outside the application does not behave as it \
+         did: still listed until the next start, saying its file is gone when clicked:\n  {}",
         wrong.join("\n  "),
     );
 }

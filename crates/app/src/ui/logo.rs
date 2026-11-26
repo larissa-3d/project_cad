@@ -2,10 +2,16 @@ use egui::{
     Align, Label, Layout, Response, RichText, TextStyle, TextWrapMode, Ui, WidgetText, vec2,
 };
 
-use crate::ui::theme::tokens::{ACCENT_AMBER, TYPOGRAPHY_SIZES_BODY};
+use crate::ui::theme::tokens::{
+    ACCENT_AMBER, TYPOGRAPHY_SIZES_BODY, TYPOGRAPHY_SIZES_SCREEN_TITLE,
+};
 
 /// How far apart the logo's letters stand, in ems.
 const LETTER_SPACING: f32 = 0.14;
+
+/// How far apart the letters of a screen's title stand, in ems: A4 of
+/// `docs/redesign/home-screen.md`.
+const TITLE_LETTER_SPACING: f32 = 0.12;
 
 /// The text logo at the head of the tab row: amber, its letters spaced out,
 /// and not a text to select. It stands as tall as a button holding it, its
@@ -13,11 +19,7 @@ const LETTER_SPACING: f32 = 0.14;
 /// row lays a shorter widget in the height it had when that widget came,
 /// before the tabs made it taller.
 pub fn logo(ui: &mut Ui, text: &str) -> Response {
-    let text = RichText::new(text)
-        .strong()
-        .size(TYPOGRAPHY_SIZES_BODY)
-        .color(ACCENT_AMBER)
-        .extra_letter_spacing(LETTER_SPACING * TYPOGRAPHY_SIZES_BODY);
+    let text = amber(text, TYPOGRAPHY_SIZES_BODY, LETTER_SPACING);
     let galley = WidgetText::from(text).into_galley(
         ui,
         Some(TextWrapMode::Extend),
@@ -30,4 +32,20 @@ pub fn logo(ui: &mut Ui, text: &str) -> Response {
         ui.add(Label::new(galley).selectable(false))
     })
     .inner
+}
+
+/// The name of the application at the head of a screen: the logo's amber,
+/// drawn as large as the redesign's screen title.
+pub fn screen_title(ui: &mut Ui, text: &str) -> Response {
+    let text = amber(text, TYPOGRAPHY_SIZES_SCREEN_TITLE, TITLE_LETTER_SPACING);
+    ui.add(Label::new(text).selectable(false))
+}
+
+/// `text` in the logo's amber at `size`, its letters `spacing` ems apart.
+fn amber(text: &str, size: f32, spacing: f32) -> RichText {
+    RichText::new(text)
+        .strong()
+        .size(size)
+        .color(ACCENT_AMBER)
+        .extra_letter_spacing(spacing * size)
 }
