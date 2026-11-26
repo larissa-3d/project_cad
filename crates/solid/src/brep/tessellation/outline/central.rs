@@ -14,7 +14,8 @@
 //! of the sphere, each point added lifted onto the sphere along its ray from
 //! the centre. A triangulation of the plane lifted along rays from one point
 //! cannot cross itself; it can cross a wall beyond a knife-edge rim, and a
-//! face it would cross is left to the charts after this one ([`walls`]).
+//! face it would cross is left to the charts after this one
+//! ([`super::knife`]).
 //!
 //! Left open still: a face some sample of which stands less than [`FRONT`]
 //! in front of that axis, as a hemisphere or more does; one whose region on
@@ -25,7 +26,6 @@
 
 mod cap;
 pub(super) mod refinement;
-mod walls;
 
 use std::cmp::Ordering;
 
@@ -36,7 +36,6 @@ use super::super::sweep;
 use super::Outline;
 use crate::brep::surface::Sphere;
 use crate::orientation::rotation;
-pub(super) use walls::within_the_walls;
 
 /// How far in front of the chart's axis every sample of the outline must
 /// stand, as the cosine of the angle from it: some 87°, a cap 174° across.

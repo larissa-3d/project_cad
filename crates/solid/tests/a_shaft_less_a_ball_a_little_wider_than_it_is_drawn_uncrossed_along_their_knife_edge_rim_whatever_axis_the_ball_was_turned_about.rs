@@ -31,6 +31,13 @@
 //!   `src/brep/tessellation/sampling/tests/rows.rs` and
 //!   `crates/part/tests/the_exact_kernel_turns_the_part.rs`; running them
 //!   unchanged is the answer
+//!
+//! Beyond the criteria: the same steps, held to the same checks, for shafts
+//! of 4.6, 4.8, 4.95, 4.97 and 4.98 — the nearer the ball's radius, the
+//! nearer the rim stands to the equator and the shallower the angle the
+//! sphere and the wall meet at, so the thinner the band about the rim where
+//! the sphere stands within a chord's sag of the wall —
+//! `a_shaft_a_few_hundredths_to_a_few_tenths_narrower_than_a_ball_less_the_ball_turned_about_z_or_at_a_slant_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 
 use std::f64::consts::{PI, TAU};
 
@@ -50,7 +57,7 @@ const RADIUS: f64 = 5.0;
 /// The ball of [`RADIUS`].
 const BALL: f64 = 4.0 * PI / 3.0 * RADIUS * RADIUS * RADIUS;
 
-/// The radius of the shaft, a little under the ball's.
+/// The radius of the criterion's shaft, a little under the ball's.
 const SHAFT: f64 = 4.9;
 
 /// Where the shaft starts, under the ball.
@@ -106,12 +113,12 @@ fn ball_about(axis: DVec3) -> Body {
         .expect("the exact kernel turns the ball")
 }
 
-/// A shaft of [`SHAFT`] along z through the origin, from z = [`FROM`] to
+/// A shaft of `radius` along z through the origin, from z = [`FROM`] to
 /// `to`, a tool of `part`.
-fn shaft_along_z(part: &Body, to: f64) -> Body {
+fn shaft_along_z(part: &Body, radius: f64, to: f64) -> Body {
     part.tool_raised(
         &exact(Contour {
-            corners: vec![DVec2::X * SHAFT],
+            corners: vec![DVec2::X * radius],
             runs: vec![Run::Round {
                 center: DVec2::ZERO,
                 turn: TAU,
@@ -127,23 +134,23 @@ fn shaft_along_z(part: &Body, to: f64) -> Body {
     .expect("the shaft raises")
 }
 
-/// What the shaft from z = [`FROM`] to `to` holds, and what the ball takes
-/// of it: π b² (`to` − [`FROM`]), and its slices inside the ball, each the
-/// shaft's disc or the ball's where that is the smaller — the shaft's
-/// within a of the equator, a = √(r² − b²), the ball's π (r² − z²) beyond.
-/// #1109's.
-fn shaft_and_its_share_of_the_ball(to: f64) -> [f64; 2] {
-    let reach = (RADIUS * RADIUS - SHAFT * SHAFT).sqrt();
+/// What the shaft of `radius` from z = [`FROM`] to `to` holds, and what the
+/// ball takes of it: π b² (`to` − [`FROM`]), and its slices inside the ball,
+/// each the shaft's disc or the ball's where that is the smaller — the
+/// shaft's within a of the equator, a = √(r² − b²), the ball's π (r² − z²)
+/// beyond. #1109's.
+fn shaft_and_its_share_of_the_ball(radius: f64, to: f64) -> [f64; 2] {
+    let reach = (RADIUS * RADIUS - radius * radius).sqrt();
     let round = |low: f64, high: f64| {
         PI * (RADIUS * RADIUS * (high - low) - (high.powi(3) - low.powi(3)) / 3.0)
     };
     let below = |height: f64| {
         let height = height.clamp(-RADIUS, RADIUS);
         round(-RADIUS, height.min(-reach))
-            + PI * SHAFT * SHAFT * (height.clamp(-reach, reach) + reach)
+            + PI * radius * radius * (height.clamp(-reach, reach) + reach)
             + round(reach, height.max(reach))
     };
-    [PI * SHAFT * SHAFT * (to - FROM), below(to) - below(FROM)]
+    [PI * radius * radius * (to - FROM), below(to) - below(FROM)]
 }
 
 /// Why `body` is not sound, if it is not: not exact, or its triangles open
@@ -162,6 +169,50 @@ fn unsound(body: &Body) -> Option<String> {
     None
 }
 
+/// The axes the ball is turned about: z, the shaft's own, and the three
+/// slants, each named as a message reads it.
+fn axes() -> [(&'static str, DVec3); 4] {
+    [
+        ("about z", DVec3::Z),
+        ("about (1, 0, 1)/√2", DVec3::new(1.0, 0.0, 1.0).normalize()),
+        (
+            "about (−1, 0, 1)/√2",
+            DVec3::new(-1.0, 0.0, 1.0).normalize(),
+        ),
+        ("about (0, 1, 1)/√2", DVec3::new(0.0, 1.0, 1.0).normalize()),
+    ]
+}
+
+/// Every way the shaft of `radius` from z = [`FROM`] to `to`, less `ball`,
+/// turned `about`, is not what it should be: declined, not exact, its
+/// triangles open or crossing, or holding more than a billionth of the ball
+/// and the shaft off what the arithmetic leaves.
+fn ways_wrong(ball: &Body, about: &str, radius: f64, to: f64) -> Vec<String> {
+    let what = format!(
+        "a shaft of {radius} along z from z = {FROM} to {to} less the ball of {RADIUS} turned \
+         {about}"
+    );
+    let [shaft, shared] = shaft_and_its_share_of_the_ball(radius, to);
+    let left = shaft - shared;
+    let within = EXACT * (BALL + shaft);
+    let mut wrong = Vec::new();
+    match shaft_along_z(ball, radius, to).difference(ball) {
+        Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
+        Ok(body) => {
+            if let Some(why) = unsound(&body) {
+                wrong.push(format!("{what}: {why}"));
+            }
+            if (body.volume() - left).abs() > within {
+                wrong.push(format!(
+                    "{what}: holds {}, where the arithmetic leaves {left}",
+                    body.volume()
+                ));
+            }
+        }
+    }
+    wrong
+}
+
 /// The shaft from z = −10 to the ball's centre, or past it to z = 2, cut by
 /// the ball turned about z, the shaft's own axis, and about each of the
 /// three slants: where the shaft's wall meets the sphere, the circle z =
@@ -173,46 +224,47 @@ fn unsound(body: &Body) -> Option<String> {
 #[test]
 fn a_shaft_less_a_ball_a_little_wider_than_it_turned_about_z_or_at_a_slant_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume()
  {
-    let axes = [
-        ("about z", DVec3::Z),
-        ("about (1, 0, 1)/√2", DVec3::new(1.0, 0.0, 1.0).normalize()),
-        (
-            "about (−1, 0, 1)/√2",
-            DVec3::new(-1.0, 0.0, 1.0).normalize(),
-        ),
-        ("about (0, 1, 1)/√2", DVec3::new(0.0, 1.0, 1.0).normalize()),
-    ];
     let mut wrong = Vec::new();
-    for (about, axis) in axes {
+    for (about, axis) in axes() {
         let ball = ball_about(axis);
         for to in [0.0, 2.0] {
-            let what = format!(
-                "a shaft of {SHAFT} along z from z = {FROM} to {to} less the ball of {RADIUS} \
-                 turned {about}"
-            );
-            let [shaft, shared] = shaft_and_its_share_of_the_ball(to);
-            let left = shaft - shared;
-            let within = EXACT * (BALL + shaft);
-            match shaft_along_z(&ball, to).difference(&ball) {
-                Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
-                Ok(body) => {
-                    if let Some(why) = unsound(&body) {
-                        wrong.push(format!("{what}: {why}"));
-                    }
-                    if (body.volume() - left).abs() > within {
-                        wrong.push(format!(
-                            "{what}: holds {}, where the arithmetic leaves {left}",
-                            body.volume()
-                        ));
-                    }
-                }
-            }
+            wrong.extend(ways_wrong(&ball, about, SHAFT, to));
         }
     }
     assert!(
         wrong.is_empty(),
         "a shaft less a ball a little wider than it is built exact, closed, uncrossed and of \
          the arithmetic's volume whatever axis the ball was turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// The same steps for shafts of 4.6, 4.8, 4.95, 4.97 and 4.98, from z = −10
+/// to the ball's centre or past it to z = 2, less the ball turned about z
+/// and about each of the three slants: the nearer the shaft's radius to the
+/// ball's, the nearer its rims stand to the equator, the shallower the angle
+/// the sphere meets its wall at, and the thinner the band about each rim
+/// where the sphere stands within a chord's sag of the wall. Each built,
+/// exact, its triangles closed and uncrossed, holding what the arithmetic
+/// leaves within a billionth of the ball and the shaft. Every step that is
+/// not is named, with each way it is not.
+#[test]
+fn a_shaft_a_few_hundredths_to_a_few_tenths_narrower_than_a_ball_less_the_ball_turned_about_z_or_at_a_slant_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let mut wrong = Vec::new();
+    for (about, axis) in axes() {
+        let ball = ball_about(axis);
+        for radius in [4.6, 4.8, 4.95, 4.97, 4.98] {
+            for to in [0.0, 2.0] {
+                wrong.extend(ways_wrong(&ball, about, radius, to));
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a shaft a few hundredths to a few tenths narrower than a ball, less the ball, is built \
+         exact, closed, uncrossed and of the arithmetic's volume whatever axis the ball was \
+         turned about; not so:\n{}",
         wrong.join("\n")
     );
 }

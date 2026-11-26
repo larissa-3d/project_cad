@@ -43,6 +43,9 @@ pub(super) struct Lattice {
     /// How close to a level, along the meridian, no row stands: the room
     /// the sampling leaves at the tube's radius.
     pub(super) room: f64,
+    /// How close to a level or an end of the face no row stands beside a
+    /// knife-edge rim ([`super::knife::band`]): nought but there.
+    pub(super) band: f64,
     added: BTreeMap<(usize, u64), usize>,
 }
 
@@ -60,6 +63,7 @@ impl Lattice {
             rows,
             levels: levels.to_vec(),
             room,
+            band: 0.0,
             added: BTreeMap::new(),
         }
     }
@@ -121,7 +125,8 @@ impl Outline {
             .filter(|(point, _)| !passing.contains_key(point))
             .map(|(_, at)| at.y)
             .collect();
-        levels.extend(rows(lattice.rows, low, high, &lattice.levels, lattice.room));
+        let room = lattice.room.max(lattice.band);
+        levels.extend(rows(lattice.rows, low, high, &lattice.levels, room));
         levels.sort_by(f64::total_cmp);
         levels.dedup();
         let rank: BTreeMap<u64, usize> = levels

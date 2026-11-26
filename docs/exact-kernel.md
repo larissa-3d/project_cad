@@ -2917,22 +2917,29 @@ pointed cone's flank waits on #711.
   reaches ninety degrees or more from every direction, or where a point it
   adds stands inside a wall the face meets along one of the wall's circles,
   on the side the wall runs to, but outside the chords between that
-  circle's samples the wall is drawn along (#1138,
-  `outline/central/walls.rs`). That is a knife edge's doing — a shaft of
-  4.9 less a ball of 5 turned at a slant, the sphere meeting the wall at
-  some 11°: the rim is all but a great circle, the chart's straight lines
-  between its samples hug it, and the middles the refinement lifts onto the
-  sphere fall in the band where the sphere stands within a chord's sag of
-  the wall, which the wall's triangles there then cross. At a wide angle
-  that band is narrower than those lines bow away from the rim, no point
-  falls in it, and the face is drawn as before. The strips that lay such a
-  face instead keep their rows out of the band only as far as a hundredth
-  of a step, and where a row falls inside it — a shaft of 4.97 — their
-  lattice points between the wall's steps cross the wall still. A face
-  every circle of which turns about one axis — half a ball cut at a slant —
-  is cut in
-  strips on its sphere read about that axis, where each is a latitude, the
-  pole its loops turn round a point added inside it. Any other — the sphere
+  circle's samples the wall is drawn along (#1138, `outline/knife.rs`).
+  That is a knife edge's doing — a shaft of 4.9 less a ball of 5 turned at
+  a slant, the sphere meeting the wall at some 11°: the rim is all but a
+  great circle, the chart's straight lines between its samples hug it, and
+  the middles the refinement lifts onto the sphere fall in the band where
+  the sphere stands within a chord's sag of the wall, which the wall's
+  triangles there then cross. At a wide angle that band is narrower than
+  those lines bow away from the rim, no point falls in it, and the face is
+  drawn as before. A face every circle of which turns about one axis —
+  half a ball cut at a slant — is cut in strips on its sphere read about
+  that axis, where each is a latitude, the pole its loops turn round a
+  point added inside it. Beside a knife-edge rim, the wall and the face
+  both running from it away from the sphere's equator, no row stands
+  closer to a level or an end of the face than the band: the wall's chords'
+  sag over the height of the rim's plane above the centre, as an angle
+  along the meridian. Its lattice points stand between the wall's steps,
+  on no ray of the rim's samples, and a row inside the band — a shaft of
+  4.97, its row 0.0026 from the rim against a band of 0.0036 — put them
+  outside the wall's chords, while the hundredth of a step the strips
+  already keep from a level is 0.0004. The strips of the sphere's own
+  chart need no band: the rim, a latitude of theirs, takes their grid
+  besides the wall's, and every lattice point beside it stands on one of
+  its rays. Any other — the sphere
   of a rib cut from a ball, a chamfer trimmed flush on it — holding and
   reaching no pole and standing within some 87° of the equator, is laid out
   in the sphere's own `(θ, φ)`, each sample of such a circle where it is

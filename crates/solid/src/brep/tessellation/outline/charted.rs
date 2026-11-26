@@ -31,7 +31,7 @@ use super::central::FRONT;
 use super::central::refinement::refined;
 use super::round::Read;
 use super::touched::touched;
-use super::{Outline, laps};
+use super::{Outline, knife, laps};
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::scale::Scale;
 use crate::brep::surface::Sphere;
@@ -98,7 +98,9 @@ impl Outline {
     /// about, and cut in strips there within `tolerance`, its grid of angles
     /// cut for the sphere's own radius: the grid of the sphere read about its
     /// own axis is cut for the widest the faces reach about that one, and a
-    /// face of a slanted cut reaches no circle of it. None where an edge is no
+    /// face of a slanted cut reaches no circle of it. No row stands in the
+    /// band beside a knife-edge rim ([`knife::band`]), whose lattice points
+    /// would stand outside the wall's chords. None where an edge is no
     /// circle, where two turn about different axes, and where the strips
     /// cannot cut it.
     pub(super) fn about(
@@ -140,6 +142,7 @@ impl Outline {
             grid,
             (&round, Read::About(poles)),
         )?;
+        lattice.band = knife::band(body, samples, id, sphere, &outline.samples);
         outline.stripped(samples, &mut lattice)?;
         let cut = outline.cut()?;
         Some((outline, cut))

@@ -1,34 +1,37 @@
-//! Whether the points the central chart added inside a face of a sphere
-//! stand within the chords of the walls the face meets along their own
-//! circles (#1138).
+//! A face of a sphere beside a knife-edge rim (#1138): a circle along which
+//! it meets a wall about the circle's own axis at a shallow angle, the two
+//! running from the circle away from the sphere's equator — a shaft of 4.9
+//! less a ball of 5, their surfaces cos⁻¹ 0.98 apart. Beside such a rim the
+//! sphere stands inside the wall within the sag of the chords between the
+//! rim's samples the wall is drawn along, over a band that sag over the
+//! sine of the angle deep, and a point of the face there between two of the
+//! rim's rays stands outside the wall's triangles: the face's cross them.
 //!
-//! The chart's straight lines are the sphere's great circles, and the sweep
-//! joins the samples of a rim along them. Where the sphere meets a wall at a
-//! knife edge — a shaft of 4.9 less a ball of 5, their surfaces cos⁻¹ 0.98
-//! apart along the rim — the rim is all but a great circle, and those lines
-//! hug it: the middles the refinement lifts onto the sphere stand inside the
-//! wall, within a chord's sag of it, but outside the chords between the
-//! rim's samples the wall is drawn along, and the sphere's triangles there
-//! cross the wall's. Met at a wide angle, the sphere stands within a chord's
-//! sag of the wall over a band narrower than those lines bow away from the
-//! rim, and no point falls in it. A face with such a point is left to the
-//! charts after this one: the strips about the wall's axis, where every
-//! circle of the face turns about it.
+//! The central chart's straight lines are the sphere's great circles, and
+//! the sweep joins the rim's samples along them. The rim being all but a
+//! great circle, they hug it, and the middles the refinement lifts onto the
+//! sphere fall in the band: a face so laid is left to the charts after it
+//! ([`within_the_walls`]). The strips about the wall's axis keep their rows
+//! out of the band ([`band`]). The strips of the sphere's own chart need
+//! not: the rim, one of its latitudes, takes its grid as well as the
+//! wall's, and each lattice point beside it stands on the ray of one of the
+//! rim's samples. Met at a wide angle, the band is narrower than the central
+//! chart's lines bow away from the rim, and no point falls in it.
 
 use glam::{DVec2, DVec3};
 
-use super::super::super::sampling::Samples;
-use super::super::laps;
+use super::super::sampling::Samples;
+use super::laps;
 use crate::brep::curve::Curve;
 use crate::brep::scale::Scale;
-use crate::brep::surface::{Cylinder, Surface};
+use crate::brep::surface::{Cylinder, Sphere, Surface};
 use crate::brep::topology::{Body, EdgeId, FaceId};
 
 /// Whether every sample from `from` on among `samples_of`, the points added
 /// inside the face `id` of a sphere, stands within the chords of each wall
 /// the face meets along a circle about the wall's axis, wherever it stands
 /// inside that wall on the side of the circle the wall's face runs to.
-pub(in crate::brep::tessellation::outline) fn within_the_walls(
+pub(super) fn within_the_walls(
     body: &Body,
     samples: &Samples,
     id: FaceId,
@@ -38,13 +41,41 @@ pub(in crate::brep::tessellation::outline) fn within_the_walls(
         .filter(|&&sample| sample >= from)
         .map(|&sample| samples.point(sample))
         .collect();
-    body.face(id).loops.iter().flatten().all(|coedge| {
+    rims(body, samples, id).all(|rim| !added.iter().any(|&point| rim.passed_by(point)))
+}
+
+/// How far along the meridian, as an angle, no row of the strips about the
+/// axis of the face `id` of `sphere` may stand from a level of it beside a
+/// knife-edge rim of the face: the sag of the wall's chords there over the
+/// height of the rim's plane above the centre, the sphere standing inside
+/// the wall by that height for each angle along the meridian from the rim,
+/// and more. Nought for a face beside no such rim. `laid`, the samples the
+/// face is laid out from, tell the side of each rim it lies on.
+pub(super) fn band(
+    body: &Body,
+    samples: &Samples,
+    id: FaceId,
+    sphere: &Sphere,
+    laid: &[usize],
+) -> f64 {
+    (rims(body, samples, id))
+        .filter_map(|rim| {
+            let over = rim.level - rim.height(sphere.middle());
+            let face = (laid.iter())
+                .map(|&sample| rim.height(samples.point(sample)) - rim.level)
+                .max_by(|one, other| one.abs().total_cmp(&other.abs()))?;
+            let knife = rim.side * over > 0.0 && rim.side * face > 0.0;
+            knife.then(|| (rim.wall.radius - rim.nearest) / over.abs())
+        })
+        .fold(0.0, f64::max)
+}
+
+/// The rims the face `id` meets a wall along.
+fn rims<'a>(body: &'a Body, samples: &'a Samples, id: FaceId) -> impl Iterator<Item = Rim> + 'a {
+    (body.face(id).loops.iter().flatten()).flat_map(move |coedge| {
         (body.uses(coedge.edge).into_iter())
-            .filter(|&(wall, _)| wall != id)
-            .all(|(wall, _)| {
-                Rim::of(body, samples, coedge.edge, wall)
-                    .is_none_or(|rim| !added.iter().any(|&point| rim.passed_by(point)))
-            })
+            .filter(move |&(wall, _)| wall != id)
+            .filter_map(move |(wall, _)| Rim::of(body, samples, coedge.edge, wall))
     })
 }
 
@@ -102,14 +133,19 @@ impl Rim {
         })
     }
 
+    /// How high `point` stands along the wall's axis.
+    fn height(&self, point: DVec3) -> f64 {
+        (point - self.wall.origin).dot(self.wall.axis)
+    }
+
     /// Whether `point` stands inside the wall, on the side of the rim its
     /// face runs to, but outside the chord between the rim's samples either
     /// side of it, which the wall's triangles are drawn along.
     fn passed_by(&self, point: DVec3) -> bool {
-        let from = point - self.wall.origin;
-        if (from.dot(self.wall.axis) - self.level) * self.side <= 0.0 {
+        if (self.height(point) - self.level) * self.side <= 0.0 {
             return false;
         }
+        let from = point - self.wall.origin;
         let at = DVec2::new(from.dot(self.wall.u), from.dot(self.wall.v));
         let away = at.length();
         if away <= self.nearest || away > self.wall.radius {
