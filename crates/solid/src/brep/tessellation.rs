@@ -32,9 +32,10 @@
 //! Each face is cut alone, so two faces standing within the tolerance of
 //! each other can fold onto each other across their edge; [`folds`] cuts
 //! them the other way once all are cut. A ring no thicker than four hundred
-//! of the kernel's tolerances between a sphere and a wall about an axis
-//! through its centre, its two faces bounded by the same circles, is not
-//! cut at all ([`skins`]).
+//! of the kernel's tolerances at the body's own reach, nor than a hundredth
+//! of the tolerance, between a sphere and a wall about an axis through its
+//! centre, its two faces bounded by the same circles, is not cut at all
+//! ([`skins`]).
 
 mod contact;
 mod folds;
@@ -68,7 +69,7 @@ impl Body {
     pub fn triangles_by_face(&self, tolerance: f64) -> Cut {
         let mut samples = Samples::of(self, tolerance);
         let capped = samples.capped(self, tolerance);
-        let rings = skins::rings(self);
+        let rings = skins::rings(self, tolerance);
         let mut drawn = Vec::new();
         let mut uncut = Vec::new();
         for id in self.face_ids().filter(|id| !rings.contains(id)) {
@@ -158,9 +159,8 @@ impl Body {
 /// A face cut into nothing is not among them: one thinner than the
 /// tolerance — a sliver a hair wide between a bore and a wall — has its
 /// triangles collapse onto its edges, and the faces either side of it close
-/// against each other across it. Nor are the two faces of a ring no
-/// thicker than four hundred of the kernel's tolerances between a sphere
-/// and a wall, which are not cut.
+/// against each other across it. Nor are the two faces of a ring as thin
+/// between a sphere and a wall, which are not cut.
 pub struct Cut {
     pub triangles: Vec<[DVec3; 3]>,
     pub faces: Vec<FaceId>,

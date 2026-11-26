@@ -89,6 +89,15 @@
 //! leaves, crossed and some seconds long on #1109's branch, is drawn closed
 //! and uncrossed, or not drawn at all, in under [`QUICK`] —
 //! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_forty_tolerances_under_its_radius_through_it_is_drawn_closed_and_uncrossed_in_under_a_second`.
+//! A ball cut by a shaft reaching far past it keeps the shaft's reach, and
+//! the kernel's tolerance with it, as its scale (#824), while the view draws
+//! the ball at its own reach: a ring the view drew closed and uncrossed on
+//! #1109's branch, a quarter or three quarters tall, is a few hundred of the
+//! kernel's tolerances thick at the reach of a shaft standing out a thousand
+//! or ten thousand times the ball's radius either way. The ball less such a
+//! shaft, through it or ending [`BARELY`] inside the band, still has its
+//! ring drawn, as the view draws the ring a short shaft leaves —
+//! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_reaching_a_thousand_or_ten_thousand_times_further_than_it_still_has_its_ring_drawn`.
 
 use std::f64::consts::{PI, TAU};
 use std::time::{Duration, Instant};
@@ -713,6 +722,57 @@ fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_forty_tolerances_under_its_r
         wrong.is_empty(),
         "a ball less a shaft forty tolerances under its radius, through it, is drawn closed \
          and uncrossed in under a second whatever axis the ball was turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// How far each shaft reaching far past the ball stands out either way
+/// along z, and how far under the ball's radius it stands: a thousand or ten
+/// thousand times the ball's radius, so that the ball it cuts keeps that
+/// reach as its scale (#824), the ring it leaves a few hundred of the
+/// kernel's tolerances thick at that reach, and a quarter or three quarters
+/// tall, which the view, at its tolerance of a thousandth at the ball's own
+/// reach, drew closed and uncrossed on #1109's branch.
+const FAR: [(f64, f64); 3] = [(5000.0, 1.5e-3), (50_000.0, 5e-3), (50_000.0, 1.5e-2)];
+
+/// The ball about z and the ball turned at a slant, each less each shaft of
+/// [`FAR`], through it from one end to the other, or from the plane
+/// [`BARELY`] inside the band out to its far end: the ring between the
+/// shaft's wall and the sphere is drawn by the view as
+/// `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_a_few_ten_thousandths_under_its_radius_through_it_or_ending_a_hair_inside_the_band_still_has_its_ring_drawn`
+/// reads it, closed, uncrossed, enclosing what the body holds within the
+/// drawing's tolerance over the triangles' area, with triangles on the
+/// sphere and on the wall over the band. Every cut that is not is named,
+/// with each way it is not.
+#[test]
+fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_reaching_a_thousand_or_ten_thousand_times_further_than_it_still_has_its_ring_drawn()
+ {
+    let mut wrong = Vec::new();
+    for (about, axis) in balls() {
+        let ball = ball_about(axis);
+        for (far, under) in FAR {
+            let radius = RADIUS - under;
+            let reach = (RADIUS * RADIUS - radius * radius).sqrt();
+            for (from, to) in [(-far, far), (-(reach - BARELY), far)] {
+                let what = named(about, radius, from, to);
+                match ball.difference(&shaft_along_z(&ball, radius, from, to)) {
+                    Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
+                    Ok(body) => wrong.extend(ring_undrawn(
+                        &body,
+                        radius,
+                        from.max(-reach),
+                        to.min(reach),
+                        &what,
+                    )),
+                }
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a ball less a shaft reaching a thousand or ten thousand times further than it, \
+         through it or ending a hair inside the band, still has its ring drawn whatever axis \
+         the ball was turned about; not so:\n{}",
         wrong.join("\n")
     );
 }
