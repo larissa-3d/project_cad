@@ -121,6 +121,25 @@ fn what_a_recent_part_holds_is_read_again_once_it_is_opened_anew() {
     );
 }
 
+#[test]
+fn a_recent_part_with_nothing_drawn_yet_reads_its_zeros_in_the_singular() {
+    let files = InMemoryFiles::default();
+    let path = Path::new(PARTS).join("Neuve.caopart");
+    PartDocument::new("Neuve", at("2026-11-01T09:00:00Z"))
+        .save(&files, &path, at("2026-11-01T09:00:00Z"))
+        .expect("the part is written");
+    let mut menu = StartMenu::default();
+
+    menu.follow(&[opened(&path, "Neuve", "2026-11-05T15:32:00Z")], &files);
+
+    assert_eq!(
+        details(&menu),
+        ["Dossier des pièces · 0 esquisse · 0 extrusion"],
+        "French counts nothing in the singular, and every part just made comes back to \
+         the home screen holding nothing",
+    );
+}
+
 fn a_drawn_picture() -> Picture {
     Picture::new(4, 3, vec![200; 4 * 3 * 4]).expect("the pixels fill the size")
 }

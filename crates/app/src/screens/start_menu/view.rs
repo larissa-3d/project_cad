@@ -3,6 +3,8 @@ use super::state::{RecentLine, StartMenu};
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
 use crate::screens::new_card;
+use crate::ui::empty_state::empty_state;
+use crate::ui::icon;
 use crate::ui::line_button::line_button;
 use crate::ui::quiet_note::quiet_note;
 use crate::ui::thumbnail::thumbnail;
@@ -46,7 +48,12 @@ pub fn show(
             });
             ui.add_space(8.0);
             if lines.is_empty() {
-                ui.weak(lang.t("start_menu.no_recents"));
+                empty_state(
+                    ui,
+                    icon::PART,
+                    &lang.t("start_menu.no_recents"),
+                    &lang.t("start_menu.no_recents_hint"),
+                );
             } else {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for line in lines {

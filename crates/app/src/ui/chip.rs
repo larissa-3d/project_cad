@@ -1,12 +1,10 @@
 //! A chip: one chosen element, or the invitation to click one in the view.
 
-use std::f32::consts::{FRAC_PI_2, PI};
-
 use egui::{
-    Align2, Color32, FontId, Pos2, Rect, Response, Sense, Shape, Stroke, StrokeKind, Ui,
-    WidgetInfo, WidgetType, pos2, vec2,
+    Align2, Color32, FontId, Response, Sense, Stroke, StrokeKind, Ui, WidgetInfo, WidgetType, vec2,
 };
 
+use crate::ui::dashed::dashed_border;
 use crate::ui::theme::tokens::{
     ACCENT_AMBER_BACKGROUND, ACCENT_AMBER_BORDER, ACCENT_AMBER_TEXT, BORDER_STRONG, RADIUS_PILL,
     TEXT_SUBDUED, TYPOGRAPHY_SIZES_DETAIL,
@@ -18,13 +16,6 @@ const HEIGHT: f32 = 24.0;
 /// What a chip keeps clear on either side of its label, as
 /// `docs/redesign/source/part.html` draws it.
 const PADDING: f32 = 8.0;
-
-/// The dashes of the invitation's border, and the gaps between them.
-const DASH: f32 = 3.0;
-const GAP: f32 = 3.0;
-
-/// How many straight pieces each round end of the dashed border is drawn in.
-const ARC_PIECES: usize = 12;
 
 /// What a chip stands for, as C14 draws it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -82,42 +73,11 @@ pub fn chip(ui: &mut Ui, label: &str, kind: ChipKind) -> Response {
     };
     painter.rect(rect, RADIUS_PILL, look.fill, solid, StrokeKind::Inside);
     if look.dashed {
-        painter.extend(Shape::dashed_line(
-            &pill_outline(rect.shrink(border.width / 2.0)),
-            border,
-            DASH,
-            GAP,
-        ));
+        dashed_border(painter, rect, rect.height() / 2.0, border);
     }
     let at = Align2::CENTER_CENTER.align_size_within_rect(written.size(), rect);
     painter.galley(at.min, written, look.ink);
     response
-}
-
-/// The outline of a pill standing in `rect`, round at both ends, as points
-/// a dashed line can follow all the way round.
-fn pill_outline(rect: Rect) -> Vec<Pos2> {
-    let radius = rect.height() / 2.0;
-    let ends = [
-        (rect.right() - radius, -FRAC_PI_2),
-        (rect.left() + radius, FRAC_PI_2),
-    ];
-    let mut outline: Vec<Pos2> = ends
-        .into_iter()
-        .flat_map(|(x, from)| {
-            (0..=ARC_PIECES).map(move |piece| {
-                let angle = from + PI * piece as f32 / ARC_PIECES as f32;
-                pos2(
-                    x + radius * angle.cos(),
-                    rect.center().y + radius * angle.sin(),
-                )
-            })
-        })
-        .collect();
-    if let Some(&start) = outline.first() {
-        outline.push(start);
-    }
-    outline
 }
 
 #[cfg(test)]

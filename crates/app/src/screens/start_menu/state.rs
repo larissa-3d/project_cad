@@ -98,19 +98,20 @@ impl StartMenu {
     }
 }
 
-/// « Dossier des pièces · 2 esquisses · 1 extrusion », or the folder alone
-/// when what the part holds could not be read.
+/// « Dossier des pièces · 2 esquisses · 1 extrusion », nothing counted in the
+/// singular as French says it, or the folder alone when what the part holds
+/// could not be read.
 fn detail(lang: &Catalogue, root: &Path, part: &Path, held: Option<StepCounts>) -> String {
     let folder = wording::library::where_a_part_lies(lang, root, part.parent().unwrap_or(root));
     let Some(held) = held else {
         return folder;
     };
     let sketches = match held.sketches {
-        1 => "start_menu.sketches_one",
+        0 | 1 => "start_menu.sketches_one",
         _ => "start_menu.sketches_many",
     };
     let extrusions = match held.extrusions {
-        1 => "start_menu.extrusions_one",
+        0 | 1 => "start_menu.extrusions_one",
         _ => "start_menu.extrusions_many",
     };
     lang.t_with(

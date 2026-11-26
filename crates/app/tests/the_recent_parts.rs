@@ -200,6 +200,109 @@ fn the_recent_parts_title_counts_the_lines_shown_on_its_right() {
     );
 }
 
+/// What a frame painted: each icon by the file it was drawn from — `part` for
+/// `bytes://icon/part.svg` — and each text by what it says.
+struct Painted {
+    icons: Vec<String>,
+    texts: Vec<String>,
+}
+
+/// What the last frame painted inside `within`.
+fn painted_within(app: &driver::App, within: egui::Rect) -> Painted {
+    let textures = app.ctx.tex_manager();
+    let textures = textures.read();
+    let (mut icons, mut texts) = (Vec::new(), Vec::new());
+    let mut pending: Vec<&egui::Shape> = app
+        .output()
+        .shapes
+        .iter()
+        .map(|clipped| &clipped.shape)
+        .collect();
+    while let Some(shape) = pending.pop() {
+        match shape {
+            egui::Shape::Vec(group) => pending.extend(group),
+            egui::Shape::Rect(rect)
+                if rect.fill_texture_id() != egui::TextureId::default()
+                    && within.contains(rect.rect.center()) =>
+            {
+                let loaded_as = textures
+                    .meta(rect.fill_texture_id())
+                    .map(|meta| meta.name.clone())
+                    .unwrap_or_default();
+                let file = loaded_as.rsplit('/').next().unwrap_or(&loaded_as);
+                icons.push(file.strip_suffix(".svg").unwrap_or(file).to_owned());
+            }
+            egui::Shape::Text(text) if within.contains(shape.visual_bounding_rect().center()) => {
+                texts.push(text.galley.text().to_owned());
+            }
+            _ => {}
+        }
+    }
+    Painted { icons, texts }
+}
+
+#[test]
+fn with_no_recent_part_the_card_says_none_was_opened_and_how_to_make_one() {
+    let mut wearing = driver::open("with_no_recent_part_the_part_icon_is_seen_elsewhere");
+    driver::create_a_part(&mut wearing, "Platine");
+    assert!(
+        painted_within(&wearing, egui::Rect::EVERYTHING)
+            .icons
+            .iter()
+            .any(|icon| icon == "part"),
+        "the frame is read for no `part` icon even where the part's « Pièce » toggle wears \
+         it: what follows could not tell an icon missing from one unseen",
+    );
+
+    let app = driver::open_remembering_parts(
+        "with_no_recent_part_the_card_says_none_was_opened",
+        Vec::new(),
+    );
+    let title = driver::where_it_reads(&app, "Pièces récentes").unwrap_or_else(|| {
+        panic!(
+            "the recent parts are not titled « Pièces récentes », showing {:?}",
+            driver::on_screen(&app),
+        )
+    });
+    let the_card = egui::Rect::from_min_max(
+        egui::pos2(title.left() - 24.0, title.bottom()),
+        egui::pos2(f32::INFINITY, f32::INFINITY),
+    );
+    let in_it = painted_within(&app, the_card);
+    let anywhere = painted_within(&app, egui::Rect::EVERYTHING);
+
+    let mut wrong = Vec::new();
+    for sentence in [
+        "Aucune pièce ouverte pour le moment.",
+        "Donnez un nom à gauche, puis Créer.",
+    ] {
+        let in_the_card = in_it.texts.iter().filter(|text| *text == sentence).count();
+        let on_screen = anywhere
+            .texts
+            .iter()
+            .filter(|text| *text == sentence)
+            .count();
+        if (in_the_card, on_screen) != (1, 1) {
+            wrong.push(format!(
+                "« {sentence} » is painted {on_screen} times, {in_the_card} of them under the title"
+            ));
+        }
+    }
+    if !in_it.icons.iter().any(|icon| icon == "part") {
+        wrong.push(format!(
+            "no `part` icon under the title, only {:?}",
+            in_it.icons
+        ));
+    }
+
+    assert!(
+        wrong.is_empty(),
+        "with no recent part, the card under « Pièces récentes » does not say, once each, \
+         that none was opened and how to make one, beside the part icon:\n  {}",
+        wrong.join("\n  "),
+    );
+}
+
 /// Every text standing on the recent parts' line that reads this name.
 fn the_line_of(app: &driver::App, name: &str) -> Vec<String> {
     let line = the_band_of(app, name);
