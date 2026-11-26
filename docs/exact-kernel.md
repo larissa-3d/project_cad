@@ -2907,22 +2907,37 @@ pointed cone's flank waits on #711.
   round's latitude
   circle whose radius is a coaxial cylinder's — the equator a shaft ends in
   a ball at — lies on both and is sampled once, on the shaft's grid and the
-  round's. A coaxial wall a hair inside a ball, its face and the ball's
-  between them bounded by the same circles — a ball less a shaft a few tens
-  of tolerances under its radius, past decision 12's hair, ending inside the
-  band the wall meets the sphere across — leaves a ring of matter the
-  drawing's tolerance cannot tell from none: neither face of it is drawn
-  (`skins.rs`, #1137), as neither face of a skin of no thickness is, and the
-  faces beyond close against each other across its rims. Drawn, the ball's
-  face was cut at the row of its grid inside the band, its triangles fanned
-  from that row's points onto samples of its rims the row has not — the
-  wall's grid's among them — and leaning off the sphere by as far as a chord
-  sags, a thousand times as far as the ring is thick: they crossed the wall,
-  and the folds they left took tens of seconds not to be undone. A coaxial
-  wall a hair inside a ball otherwise, whose rim stands further than twice
-  the sag of its chords from the circles of the rows about it, or whose grid
-  has no multiple with those taken under the most a turn is cut into, is not
-  drawn in common with it: a family the campaign measures.
+  round's. A face of a ball and a face of a coaxial wall bounded by the same
+  circles of the wall, the sphere standing no further off the wall anywhere
+  between them than `Scale::HAIR` hairs — four hundred of the kernel's
+  tolerances — are a ring neither face of which is drawn (`skins.rs`,
+  #1137), as neither face of a skin of no thickness is. A ball less a shaft
+  through its centre leaves one where the shaft stands past decision 12's
+  hair and within those four hundred tolerances under the ball's radius:
+  between the two circles its wall meets the sphere along, where the shaft
+  goes through the ball and nothing is then drawn at all; or between one of
+  them and the shaft's end plane, standing inside the band so near that
+  circle that the circle it cuts from the sphere and the shaft's rim are
+  one, where the end plane's disc and the ball's cap beyond close against
+  each other along the rim. Drawn, the ball's face was cut at the row of its
+  grid inside the band, its triangles fanned from that row's points onto
+  samples of its rims the row has not — the wall's grid's among them — and
+  leaned off the sphere by as far as a chord sags, far further than the
+  ring is thick: they crossed the wall, and the folds they left took tens of
+  seconds to go through, most never undone. The bound is the
+  kernel's tolerance, never the drawing's: read off the tolerance a caller
+  asks, the view dropped rings thousands of times as thick, an export rings
+  as thick as its gap, and a part joined to flats their matter. A thicker
+  ring is drawn as before: at the view's tolerance, crossed up to two or
+  three ten-thousandths thick in a ball of 5 — about a third of that
+  tolerance — and sound past it. So is the ring an end plane further into
+  the band leaves on itself, its rim off the sphere by more than the
+  kernel's tolerance: its faces are bounded by other edges, and it is
+  crossed far thicker. A coaxial wall a hair inside a ball otherwise, whose
+  rim stands further than twice the sag of its chords from the circles of the
+  rows about it, or whose grid has no multiple with those taken under the
+  most a turn is cut into, is not drawn in common with it: a family the
+  campaign measures.
 - **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
   The strips cannot cut a face of a sphere such a circle bounds, since it
   runs along no line of the chart, nor can the central chart where the face

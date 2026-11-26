@@ -64,16 +64,41 @@
 //! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_forty_tolerances_under_its_radius_ending_inside_the_band_is_drawn_within_the_drawing_s_tolerance_of_its_surfaces`.
 //! The cuts are drawn so already, crossed as they are; the test is a net
 //! under the change.
+//!
+//! And the rings thicker than those, which the change must not lose. A ring
+//! the sphere and the shaft's wall bound between the same two circles is as
+//! thick at the equator as the shaft stands under the ball's radius, d, and
+//! √(40 d) tall in a ball of 5: a shaft a few ten-thousandths under leaves a
+//! ring a tenth or two tall, which the view, at its tolerance of a
+//! thousandth at the ball's reach, drew closed and uncrossed in a fraction
+//! of a second on #1109's branch. The ball about z or at the slant less a
+//! shaft through it, or less one whose end plane stands [`BARELY`] inside
+//! the band — close enough that the plane's circle on the sphere and the
+//! shaft's rim are one, so that the ring is bounded by the same circles
+//! there too — still has its ring drawn: triangles on the sphere and on the
+//! wall over the band, closed, uncrossed, and enclosing what the body holds
+//! within the drawing's tolerance over their area —
+//! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_a_few_ten_thousandths_under_its_radius_through_it_or_ending_a_hair_inside_the_band_still_has_its_ring_drawn`.
+//! A ring a few hundredths thick is no thicker than the gap the coarse level
+//! of an STL export allows, 0.1 millimetre, or the normal one, 0.02
+//! (`cao_app`'s `export.rs`); it was written closed and uncrossed on
+//! #1109's branch at every level about as fine as it is thin, or finer, and
+//! still is, read back from the bytes not empty, closed and uncrossed —
+//! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_a_few_hundredths_under_its_radius_through_it_is_written_to_stl_not_empty_closed_and_uncrossed_at_every_level_about_as_fine_as_its_ring_or_finer`.
+//! And the ring a shaft through the ball 40 tolerances under its radius
+//! leaves, crossed and some seconds long on #1109's branch, is drawn closed
+//! and uncrossed, or not drawn at all, in under [`QUICK`] —
+//! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_forty_tolerances_under_its_radius_through_it_is_drawn_closed_and_uncrossed_in_under_a_second`.
 
 use std::f64::consts::{PI, TAU};
 use std::time::{Duration, Instant};
 
 use cao_solid::brep::Scale;
 use cao_solid::profile::{Contour, Frame, Profile, Run};
-use cao_solid::soundness::{closed, enclosed, uncrossed};
+use cao_solid::soundness::{Triangle, closed, enclosed, uncrossed};
 use cao_solid::turning::{Axis, Turn};
-use cao_solid::{Body, Loop};
-use glam::{DVec2, DVec3};
+use cao_solid::{Body, Loop, stl};
+use glam::{DVec2, DVec3, Vec3};
 
 /// How far the matter a body holds may stand from the arithmetic's, as a
 /// share of the matter in play: the kernel's billionth.
@@ -434,6 +459,260 @@ fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_forty_tolerances_under_its_r
         "a ball less a shaft a few tens of tolerances under its radius, ending inside the band, \
          is drawn within the drawing's tolerance of its surfaces whatever axis the ball was \
          turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// How far inside the band the end plane of a shaft standing a hair inside
+/// it stands, from the circle its wall meets the sphere along: close enough
+/// that the circle the plane cuts from the sphere stands a few billionths
+/// off the shaft's rim, within the kernel's tolerance, and the two are one.
+const BARELY: f64 = 1e-7;
+
+/// Each ball, and how far under its radius the shafts stand whose rings the
+/// view's drawing draws: a few ten-thousandths, each ring a tenth or two
+/// tall. Down to these, and up to a thousandth, the view drew each ring
+/// closed and uncrossed on #1109's branch.
+fn rings_drawn() -> [(&'static str, DVec3, &'static [f64]); 2] {
+    let [(about_z, z), (at_a_slant, slant)] = balls();
+    [
+        (about_z, z, &[9e-4, 3e-4]),
+        (at_a_slant, slant, &[9e-4, 5e-4]),
+    ]
+}
+
+/// Where the ring a shaft of `radius` leaves in `body`, between z = `low`
+/// and `high`, is not drawn as the view must draw it: the drawing empty,
+/// open, crossing, enclosing further from what the body holds than
+/// [`SPREAD`] of the drawing's tolerance over the triangles' area allows,
+/// or without a triangle over the band on the ball's sphere or on the
+/// shaft's wall — every corner on it and between the two heights, its
+/// middle strictly between them, so that neither a cap below nor a disc at
+/// an end counts.
+fn ring_undrawn(body: &Body, radius: f64, low: f64, high: f64, what: &str) -> Vec<String> {
+    let triangles = body.triangles();
+    if triangles.is_empty() {
+        return vec![format!(
+            "{what}: drawn with nothing, where it holds {}",
+            body.volume()
+        )];
+    }
+    let mut wrong = Vec::new();
+    if let Err(open) = closed(&triangles) {
+        wrong.push(format!("{what}: its triangles open, {open:?}"));
+    }
+    if let Err(crossing) = uncrossed(&triangles) {
+        wrong.push(format!("{what}: its triangles crossing, {crossing:?}"));
+    }
+    let tolerance = tolerance(body);
+    let area: f64 = triangles
+        .iter()
+        .map(|&[a, b, c]| (b - a).cross(c - a).length() / 2.0)
+        .sum();
+    let drawn = enclosed(&triangles);
+    if (drawn - body.volume()).abs() > SPREAD * tolerance * area {
+        wrong.push(format!(
+            "{what}: its triangles enclose {drawn:.6} where it holds {:.6}, {:.3} of the \
+             drawing's tolerance {tolerance} over their area {area:.4}",
+            body.volume(),
+            (drawn - body.volume()).abs() / (tolerance * area)
+        ));
+    }
+    let over = |triangle: &Triangle| {
+        let middle = (triangle[0] + triangle[1] + triangle[2]).z / 3.0;
+        triangle
+            .iter()
+            .all(|corner| (low - ON..=high + ON).contains(&corner.z))
+            && low + ON < middle
+            && middle < high - ON
+    };
+    let covered = |on: &dyn Fn(DVec3) -> bool| {
+        triangles
+            .iter()
+            .any(|triangle| over(triangle) && triangle.iter().all(|&corner| on(corner)))
+    };
+    let on_the_sphere = |corner: DVec3| (corner.length() - RADIUS).abs() < ON;
+    let on_the_wall = |corner: DVec3| (corner.truncate().length() - radius).abs() < ON;
+    for (surface, covered) in [
+        ("the ball's sphere", covered(&on_the_sphere)),
+        ("the shaft's wall", covered(&on_the_wall)),
+    ] {
+        if !covered {
+            wrong.push(format!(
+                "{what}: no triangle drawn on {surface} over the band from z = {low} to {high}"
+            ));
+        }
+    }
+    wrong
+}
+
+/// The ball about z and the ball turned at a slant, each less a shaft a
+/// few ten-thousandths under its radius, through it from z = −10 to 10, or
+/// from the plane [`BARELY`] inside the band up to z = 10: the ring between
+/// the shaft's wall and the sphere, from where the two meet or the end plane
+/// stands up to where they meet, is drawn by the view, closed, uncrossed,
+/// enclosing what the body holds within the drawing's tolerance over the
+/// triangles' area, with triangles on the sphere and on the wall over the
+/// band. Every cut that is not is named, with each way it is not.
+#[test]
+fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_a_few_ten_thousandths_under_its_radius_through_it_or_ending_a_hair_inside_the_band_still_has_its_ring_drawn()
+ {
+    let mut wrong = Vec::new();
+    for (about, axis, unders) in rings_drawn() {
+        let ball = ball_about(axis);
+        for &under in unders {
+            let radius = RADIUS - under;
+            let reach = (RADIUS * RADIUS - radius * radius).sqrt();
+            for (from, to) in [(-10.0, 10.0), (-(reach - BARELY), 10.0)] {
+                let what = named(about, radius, from, to);
+                match ball.difference(&shaft_along_z(&ball, radius, from, to)) {
+                    Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
+                    Ok(body) => wrong.extend(ring_undrawn(
+                        &body,
+                        radius,
+                        from.max(-reach),
+                        to.min(reach),
+                        &what,
+                    )),
+                }
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a ball less a shaft a few ten-thousandths under its radius, through it or ending a \
+         hair inside the band, still has its ring drawn whatever axis the ball was turned \
+         about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// The levels of an STL export, coarse, normal and fine: the gaps, in
+/// millimetres, `cao_app`'s `export.rs` asks each for.
+const LEVELS: [f64; 3] = [0.1, 0.02, 0.005];
+
+/// How far under the ball's radius each shaft through it stands whose ring
+/// is written to STL, and the levels of [`LEVELS`] it is written at: every
+/// one about as fine as the ring is thin, or finer. The coarse level's gap
+/// is a tenth over the ring a shaft 9e-2 under leaves, and five times the
+/// ring of one 2e-2 under, which it drew crossed on #1109's branch: that
+/// one is left out.
+const WRITTEN: [(f64, &[f64]); 2] = [(9e-2, &LEVELS), (2e-2, &[LEVELS[1], LEVELS[2]])];
+
+/// The triangles a binary STL holds, read from its bytes alone as a slicer
+/// reads them. `a_part_written_to_stl.rs`'s, which holds the normals too.
+fn read(bytes: &[u8]) -> Vec<Triangle> {
+    assert!(
+        bytes.len() >= 84,
+        "a binary STL opens on 84 bytes, this one has {}",
+        bytes.len()
+    );
+    let count = u32::from_le_bytes(bytes[80..84].try_into().unwrap()) as usize;
+    assert_eq!(
+        bytes.len(),
+        84 + 50 * count,
+        "{count} triangles take {} bytes",
+        84 + 50 * count
+    );
+    let number = |at: usize| f32::from_le_bytes(bytes[at..at + 4].try_into().unwrap());
+    let vector = |at: usize| Vec3::new(number(at), number(at + 4), number(at + 8)).as_dvec3();
+    (0..count)
+        .map(|index| {
+            let at = 84 + 50 * index;
+            [vector(at + 12), vector(at + 24), vector(at + 36)]
+        })
+        .collect()
+}
+
+/// The ball about z and the ball turned at a slant, each less a shaft
+/// through it from z = −10 to 10 a few hundredths under its radius, so that
+/// the ring it leaves is no thicker than the coarse level's gap, or the
+/// normal one's: written to STL at each level [`WRITTEN`] names for it, a
+/// millimetre a unit, and read back not empty, closed and uncrossed. Every
+/// export that is not is named, with each way it is not.
+#[test]
+fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_a_few_hundredths_under_its_radius_through_it_is_written_to_stl_not_empty_closed_and_uncrossed_at_every_level_about_as_fine_as_its_ring_or_finer()
+ {
+    let mut wrong = Vec::new();
+    for (about, axis) in balls() {
+        let ball = ball_about(axis);
+        for (under, levels) in WRITTEN {
+            let radius = RADIUS - under;
+            let what = named(about, radius, -10.0, 10.0);
+            let body = match ball.difference(&shaft_along_z(&ball, radius, -10.0, 10.0)) {
+                Err(declined) => {
+                    wrong.push(format!("{what}: declined, {declined:?}"));
+                    continue;
+                }
+                Ok(body) => body,
+            };
+            for &gap in levels {
+                let triangles = match stl::of(&body, gap, 1.0) {
+                    Err(uncovered) => {
+                        wrong.push(format!("{what}, at {gap} mm: not written, {uncovered:?}"));
+                        continue;
+                    }
+                    Ok(bytes) => read(&bytes),
+                };
+                if triangles.is_empty() {
+                    wrong.push(format!("{what}, at {gap} mm: written with nothing"));
+                    continue;
+                }
+                if let Err(open) = closed(&triangles) {
+                    wrong.push(format!("{what}, at {gap} mm: its triangles open, {open:?}"));
+                }
+                if let Err(crossing) = uncrossed(&triangles) {
+                    wrong.push(format!(
+                        "{what}, at {gap} mm: its triangles crossing, {crossing:?}"
+                    ));
+                }
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a ball less a shaft a few hundredths under its radius, through it, is written to STL \
+         not empty, closed and uncrossed at every level about as fine as its ring or finer, \
+         whatever axis the ball was turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// The ball about z and the ball turned at a slant, each less a shaft
+/// through it from z = −10 to 10, [`UNDER`] of the tolerance at its reach of
+/// 10 under the ball's radius: the ring it leaves, a few ten-millionths
+/// thick, is built, exact, and drawn closed and uncrossed — or not drawn at
+/// all, which is closed and uncrossed too — in under [`QUICK`], the cut
+/// timed as the criterion's are. Every cut that is not is named, with each
+/// way it is not.
+#[test]
+fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_forty_tolerances_under_its_radius_through_it_is_drawn_closed_and_uncrossed_in_under_a_second()
+ {
+    let mut wrong = Vec::new();
+    let radius = RADIUS - UNDER * Scale::of(10.0).eps();
+    for (about, axis) in balls() {
+        let ball = ball_about(axis);
+        let what = named(about, radius, -10.0, 10.0);
+        let shaft = shaft_along_z(&ball, radius, -10.0, 10.0);
+        let started = Instant::now();
+        let built = ball.difference(&shaft);
+        let took = started.elapsed();
+        if took > QUICK {
+            wrong.push(format!("{what}: cut in {took:?}, past {QUICK:?}"));
+        }
+        match built {
+            Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
+            Ok(body) => {
+                if let Some(why) = unsound(&body) {
+                    wrong.push(format!("{what}: {why}"));
+                }
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a ball less a shaft forty tolerances under its radius, through it, is drawn closed \
+         and uncrossed in under a second whatever axis the ball was turned about; not so:\n{}",
         wrong.join("\n")
     );
 }

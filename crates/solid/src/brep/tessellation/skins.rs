@@ -3,30 +3,54 @@
 //! drawn, and every side of the two is still met once each way by what is
 //! left, so the surface stays closed.
 //!
-//! So too a ring thinner than the drawing's tolerance between a sphere and a
-//! wall about an axis through its centre, the two faces bounded by the same
-//! circles ([`rings`]): a ball less a shaft a few tens of the kernel's
-//! tolerances under its radius, past the hair decision 12 lays onto the
-//! touch, its end inside the band the shaft's wall meets the sphere across
-//! (#1137). Drawn, the sphere's face between them is cut at the rows of its
-//! grid, its triangles fanned from points of a row onto samples of its rims
-//! the row has not, the wall's grid's among them, and they lean off the
-//! sphere by as far as a chord sags, a thousand times as far as the ring is
-//! thick: they cross the wall, and the folds they leave are never undone.
+//! So too a ring between a face of a sphere and a face of a cylinder bounded
+//! by the same edges, every one a circle of the cylinder, the sphere standing
+//! no further than [`THIN`] of the kernel's tolerances off the cylinder
+//! anywhere between them ([`rings`]). A ball less a shaft through its centre
+//! leaves one where the shaft stands past the hair decision 12 lays onto the
+//! touch and that close under the ball's radius: between the two circles
+//! its wall meets the sphere along, or between one of them and the shaft's
+//! end plane, where that plane stands inside the band so near the circle
+//! that the circle it cuts from the sphere and the shaft's rim are one
+//! (#1137). Neither face is drawn: the disc of the end plane and the ball's
+//! cap beyond it close against each other along the rim, and of a ball the
+//! shaft goes through, nothing is left to draw. Drawn, the sphere's face was
+//! cut at a row of its grid inside the band, its triangles fanned from
+//! points of the row onto samples of its rims the row has not, the wall's
+//! grid's among them, and leaned off the sphere by as far as a chord sags,
+//! far further than the ring is thick: they crossed the wall, and the folds
+//! they left took tens of seconds to go through, most of them never undone.
+//! A thicker ring is drawn: read off the drawing's tolerance, the bound
+//! dropped rings a coarse drawing could not keep apart but a finer one
+//! draws, and with them what an export or a part joined to flats holds.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::contact::lies_on;
+use crate::brep::Scale;
 use crate::brep::curve::Curve;
 use crate::brep::surface::{Cylinder, Sphere, Surface};
 use crate::brep::topology::{Body, EdgeId, FaceId};
 
+/// How thick, in the kernel's tolerances, a ring between a sphere and a
+/// cylinder may stand and not be drawn: `Scale::HAIR` hairs. The first
+/// rings past decision 12's hair are a few tens of tolerances thick — the
+/// issue's, forty. Four hundred are four ten-millionths of the reach: the
+/// view draws at five hundred times that, an export's finest gap, five
+/// thousandths of a millimetre, stands over it on any part under twelve
+/// metres, and even the finest the drawing cuts a circle a tenth as wide as
+/// the part into, a thousand and twenty-four steps a turn, sags further.
+/// Read off the kernel's tolerance, never off the drawing's: a ring a
+/// coarse drawing cannot keep apart from its wall is still a ring a finer
+/// one draws.
+const THIN: f64 = Scale::HAIR * Scale::HAIR;
+
 /// The faces of every ring between a face of a sphere and a face of a
-/// cylinder bounded by the same edges, each a circle of the cylinder,
-/// the sphere standing within `tolerance` of the cylinder all the way
-/// between them: the drawing cannot tell it from no ring at all, and draws
-/// neither face.
-pub(super) fn rings(body: &Body, tolerance: f64) -> BTreeSet<FaceId> {
+/// cylinder bounded by the same edges, each a circle of the cylinder, the
+/// sphere standing within [`THIN`] of the kernel's tolerances of the
+/// cylinder all the way between them: neither face is drawn.
+pub(super) fn rings(body: &Body) -> BTreeSet<FaceId> {
+    let thin = THIN * body.scale().eps();
     let bounds = |face: FaceId| {
         let mut edges: Vec<EdgeId> = (body.face(face).loops.iter().flatten())
             .map(|coedge| coedge.edge)
@@ -50,7 +74,7 @@ pub(super) fn rings(body: &Body, tolerance: f64) -> BTreeSet<FaceId> {
         };
         let edges = bounds(ball);
         for (wall, cylinder, theirs) in &walls {
-            if *theirs == edges && thinner(body, sphere, cylinder, &edges, tolerance) {
+            if *theirs == edges && thinner(body, sphere, cylinder, &edges, thin) {
                 rings.extend([ball, *wall]);
             }
         }
@@ -59,16 +83,10 @@ pub(super) fn rings(body: &Body, tolerance: f64) -> BTreeSet<FaceId> {
 }
 
 /// Whether every one of `edges` is a circle of `cylinder`, and `sphere`
-/// stands within `tolerance` of it from the lowest of them along its axis to
+/// stands within `thin` of it from the lowest of them along its axis to
 /// the highest, the two apart: every such circle lying on the sphere too,
 /// the axis passes through the sphere's centre.
-fn thinner(
-    body: &Body,
-    sphere: &Sphere,
-    cylinder: &Cylinder,
-    edges: &[EdgeId],
-    tolerance: f64,
-) -> bool {
+fn thinner(body: &Body, sphere: &Sphere, cylinder: &Cylinder, edges: &[EdgeId], thin: f64) -> bool {
     let mut heights = Vec::new();
     for edge in edges {
         let Curve::Circle(circle) = body.curve(body.edge(*edge).curve) else {
@@ -94,7 +112,7 @@ fn thinner(
     low < high
         && [widest, across(low), across(high)]
             .iter()
-            .all(|radius| (radius - cylinder.radius).abs() <= tolerance)
+            .all(|radius| (radius - cylinder.radius).abs() <= thin)
 }
 
 /// Leaves out every two triangles of different faces standing on the same
