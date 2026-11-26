@@ -28,13 +28,31 @@ pub fn thumbnail(ui: &mut Ui, key: &str, size: Vec2, pixels: Option<Pixels<'_>>)
     ui.add(egui::Image::new(&texture(ui, key, pixels)).fit_to_exact_size(size))
 }
 
+/// The textures drawn under one key, each with what its picture is and the
+/// pass it was last drawn in.
+#[derive(Clone, Default)]
+struct Held(Vec<(u64, egui::TextureHandle, u64)>);
+
 /// The pixels as something the GPU can draw, kept in egui's own store between
 /// frames: uploading a texture every frame for every row on screen is the one
 /// way to make a picture cost more than the drawing it stands for.
+///
+/// Found again by what the picture is rather than where its bytes stand: the
+/// memory one picture let go of can come back holding another. A texture no
+/// picture was drawn with since the last pass is let go of.
 fn texture(ui: &Ui, key: &str, pixels: Pixels<'_>) -> egui::TextureHandle {
-    let id = egui::Id::new((key, pixels.rgba.as_ptr() as usize));
-    if let Some(held) = ui.data(|data| data.get_temp::<egui::TextureHandle>(id)) {
-        return held;
+    let id = egui::Id::new(key);
+    let what = egui::util::hash((pixels.width, pixels.height, pixels.rgba));
+    let pass = ui.ctx().cumulative_pass_nr();
+    let found = ui.data_mut(|data| {
+        let held = data.get_temp_mut_or_default::<Held>(id);
+        held.0.retain(|(_, _, drawn)| drawn + 1 >= pass);
+        let (_, handle, drawn) = held.0.iter_mut().find(|(seen, ..)| *seen == what)?;
+        *drawn = pass;
+        Some(handle.clone())
+    });
+    if let Some(handle) = found {
+        return handle;
     }
     let image = egui::ColorImage::from_rgba_unmultiplied(
         [pixels.width as usize, pixels.height as usize],
@@ -43,6 +61,13 @@ fn texture(ui: &Ui, key: &str, pixels: Pixels<'_>) -> egui::TextureHandle {
     let made = ui
         .ctx()
         .load_texture(key, image, egui::TextureOptions::LINEAR);
-    ui.data_mut(|data| data.insert_temp(id, made.clone()));
+    ui.data_mut(|data| {
+        data.get_temp_mut_or_default::<Held>(id)
+            .0
+            .push((what, made.clone(), pass));
+    });
     made
 }
+
+#[cfg(test)]
+mod tests;

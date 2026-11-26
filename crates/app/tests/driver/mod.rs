@@ -591,10 +591,16 @@ pub fn shows(app: &App, text: &str) -> bool {
 
 /// Types the name beside « Nom : » on the home screen and makes the part: the
 /// field the user reads as the new part's name, not the first one drawn — the
-/// library's column has a filter of its own since #743.
+/// library's column has a filter of its own since #743. The button is pressed
+/// by its whole name and its role: the home screen's help, « Donnez un nom à
+/// gauche, puis Créer. », names it too.
 pub fn create_a_part(app: &mut App, named: &str) {
     type_beside(app, "Nom :", named);
-    click(app, "Créer");
+    let create = app.get(by().role(egui::accesskit::Role::Button).label("Créer ↵"));
+    within_reach("Créer ↵", create.rect().center(), app.ctx.content_rect());
+    create.click();
+    app.run();
+    hold_the_canvas(app);
 }
 
 /// Where the library's column on the home screen shows a row reading this:

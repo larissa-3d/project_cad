@@ -74,7 +74,7 @@ pub fn show(
 /// it was opened and a chevron on the right. Says whether the line was
 /// clicked, anywhere on it.
 fn recent_line(ui: &mut egui::Ui, menu: &StartMenu, line: &RecentLine) -> bool {
-    line_button(ui, &line.path, |ui| {
+    line_button(ui, &line.path, &line.name, |ui| {
         ui.horizontal(|ui| {
             let picture = menu.picture_of(&line.path).map(crate::picture::pixels);
             thumbnail(ui, "recent_thumbnail", THUMBNAIL, picture);

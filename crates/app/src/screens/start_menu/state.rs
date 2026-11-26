@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use cao_part::{Files, PartDocument, Picture, StepCounts};
+use cao_part::{Files, Glance, PartDocument, Picture, StepCounts};
 use cao_prefs::RecentEntry;
 use chrono::TimeZone;
 
@@ -16,13 +16,10 @@ pub struct StartMenu {
     recents: Vec<ReadPart>,
 }
 
-/// A recent part as it was last read.
+/// A recent part as it was last read: what it holds, and its picture.
 struct ReadPart {
     entry: RecentEntry,
-    /// What its index says it holds — nothing when that cannot be read.
-    held: Option<StepCounts>,
-    /// The picture it was put away with, when it carries one.
-    picture: Option<Picture>,
+    glance: Glance,
 }
 
 /// One line of the recent parts, as it reads.
@@ -41,9 +38,10 @@ impl StartMenu {
     }
 
     /// Reads what each recent part holds and the picture it carries, once the
-    /// list has changed since it was last read rather than every frame.
-    /// Opening a part changes the list, so a part worked on is read again on
-    /// the way back.
+    /// list has changed since it was last read rather than every frame, and
+    /// only for the parts whose line changed. Opening a part gives it a new
+    /// hour, so a part worked on is read again on the way back; the others
+    /// keep what was read of them.
     pub fn follow(&mut self, recents: &[RecentEntry], files: &impl Files) {
         let unchanged = recents.len() == self.recents.len()
             && recents.iter().zip(&self.recents).all(|(now, read)| {
@@ -53,12 +51,21 @@ impl StartMenu {
         if unchanged {
             return;
         }
+        let mut before = std::mem::take(&mut self.recents);
         self.recents = recents
             .iter()
-            .map(|entry| ReadPart {
-                entry: entry.clone(),
-                held: PartDocument::step_counts_in(files, &entry.path),
-                picture: PartDocument::picture_in(files, &entry.path),
+            .map(|entry| {
+                let kept = before.iter().position(|read| {
+                    read.entry.path == entry.path && read.entry.opened_at == entry.opened_at
+                });
+                let glance = match kept {
+                    Some(at) => before.swap_remove(at).glance,
+                    None => PartDocument::glance_in(files, &entry.path),
+                };
+                ReadPart {
+                    entry: entry.clone(),
+                    glance,
+                }
             })
             .collect();
     }
@@ -68,6 +75,7 @@ impl StartMenu {
         self.recents
             .iter()
             .find(|read| read.entry.path == part)?
+            .glance
             .picture
             .as_ref()
     }
@@ -91,7 +99,7 @@ impl StartMenu {
             .map(|read| RecentLine {
                 path: read.entry.path.clone(),
                 name: read.entry.name.clone(),
-                detail: detail(lang, root, &read.entry.path, read.held),
+                detail: detail(lang, root, &read.entry.path, read.glance.held),
                 opened: lang.t_moment("start_menu.recent_date", read.entry.opened_at, zone),
             })
             .collect()

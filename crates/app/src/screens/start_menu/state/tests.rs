@@ -3,7 +3,7 @@
 //! line says when that cannot be read. What a line reads on screen is driven whole in
 //! `crates/app/tests/the_recent_parts.rs`, where #745 is transcribed.
 
-use std::cell::Cell;
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 
 use cao_part::{ExtrusionMode, FileError, Files, InMemoryFiles, Operation, PartDocument, Picture};
@@ -19,16 +19,32 @@ fn at(text: &str) -> DateTime<Utc> {
 
 const PARTS: &str = "/parts";
 
-/// The files, counting how many times one of them is read.
+/// The files, noting every one that is read.
 #[derive(Default)]
 struct CountedFiles {
     files: InMemoryFiles,
-    reads: Cell<usize>,
+    read: RefCell<Vec<PathBuf>>,
+}
+
+impl CountedFiles {
+    /// How many times a file has been read, any file.
+    fn reads(&self) -> usize {
+        self.read.borrow().len()
+    }
+
+    /// How many times this file has been read.
+    fn reads_of(&self, path: &Path) -> usize {
+        self.read
+            .borrow()
+            .iter()
+            .filter(|read| *read == path)
+            .count()
+    }
 }
 
 impl Files for CountedFiles {
     fn read(&self, path: &Path) -> Result<Vec<u8>, FileError> {
-        self.reads.set(self.reads.get() + 1);
+        self.read.borrow_mut().push(path.to_path_buf());
         self.files.read(path)
     }
 
@@ -85,14 +101,14 @@ fn what_a_recent_part_holds_is_read_once_while_the_list_stays_as_it_was() {
     let recents = [opened(&part, "Support", "2026-11-05T15:32:00Z")];
     let mut menu = StartMenu::default();
     menu.follow(&recents, &files);
-    let on_the_first_frame = files.reads.get();
+    let on_the_first_frame = files.reads();
 
     for _frame in 0..3 {
         menu.follow(&recents, &files);
     }
 
     assert_eq!(
-        files.reads.get(),
+        files.reads(),
         on_the_first_frame,
         "the home screen is drawn every frame, and a part is read again at each \
          of them",
@@ -155,7 +171,7 @@ fn the_picture_of_a_recent_part_is_read_once_while_the_list_stays_as_it_was() {
     let recents = [opened(&path, "Support", "2026-11-05T15:32:00Z")];
     let mut menu = StartMenu::default();
     menu.follow(&recents, &files);
-    let on_the_first_frame = files.reads.get();
+    let on_the_first_frame = files.reads();
 
     for _frame in 0..3 {
         menu.follow(&recents, &files);
@@ -163,10 +179,71 @@ fn the_picture_of_a_recent_part_is_read_once_while_the_list_stays_as_it_was() {
 
     assert_eq!(menu.picture_of(&path), Some(&a_drawn_picture()));
     assert_eq!(
-        files.reads.get(),
+        files.reads(),
         on_the_first_frame,
         "the home screen is drawn every frame, and a part is read again at each \
          of them",
+    );
+}
+
+#[test]
+fn a_part_whose_line_has_not_changed_is_not_read_again_when_another_is_opened() {
+    let files = CountedFiles::default();
+    let support = a_part_raised(&files, "Support", 1);
+    let equerre = a_part_raised(&files, "Équerre", 2);
+    let mut menu = StartMenu::default();
+    menu.follow(
+        &[
+            opened(&support, "Support", "2026-11-05T15:32:00Z"),
+            opened(&equerre, "Équerre", "2026-11-04T10:00:00Z"),
+        ],
+        &files,
+    );
+    let (support_before, equerre_before) = (files.reads_of(&support), files.reads_of(&equerre));
+
+    menu.follow(
+        &[
+            opened(&equerre, "Équerre", "2026-11-06T08:10:00Z"),
+            opened(&support, "Support", "2026-11-05T15:32:00Z"),
+        ],
+        &files,
+    );
+
+    assert_eq!(
+        (
+            files.reads_of(&support) - support_before,
+            files.reads_of(&equerre) > equerre_before,
+        ),
+        (0, true),
+        "(times « Support » was read again, whether « Équerre » was): opening « Équerre » \
+         gave « Support » nothing new to show",
+    );
+}
+
+#[test]
+fn a_recent_part_s_file_is_read_at_most_once_to_show_its_line() {
+    let files = CountedFiles::default();
+    let mut part = PartDocument::new("Support", at("2026-11-01T09:00:00Z"));
+    part.set_picture(a_drawn_picture());
+    let path = Path::new(PARTS).join("Support.caopart");
+    part.save(&files, &path, at("2026-11-01T09:00:00Z"))
+        .expect("the part is written");
+    let mut menu = StartMenu::default();
+
+    menu.follow(&[opened(&path, "Support", "2026-11-05T15:32:00Z")], &files);
+
+    assert!(
+        files.reads_of(&path) <= 1,
+        "the whole file of « Support » is read {} times to show one line: what it holds \
+         and its picture are in the one archive",
+        files.reads_of(&path),
+    );
+    assert_eq!(
+        (details(&menu), menu.picture_of(&path)),
+        (
+            vec!["Dossier des pièces · 0 esquisse · 0 extrusion".to_string()],
+            Some(&a_drawn_picture()),
+        ),
     );
 }
 

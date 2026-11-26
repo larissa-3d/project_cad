@@ -1,10 +1,9 @@
 //! What a part holds, counted from the index of its design alone.
 
 use std::collections::BTreeSet;
-use std::io::Cursor;
 use std::path::Path;
 
-use super::{PartDocument, design};
+use super::{PartDocument, archive_in, design};
 use crate::history::{Index, Step, StepKind};
 use crate::ports::Files;
 
@@ -22,9 +21,7 @@ impl PartDocument {
     /// says what each step is: a panel listing a folder must pay neither the
     /// replay nor a read of every step's folder once a row.
     pub fn step_counts_in(files: &impl Files, path: &Path) -> Option<StepCounts> {
-        let bytes = files.read(path).ok()?;
-        let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).ok()?;
-        let index = design::index_in(&mut archive).ok()?;
+        let index = design::index_in(&mut archive_in(files, path)?).ok()?;
         Some(StepCounts::of(&index))
     }
 }
@@ -32,7 +29,7 @@ impl PartDocument {
 impl StepCounts {
     /// Only the steps in effect are counted: one undone and kept to be redone
     /// is not shown once the part is opened.
-    fn of(index: &Index) -> Self {
+    pub(super) fn of(index: &Index) -> Self {
         let in_effect = in_effect(index);
         let count = |kind: StepKind| {
             index

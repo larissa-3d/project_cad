@@ -289,6 +289,13 @@ fn with_no_recent_part_the_card_says_none_was_opened_and_how_to_make_one() {
                 "« {sentence} » is painted {on_screen} times, {in_the_card} of them under the title"
             ));
         }
+        match driver::where_it_reads(&app, sentence) {
+            Some(at) if the_card.contains(at.center()) => {}
+            at => wrong.push(format!(
+                "« {sentence} » is no text under the title for whoever cannot see the screen: \
+                 read at {at:?}"
+            )),
+        }
     }
     if !in_it.icons.iter().any(|icon| icon == "part") {
         wrong.push(format!(
@@ -409,6 +416,51 @@ fn a_recent_part_moved_or_deleted_outside_the_app_still_shows_and_says_its_file_
         "a recent part moved or deleted outside the application does not behave as it \
          did: still listed until the next start, saying its file is gone when clicked:\n  {}",
         wrong.join("\n  "),
+    );
+}
+
+#[test]
+fn a_recent_part_s_line_is_one_button_named_after_the_part_and_pressing_it_opens_it() {
+    let mut app = driver::open_remembering_parts(
+        "a_recent_part_s_line_is_one_button",
+        vec![driver::RecentPart {
+            lies_at: "Support.caopart".into(),
+            part: two_sketches_and_an_extrusion("Support"),
+            opened_at: at("2026-11-05T15:32:00Z"),
+        }],
+    );
+    let recents = driver::where_it_reads(&app, "Pièces récentes")
+        .expect("the recent parts are titled")
+        .left()
+        - 24.0;
+    let named = |node: &egui_kittest::Node<'_>| {
+        node.accesskit_node().label().as_deref() == Some("Support") && node.rect().left() >= recents
+    };
+    let buttons: Vec<egui::Rect> = app
+        .query_all_by_role(egui::accesskit::Role::Button)
+        .filter(named)
+        .map(|node| node.rect())
+        .collect();
+    let chevron = where_on_the_line_of(&app, "Support", "›")
+        .expect("the recent line of « Support » ends on a chevron");
+    assert!(
+        matches!(buttons[..], [line] if line.contains(chevron.center())),
+        "the recent line of « Support » is not one button named « Support » reaching its \
+         chevron, for whoever cannot see it: buttons so named {buttons:?}, chevron at \
+         {chevron:?}",
+    );
+
+    app.query_all_by_role(egui::accesskit::Role::Button)
+        .find(named)
+        .expect("the line's button")
+        .click();
+    app.run();
+
+    assert!(
+        a_part_is_open(&app),
+        "pressing the button of « Support »'s recent line, as assistive technology does, \
+         opens nothing, showing {:?}",
+        driver::on_screen(&app),
     );
 }
 
