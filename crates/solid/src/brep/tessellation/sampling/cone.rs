@@ -27,6 +27,8 @@
 //! [`axis`]: super::axis
 //! [`round`]: super::round
 
+mod lined_up;
+
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
 
@@ -39,9 +41,10 @@ use super::round::{Rounded, SHARE};
 use super::steps::most;
 use crate::brep::conic::{Conic, Round};
 use crate::brep::curve::{Circle, Curve, Meet, Wall};
-use crate::brep::surface::{Cone, Cylinder, Surface};
+use crate::brep::surface::{Cone, Surface};
 use crate::brep::topology::{Body, Edge, Face, SurfaceId};
 use crate::brep::trace::Trace;
+use lined_up::kept_by_walls;
 
 /// A surface of revolution carrying a grid of its own: a cone, a sphere or a
 /// torus.
@@ -216,15 +219,16 @@ pub(super) fn grids(body: &Body, (tolerance, span): (f64, f64)) -> BTreeMap<Surf
                         widest = widest.max(round.widest());
                     }
                     let steps = divisions_in(widest, tolerance * SHARE, span);
+                    let rows = divisions_in(round.radius(), tolerance * SHARE, span);
                     (
                         kept_by_walls(
                             body,
                             &round,
-                            (steps, most(widest, span)),
+                            (steps, rows, most(widest, span)),
                             (tolerance, span),
                             eps,
                         ),
-                        divisions_in(round.radius(), tolerance * SHARE, span),
+                        rows,
                         beyond_most(widest, tolerance * SHARE, span)
                             || beyond_most(round.radius(), tolerance * SHARE, span),
                     )
@@ -242,66 +246,6 @@ pub(super) fn grids(body: &Body, (tolerance, span): (f64, f64)) -> BTreeMap<Surf
             )
         })
         .collect()
-}
-
-/// A round's `steps` a turn, made a multiple of the grid of every cylinder
-/// of the body that stands on its axis and touches it along an equator — a
-/// ring round a post of its inner radius or in a bore of its outer one, a
-/// ball in a bore of its own — where the two grids start the same way round.
-/// A circle another surface only touches a round along parts neither face
-/// (#576), so neither face samples it, and a chord of the round along it
-/// cut across the cylinder's between two of its steps: the two crossed
-/// beside the circle they share (5576855166, 5585606550). Left as they are
-/// where no such multiple stands under the most a turn is cut into.
-fn kept_by_walls(
-    body: &Body,
-    round: &Rounded,
-    (steps, cap): (usize, usize),
-    (tolerance, span): (f64, f64),
-    eps: f64,
-) -> usize {
-    let mut every = 1;
-    for surface in &body.surfaces {
-        let Surface::Cylinder(wall) = surface else {
-            continue;
-        };
-        if !touching(round, wall, eps) {
-            continue;
-        }
-        let theirs = divisions_in(wall.radius, tolerance, span);
-        let turn = wall.u.dot(round.v()).atan2(wall.u.dot(round.u()));
-        let ranks = turn / TAU * theirs as f64;
-        if (ranks - ranks.round()).abs() <= ALIGNED {
-            every = every / greatest_common(every, theirs) * theirs;
-        }
-    }
-    let kept = steps.div_ceil(every) * every;
-    if kept > cap { steps } else { kept }
-}
-
-/// Under this share of a step, two grids start at one angle.
-const ALIGNED: f64 = 1e-9;
-
-/// Whether `wall` stands on the axis of `round` and touches it along an
-/// equator: its radius the round's furthest from the axis or nearest.
-fn touching(round: &Rounded, wall: &Cylinder, eps: f64) -> bool {
-    let from = round.origin() - wall.origin;
-    let off = (from - wall.axis * wall.axis.dot(from)).length();
-    let leaning = wall.axis.cross(round.axis()).length() * wall.radius;
-    let (outer, inner) = (round.widest(), round.widest() - 2.0 * round.radius());
-    off <= eps
-        && leaning <= eps
-        && [outer, inner]
-            .iter()
-            .any(|equator| (equator - wall.radius).abs() <= eps)
-}
-
-fn greatest_common(one: usize, other: usize) -> usize {
-    if other == 0 {
-        one
-    } else {
-        greatest_common(other, one % other)
-    }
 }
 
 /// Whether a face of `round` reaches its crest, the circle furthest from the
