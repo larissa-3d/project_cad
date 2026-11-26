@@ -6,7 +6,9 @@ use std::f64::consts::{FRAC_PI_4, TAU};
 
 use glam::DVec3;
 
+use super::spheres::crossings;
 use super::*;
+use crate::brep::Scale;
 use crate::brep::surface::Sphere;
 
 /// The circle a plane `offset` from `centre` along `normal` cuts the sphere
