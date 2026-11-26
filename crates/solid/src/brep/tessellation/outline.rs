@@ -6,6 +6,7 @@ mod charted;
 mod columns;
 mod cone;
 mod cylinder;
+mod knife;
 mod pierced;
 mod round;
 mod strips;
@@ -43,7 +44,9 @@ impl Outline {
     /// The outline of a face and its triangles. A face of a sphere its
     /// `(θ, φ)` chart cannot lay out, for whatever reason, is laid out and
     /// cut on a chart of its own ([`central`]), with points added inside it,
-    /// or, with a circle of another axis, as [`charted`] lays it, and
+    /// unless one stands outside the chords of a wall the face meets at a
+    /// knife edge ([`knife::within_the_walls`]); or, with a circle of
+    /// another axis, as [`charted`] lays it, and
     /// failing those as [`pierced`] does; one the chart lays out is cut there
     /// or not at all. None when the face can be neither laid out nor cut.
     pub(super) fn cut_of(
@@ -60,7 +63,11 @@ impl Outline {
         let Surface::Sphere(sphere) = body.surface(face.surface) else {
             return None;
         };
+        let from = samples.count();
         Outline::central(sphere, samples, &laps(body, samples, id)?, tolerance)
+            .filter(|(outline, _)| {
+                knife::within_the_walls(body, samples, id, (&outline.samples, from))
+            })
             .or_else(|| Outline::about(body, samples, id, sphere, tolerance))
             .or_else(|| Outline::charted(body, samples, id, sphere, tolerance))
             .or_else(|| Outline::pierced(body, samples, id, sphere, tolerance))

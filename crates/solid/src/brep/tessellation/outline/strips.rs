@@ -30,6 +30,7 @@ use glam::DVec2;
 use super::super::sampling::{Rounded, Samples, rows};
 use super::Outline;
 use super::cylinder::CLEAR;
+use super::knife::Band;
 
 /// The lattice of a round's chart: the samples added inside its faces, one
 /// for each angle of the grid and each row a face is cut along.
@@ -43,6 +44,9 @@ pub(super) struct Lattice {
     /// How close to a level, along the meridian, no row stands: the room
     /// the sampling leaves at the tube's radius.
     pub(super) room: f64,
+    /// The bands beside the face's knife-edge rims, inside which no row
+    /// stands ([`super::knife::Band`]): none but there.
+    pub(super) bands: Vec<Band>,
     added: BTreeMap<(usize, u64), usize>,
 }
 
@@ -60,6 +64,7 @@ impl Lattice {
             rows,
             levels: levels.to_vec(),
             room,
+            bands: Vec::new(),
             added: BTreeMap::new(),
         }
     }
@@ -121,7 +126,11 @@ impl Outline {
             .filter(|(point, _)| !passing.contains_key(point))
             .map(|(_, at)| at.y)
             .collect();
-        levels.extend(rows(lattice.rows, low, high, &lattice.levels, lattice.room));
+        let mut grid = rows(lattice.rows, low, high, &lattice.levels, lattice.room);
+        for band in &lattice.bands {
+            grid = band.cleared(grid, (low, high), &lattice.levels, lattice.room);
+        }
+        levels.extend(grid);
         levels.sort_by(f64::total_cmp);
         levels.dedup();
         let rank: BTreeMap<u64, usize> = levels
