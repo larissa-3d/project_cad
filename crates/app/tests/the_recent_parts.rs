@@ -14,7 +14,10 @@
 //!   bullet
 //! - The folder in the detail line is the part's folder relative to the parts
 //!   folder, and the root reads as the root, not as an empty string —
-//!   `a_recent_part_reads_its_folder_below_the_parts_folder_and_the_root_as_the_parts_folder`
+//!   `a_recent_part_reads_its_folder_below_the_parts_folder_and_the_root_as_the_parts_folder`;
+//!   decided on the way, the issue saying nothing of it: a part lying outside
+//!   the parts folder reads the folder it is in, its path as it stands, since
+//!   reading it as the root would send the user looking in the wrong place
 //! - « Pièces récentes » carries « N pièces » on the right of the title, N
 //!   being the number of lines shown —
 //!   `the_recent_parts_title_counts_the_lines_shown_on_its_right`
@@ -22,7 +25,8 @@
 //!   the recents list builds no `Part` to show a line —
 //!   `a_recent_part_whose_steps_cannot_be_read_still_says_what_it_holds`;
 //!   beneath it, `crates/part/src/document/tests.rs` counts from the archive's
-//!   index alone
+//!   index alone, and `crates/app/src/screens/start_menu/state/tests.rs` reads
+//!   it once while the list stays as it was
 //! - With no recent part, the card shows a dashed frame, the part icon,
 //!   « Aucune pièce ouverte pour le moment. » and « Donnez un nom à gauche,
 //!   puis Créer. ». —
@@ -37,6 +41,8 @@
 //!   monospace date are looked at in « To try it ».
 
 mod driver;
+
+use std::path::PathBuf;
 
 use cao_app::adapters::files::DiskFiles;
 use cao_part::{ExtrusionMode, Operation, PartDocument, StepCounts};
@@ -92,7 +98,7 @@ fn a_recent_part_reads_its_name_what_it_holds_when_it_was_opened_and_a_chevron()
     let app = driver::open_remembering_parts(
         test,
         vec![driver::RecentPart {
-            below_the_parts_folder: "Support.caopart",
+            lies_at: "Support.caopart".into(),
             part: two_sketches_and_an_extrusion("Support"),
             opened_at,
         }],
@@ -120,5 +126,61 @@ fn a_recent_part_reads_its_name_what_it_holds_when_it_was_opened_and_a_chevron()
     assert!(
         missing.is_empty(),
         "the recent line of « Support » does not read {missing:?}; it reads {read:?}",
+    );
+}
+
+/// What the recent line of this part says of where it lies and what it holds:
+/// the text of its line joining them with « · ».
+fn the_detail_of(app: &driver::App, name: &str) -> Option<String> {
+    the_line_of(app, name)
+        .into_iter()
+        .find(|text| text.contains(" · "))
+}
+
+#[test]
+fn a_recent_part_reads_its_folder_below_the_parts_folder_and_the_root_as_the_parts_folder() {
+    let test = "a_recent_part_reads_its_folder";
+    let elsewhere = driver::locations_of(test)
+        .documents
+        .expect("the test keeps its documents in a folder of its own")
+        .join("Ailleurs");
+    let opened_at = at("2026-11-05T15:32:00Z");
+    let laid = |lies_at: PathBuf, name: &str| driver::RecentPart {
+        lies_at,
+        part: PartDocument::new(name, opened_at),
+        opened_at,
+    };
+    let app = driver::open_remembering_parts(
+        test,
+        vec![
+            laid("Équerre.caopart".into(), "Équerre"),
+            laid("Brides/Platine.caopart".into(), "Platine"),
+            laid("Brides/Anciennes/Cale.caopart".into(), "Cale"),
+            laid(elsewhere.join("Support.caopart"), "Support"),
+        ],
+    );
+
+    let wrong: Vec<String> = [
+        ("Équerre", "Dossier des pièces".to_string()),
+        ("Platine", "Brides".to_string()),
+        ("Cale", "Brides / Anciennes".to_string()),
+        ("Support", elsewhere.display().to_string()),
+    ]
+    .into_iter()
+    .filter_map(|(name, folder)| {
+        let detail = the_detail_of(&app, name);
+        let reads_it = detail
+            .as_deref()
+            .is_some_and(|said| said.starts_with(&format!("{folder} · ")));
+        (!reads_it).then(|| format!("« {name} » reads {detail:?}, not « {folder} · … »"))
+    })
+    .collect();
+
+    assert!(
+        wrong.is_empty(),
+        "a recent part does not say where it lies below the parts folder — the \
+         root as the parts folder, a part outside it by the folder it is really \
+         in:\n  {}",
+        wrong.join("\n  "),
     );
 }

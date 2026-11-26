@@ -71,7 +71,7 @@ impl StartMenu {
 /// « Dossier des pièces · 2 esquisses · 1 extrusion », or the folder alone
 /// when what the part holds could not be read.
 fn detail(lang: &Catalogue, root: &Path, part: &Path, held: Option<StepCounts>) -> String {
-    let folder = wording::library::folder(lang, root, part.parent().unwrap_or(root));
+    let folder = wording::library::where_a_part_lies(lang, root, part.parent().unwrap_or(root));
     let Some(held) = held else {
         return folder;
     };
@@ -98,3 +98,6 @@ fn detail(lang: &Catalogue, root: &Path, part: &Path, held: Option<StepCounts>) 
         ],
     )
 }
+
+#[cfg(test)]
+mod tests;

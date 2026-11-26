@@ -182,8 +182,9 @@ pub fn open_on_remembering(test: &str, size: egui::Vec2, place: cao_prefs::Windo
 /// A part laid in the parts folder before the application opens, and
 /// remembered as opened at `opened_at`.
 pub struct RecentPart {
-    /// Where it lies below the parts folder: `Brides/support.caopart`.
-    pub below_the_parts_folder: &'static str,
+    /// Where it lies: below the parts folder when relative —
+    /// `Brides/support.caopart` — and anywhere when absolute.
+    pub lies_at: PathBuf,
     pub part: cao_part::PartDocument,
     pub opened_at: chrono::DateTime<chrono::Utc>,
 }
@@ -197,7 +198,7 @@ pub fn open_remembering_parts(test: &str, parts: Vec<RecentPart>) -> App {
     let library = cao_prefs::default_projects_dir(&at);
     let mut recents = cao_prefs::RecentList::default();
     for recent in parts.iter().rev() {
-        let path = library.join(recent.below_the_parts_folder);
+        let path = library.join(&recent.lies_at);
         std::fs::create_dir_all(path.parent().expect("a folder holds the part"))
             .expect("the part's folder is made");
         recent

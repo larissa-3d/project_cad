@@ -18,3 +18,20 @@ pub fn folder(lang: &Catalogue, root: &Path, folder: &Path) -> String {
         .collect::<Vec<_>>()
         .join(" / ")
 }
+
+/// The folder a part lies in, said from inside the parts folder: « Brides /
+/// Anciennes », the root as the parts folder, and a folder outside it by its
+/// path as it stands.
+pub fn where_a_part_lies(lang: &Catalogue, root: &Path, folder: &Path) -> String {
+    let Ok(below) = folder.strip_prefix(root) else {
+        return folder.display().to_string();
+    };
+    if below.as_os_str().is_empty() {
+        return parts_folder(lang);
+    }
+    below
+        .iter()
+        .map(|name| name.to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join(" / ")
+}
