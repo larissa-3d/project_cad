@@ -2,27 +2,32 @@
 //! it meets a wall about the circle's own axis at a shallow angle, the two
 //! running from the circle away from the sphere's equator — a shaft of 4.9
 //! less a ball of 5, their surfaces cos⁻¹ 0.98 apart. Beside such a rim the
-//! sphere stands inside the wall within the sag of the chords between the
-//! rim's samples the wall is drawn along, over a band that sag over the
-//! sine of the angle deep, and a point of the face there between two of the
-//! rim's rays stands outside the wall's triangles: the face's cross them.
+//! sphere stands inside the wall but within the sag of the chords between
+//! the rim's samples the wall is drawn along, over a band reaching the
+//! latitude where it comes as near the axis as those chords — the sag over
+//! the sine of the angle between the two where that angle is wide, and
+//! bounded as the wall's radius nears the sphere's, where it is some three
+//! quarters of a row of the grid — and a point of the face there between
+//! two of the rim's rays stands outside the wall's triangles: the face's
+//! cross them.
 //!
 //! The central chart's straight lines are the sphere's great circles, and
 //! the sweep joins the rim's samples along them. The rim being all but a
 //! great circle, they hug it, and the middles the refinement lifts onto the
 //! sphere fall in the band: a face so laid is left to the charts after it
-//! ([`within_the_walls`]). The strips about the wall's axis keep their rows
-//! out of the band ([`band`]). The strips of the sphere's own chart need
-//! not: the rim, one of its latitudes, takes its grid as well as the
-//! wall's, and each lattice point beside it stands on the ray of one of the
-//! rim's samples. Met at a wide angle, the band is narrower than the central
-//! chart's lines bow away from the rim, and no point falls in it.
+//! ([`within_the_walls`]). The strips about the wall's axis put no row in
+//! the band, and one at its edge for a row of the grid that fell in it
+//! ([`Band`]). The strips of the sphere's own chart need neither: the rim,
+//! one of its latitudes, takes its grid as well as the wall's, and each
+//! lattice point beside it stands on the ray of one of the rim's samples.
+//! Met at a wide angle, the band is narrower than the central chart's lines
+//! bow away from the rim, and no point falls in it.
 
 use glam::{DVec2, DVec3};
 
-use super::super::sampling::Samples;
+use super::super::sampling::{Rounded, Samples};
 use super::laps;
-use crate::brep::curve::Curve;
+use crate::brep::curve::{Circle, Curve};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Cylinder, Sphere, Surface};
 use crate::brep::topology::{Body, EdgeId, FaceId};
@@ -44,30 +49,71 @@ pub(super) fn within_the_walls(
     rims(body, samples, id).all(|rim| !added.iter().any(|&point| rim.passed_by(point)))
 }
 
-/// How far along the meridian, as an angle, no row of the strips about the
-/// axis of the face `id` of `sphere` may stand from a level of it beside a
-/// knife-edge rim of the face: the sag of the wall's chords there over the
-/// height of the rim's plane above the centre, the sphere standing inside
-/// the wall by that height for each angle along the meridian from the rim,
-/// and more. Nought for a face beside no such rim. `laid`, the samples the
-/// face is laid out from, tell the side of each rim it lies on.
-pub(super) fn band(
+/// The bands beside the knife-edge rims of the face `id` of `sphere`, laid
+/// in strips on `round`, the sphere read about the rims' axis; `laid`, the
+/// samples the face is laid out from, tell the side of each rim it lies on.
+pub(super) fn bands(
     body: &Body,
     samples: &Samples,
     id: FaceId,
-    sphere: &Sphere,
+    (sphere, round): (&Sphere, &Rounded),
     laid: &[usize],
-) -> f64 {
+) -> Vec<Band> {
     (rims(body, samples, id))
         .filter_map(|rim| {
             let over = rim.level - rim.height(sphere.middle());
             let face = (laid.iter())
                 .map(|&sample| rim.height(samples.point(sample)) - rim.level)
                 .max_by(|one, other| one.abs().total_cmp(&other.abs()))?;
-            let knife = rim.side * over > 0.0 && rim.side * face > 0.0;
-            knife.then(|| (rim.wall.radius - rim.nearest) / over.abs())
+            if rim.side * over <= 0.0 || rim.side * face <= 0.0 {
+                return None;
+            }
+            let at = round.latitude(&rim.circle);
+            let edge = (rim.nearest / sphere.radius).clamp(-1.0, 1.0).acos();
+            Some(Band {
+                rim: at,
+                edge: at.signum() * edge,
+            })
         })
-        .fold(0.0, f64::max)
+        .collect()
+}
+
+/// The band beside a knife-edge rim, as angles along the meridian of the
+/// strips about its axis: from the rim to the latitude where the sphere
+/// comes as near the axis as the chords between the rim's samples, inside
+/// which a point of the sphere between two of the rim's rays stands outside
+/// them.
+pub(super) struct Band {
+    rim: f64,
+    edge: f64,
+}
+
+impl Band {
+    /// The rows `rows` of a face reaching from `low` to `high` but those
+    /// inside the band, and, where one was, a row at its edge instead,
+    /// unless that stands within `room` of an end of the face or of one of
+    /// `levels`. Every strip beside the rim then stays within a step of the
+    /// grid, and the drawing within its tolerance; where no row falls in the
+    /// band, the face is cut as it was.
+    pub(super) fn cleared(
+        &self,
+        rows: Vec<f64>,
+        (low, high): (f64, f64),
+        levels: &[f64],
+        room: f64,
+    ) -> Vec<f64> {
+        let count = rows.len();
+        let mut kept: Vec<f64> = (rows.into_iter())
+            .filter(|&row| (row - self.rim) * (row - self.edge) >= 0.0)
+            .collect();
+        let clear = self.edge > low + room
+            && self.edge < high - room
+            && levels.iter().all(|level| (level - self.edge).abs() > room);
+        if kept.len() < count && clear {
+            kept.push(self.edge);
+        }
+        kept
+    }
 }
 
 /// The rims the face `id` meets a wall along.
@@ -83,6 +129,7 @@ fn rims<'a>(body: &'a Body, samples: &'a Samples, id: FaceId) -> impl Iterator<I
 /// samples draw it.
 struct Rim {
     wall: Cylinder,
+    circle: Circle,
     /// The circle's height along the wall's axis.
     level: f64,
     /// Which way along the axis the wall's face runs from the circle.
@@ -126,6 +173,7 @@ impl Rim {
             .fold(f64::INFINITY, f64::min);
         Some(Rim {
             wall: *cylinder,
+            circle: *circle,
             level,
             side,
             corners,

@@ -2929,17 +2929,24 @@ pointed cone's flank waits on #711.
   half a ball cut at a slant — is cut in strips on its sphere read about
   that axis, where each is a latitude, the pole its loops turn round a
   point added inside it. Beside a knife-edge rim, the wall and the face
-  both running from it away from the sphere's equator, no row stands
-  closer to a level or an end of the face than the band: the wall's chords'
-  sag over the height of the rim's plane above the centre, as an angle
-  along the meridian. Its lattice points stand between the wall's steps,
-  on no ray of the rim's samples, and a row inside the band — a shaft of
-  4.97, its row 0.0026 from the rim against a band of 0.0036 — put them
-  outside the wall's chords, while the hundredth of a step the strips
-  already keep from a level is 0.0004. The strips of the sphere's own
-  chart need no band: the rim, a latitude of theirs, takes their grid
-  besides the wall's, and every lattice point beside it stands on one of
-  its rays. Any other — the sphere
+  both running from it away from the sphere's equator, no row stands in
+  the band reaching from the rim to the latitude where the sphere comes as
+  near the axis as the wall's chords — about their sag over the sine of
+  the angle between the two surfaces, and bounded as that angle closes, at
+  some three quarters of a step of the grid. The strips' lattice points
+  stand between the wall's steps, on no ray of the rim's samples, and a
+  row inside the band — a shaft of 4.97, its row 0.0026 from the rim
+  against a band of 0.0036, where the hundredth of a step the strips keep
+  from a level is 0.0004 — put them outside the wall's chords. A row of
+  the grid inside the band is moved to its edge rather than dropped: every
+  strip beside the rim stays within a step, and the drawing within its
+  tolerance. Dropped, beside a band reckoned as the sag over the height of
+  the rim's plane, which grows without bound as the wall's radius nears the
+  sphere's, a shaft a hair under the ball's radius left its cap one fan,
+  some 1.5 off the sphere. Where no row falls in the band, the face is cut
+  as before. The strips of the sphere's own chart need no band: the rim, a
+  latitude of theirs, takes their grid besides the wall's, and every
+  lattice point beside it stands on one of its rays. Any other — the sphere
   of a rib cut from a ball, a chamfer trimmed flush on it — holding and
   reaching no pole and standing within some 87° of the equator, is laid out
   in the sphere's own `(θ, φ)`, each sample of such a circle where it is

@@ -38,13 +38,27 @@
 //! sphere and the wall meet at, so the thinner the band about the rim where
 //! the sphere stands within a chord's sag of the wall —
 //! `a_shaft_a_few_hundredths_to_a_few_tenths_narrower_than_a_ball_less_the_ball_turned_about_z_or_at_a_slant_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//! And the drawing those steps are drawn with, held to its tolerance: a row
+//! of the sphere's grid kept out of the band about a knife-edge rim must not
+//! leave the cap it bounds drawn coarser than the tolerance, however thin the
+//! band grows. Shafts of 4.9, 4.97, 4.9995, 4.9999, 4.99999, 4.999999 and
+//! 5 − 1e-7, less the ball turned at each slant, to 0 and to 2 —
+//! `a_shaft_a_hair_to_a_few_hundredths_narrower_than_a_ball_less_the_ball_turned_at_a_slant_is_drawn_within_the_drawing_s_tolerance_of_its_surfaces`;
+//! and #1109's own bodies, replayed here so that its file keeps its body,
+//! the ball turned about (1, 0, 1)/√2 joined with or cut by each of its
+//! shafts a hair under the ball's radius, ending inside the band —
+//! `the_ball_turned_at_a_slant_joined_with_or_cut_by_a_shaft_a_hair_under_its_radius_ending_inside_the_band_is_drawn_within_the_drawing_s_tolerance_of_its_surfaces`.
+//! Each triangle of a curved face within [`SAG`] of the drawing's tolerance
+//! of its surface, and the matter the triangles enclose within [`SPREAD`] of
+//! it over their area.
 
 use std::f64::consts::{PI, TAU};
 
+use cao_solid::brep::Scale;
 use cao_solid::profile::{Contour, Frame, Profile, Run};
-use cao_solid::soundness::{closed, uncrossed};
+use cao_solid::soundness::{closed, enclosed, uncrossed};
 use cao_solid::turning::{Axis, Turn};
-use cao_solid::{Body, Loop};
+use cao_solid::{Body, Declined, Loop};
 use glam::{DVec2, DVec3};
 
 /// How far the matter a body holds may stand from the arithmetic's, as a
@@ -116,6 +130,12 @@ fn ball_about(axis: DVec3) -> Body {
 /// A shaft of `radius` along z through the origin, from z = [`FROM`] to
 /// `to`, a tool of `part`.
 fn shaft_along_z(part: &Body, radius: f64, to: f64) -> Body {
+    shaft_between(part, radius, FROM, to)
+}
+
+/// A shaft of `radius` along z through the origin, from z = `from` to `to`,
+/// a tool of `part`.
+fn shaft_between(part: &Body, radius: f64, from: f64, to: f64) -> Body {
     part.tool_raised(
         &exact(Contour {
             corners: vec![DVec2::X * radius],
@@ -125,11 +145,11 @@ fn shaft_along_z(part: &Body, radius: f64, to: f64) -> Body {
             }],
         }),
         Frame {
-            origin: DVec3::Z * FROM,
+            origin: DVec3::Z * from,
             u: DVec3::X,
             v: DVec3::Y,
         },
-        DVec3::Z * (to - FROM),
+        DVec3::Z * (to - from),
     )
     .expect("the shaft raises")
 }
@@ -265,6 +285,208 @@ fn a_shaft_a_few_hundredths_to_a_few_tenths_narrower_than_a_ball_less_the_ball_t
         "a shaft a few hundredths to a few tenths narrower than a ball, less the ball, is built \
          exact, closed, uncrossed and of the arithmetic's volume whatever axis the ball was \
          turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// How far the triangles of an exact body may stand from its surfaces, as a
+/// share of its reach: `body/drawn.rs`'s `DRAWN`, which no public constant
+/// gives.
+const DRAWN: f64 = 2e-4;
+
+/// How many of the drawing's tolerances a triangle drawn on a curved face
+/// may stand off that face's surface, at its centre or the middle of a side.
+/// The drawing holds its chords to the tolerance, not the middles of its
+/// triangles: the ball turned at a slant, alone, is drawn some 1.4 of it
+/// off there, and every body below was drawn within 1.43 before the knife
+/// edge's band (#1138). Half a tolerance past one leaves that room and no
+/// more.
+const SAG: f64 = 1.5;
+
+/// How many of the drawing's tolerances, spread over every triangle's area,
+/// the matter the triangles enclose may stand off the matter the body holds:
+/// one, as though every triangle stood a whole tolerance off its surface on
+/// the same side. A cap of the sphere drawn as one fan of chords encloses a
+/// hundred times that.
+const SPREAD: f64 = 1.0;
+
+/// Closer than this to a surface, a corner of a triangle stands on it: a
+/// two-thousandth of the drawing's tolerance at a reach of 10, and a
+/// thousand times the kernel's own.
+const ON: f64 = 1e-6;
+
+/// How far the triangles of `body` may stand from its surfaces: [`DRAWN`] of
+/// the reach its bounds stand at, as [`Scale`] reads a reach.
+fn tolerance(body: &Body) -> f64 {
+    let (low, high) = body.bounds().expect("a body holding matter has bounds");
+    DRAWN * Scale::of(low.abs().max(high.abs()).max_element()).reach()
+}
+
+/// Where `body`'s drawing stands further from its surfaces than [`SAG`] of
+/// the drawing's tolerance allows, or encloses further from what it holds
+/// than [`SPREAD`] allows. Each curved face is read as drawn on the sphere
+/// of the ball when every corner of its triangles stands on that sphere, and
+/// as drawn on a wall about z when every corner stands as far from z as the
+/// furthest does; a curved face drawn on neither is named. An empty body is
+/// drawn with nothing, and nothing of it stands off.
+fn drawn_off(body: &Body, what: &str) -> Vec<String> {
+    if body.is_empty() {
+        return Vec::new();
+    }
+    let tolerance = tolerance(body);
+    let mut wrong = Vec::new();
+    for face in (0..body.faces_end()).chain(body.pieces()) {
+        if !body.has_face(face) || body.is_flat(face) {
+            continue;
+        }
+        let triangles: Vec<[DVec3; 3]> = body.triangles_of(face).collect();
+        let corners = || triangles.iter().flatten();
+        let wall = corners()
+            .map(|corner| corner.truncate().length())
+            .fold(0.0, f64::max);
+        let (surface, off): (String, Box<dyn Fn(DVec3) -> f64>) =
+            if corners().all(|corner| (corner.length() - RADIUS).abs() < ON) {
+                (
+                    "the ball's sphere".to_string(),
+                    Box::new(|point: DVec3| (point.length() - RADIUS).abs()),
+                )
+            } else if corners().all(|corner| wall - corner.truncate().length() < ON) {
+                (
+                    format!("a wall of radius {wall} about z"),
+                    Box::new(move |point: DVec3| (point.truncate().length() - wall).abs()),
+                )
+            } else {
+                wrong.push(format!(
+                    "{what}: its face {face} is curved and drawn on neither the ball's sphere \
+                     nor a wall about z"
+                ));
+                continue;
+            };
+        let worst = triangles
+            .iter()
+            .flat_map(|&[a, b, c]| {
+                [
+                    (a + b + c) / 3.0,
+                    (a + b) / 2.0,
+                    (b + c) / 2.0,
+                    (c + a) / 2.0,
+                ]
+            })
+            .map(|point| (off(point), point))
+            .max_by(|(first, _), (second, _)| first.total_cmp(second));
+        if let Some((off, point)) = worst
+            && off > SAG * tolerance
+        {
+            wrong.push(format!(
+                "{what}: its face {face}, drawn on {surface}, stands {off:.5} off it at \
+                 {point:.4}, {:.2} of the drawing's tolerance {tolerance}",
+                off / tolerance
+            ));
+        }
+    }
+    let triangles = body.triangles();
+    let area: f64 = triangles
+        .iter()
+        .map(|&[a, b, c]| (b - a).cross(c - a).length() / 2.0)
+        .sum();
+    let drawn = enclosed(&triangles);
+    if (drawn - body.volume()).abs() > SPREAD * tolerance * area {
+        wrong.push(format!(
+            "{what}: its triangles enclose {drawn:.6} where it holds {:.6}, {:.3} of the \
+             drawing's tolerance {tolerance} over their area {area:.2}",
+            body.volume(),
+            (drawn - body.volume()).abs() / (tolerance * area)
+        ));
+    }
+    wrong
+}
+
+/// Shafts a hair to a few hundredths under the ball's radius, from z = −10
+/// to the ball's centre or past it to z = 2, less the ball turned about each
+/// of the three slants: the nearer the shaft's radius to the ball's, the
+/// nearer the rim to the equator and the shallower the angle the sphere
+/// meets the wall at, down to a shaft a ten-millionth under. Each drawn with
+/// every triangle of a curved face within [`SAG`] of the drawing's tolerance
+/// of its surface, and enclosing what the body holds within [`SPREAD`] of
+/// that tolerance over the triangles' area — never a cap of the sphere drawn
+/// as one fan of chords. Every body that is not is named, with each way it
+/// is not.
+#[test]
+fn a_shaft_a_hair_to_a_few_hundredths_narrower_than_a_ball_less_the_ball_turned_at_a_slant_is_drawn_within_the_drawing_s_tolerance_of_its_surfaces()
+ {
+    let mut wrong = Vec::new();
+    for (about, axis) in axes().into_iter().skip(1) {
+        let ball = ball_about(axis);
+        for radius in [4.9, 4.97, 4.9995, 4.9999, 4.99999, 4.999999, RADIUS - 1e-7] {
+            for to in [0.0, 2.0] {
+                let what = format!(
+                    "a shaft of {radius} along z from z = {FROM} to {to} less the ball of \
+                     {RADIUS} turned {about}"
+                );
+                match shaft_along_z(&ball, radius, to).difference(&ball) {
+                    Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
+                    Ok(body) => wrong.extend(drawn_off(&body, &what)),
+                }
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a shaft a hair to a few hundredths narrower than a ball, less the ball turned at a \
+         slant, is drawn within the drawing's tolerance of its surfaces; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// #1109's bodies: the ball turned about (1, 0, 1)/√2 and a shaft along z
+/// through its centre of the ball's radius less 2, 5 and 15 of the
+/// tolerance the two are read at, standing from the plane a
+/// hundred-thousandth inside the band its wall meets the sphere along up
+/// past the ball, from past the ball up to the other such plane, or between
+/// the two — joined either way, the ball cut by the shaft and the shaft by
+/// the ball. Each drawn as the shafts above are: within [`SAG`] of the
+/// drawing's tolerance of its surfaces, and enclosing what it holds within
+/// [`SPREAD`] of it over the triangles' area.
+#[test]
+fn the_ball_turned_at_a_slant_joined_with_or_cut_by_a_shaft_a_hair_under_its_radius_ending_inside_the_band_is_drawn_within_the_drawing_s_tolerance_of_its_surfaces()
+ {
+    let ball = ball_about(DVec3::new(1.0, 0.0, 1.0).normalize());
+    let under = |reach: f64| [2.0, 5.0, 15.0].map(|hair| RADIUS - hair * Scale::of(reach).eps());
+    let inside = |radius: f64| (RADIUS * RADIUS - radius * radius).sqrt() - 1e-5;
+    let shafts = under(10.0)
+        .into_iter()
+        .flat_map(|radius| {
+            [
+                (radius, -inside(radius), 10.0),
+                (radius, -10.0, inside(radius)),
+            ]
+        })
+        .chain(under(RADIUS).map(|radius| (radius, -inside(radius), inside(radius))));
+    let mut wrong = Vec::new();
+    for (radius, from, to) in shafts {
+        let shaft = shaft_between(&ball, radius, from, to);
+        let steps: [(&str, Result<Body, Declined>); 4] = [
+            ("joined with", ball.union(&shaft)),
+            ("joined to, the shaft first,", shaft.union(&ball)),
+            ("cut by", ball.difference(&shaft)),
+            ("cut from", shaft.difference(&ball)),
+        ];
+        for (way, built) in steps {
+            let what = format!(
+                "the ball turned about (1, 0, 1)/√2 {way} a shaft along z through its centre of \
+                 radius {radius} from z = {from} to {to}"
+            );
+            match built {
+                Err(declined) => wrong.push(format!("{what}: declined, {declined:?}")),
+                Ok(body) => wrong.extend(drawn_off(&body, &what)),
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "the ball turned at a slant joined with or cut by a shaft a hair under its radius, \
+         ending inside the band, is drawn within the drawing's tolerance of its surfaces; not \
+         so:\n{}",
         wrong.join("\n")
     );
 }
