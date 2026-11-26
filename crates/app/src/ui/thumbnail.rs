@@ -1,7 +1,9 @@
 //! A picture drawn small beside what it shows, or the room it will take once
 //! there is one.
 
-use egui::{Response, Ui, Vec2};
+use egui::{Response, Sense, Stroke, StrokeKind, Ui, Vec2};
+
+use crate::ui::theme::tokens::{BACKGROUND_FIELD, BORDER_GROUP, RADIUS_BUTTON, SPACING_S};
 
 /// A picture as plain values: how big it is, and its pixels, four bytes each,
 /// unmultiplied.
@@ -26,6 +28,30 @@ pub fn thumbnail(ui: &mut Ui, key: &str, size: Vec2, pixels: Option<Pixels<'_>>)
         return response;
     };
     ui.add(egui::Image::new(&texture(ui, key, pixels)).fit_to_exact_size(size))
+}
+
+/// The picture set in a bordered box of `size`, the box standing there with
+/// nothing in it while there is no picture.
+pub fn framed_thumbnail(
+    ui: &mut Ui,
+    key: &str,
+    size: Vec2,
+    pixels: Option<Pixels<'_>>,
+) -> Response {
+    let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
+    ui.painter().rect(
+        rect,
+        RADIUS_BUTTON,
+        BACKGROUND_FIELD,
+        Stroke::new(1.0, BORDER_GROUP),
+        StrokeKind::Inside,
+    );
+    if let Some(pixels) = pixels {
+        let inside = rect.shrink(SPACING_S);
+        let image = egui::Image::new(&texture(ui, key, pixels)).fit_to_exact_size(inside.size());
+        ui.put(inside, image);
+    }
+    response
 }
 
 /// The textures drawn under one key, each with what its picture is and the

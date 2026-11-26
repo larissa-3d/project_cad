@@ -3,12 +3,13 @@ use super::state::{RecentLine, StartMenu};
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
 use crate::screens::new_card;
+use crate::ui::card::card_frame;
 use crate::ui::empty_state::empty_state;
 use crate::ui::icon;
 use crate::ui::line_button::line_button;
 use crate::ui::logo::screen_title;
 use crate::ui::quiet_note::quiet_note;
-use crate::ui::thumbnail::thumbnail;
+use crate::ui::thumbnail::framed_thumbnail;
 
 /// How wide and how high a recent part's picture is drawn left of its name.
 const THUMBNAIL: egui::Vec2 = egui::vec2(64.0, 48.0);
@@ -56,12 +57,17 @@ pub fn show(
                     &lang.t("start_menu.no_recents_hint"),
                 );
             } else {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for line in lines {
-                        if recent_line(ui, menu, line) {
-                            action = StartMenuAction::Open(line.path.clone());
+                card_frame().show(ui, |ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for (rank, line) in lines.iter().enumerate() {
+                            if rank > 0 {
+                                ui.separator();
+                            }
+                            if recent_line(ui, menu, line) {
+                                action = StartMenuAction::Open(line.path.clone());
+                            }
                         }
-                    }
+                    });
                 });
             }
         });
@@ -77,7 +83,7 @@ fn recent_line(ui: &mut egui::Ui, menu: &StartMenu, line: &RecentLine) -> bool {
     line_button(ui, &line.path, &line.name, |ui| {
         ui.horizontal(|ui| {
             let picture = menu.picture_of(&line.path).map(crate::picture::pixels);
-            thumbnail(ui, "recent_thumbnail", THUMBNAIL, picture);
+            framed_thumbnail(ui, "recent_thumbnail", THUMBNAIL, picture);
             ui.vertical(|ui| {
                 ui.label(&line.name);
                 ui.weak(&line.detail);

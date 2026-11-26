@@ -7,17 +7,16 @@
 use egui::style::ScrollStyle;
 use egui::text::TextWrapping;
 use egui::{
-    Align, Align2, Color32, Context, FontId, Frame, Id, Label, Layout, Margin, Response, RichText,
-    ScrollArea, Sense, Stroke, TextStyle, TextWrapMode, Ui, Vec2, WidgetInfo, WidgetText,
-    WidgetType, vec2,
+    Align, Align2, Color32, Context, FontId, Id, Label, Layout, Response, RichText, ScrollArea,
+    Sense, TextStyle, TextWrapMode, Ui, Vec2, WidgetInfo, WidgetText, WidgetType, vec2,
 };
 
+use crate::ui::card::card_frame;
 use crate::ui::icon::{self, Icon, IconSize};
 use crate::ui::step_box::{ARROW, BOX, DOT, StepBox, step_arrow, step_box};
 use crate::ui::theme::tokens::{
-    BACKGROUND_CARD, BACKGROUND_HOVER, BORDER_GROUP, BORDER_STRONG, RADIUS_BUTTON, RADIUS_CARD,
-    SPACING_L, SPACING_M, SPACING_S, TEXT_QUIET, TEXT_SUBDUED, TEXT_TITLE, TYPOGRAPHY_SIZES_BUTTON,
-    TYPOGRAPHY_SIZES_DETAIL,
+    BACKGROUND_CARD, BACKGROUND_HOVER, BORDER_STRONG, RADIUS_BUTTON, SPACING_M, SPACING_S,
+    TEXT_QUIET, TEXT_SUBDUED, TEXT_TITLE, TYPOGRAPHY_SIZES_BUTTON, TYPOGRAPHY_SIZES_DETAIL,
 };
 
 /// What stands between two things of the row, in points.
@@ -56,7 +55,7 @@ pub enum Asked {
 }
 
 pub fn reader_card(ui: &mut Ui, card: &ReaderCard<'_>) -> Asked {
-    frame()
+    card_frame()
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = BETWEEN;
             let asked = row(ui, card);
@@ -88,15 +87,7 @@ pub fn tallest(ctx: &Context) -> f32 {
         .max(row_height(TYPOGRAPHY_SIZES_DETAIL, TextStyle::Body));
     let stacked = [row, line, legend];
     let between = (stacked.len() - 1) as f32 * BETWEEN;
-    frame().total_margin().sum().y + stacked.iter().sum::<f32>() + between
-}
-
-fn frame() -> Frame {
-    Frame::new()
-        .fill(BACKGROUND_CARD)
-        .stroke(Stroke::new(1.0, BORDER_GROUP))
-        .corner_radius(RADIUS_CARD)
-        .inner_margin(Margin::same(SPACING_L as i8))
+    card_frame().total_margin().sum().y + stacked.iter().sum::<f32>() + between
 }
 
 /// ◀, the boxes in the middle of what room is left, then ▶. The row is

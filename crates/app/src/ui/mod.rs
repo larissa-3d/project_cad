@@ -1,6 +1,7 @@
 pub mod alert_line;
 pub mod alerts_button;
 pub mod badge;
+pub mod card;
 pub mod chip;
 pub mod dashed;
 pub mod dropping;
