@@ -23,10 +23,12 @@
 //! whose plane through a pole cuts nothing of the sphere leaves its chart as
 //! it was, for the steps after it that turn about that axis, and a face of
 //! the tool far from the sphere chooses no axis for it; the sphere as the
-//! second operand is read so as well as the first; and where no other axis
-//! lays every circle off its poles, or another surface of the part meets the
-//! sphere along circles its own axis decides, the step declines as it did
-//! before #938.
+//! second operand is read so as well as the first; where no other axis lays
+//! every circle off its poles, the step declines as it did before #938. A
+//! sphere another round surface through its centre already meets — a bore
+//! or a knob along the axis it was turned about — is read about the cut's
+//! circle all the same (#1107), in
+//! `crates/solid/tests/a_ball_bored_or_knobbed_along_its_axis_is_cut_at_a_slant_through_its_pole.rs`.
 
 use super::*;
 use crate::brep::Surface;
@@ -540,31 +542,6 @@ fn a_piece_of_sphere_laid_again_on_a_torus_of_no_ring_through_whose_pole_its_loo
         "the cut laid again on the torus about z of no ring, where the side kept holds {}",
         BALL_OF_5 - cap_of_5(5.0 - 5.0 / 2f64.sqrt())
     );
-}
-
-/// A ball about z joined to a coaxial knob of radius 1 at its pole at
-/// (0, 0, −5), then cut through its pole at (0, 0, 5) by a plane leaning 45°
-/// towards X, either side kept: the knob's sphere meets the ball's along
-/// circles its axis decides, the ball's sphere is not read about another
-/// axis, and the cut is declined as it was before #938.
-#[test]
-fn a_ball_with_a_coaxial_knob_cut_at_a_slant_through_its_other_pole_is_declined_as_unsupported() {
-    let ball = ball_about(DVec3::Z);
-    let knobbed = ball
-        .union(&ball_of(&ball, DVec3::Z * -5.0, DVec3::Z, 1.0))
-        .expect("a coaxial knob joins the ball");
-    let normal = leaning(DVec3::Z, 45.0, DVec3::X);
-    let offset = 5.0 * normal.dot(DVec3::Z);
-    for side in SIDES {
-        let declined = knobbed.difference(&side.slab(normal, offset)).err();
-
-        assert_eq!(
-            declined,
-            Some(Declined::Unsupported),
-            "a ball with a coaxial knob at one pole, cut at a slant through the other, keeping \
-             its {side:?}"
-        );
-    }
 }
 
 /// A prism along y over the triangle (x, z) = (2.5, 2.5), (20, 20),

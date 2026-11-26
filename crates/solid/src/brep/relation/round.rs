@@ -183,25 +183,28 @@ fn holds(origin: DVec3, axis: DVec3, point: DVec3, scale: Scale) -> bool {
     (between - axis * axis.dot(between)).length() <= scale.eps()
 }
 
-/// Whether `one` and `other` are related as a sphere read about another
-/// axis than its chart's (#956): a surface of revolution whose axis holds
-/// the centre of a sphere off its chart's axis, which the relation reads
-/// alike whatever the chart.
-pub(in crate::brep) fn read_about_another_axis(
-    one: &Surface,
-    other: &Surface,
-    scale: Scale,
-) -> bool {
-    let off = |round: &Surface, line: &Surface| match line {
-        Surface::Cylinder(Cylinder { origin, axis, .. })
-        | Surface::Cone(Cone { origin, axis, .. })
-        | Surface::Sphere(Sphere { origin, axis, .. })
-        | Surface::Torus(Torus { origin, axis, .. }) => {
-            read_about(round, *origin, *axis, scale).is_some()
-        }
-        Surface::Plane(_) | Surface::Elliptic(_) => false,
+/// Whether `one` and `other` are related as a sphere and a surface of
+/// revolution whose axis holds its centre, either way round. Where the
+/// surface's axis holds the sphere's centre, of its chart's axis or of
+/// another, the pair is read about that axis whatever the chart (#956), and
+/// the sphere read about any other axis meets it along the same circles
+/// (#1107). The other way round, `other` a sphere whose centre the axis of
+/// `one` holds, answers alike so that both sides of a pair are excused as
+/// #956 excused them; where `one` is a sphere read about another axis, that
+/// pair no longer meets along circles of the old one and is unsupported, and
+/// a boolean asked again declines where their faces meet.
+pub(in crate::brep) fn about_its_centre(one: &Surface, other: &Surface, scale: Scale) -> bool {
+    let through = |round: &Surface, line: &Surface| match (round, line) {
+        (
+            Surface::Sphere(sphere),
+            Surface::Cylinder(Cylinder { origin, axis, .. })
+            | Surface::Cone(Cone { origin, axis, .. })
+            | Surface::Sphere(Sphere { origin, axis, .. })
+            | Surface::Torus(Torus { origin, axis, .. }),
+        ) => holds(*origin, *axis, sphere.middle(), scale),
+        _ => false,
     };
-    off(one, other) || off(other, one)
+    through(one, other) || through(other, one)
 }
 
 /// `surface`, a sphere, read about the line through `origin` along `axis`
