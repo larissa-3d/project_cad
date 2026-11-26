@@ -152,10 +152,45 @@
 //! either way, holds the ball and the band less the cap —
 //! `a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first`.
 //! It is held built, listed sound, of the arithmetic's volume and drawn
-//! closed, not drawn uncrossed: the ball's chords and the band's still cross
-//! beside the circle the two only touch, wherever the ball is cut as well,
-//! before #1117 as after it (`tessellation/sampling/cone.rs`) — #1140, which
-//! lifts the waiver.
+//! whole, as the other balls of this file are.
+//!
+//! Until #1140 it was held drawn closed but not uncrossed: wherever the ball
+//! was cut as well, a triangle of the sphere with two corners on the half
+//! of the equator the band's inner wall touches, its third a hair off it,
+//! crossed a triangle of the wall on the same two corners, in all sixteen
+//! placements, before #1117 as after it — the family
+//! `tessellation/sampling/cone.rs` names, a chord of the round along a
+//! circle another surface only touches. They are drawn uncrossed since
+//! #1112's strip between a touched equator and the next row inside it
+//! (`tessellation/outline/touched.rs`).
+//!
+//! Closes #1140.
+//! - #1117's half-band test holds `uncrossed` too, all 16 placements —
+//!   `a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first`
+//! - #644's and #1117's tests keep their bodies — no test: they are
+//!   `tests/the_largest_failure_families.rs`'s for #644, and for #1117 the
+//!   tests closing it above and those `brep/domain/tests/round.rs` holds
+//!   the poles' reading to, run as they stand
+//!
+//! Read as: "holds `uncrossed` too", the test goes through `built_whole`
+//! as the other balls of this file do, which holds as well every corner of
+//! its triangles on its face's surface and the volume they enclose within
+//! what the drawing promises — both held already where the triangles
+//! crossed.
+//!
+//! Beyond the criteria, the same ball and band cut about both poles by the
+//! half-band test's flats, the zone between the caps a whole turn, which
+//! `pierced.rs` lays as a band —
+//! `a_ball_a_half_band_touches_along_half_its_equator_cut_about_both_poles_is_built_whole_whichever_comes_first`
+//! — and that zone cut short of a turn by a third flat 2 from the centre
+//! along (0.1, 0.05, ±1), which `charted.rs` lays —
+//! `a_ball_a_half_band_touches_along_half_its_equator_cut_about_both_poles_and_short_of_a_turn_is_built_whole_whichever_comes_first`.
+//! Both are drawn along the touch by that strip too. The third flat's cap
+//! meets both of the others, and takes a part of the band where the band
+//! lies on its side: the volume held is the arithmetic's by slices, each a
+//! disc of the ball or of the band clipped by straight lines, exactly, then
+//! summed by Simpson's rule between the heights where a slice changes how
+//! it is read.
 //!
 //! And a case another review found: a shaft of radius 4.9 along Z, from
 //! z = −10 to the centre of a ball of 5 or 2 past it, less the half ball
@@ -655,43 +690,20 @@ fn half_band_about_y(way: f64) -> Body {
         .expect("the exact kernel turns the band")
 }
 
-/// Holds that `result` is built by the exact kernel, listed sound, holds
-/// `kept` within a billionth of it, and that its triangles are closed:
-/// what [`built_whole`] holds short of the drawing, whose chords of a ball
-/// and of a wall along a circle the two only touch still cross beside it
-/// where the ball is cut as well (`tessellation/sampling/cone.rs`,
-/// 5585606550).
-fn built_sound(result: Result<Body, Declined>, kept: f64, what: &str) {
-    let body = result.unwrap_or_else(|declined| panic!("{what}: declined, {declined:?}"));
-    let exact = body.brep().expect("the exact kernel computed the step");
-    assert_eq!(
-        listed(&exact.listing(), exact.scale().reach()),
-        Ok(()),
-        "{what}: listed sound"
-    );
-    assert!(
-        (body.volume() - kept).abs() <= 1e-9 * kept,
-        "{what}: holds {}, where the arithmetic gives {kept}",
-        body.volume()
-    );
-    assert_eq!(
-        crate::soundness::closed(&body.triangles()),
-        Ok(()),
-        "{what}: drawn closed"
-    );
-}
-
 /// The ball joined to a half band its equator touches, the ball's face slit
 /// along that half, and cut by a flat 4 from its centre whose cap takes in
 /// the pole towards −Y or +Y — its normal (0.3, ±1, 0.18) or (0, ±1, 0.18)
 /// — joined then cut, or cut then joined, the band turned either way: each
-/// is built, listed sound, drawn closed, holding the ball and the band less
-/// the cap, which misses the band. The ball's face holds the pole the cap
-/// leaves it, the slit bounding nothing.
+/// is built, listed sound, drawn whole and closed, uncrossed, holding the
+/// ball and the band less the cap, which misses the band. The ball's face
+/// holds the pole the cap leaves it, the slit bounding nothing, and is drawn
+/// clear of the band's inner wall along the half of its equator the two
+/// only touch.
 #[test]
 fn a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_pole_holds_the_ball_and_the_band_less_the_cap_whichever_comes_first()
  {
     let ball = ball_about_y();
+    let curved = 10.0 * PI * (10.0 - 1.0) + 11.0 * PI;
     for way in [1.0, -1.0] {
         let half = half_band_about_y(way);
         for up in [-1.0, 1.0] {
@@ -709,9 +721,10 @@ fn a_ball_a_half_band_touches_along_half_its_equator_cut_by_a_flat_about_either_
                         ball.difference(&flat).and_then(|cut| cut.union(&half)),
                     ),
                 ] {
-                    built_sound(
+                    built_whole(
                         built,
                         BALL_OF_5 + 5.5 * PI - cap_of_5(1.0),
+                        curved,
                         &format!(
                             "the ball and the half band turned {way} of a half turn, {how} by \
                              the flat along {towards}"
@@ -876,5 +889,257 @@ fn a_shaft_less_a_half_ball_turned_at_a_slant_about_its_centre_holds_what_the_sl
                 body.volume()
             );
         }
+    }
+}
+
+/// The signed area the disc of `radius` about the origin shares with the
+/// triangle of the origin, `from` and `to`: the stretches of the edge inside
+/// the disc with the origin as triangles, those outside as sectors.
+fn shared_with_the_disc(radius: f64, from: DVec2, to: DVec2) -> f64 {
+    let run = to - from;
+    let (square, half) = (run.length_squared(), from.dot(run));
+    let gap = half * half - square * (from.length_squared() - radius * radius);
+    let mut cuts = vec![0.0];
+    if square > 0.0 && gap > 0.0 {
+        for along in [(-half - gap.sqrt()) / square, (-half + gap.sqrt()) / square] {
+            if along > 0.0 && along < 1.0 {
+                cuts.push(along);
+            }
+        }
+    }
+    cuts.push(1.0);
+    cuts.windows(2)
+        .map(|piece| {
+            let (one, other) = (from + run * piece[0], from + run * piece[1]);
+            if ((one + other) / 2.0).length() <= radius {
+                one.perp_dot(other) / 2.0
+            } else {
+                radius * radius * one.perp_dot(other).atan2(one.dot(other)) / 2.0
+            }
+        })
+        .sum()
+}
+
+/// The area of the disc of `radius` about the origin on the side of each
+/// line of `sides`, a normal and how far along it the line stands: a square
+/// about the disc clipped by each line, then the disc's share of the
+/// triangles the clipped square's edges make with the centre.
+fn disc_beyond(radius: f64, sides: &[(DVec2, f64)]) -> f64 {
+    let reach = 2.0 * radius;
+    let mut corners = vec![
+        DVec2::new(-reach, -reach),
+        DVec2::new(reach, -reach),
+        DVec2::new(reach, reach),
+        DVec2::new(-reach, reach),
+    ];
+    for &(normal, at) in sides {
+        let past = |corner: DVec2| normal.dot(corner) - at;
+        let mut clipped = Vec::new();
+        for rank in 0..corners.len() {
+            let (from, to) = (corners[rank], corners[(rank + 1) % corners.len()]);
+            let (one, other) = (past(from), past(to));
+            if one >= 0.0 {
+                clipped.push(from);
+            }
+            if (one >= 0.0) != (other >= 0.0) {
+                clipped.push(from + (to - from) * (one / (one - other)));
+            }
+        }
+        corners = clipped;
+    }
+    (0..corners.len())
+        .map(|rank| {
+            shared_with_the_disc(radius, corners[rank], corners[(rank + 1) % corners.len()])
+        })
+        .sum()
+}
+
+/// `along` summed from each of `cuts` to the next by Simpson's rule, in
+/// twenty thousand steps a piece.
+fn summed(along: impl Fn(f64) -> f64, cuts: &[f64]) -> f64 {
+    let steps = 20_000;
+    cuts.windows(2)
+        .map(|piece| {
+            let step = (piece[1] - piece[0]) / f64::from(steps);
+            let inner: f64 = (1..steps)
+                .map(|rank| {
+                    let weight = if rank % 2 == 1 { 4.0 } else { 2.0 };
+                    weight * along(piece[0] + step * f64::from(rank))
+                })
+                .sum();
+            (along(piece[0]) + inner + along(piece[1])) * step / 3.0
+        })
+        .sum()
+}
+
+/// What the ball of 5 about the origin holds past both planes `first` and
+/// `second` — each a unit normal and how far along it the plane stands —
+/// and the area of its sphere there: in slices square to both planes, each a
+/// disc of the ball cut by the two planes' lines, and on the sphere the arc
+/// of each slice's circle both reach, Archimedes' measure along their line.
+/// The slices are summed between the heights where a line or the corner of
+/// the two leaves the slice's disc.
+fn ball_past_two(first: (DVec3, f64), second: (DVec3, f64)) -> (f64, f64) {
+    let (across, up) = (
+        first.0,
+        (second.0 - first.0 * second.0.dot(first.0)).normalize(),
+    );
+    let normal = DVec2::new(second.0.dot(across), second.0.dot(up));
+    let sides = [(DVec2::X, first.1), (normal, second.1)];
+    let corner = DVec2::new(first.1, (second.1 - normal.x * first.1) / normal.y);
+    let radius = |height: f64| (25.0 - height * height).max(0.0).sqrt();
+    let mut cuts = vec![-5.0, 5.0];
+    for reach in [first.1, second.1, corner.length()] {
+        if reach < 5.0 {
+            cuts.extend([-radius(reach), radius(reach)]);
+        }
+    }
+    cuts.sort_by(f64::total_cmp);
+    cuts.dedup();
+    let held = summed(|height| disc_beyond(radius(height), &sides), &cuts);
+    let apart = normal.y.atan2(normal.x);
+    let arc = |height: f64| {
+        let reach = radius(height);
+        if reach <= first.1 || reach <= second.1 {
+            return 0.0;
+        }
+        let [one, other] = [first.1, second.1].map(|at| (at / reach).acos());
+        (one.min(apart + other) - (-one).max(apart - other)).max(0.0)
+    };
+    (held, 5.0 * summed(arc, &cuts))
+}
+
+/// What [`half_band_about_y`] turned `way` holds past the plane `flat`, a
+/// unit normal and how far along it the plane stands: in slices along Y, the
+/// half annulus from 5 to 6 on its side of z = 0 beyond the plane's line.
+fn band_past(way: f64, flat: (DVec3, f64)) -> f64 {
+    let (normal, at) = flat;
+    let beyond = |height: f64| {
+        let sides = [
+            (DVec2::new(normal.x, normal.z), at - normal.y * height),
+            (DVec2::new(0.0, -way), 0.0),
+        ];
+        disc_beyond(6.0, &sides) - disc_beyond(5.0, &sides)
+    };
+    summed(beyond, &[-0.5, 0.5])
+}
+
+/// A case of [`the_zone`] or [`the_zone_cut_short`]: how it was built,
+/// what it gave, what the arithmetic gives it, and the area of its curved
+/// faces.
+type Case = (String, Result<Body, Declined>, f64, f64);
+
+/// The ball joined to [`half_band_about_y`] turned either way and cut about
+/// both poles by the half-band test's flats, 4 from its centre along
+/// (tilt, ±1, 0.18), joined then cut or cut then joined: the zone left
+/// between the two caps winds a whole turn about the ball's axis.
+fn the_zone(ball: &Body) -> Vec<Case> {
+    let kept = BALL_OF_5 + 5.5 * PI - 2.0 * cap_of_5(1.0);
+    let curved = 100.0 * PI - 20.0 * PI + 11.0 * PI;
+    let mut cases = Vec::new();
+    for way in [1.0, -1.0] {
+        let half = half_band_about_y(way);
+        for tilt in [0.3, 0.0] {
+            let [low, high] = [-1.0, 1.0].map(|up| slab_along(DVec3::new(tilt, up, 0.18), 4.0));
+            let what = |how: &str| {
+                format!(
+                    "the ball and the half band turned {way}, {how} about both poles, tilt {tilt}"
+                )
+            };
+            cases.push((
+                what("joined then cut"),
+                ball.union(&half)
+                    .and_then(|joined| joined.difference(&low))
+                    .and_then(|cut| cut.difference(&high)),
+                kept,
+                curved,
+            ));
+            cases.push((
+                what("cut then joined"),
+                ball.difference(&low)
+                    .and_then(|cut| cut.difference(&high))
+                    .and_then(|cut| cut.union(&half)),
+                kept,
+                curved,
+            ));
+        }
+    }
+    cases
+}
+
+/// [`the_zone`] at the tilt of 0.3, cut by a third flat 2 from the centre
+/// along (0.1, 0.05, ±1), whose cap meets both of the others and leaves the
+/// zone short of a turn — taking a part of the band too where the band lies
+/// on its side, the band always joined before the third flat cuts — in two
+/// orders. The arithmetic is the ball and the band less the three caps, plus
+/// what the third shares with each of the others, less what it takes of the
+/// band; the curved faces count the band's walls whole, the most the third
+/// flat leaves of them.
+fn the_zone_cut_short(ball: &Body) -> Vec<Case> {
+    let pole = |up: f64| (DVec3::new(0.3, up, 0.18).normalize(), 4.0);
+    let poles = [pole(-1.0), pole(1.0)];
+    let [low, high] = poles.map(|(towards, at)| slab_along(towards, at));
+    let mut cases = Vec::new();
+    for way in [1.0, -1.0] {
+        let half = half_band_about_y(way);
+        for side in [1.0, -1.0] {
+            let third = (DVec3::new(0.1, 0.05, side).normalize(), 2.0);
+            let flat = slab_along(third.0, third.1);
+            let [(low_held, low_area), (high_held, high_area)] =
+                poles.map(|pole| ball_past_two(pole, third));
+            let kept =
+                BALL_OF_5 + 5.5 * PI - 2.0 * cap_of_5(1.0) - cap_of_5(3.0) + low_held + high_held
+                    - band_past(way, third);
+            let curved = 100.0 * PI - 20.0 * PI - 30.0 * PI + low_area + high_area + 11.0 * PI;
+            let what = |how: &str| {
+                format!(
+                    "the ball and the half band turned {way}, {how}, the third flat along {}",
+                    third.0
+                )
+            };
+            cases.push((
+                what("joined then cut about both poles and by the third flat"),
+                ball.union(&half)
+                    .and_then(|joined| joined.difference(&low))
+                    .and_then(|cut| cut.difference(&high))
+                    .and_then(|cut| cut.difference(&flat)),
+                kept,
+                curved,
+            ));
+            cases.push((
+                what("cut about both poles, joined, then cut by the third flat"),
+                ball.difference(&high)
+                    .and_then(|cut| cut.difference(&low))
+                    .and_then(|cut| cut.union(&half))
+                    .and_then(|joined| joined.difference(&flat)),
+                kept,
+                curved,
+            ));
+        }
+    }
+    cases
+}
+
+/// [`the_zone`]: each is built, listed sound, drawn whole and closed,
+/// uncrossed, holding the ball and the band less both caps — the zone a
+/// whole turn, laid as a band by `pierced.rs`, clear of the band's inner
+/// wall along the half of its equator the two only touch.
+#[test]
+fn a_ball_a_half_band_touches_along_half_its_equator_cut_about_both_poles_is_built_whole_whichever_comes_first()
+ {
+    for (what, built, kept, curved) in the_zone(&ball_about_y()) {
+        built_whole(built, kept, curved, &what);
+    }
+}
+
+/// [`the_zone_cut_short`]: each is built, listed sound, drawn whole and
+/// closed, uncrossed, holding what the arithmetic gives it — the zone short
+/// of a turn, laid by `charted.rs`, clear of the band's inner wall along
+/// what is left of the half of its equator the two only touch.
+#[test]
+fn a_ball_a_half_band_touches_along_half_its_equator_cut_about_both_poles_and_short_of_a_turn_is_built_whole_whichever_comes_first()
+ {
+    for (what, built, kept, curved) in the_zone_cut_short(&ball_about_y()) {
+        built_whole(built, kept, curved, &what);
     }
 }
