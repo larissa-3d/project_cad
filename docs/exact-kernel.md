@@ -2914,8 +2914,23 @@ pointed cone's flank waits on #711.
 - **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
   The strips cannot cut a face of a sphere such a circle bounds, since it
   runs along no line of the chart, nor can the central chart where the face
-  reaches ninety degrees or more from every direction. A face every circle
-  of which turns about one axis — half a ball cut at a slant — is cut in
+  reaches ninety degrees or more from every direction, or where a point it
+  adds stands inside a wall the face meets along one of the wall's circles,
+  on the side the wall runs to, but outside the chords between that
+  circle's samples the wall is drawn along (#1138,
+  `outline/central/walls.rs`). That is a knife edge's doing — a shaft of
+  4.9 less a ball of 5 turned at a slant, the sphere meeting the wall at
+  some 11°: the rim is all but a great circle, the chart's straight lines
+  between its samples hug it, and the middles the refinement lifts onto the
+  sphere fall in the band where the sphere stands within a chord's sag of
+  the wall, which the wall's triangles there then cross. At a wide angle
+  that band is narrower than those lines bow away from the rim, no point
+  falls in it, and the face is drawn as before. The strips that lay such a
+  face instead keep their rows out of the band only as far as a hundredth
+  of a step, and where a row falls inside it — a shaft of 4.97 — their
+  lattice points between the wall's steps cross the wall still. A face
+  every circle of which turns about one axis — half a ball cut at a slant —
+  is cut in
   strips on its sphere read about that axis, where each is a latitude, the
   pole its loops turn round a point added inside it. Any other — the sphere
   of a rib cut from a ball, a chamfer trimmed flush on it — holding and
