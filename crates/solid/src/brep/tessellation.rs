@@ -32,10 +32,9 @@
 //! Each face is cut alone, so two faces standing within the tolerance of
 //! each other can fold onto each other across their edge; [`folds`] cuts
 //! them the other way once all are cut. A ring no thicker than four hundred
-//! of the kernel's tolerances at the body's own reach, nor than a hundredth
-//! of the tolerance, between a sphere and a wall about an axis through its
-//! centre, its two faces bounded by the same circles, is not cut at all
-//! ([`skins`]).
+//! of the kernel's tolerances, nor than a hundredth of the tolerance,
+//! between a sphere and a wall about an axis through its centre, its two
+//! faces bounded by the same circles, is not cut at all ([`skins`]).
 
 mod contact;
 mod folds;

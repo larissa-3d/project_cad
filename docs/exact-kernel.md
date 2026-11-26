@@ -2910,34 +2910,34 @@ pointed cone's flank waits on #711.
   round's. A face of a ball and a face of a coaxial wall bounded by the same
   circles of the wall, the sphere standing no further off the wall anywhere
   between them than `Scale::HAIR` hairs — four hundred of the kernel's
-  tolerances at the reach the body itself stands at — nor than a hundredth
-  of the tolerance the body is drawn at, are a ring neither face of which is
-  drawn (`skins.rs`, #1137), as neither face of a skin of no thickness is.
-  A ball less a shaft through its centre leaves one where the shaft stands
-  past decision 12's hair and that close under the ball's radius: between
-  the two circles its wall meets the sphere along, where the shaft goes
-  through the ball and no face is left to draw, only those two circles as
-  its edges; or between one of them and the shaft's end plane, standing
-  inside the band so near that circle that the circle it cuts from the
-  sphere and the shaft's rim are one, where the end plane's disc and the
-  ball's cap beyond close against each other along the rim. Drawn, the
+  tolerances — nor than a hundredth of the tolerance the body is drawn at, are
+  a ring neither face of which is drawn (`skins.rs`, #1137), as neither face
+  of a skin of no thickness is. A ball less a shaft through its centre leaves
+  one where the shaft stands past decision 12's hair and that close under the
+  ball's radius: between the two circles its wall meets the sphere along,
+  where the shaft goes through the ball and no face is left to draw, only
+  those two circles as its edges; or between one of them and the shaft's end
+  plane, standing inside the band so near that circle that the circle it cuts
+  from the sphere and the shaft's rim are one, where the end plane's disc and
+  the ball's cap beyond close against each other along the rim. Drawn, the
   ball's face was cut at the row of its grid inside the band, its triangles
-  fanned from that row's points onto samples of its rims the row has not —
-  the wall's grid's among them — and leaned off the sphere by as far as a
-  chord sags, far further than the ring is thick: they crossed the wall,
-  and the folds they left took tens of seconds to go through, most never
-  undone. The kernel's tolerance is read at the body's own reach, as the
-  view's tolerance is, not at its scale, which keeps the reach of the
-  widest tool that ever cut it (#824): a ball bored by a shaft standing out
-  ten thousand times as far lost rings twenty times as thick as the view
-  draws. And never more than a hundredth of the tolerance asked, nor read
-  off that tolerance alone: off the tolerance alone, the view dropped rings
-  thousands of times as thick as the issue's, an export rings as thick as
-  its gap, and a part joined to flats their matter. A thicker ring is drawn
-  as before: at the view's tolerance, crossed up to two or three
-  ten-thousandths thick in a ball of 5 — about a third of that tolerance —
-  and sound past it. So is the ring an end plane further into the band
-  leaves on itself, its rim off the sphere by more than the kernel's
+  fanned from that row's points onto samples of its rims the row has not — the
+  wall's grid's among them — and leaned off the sphere by as far as a chord
+  sags, far further than the ring is thick: they crossed the wall, and the
+  folds they left took tens of seconds to go through, most never undone. The
+  kernel's tolerances are the body's scale's, which keeps the reach of the
+  widest tool that ever cut it (#824): a shaft standing out twenty times as
+  far as the ball it bores brings a tolerance twenty times as coarse, and the
+  ring forty of those under the ball's radius leaves is dropped as the issue's
+  is. The hundredth caps it: a shaft ten thousand times as far would bring
+  four hundred tolerances twenty times what the view draws, and its rings past
+  a hundredth of the view's tolerance are drawn. Off the tolerance asked
+  alone, the view dropped rings thousands of times as thick as the issue's, an
+  export rings as thick as its gap, and a part joined to flats their matter. A
+  thicker ring is drawn as before: at the view's tolerance, crossed up to two
+  or three ten-thousandths thick in a ball of 5 — about a third of that
+  tolerance — and sound past it. So is the ring an end plane further into the
+  band leaves on itself, its rim off the sphere by more than the kernel's
   tolerance: its faces are bounded by other edges, and it is crossed far
   thicker. A coaxial wall a hair inside a ball otherwise, whose rim stands
   further than twice the sag of its chords from the circles of the rows

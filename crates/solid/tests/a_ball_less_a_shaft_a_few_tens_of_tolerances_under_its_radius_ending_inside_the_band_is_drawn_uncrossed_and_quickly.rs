@@ -98,6 +98,19 @@
 //! shaft, through it or ending [`BARELY`] inside the band, still has its
 //! ring drawn, as the view draws the ring a short shaft leaves —
 //! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_reaching_a_thousand_or_ten_thousand_times_further_than_it_still_has_its_ring_drawn`.
+//! The other way round, the criterion's 40 tolerances are counted at the
+//! reach the cut is read at, and a shaft reaching further brings a coarser
+//! tolerance with it: 40 of them under the ball's radius, a shaft standing
+//! out twenty or forty times that radius either way leaves a ring ten or
+//! twenty times as thick as the criterion's, still far thinner than anything
+//! the view can draw, which was drawn crossed, in seconds to most of a
+//! minute, once the criterion's own rings were left undrawn. The ball less
+//! such a shaft, through it or ending [`INSIDE`] inside the band, is held as
+//! the criterion holds its cuts: built, exact, closed, uncrossed, of the
+//! arithmetic's volume, each cut in under [`QUICK`] — the drawing of the
+//! ring a shaft through the ball leaves allowed to be empty, as beside the
+//! short shaft through it —
+//! `a_ball_turned_about_z_or_at_a_slant_less_a_shaft_reaching_twenty_or_forty_times_its_radius_forty_of_the_cut_s_tolerances_under_it_through_it_or_ending_inside_the_band_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_cut_in_under_a_second`.
 
 use std::f64::consts::{PI, TAU};
 use std::time::{Duration, Instant};
@@ -773,6 +786,85 @@ fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_reaching_a_thousand_or_ten_t
         "a ball less a shaft reaching a thousand or ten thousand times further than it, \
          through it or ending a hair inside the band, still has its ring drawn whatever axis \
          the ball was turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// How far each shaft [`UNDER`] of the cut's tolerances under the ball's
+/// radius stands out either way along z: twenty and forty times that
+/// radius. The cut keeps the shaft's reach as its scale (#824), and the
+/// tolerances are counted at it: a ring of 4e-6 and 8e-6, ten and twenty
+/// times as thick as the ring the criterion's shafts leave.
+const LONG: [f64; 2] = [100.0, 200.0];
+
+/// Why `body`, the ball less a shaft of `radius` from z = `from` to `to`,
+/// does not hold what the arithmetic leaves, if it does not: within a
+/// billionth of the ball and the shaft, with the shaft as drawn or laid onto
+/// the touch, as the criterion reads it.
+fn off_the_arithmetic(body: &Body, radius: f64, from: f64, to: f64) -> Option<String> {
+    let [held, drawn] = shaft_and_its_share_of_the_ball(radius, from, to);
+    let [_, laid] = shaft_and_its_share_of_the_ball(RADIUS, from, to);
+    let [drawn, laid] = [BALL - drawn, BALL - laid];
+    [drawn, laid]
+        .iter()
+        .all(|volume| (body.volume() - volume).abs() > EXACT * (BALL + held))
+        .then(|| {
+            format!(
+                "holds {}, where the arithmetic leaves {drawn} as drawn or {laid} laid onto the \
+                 touch",
+                body.volume()
+            )
+        })
+}
+
+/// The ball about z and the ball turned at a slant, each less a shaft along
+/// z through its centre [`UNDER`] of the tolerance at the reach of each of
+/// [`LONG`] under the ball's radius, through it from one end to the other or
+/// from the plane [`INSIDE`] inside the band out to its far end: every cut
+/// built, exact, its triangles closed and uncrossed — none at all allowed —
+/// holding what the arithmetic leaves, and made within [`QUICK`], as the
+/// criterion's cuts are. Every cut that is not is named, with each way it is
+/// not.
+#[test]
+fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_reaching_twenty_or_forty_times_its_radius_forty_of_the_cut_s_tolerances_under_it_through_it_or_ending_inside_the_band_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_cut_in_under_a_second()
+ {
+    let mut wrong = Vec::new();
+    let balls = balls().map(|(about, axis)| (about, ball_about(axis)));
+    for far in LONG {
+        let radius = RADIUS - UNDER * Scale::of(far).eps();
+        let reach = (RADIUS * RADIUS - radius * radius).sqrt();
+        for (about, ball) in &balls {
+            for (from, to) in [(-far, far), (-(reach - INSIDE), far)] {
+                let what = named(about, radius, from, to);
+                let shaft = shaft_along_z(ball, radius, from, to);
+                let started = Instant::now();
+                let built = ball.difference(&shaft);
+                let took = started.elapsed();
+                if took > QUICK {
+                    wrong.push(format!("{what}: cut in {took:?}, past {QUICK:?}"));
+                }
+                let body = match built {
+                    Err(declined) => {
+                        wrong.push(format!("{what}: declined, {declined:?}"));
+                        continue;
+                    }
+                    Ok(body) => body,
+                };
+                if let Some(why) = unsound(&body) {
+                    wrong.push(format!("{what}: {why}"));
+                }
+                if let Some(why) = off_the_arithmetic(&body, radius, from, to) {
+                    wrong.push(format!("{what}: {why}"));
+                }
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a ball less a shaft reaching twenty or forty times its radius, forty of the cut's \
+         tolerances under it, through it or ending inside the band, is built exact, closed, \
+         uncrossed and of the arithmetic's volume, each cut in under a second, whatever axis the \
+         ball was turned about; not so:\n{}",
         wrong.join("\n")
     );
 }
