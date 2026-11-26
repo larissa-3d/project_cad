@@ -1,12 +1,16 @@
 use super::StartMenuAction;
-use super::state::RecentLine;
+use super::state::{RecentLine, StartMenu};
 use crate::lang::Catalogue;
 use crate::screens::explorer::Explorer;
-use crate::screens::new_card::{self, NewCard};
+use crate::screens::new_card;
+use crate::ui::thumbnail::thumbnail;
+
+/// How wide and how high a recent part's picture is drawn left of its name.
+const THUMBNAIL: egui::Vec2 = egui::vec2(64.0, 48.0);
 
 pub fn show(
     ui: &mut egui::Ui,
-    card: &mut NewCard,
+    menu: &mut StartMenu,
     lines: &[RecentLine],
     explorer: &Explorer,
     lang: &Catalogue,
@@ -24,7 +28,7 @@ pub fn show(
 
     ui.columns(2, |columns| {
         columns[0].vertical(|ui| {
-            if let Some((name, folder)) = new_card::show(ui, card, explorer, lang) {
+            if let Some((name, folder)) = new_card::show(ui, menu.card_mut(), explorer, lang) {
                 action = StartMenuAction::CreateNew { name, folder };
             }
         });
@@ -37,7 +41,7 @@ pub fn show(
             } else {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for line in lines {
-                        if recent_line(ui, line) {
+                        if recent_line(ui, menu, line) {
                             action = StartMenuAction::Open(line.path.clone());
                         }
                     }
@@ -49,10 +53,13 @@ pub fn show(
     action
 }
 
-/// The name over where the part lies and what it holds, the hour it was
-/// opened and a chevron on the right. Says whether the name was clicked.
-fn recent_line(ui: &mut egui::Ui, line: &RecentLine) -> bool {
+/// The part's picture, its name over where it lies and what it holds, the hour
+/// it was opened and a chevron on the right. Says whether the name was
+/// clicked.
+fn recent_line(ui: &mut egui::Ui, menu: &StartMenu, line: &RecentLine) -> bool {
     ui.horizontal(|ui| {
+        let picture = menu.picture_of(&line.path).map(crate::picture::pixels);
+        thumbnail(ui, "recent_thumbnail", THUMBNAIL, picture);
         let clicked = ui
             .vertical(|ui| {
                 let clicked = ui.button(&line.name).clicked();

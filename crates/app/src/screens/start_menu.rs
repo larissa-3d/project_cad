@@ -26,7 +26,7 @@ pub enum StartMenuAction {
 }
 
 /// Puts the home screen in the middle of the window, what each recent part
-/// holds read from `files` only once the list has changed.
+/// holds and its picture read from `files` only once the list has changed.
 pub fn show(
     ui: &mut egui::Ui,
     menu: &mut StartMenu,
@@ -38,8 +38,6 @@ pub fn show(
     menu.follow(recents, files);
     let lines = menu.lines(&explorer.library().path, lang, &clock::reader_zone());
     egui::CentralPanel::default_margins()
-        .show(ui, |ui| {
-            view::show(ui, menu.card_mut(), &lines, explorer, lang)
-        })
+        .show(ui, |ui| view::show(ui, menu, &lines, explorer, lang))
         .inner
 }

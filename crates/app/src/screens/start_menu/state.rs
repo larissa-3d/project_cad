@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use cao_part::{Files, PartDocument, StepCounts};
+use cao_part::{Files, PartDocument, Picture, StepCounts};
 use cao_prefs::RecentEntry;
 use chrono::TimeZone;
 
@@ -9,13 +9,20 @@ use crate::screens::new_card::NewCard;
 use crate::wording;
 
 /// What the home screen holds between frames: the « Nouveau » card, and the
-/// recent parts with what each one holds.
+/// recent parts as they were last read.
 #[derive(Default)]
 pub struct StartMenu {
     card: NewCard,
-    /// The recent list as it was last read, each part with what its index says
-    /// it holds — nothing for one whose index cannot be read.
-    recents: Vec<(RecentEntry, Option<StepCounts>)>,
+    recents: Vec<ReadPart>,
+}
+
+/// A recent part as it was last read.
+struct ReadPart {
+    entry: RecentEntry,
+    /// What its index says it holds — nothing when that cannot be read.
+    held: Option<StepCounts>,
+    /// The picture it was put away with, when it carries one.
+    picture: Option<Picture>,
 }
 
 /// One line of the recent parts, as it reads.
@@ -33,12 +40,14 @@ impl StartMenu {
         &mut self.card
     }
 
-    /// Reads what each recent part holds, once the list has changed since it
-    /// was last read rather than every frame. Opening a part changes the list,
-    /// so a part worked on is read again on the way back.
+    /// Reads what each recent part holds and the picture it carries, once the
+    /// list has changed since it was last read rather than every frame.
+    /// Opening a part changes the list, so a part worked on is read again on
+    /// the way back.
     pub fn follow(&mut self, recents: &[RecentEntry], files: &impl Files) {
         let unchanged = recents.len() == self.recents.len()
-            && recents.iter().zip(&self.recents).all(|(now, (read, _))| {
+            && recents.iter().zip(&self.recents).all(|(now, read)| {
+                let read = &read.entry;
                 now.path == read.path && now.name == read.name && now.opened_at == read.opened_at
             });
         if unchanged {
@@ -46,11 +55,21 @@ impl StartMenu {
         }
         self.recents = recents
             .iter()
-            .map(|entry| {
-                let held = PartDocument::step_counts_in(files, &entry.path);
-                (entry.clone(), held)
+            .map(|entry| ReadPart {
+                entry: entry.clone(),
+                held: PartDocument::step_counts_in(files, &entry.path),
+                picture: PartDocument::picture_in(files, &entry.path),
             })
             .collect();
+    }
+
+    /// The picture a recent part was put away with, as last read.
+    pub fn picture_of(&self, part: &Path) -> Option<&Picture> {
+        self.recents
+            .iter()
+            .find(|read| read.entry.path == part)?
+            .picture
+            .as_ref()
     }
 
     /// The lines of the recent parts, most recently opened first, their
@@ -58,11 +77,11 @@ impl StartMenu {
     pub fn lines(&self, root: &Path, lang: &Catalogue, zone: &impl TimeZone) -> Vec<RecentLine> {
         self.recents
             .iter()
-            .map(|(entry, held)| RecentLine {
-                path: entry.path.clone(),
-                name: entry.name.clone(),
-                detail: detail(lang, root, &entry.path, *held),
-                opened: lang.t_moment("start_menu.recent_date", entry.opened_at, zone),
+            .map(|read| RecentLine {
+                path: read.entry.path.clone(),
+                name: read.entry.name.clone(),
+                detail: detail(lang, root, &read.entry.path, read.held),
+                opened: lang.t_moment("start_menu.recent_date", read.entry.opened_at, zone),
             })
             .collect()
     }

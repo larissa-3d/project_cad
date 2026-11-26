@@ -45,7 +45,7 @@ mod driver;
 use std::path::PathBuf;
 
 use cao_app::adapters::files::DiskFiles;
-use cao_part::{ExtrusionMode, Operation, PartDocument, StepCounts};
+use cao_part::{ExtrusionMode, Operation, PartDocument, Picture, StepCounts};
 use cao_sketch::WorkPlane;
 use chrono::{DateTime, Utc};
 use egui_kittest::kittest::{NodeT, Queryable};
@@ -126,6 +126,72 @@ fn a_recent_part_reads_its_name_what_it_holds_when_it_was_opened_and_a_chevron()
     assert!(
         missing.is_empty(),
         "the recent line of « Support » does not read {missing:?}; it reads {read:?}",
+    );
+}
+
+fn a_drawn_picture() -> Picture {
+    Picture::new(4, 3, vec![200; 4 * 3 * 4]).expect("the pixels fill the size")
+}
+
+/// Whether an image stands left of this text, from `from_x` on, as high as a
+/// line beginning at the text reaches: where a thumbnail goes.
+fn an_image_left_of(app: &driver::App, text: egui::Rect, from_x: f32) -> bool {
+    let thumbnail = egui::Rect::from_min_max(
+        egui::pos2(from_x, text.top() - 12.0),
+        egui::pos2(text.left(), text.bottom() + 40.0),
+    );
+    app.query_all_by_role(egui::accesskit::Role::Image)
+        .any(|node| thumbnail.contains(node.rect().center()))
+}
+
+#[test]
+fn a_recent_part_shows_the_picture_it_was_put_away_with() {
+    let test = "a_recent_part_shows_the_picture";
+    let opened_at = at("2026-11-05T15:32:00Z");
+    let mut pictured = PartDocument::new("Support", opened_at);
+    pictured.set_picture(a_drawn_picture());
+    let app = driver::open_remembering_parts(
+        test,
+        vec![
+            driver::RecentPart {
+                lies_at: "Équerre.caopart".into(),
+                part: PartDocument::new("Équerre", opened_at),
+                opened_at,
+            },
+            driver::RecentPart {
+                lies_at: "Support.caopart".into(),
+                part: pictured,
+                opened_at,
+            },
+        ],
+    );
+    let laid = cao_prefs::default_projects_dir(&driver::locations_of(test)).join("Support.caopart");
+    assert_eq!(
+        PartDocument::picture_in(&DiskFiles, &laid),
+        Some(a_drawn_picture()),
+        "the part laid down carries its picture",
+    );
+    let row = *driver::rows_of_the_file_list_reading(&app, "Support")
+        .first()
+        .expect("the part laid down is in the library's column");
+    assert!(
+        an_image_left_of(&app, row, 0.0),
+        "the library's column shows no image beside « Support »: the accessibility tree \
+         does not carry the picture, and what follows could not tell",
+    );
+
+    let recents = driver::where_it_reads(&app, "Pièces récentes")
+        .expect("the recent parts are titled")
+        .left()
+        - 24.0;
+    let shown =
+        |name: &str| an_image_left_of(&app, driver::the_recent_part_named(&app, name), recents);
+
+    assert_eq!(
+        (shown("Support"), shown("Équerre")),
+        (true, false),
+        "(the recent part put away with a picture shows it, the one put away with none \
+         shows no image), as the library's column does",
     );
 }
 

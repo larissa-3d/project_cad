@@ -26,6 +26,7 @@ pub mod step_box;
 pub mod step_dot;
 pub mod text_edit;
 pub mod theme;
+pub mod thumbnail;
 pub mod tool_button;
 pub mod tree_row;
 

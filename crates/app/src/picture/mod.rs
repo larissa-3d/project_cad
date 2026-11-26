@@ -61,6 +61,15 @@ impl Painter {
     }
 }
 
+/// A part's picture as the thumbnail primitive takes it.
+pub fn pixels(picture: &Picture) -> crate::ui::thumbnail::Pixels<'_> {
+    crate::ui::thumbnail::Pixels {
+        width: picture.width(),
+        height: picture.height(),
+        rgba: picture.pixels(),
+    }
+}
+
 /// Four bytes a pixel, red first, and the shader's own understanding of what a
 /// colour means — the same arrangement the window is drawn in.
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;

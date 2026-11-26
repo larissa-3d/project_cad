@@ -7,6 +7,7 @@ use crate::ui::badge::badge;
 use crate::ui::dropping::{carry, take_a_dropped_path};
 use crate::ui::text_edit::text_edit;
 use crate::ui::theme::tokens;
+use crate::ui::thumbnail::thumbnail;
 use crate::wording;
 
 use super::state::{Explorer, Naming};
@@ -207,7 +208,8 @@ fn contents(
         touched.shown.push(part.path.clone());
         let named = ui
             .horizontal(|ui| {
-                thumbnail(ui, explorer.picture_of(&part.path));
+                let picture = explorer.picture_of(&part.path).map(crate::picture::pixels);
+                thumbnail(ui, "explorer_thumbnail", THUMBNAIL, picture);
                 ui.selectable_label(explorer.selected() == Some(&part.path), &part.name)
             })
             .inner;
@@ -229,39 +231,6 @@ fn contents(
 
 /// How wide and how high a part's picture is drawn beside its name.
 const THUMBNAIL: egui::Vec2 = egui::vec2(22.0, 18.0);
-
-/// The part's picture, or the room it will take once it has one.
-///
-/// A quiet frame rather than nothing, so a folder half of whose parts have
-/// been put away since does not read as two columns.
-fn thumbnail(ui: &mut egui::Ui, picture: Option<&cao_part::Picture>) {
-    let Some(picture) = picture else {
-        let (rect, _) = ui.allocate_exact_size(THUMBNAIL, egui::Sense::hover());
-        ui.painter()
-            .rect_filled(rect, 2.0, ui.visuals().faint_bg_color);
-        return;
-    };
-    ui.add(egui::Image::new(&texture(ui, picture)).fit_to_exact_size(THUMBNAIL));
-}
-
-/// The part's pixels as something the GPU can draw, kept in egui's own store
-/// between frames: uploading a texture every frame for every row on screen is
-/// the one way to make a picture cost more than the drawing it stands for.
-fn texture(ui: &egui::Ui, picture: &cao_part::Picture) -> egui::TextureHandle {
-    let id = egui::Id::new(("explorer_thumbnail", picture.pixels().as_ptr() as usize));
-    if let Some(held) = ui.data(|data| data.get_temp::<egui::TextureHandle>(id)) {
-        return held;
-    }
-    let image = egui::ColorImage::from_rgba_unmultiplied(
-        [picture.width() as usize, picture.height() as usize],
-        picture.pixels(),
-    );
-    let made = ui
-        .ctx()
-        .load_texture("explorer_thumbnail", image, egui::TextureOptions::LINEAR);
-    ui.data_mut(|data| data.insert_temp(id, made.clone()));
-    made
-}
 
 fn holds_nothing(folder: &Folder) -> bool {
     folder.folders.is_empty() && folder.parts.is_empty()

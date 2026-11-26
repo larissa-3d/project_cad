@@ -1,12 +1,12 @@
 //! What app · screens/start_menu/state.rs is held to: when the home screen
-//! reads what each recent part holds, and what a line says when that cannot be
-//! read. What a line reads on screen is driven whole in
+//! reads what each recent part holds and the picture it carries, and what a
+//! line says when that cannot be read. What a line reads on screen is driven whole in
 //! `crates/app/tests/the_recent_parts.rs`, where #745 is transcribed.
 
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use cao_part::{ExtrusionMode, FileError, Files, InMemoryFiles, Operation, PartDocument};
+use cao_part::{ExtrusionMode, FileError, Files, InMemoryFiles, Operation, PartDocument, Picture};
 use cao_prefs::RecentEntry;
 use cao_sketch::WorkPlane;
 use chrono::{DateTime, Utc};
@@ -84,6 +84,8 @@ fn what_a_recent_part_holds_is_read_once_while_the_list_stays_as_it_was() {
     let part = a_part_raised(&files, "Support", 1);
     let recents = [opened(&part, "Support", "2026-11-05T15:32:00Z")];
     let mut menu = StartMenu::default();
+    menu.follow(&recents, &files);
+    let on_the_first_frame = files.reads.get();
 
     for _frame in 0..3 {
         menu.follow(&recents, &files);
@@ -91,9 +93,9 @@ fn what_a_recent_part_holds_is_read_once_while_the_list_stays_as_it_was() {
 
     assert_eq!(
         files.reads.get(),
-        1,
-        "the home screen is drawn every frame, and a part's index is read again \
-         at each of them",
+        on_the_first_frame,
+        "the home screen is drawn every frame, and a part is read again at each \
+         of them",
     );
     assert_eq!(
         details(&menu),
@@ -116,6 +118,36 @@ fn what_a_recent_part_holds_is_read_again_once_it_is_opened_anew() {
         ["Dossier des pièces · 1 esquisse · 2 extrusions"],
         "a part worked on and put away comes back to the home screen with what it \
          holds now",
+    );
+}
+
+fn a_drawn_picture() -> Picture {
+    Picture::new(4, 3, vec![200; 4 * 3 * 4]).expect("the pixels fill the size")
+}
+
+#[test]
+fn the_picture_of_a_recent_part_is_read_once_while_the_list_stays_as_it_was() {
+    let files = CountedFiles::default();
+    let mut part = PartDocument::new("Support", at("2026-11-01T09:00:00Z"));
+    part.set_picture(a_drawn_picture());
+    let path = Path::new(PARTS).join("Support.caopart");
+    part.save(&files, &path, at("2026-11-01T09:00:00Z"))
+        .expect("the part is written");
+    let recents = [opened(&path, "Support", "2026-11-05T15:32:00Z")];
+    let mut menu = StartMenu::default();
+    menu.follow(&recents, &files);
+    let on_the_first_frame = files.reads.get();
+
+    for _frame in 0..3 {
+        menu.follow(&recents, &files);
+    }
+
+    assert_eq!(menu.picture_of(&path), Some(&a_drawn_picture()));
+    assert_eq!(
+        files.reads.get(),
+        on_the_first_frame,
+        "the home screen is drawn every frame, and a part is read again at each \
+         of them",
     );
 }
 
