@@ -45,11 +45,12 @@ use crate::brep::topology::{Body, EdgeId, FaceId};
 const THIN: f64 = Scale::HAIR * Scale::HAIR;
 
 /// How much of the tolerance a body is drawn at a ring may stand off its
-/// wall and not be drawn: a hundredth. Such a ring is drawn crossed up to
-/// about a third of the tolerance, and apart past it; a hundredth keeps the
-/// bound well under what any drawing can show, whatever reach the tolerance
-/// asked was taken at — an export's gap is the user's — and the issue's ring
-/// still under it by twenty-five times at the view's tolerance. The bound is
+/// wall and not be drawn: a hundredth. Such a ring was drawn crossed up to
+/// about a third of the tolerance, and apart past it, until #1144 drew it
+/// uncrossed from that hundredth on; a hundredth keeps the bound well under
+/// what any drawing can show, whatever reach the tolerance asked was taken
+/// at — an export's gap is the user's — and the issue's ring still under it
+/// by twenty-five times at the view's tolerance. The bound is
 /// the smaller of this and [`THIN`]: a coarse drawing still draws, as
 /// before, every ring thicker than four hundred of the kernel's tolerances,
 /// and a ball of 5 bored by a shaft standing out ten thousand times as far,

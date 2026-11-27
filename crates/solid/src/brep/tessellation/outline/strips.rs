@@ -27,7 +27,7 @@ use std::f64::consts::TAU;
 
 use glam::DVec2;
 
-use super::super::sampling::{Rounded, Samples, rows};
+use super::super::sampling::{Rounded, Samples, over, rows};
 use super::Outline;
 use super::cylinder::CLEAR;
 use super::knife::Band;
@@ -130,6 +130,13 @@ impl Outline {
         for band in &lattice.bands {
             grid = band.cleared(grid, (low, high), &lattice.levels, lattice.room);
         }
+        grid.extend(over(
+            lattice.rows,
+            (low, high),
+            &lattice.levels,
+            &levels,
+            lattice.room,
+        ));
         levels.extend(grid);
         levels.sort_by(f64::total_cmp);
         levels.dedup();

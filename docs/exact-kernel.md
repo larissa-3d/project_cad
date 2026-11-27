@@ -2934,16 +2934,31 @@ pointed cone's flank waits on #711.
   a hundredth of the view's tolerance are drawn. Off the tolerance asked
   alone, the view dropped rings thousands of times as thick as the issue's, an
   export rings as thick as its gap, and a part joined to flats their matter. A
-  thicker ring is drawn as before: at the view's tolerance, crossed up to two
-  or three ten-thousandths thick in a ball of 5 — about a third of that
-  tolerance — and sound past it. So is the ring an end plane further into the
+  thicker ring is drawn, and uncrossed (#1144): a hundredth of a thousandth
+  to two ten-thousandths thick in a ball of 5, through it or ending anywhere
+  in the band, whatever axis the ball was turned about — crossed up to two or
+  three ten-thousandths before. So is the ring an end plane further into the
   band leaves on itself, its rim off the sphere by more than the kernel's
-  tolerance: its faces are bounded by other edges, and it is crossed far
-  thicker. A coaxial wall a hair inside a ball otherwise, whose rim stands
-  further than twice the sag of its chords from the circles of the rows
-  about it, or whose grid has no multiple with those taken under the most a
-  turn is cut into, is not drawn in common with it: a family the campaign
-  measures.
+  tolerance: that rim bounds no face of the sphere, which runs on past its
+  height with no edge there, and a circle about a sphere's axis standing
+  inside it by more than the kernel's tolerance and by no more than twice
+  the sag of a cell of its grid is a level of every face of the sphere
+  (`sampling/beneath/sphere.rs`), where the strips cut the face as at a row
+  and a meridian arc running across it takes a sample. Cut at its rows
+  alone, the strip from the row under that height to the row over it sagged
+  inside the rim and through the end plane's disc: a shaft of 5 − 1e-5
+  ending 1e-3 inside a ball of 5 has its rim 2e-6 under the sphere, where
+  a chord between two rows a step apart sags some 4e-4. Its lattice points
+  at that height stand on the sphere, outside the rim, on the rays of the
+  rim's samples where the grid is lined up with the shaft's wall; a level
+  within a hundredth of a step of a rim of the face, as a row there would,
+  is left out: a shaft ending 1e-3 past the band's near edge leaves its ring
+  between that edge and its end plane, where the strip starts at the rim and
+  sags too little that near it to reach the end plane's rim. A coaxial wall a
+  hair inside a ball otherwise, whose rim stands further than twice the sag of
+  its chords from the circles of the rows about it, or whose grid has no
+  multiple with those taken under the most a turn is cut into, is not drawn in
+  common with it: a family the campaign measures.
 - **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
   The strips cannot cut a face of a sphere such a circle bounds, since it
   runs along no line of the chart, nor can the central chart where the face
@@ -2961,18 +2976,35 @@ pointed cone's flank waits on #711.
   drawn as before. A face every circle of which turns about one axis —
   half a ball cut at a slant — is cut in strips on its sphere read about
   that axis, where each is a latitude, the pole its loops turn round a
-  point added inside it. Beside a knife-edge rim, the wall and the face
-  both running from it away from the sphere's equator, no row stands in
-  the band reaching from the rim to the latitude where the sphere comes as
-  near the axis as the wall's chords — about their sag over the sine of
-  the angle between the two surfaces, and bounded as that angle closes, at
-  some three quarters of a step of the grid. The strips' lattice points
-  stand between the wall's steps, on no ray of the rim's samples, and a
-  row inside the band — a shaft of 4.97, its row 0.0026 from the rim
-  against a band of 0.0035, where the hundredth of a step the strips keep
-  from a level is 0.0004 — put them outside the wall's chords. A row of
-  the grid inside the band is moved to its edge rather than dropped: every
-  strip beside the rim stays within a step, and the drawing within its
+  point added inside it. Its grid of angles, cut for the sphere's radius, is
+  lined up with the walls of that axis standing beside the sphere, as the
+  sphere's own grid is with those of its own (#1144,
+  `sampling/cone/lined_up.rs`); and a sphere each circle of another axis on
+  which lies on a wall that grid is lined up with, and bounds no face of the
+  sphere but faces every edge of which is a circle of one axis, takes none of
+  the places those circles cross the steps of its own grid at, which only a
+  face cut open there wants (#940, `sampling/axis/spheres.rs`). A ball turned
+  at a slant less a shaft a little under its radius had the strip from a rim
+  to the next row reach from a sample of the rim — on the wall's grid, or one
+  of those places — to lattice points a part of a step round, through the
+  wall's chords over a ring thinner than they sag, and the folds churned over
+  the crossings for five to forty-five seconds a cut; lined up and rid of
+  them, every sample of the rim has a lattice point on its ray, the ring is
+  drawn as about the shaft's axis, and the cut takes a tenth of a second. A
+  shaft of 4.9 through such a ball, far off its sphere, keeps those places,
+  and so does a ball beside a shaft laid onto its touch, whose circle on the
+  shaft's end plane lies on no wall of the body (#1109). Beside a
+  knife-edge rim, the wall and the face both running from it away from the
+  sphere's equator, no row stands in the band reaching from the rim to the
+  latitude where the sphere comes as near the axis as the wall's chords —
+  about their sag over the sine of the angle between the two surfaces, and
+  bounded as that angle closes, at some three quarters of a step of the grid.
+  The strips' lattice points stand between the wall's steps, on no ray of the
+  rim's samples, and a row inside the band — a shaft of 4.97, its row 0.0026
+  from the rim against a band of 0.0035, where the hundredth of a step the
+  strips keep from a level is 0.0004 — put them outside the wall's chords. A
+  row of the grid inside the band is moved to its edge rather than dropped:
+  every strip beside the rim stays within a step, and the drawing within its
   tolerance. Dropped, beside a band reckoned as the sag over the height of
   the rim's plane, which grows without bound as the wall's radius nears the
   sphere's, a shaft a hair under the ball's radius left its cap one fan,
@@ -3015,15 +3047,17 @@ pointed cone's flank waits on #711.
   the sphere's vertices, which open nothing — a circle ending at one on a
   rim it stands square to touches that angle's half-plane there, and
   rounding would leave a sample a hair from the corner —, not where it only
-  touches a step's half-plane, and not on a circle whose wall stands in a
-  group of walls close about one axis, whose other circles would not take
-  those places; a crossing is left out, as a ray of the group is, where
-  another wall crowds it, and where the circle's contact withholds the step
-  but on a wall standing close to another. There, two parallel walls within
-  twice a chord's sag of each other, which contact samples on common rays,
-  the crossings are handed to contact as the wall's own, and every circle
-  of both takes them, the circle itself among the pair's rays, at a step
-  withheld too (#1109): a shaft laid onto a ball's touch by decision 12,
+  touches a step's half-plane, not on a sphere whose every such circle lies
+  on a wall its grid read about the circle's axis is lined up with and
+  bounds only faces read about it (#1144), and not on a circle whose
+  wall stands in a group of walls close about one axis, whose other circles
+  would not take those places; a crossing is left out, as a ray of the group
+  is, where another wall crowds it, and where the circle's contact withholds
+  the step but on a wall standing close to another. There, two parallel walls
+  within twice a chord's sag of each other, which contact samples on common
+  rays, the crossings are handed to contact as the wall's own, and every
+  circle of both takes them, the circle itself among the pair's rays, at a
+  step withheld too (#1109): a shaft laid onto a ball's touch by decision 12,
   its end plane a hair inside the ball, leaves a ring a hair wide on that
   plane between the ball's circle and the shaft's rim, and the rim, sampled
   on its grid alone, had its chords sag inside the circle's crossings — the

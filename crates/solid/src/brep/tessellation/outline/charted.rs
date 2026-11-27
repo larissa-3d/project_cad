@@ -25,7 +25,7 @@ use std::f64::consts::PI;
 
 use glam::DVec3;
 
-use super::super::sampling::{Rounded, SHARE, Samples, divisions_in};
+use super::super::sampling::{Rounded, Samples, read_about};
 use super::super::sweep;
 use super::central::FRONT;
 use super::central::refinement::refined;
@@ -95,14 +95,14 @@ impl Outline {
     }
 
     /// The face `id` of `sphere` read about the axis every circle of it turns
-    /// about, and cut in strips there within `tolerance`, its grid of angles
-    /// cut for the sphere's own radius: the grid of the sphere read about its
-    /// own axis is cut for the widest the faces reach about that one, and a
-    /// face of a slanted cut reaches no circle of it. No row stands in the
-    /// band beside a knife-edge rim ([`knife::Band`]), whose lattice points
-    /// would stand outside the wall's chords. None where an edge is no
-    /// circle, where two turn about different axes, and where the strips
-    /// cannot cut it.
+    /// about, and cut in strips there within `tolerance`, on that reading's
+    /// own grid of angles ([`read_about`]): cut for the sphere's radius and
+    /// lined up with the walls of the axis standing beside it, so that every
+    /// sample of a rim on such a wall has a lattice point on its ray. No row
+    /// stands in the band beside a knife-edge rim ([`knife::Band`]), whose
+    /// lattice points would stand outside the wall's chords. None where an
+    /// edge is no circle, where two turn about different axes, and where the
+    /// strips cannot cut it.
     pub(super) fn about(
         body: &Body,
         samples: &mut Samples,
@@ -131,8 +131,9 @@ impl Outline {
         };
         let poles = [low, high].map(|pole| samples.added(pole.point));
         let laps = laps(body, samples, id)?;
-        let steps = divisions_in(sphere.radius, tolerance * SHARE, samples.span);
-        let grid = (steps, samples.rows(face.surface)?);
+        let rows = samples.rows(face.surface)?;
+        let (steps, _) = read_about(body, sphere, axis, rows, (tolerance, samples.span));
+        let grid = (steps, rows);
         let mut outline = Outline::default();
         let mut lattice = outline.laid_out(
             body,

@@ -118,7 +118,9 @@ impl Group {
 /// and, once [`Axes::gathered`], the rays its walls take in contact.
 pub(super) struct Axes {
     cones: Vec<(Spun, Vec<DVec3>)>,
-    /// Each round with the directions from its axis of its grid's steps.
+    /// Each round with the directions from its axis of its grid's steps, but
+    /// a sphere whose faces want none of the places its circles of another
+    /// line cross them at ([`spheres::opened`]).
     steps: Vec<(Rounded, Vec<DVec3>)>,
     groups: Vec<Group>,
     of_wall: BTreeMap<SurfaceId, usize>,
@@ -143,9 +145,11 @@ impl Axes {
         let mut cones = Vec::new();
         let mut steps = Vec::new();
         let mut rims: Vec<(Vec<SurfaceId>, Vec<SurfaceId>, &Grid)> = Vec::new();
-        for grid in grids.values() {
+        for (id, grid) in grids {
             cones.push((grid.spun, grid.rays().collect()));
-            if let Spun::Round(round) = grid.spun {
+            if let Spun::Round(round) = grid.spun
+                && spheres::opened(body, *id, &round, grid.rows, fineness)
+            {
                 steps.push((round, grid.on_steps().collect()));
             }
             let walls_of = |within: &dyn Fn(&Circle) -> bool| -> Vec<SurfaceId> {

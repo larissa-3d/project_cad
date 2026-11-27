@@ -8,9 +8,10 @@ use std::f64::consts::{PI, TAU};
 use glam::{DVec2, DVec3};
 
 use super::super::divisions_in;
-use super::super::round::Rounded;
+use super::super::round::{Rounded, SHARE};
+use super::super::steps::most;
 use crate::brep::curve::{Circle, Curve};
-use crate::brep::surface::{Cylinder, Surface};
+use crate::brep::surface::{Cylinder, Sphere, Surface};
 use crate::brep::tessellation::contact::lies_on;
 use crate::brep::topology::{Body, SurfaceId};
 
@@ -39,10 +40,21 @@ use crate::brep::topology::{Body, SurfaceId};
 pub(super) fn kept_by_walls(
     body: &Body,
     round: &Rounded,
+    grid: (usize, usize, usize),
+    fineness: (f64, f64),
+    eps: f64,
+) -> usize {
+    taken_by_walls(body, round, grid, fineness, eps).0
+}
+
+/// The steps [`kept_by_walls`] gives, and the walls it lines them up with.
+fn taken_by_walls(
+    body: &Body,
+    round: &Rounded,
     (steps, rows, cap): (usize, usize, usize),
     (tolerance, span): (f64, f64),
     eps: f64,
-) -> usize {
+) -> (usize, Vec<SurfaceId>) {
     let rims: Vec<&Circle> = body
         .edge_ids()
         .filter_map(|id| match body.curve(body.edge(id).curve) {
@@ -50,7 +62,7 @@ pub(super) fn kept_by_walls(
             Curve::Line(_) | Curve::Circle(_) | Curve::Meet(_) | Curve::Conic(_) => None,
         })
         .collect();
-    let mut walls: Vec<(Beside, usize)> = Vec::new();
+    let mut walls: Vec<(Beside, usize, SurfaceId)> = Vec::new();
     for (id, surface) in body.surfaces.iter().enumerate() {
         let Surface::Cylinder(wall) = surface else {
             continue;
@@ -64,18 +76,45 @@ pub(super) fn kept_by_walls(
         if (ranks - ranks.round()).abs() <= ALIGNED
             && let Some(near) = beside(round, wall, &rims, rows, (eps, reach), reaching)
         {
-            walls.push((near, theirs));
+            walls.push((near, theirs, SurfaceId(id as u32)));
         }
     }
-    walls.sort_by(|(one, _), (other, _)| one.order(other));
+    walls.sort_by(|(one, _, _), (other, _, _)| one.order(other));
     let mut every = 1;
-    for (_, theirs) in walls {
+    let mut taken = Vec::new();
+    for (_, theirs, id) in walls {
         let both = every / greatest_common(every, theirs) * theirs;
         if steps.div_ceil(both) * both <= cap {
             every = both;
+            taken.push(id);
         }
     }
-    steps.div_ceil(every) * every
+    (steps.div_ceil(every) * every, taken)
+}
+
+/// The steps a turn of the grid of `sphere` read about the line through its
+/// centre along `axis`, its rows `rows` a turn, and the walls of that line
+/// it is lined up with: cut for the sphere's own radius — the grid of its
+/// own axis is cut for the widest its faces reach about that one, and a face
+/// of a slanted cut reaches no circle of it — and lined up with the walls of
+/// the line standing beside the sphere, as [`kept_by_walls`] lines up a
+/// round's own grid. A ball turned at a slant less a shaft a little under its
+/// radius, its faces read about the shaft's axis, had the strip from a rim
+/// to the next row reach across from a sample of the rim to lattice points a
+/// part of a step round, through the wall's chords over a ring thinner than
+/// they sag (#1144).
+pub(in crate::brep::tessellation) fn read_about(
+    body: &Body,
+    sphere: &Sphere,
+    axis: DVec3,
+    rows: usize,
+    (tolerance, span): (f64, f64),
+) -> (usize, Vec<SurfaceId>) {
+    let round = Rounded::Sphere(sphere.about(axis));
+    let steps = divisions_in(sphere.radius, tolerance * SHARE, span);
+    let cap = most(round.widest(), span);
+    let eps = body.scale().eps();
+    taken_by_walls(body, &round, (steps, rows, cap), (tolerance, span), eps)
 }
 
 /// Under this share of a step, two grids start at one angle.

@@ -209,16 +209,21 @@ pub(in crate::brep::tessellation) fn midway(edge: &Edge) -> f64 {
 /// The angles along the meridian that bound the faces of `face`'s surface
 /// where `face` lies, which no row of the grid may stand within the room of:
 /// its latitude circles, the poles of the surface and, on a torus, the cut
-/// of the chart. A meridian arc and the face it bounds read the same list,
-/// so that the arc's samples stand exactly where the face's rows are.
+/// of the chart; and on a sphere whose grid is `grid`, the circles of the
+/// body about its axis standing just inside it, where its faces are cut as
+/// at a row ([`over`], `beneath/sphere.rs`). A meridian arc and the face it
+/// bounds read the same list, so that the arc's samples stand exactly where
+/// the face's rows are.
 pub(in crate::brep::tessellation) fn levels(
     body: &Body,
     face: &Face,
     round: &Rounded,
+    grid: (usize, usize),
     eps: f64,
 ) -> Vec<f64> {
     let mut levels: Vec<f64> = round.poles(eps).iter().map(|pole| pole.at).collect();
     levels.extend(round.cut());
+    levels.extend(super::beneath::sphere::latitudes(body, round, grid, eps));
     for coedge in face.loops.iter().flatten() {
         let edge = body.edge(coedge.edge);
         if let crate::brep::curve::Curve::Circle(circle) = body.curve(edge.curve)
@@ -230,13 +235,13 @@ pub(in crate::brep::tessellation) fn levels(
     levels
 }
 
-/// The angles along the meridian bounding every face of `surface` using the
-/// edge `edge`.
+/// The angles along the meridian bounding every face of `surface`, whose
+/// grid is `grid`, using the edge `edge`.
 pub(super) fn levels_along(
     body: &Body,
     surface: SurfaceId,
     edge: &Edge,
-    round: &Rounded,
+    (round, grid): (&Rounded, (usize, usize)),
     eps: f64,
 ) -> Vec<f64> {
     body.face_ids()
@@ -249,7 +254,7 @@ pub(super) fn levels_along(
                     .flatten()
                     .any(|coedge| std::ptr::eq(body.edge(coedge.edge), edge))
         })
-        .flat_map(|face| levels(body, face, round, eps))
+        .flat_map(|face| levels(body, face, round, grid, eps))
         .collect()
 }
 
@@ -282,6 +287,26 @@ pub(in crate::brep::tessellation) fn rows(
 ) -> Vec<f64> {
     let step = TAU / steps as f64;
     grid_rows(steps, low, high, levels, room.max(SLIVER * step))
+}
+
+/// Of `levels`, a face's, those it is cut at besides the rows of its grid of
+/// `steps` rows a turn, as it reaches from `low` to `high`: the circles a
+/// face of a sphere stands over ([`levels`]), where none of its boundaries
+/// stands — every other level is one of its rims, a pole or a ring's cut —
+/// clear of its ends and of `standing`, the levels its boundaries stand at,
+/// as [`rows`] keeps a row clear (#1144).
+pub(in crate::brep::tessellation) fn over(
+    steps: usize,
+    (low, high): (f64, f64),
+    levels: &[f64],
+    standing: &[f64],
+    room: f64,
+) -> Vec<f64> {
+    let room = room.max(SLIVER * TAU / steps as f64);
+    (levels.iter().copied())
+        .filter(|&level| level > low + room && level < high - room)
+        .filter(|&level| !standing.iter().any(|at| near(level, *at, room)))
+        .collect()
 }
 
 /// The rows of a grid of `steps` rows a turn strictly between `low` and

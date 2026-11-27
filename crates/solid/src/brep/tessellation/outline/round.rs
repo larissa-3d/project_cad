@@ -97,7 +97,7 @@ impl Outline {
         (round, read): (&Rounded, Read),
     ) -> Option<Lattice> {
         let eps = body.scale().eps();
-        let levels = levels(body, face, round, eps);
+        let levels = levels(body, face, round, (steps, rows), eps);
         let mut lattice = Lattice::new(*round, steps, rows, &levels, eps / round.radius());
         let mut standing: BTreeMap<usize, Standing> = BTreeMap::new();
         let mut winding = Vec::new();

@@ -14,6 +14,7 @@
 //! counts there on the plane of one of its circles.
 
 pub(super) mod oval;
+pub(super) mod sphere;
 
 use std::collections::BTreeMap;
 use std::f64::consts::PI;

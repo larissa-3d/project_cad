@@ -69,10 +69,11 @@ use crate::brep::topology::{Body, EdgeId, SurfaceId};
 use abreast::Abreast;
 use axis::Axes;
 use circle::on_circle_by;
+pub(super) use cone::read_about;
 use cone::{Grid, Spun};
 use ends::Ends;
 pub(super) use planes::{on_a_plane, touching_planes};
-pub(super) use round::{ON_A_ROW, Rounded, SHARE, levels, midway, rows};
+pub(super) use round::{ON_A_ROW, Rounded, levels, midway, over, rows};
 pub(in crate::brep) use steps::divisions_in;
 use touches::{Places, on_the_line};
 
@@ -207,9 +208,9 @@ impl Samples {
                     conic::of_edge(body, edge, conic, (zones, grids, &abreast), &rays, fineness)
                 }
                 Curve::Circle(circle) => match meridian_of(circle, grids, eps) {
-                    Some((surface, round, rows)) => {
-                        let levels = round::levels_along(body, surface, edge, &round, eps);
-                        round::on_meridian(circle, edge, &round, rows, &levels, eps)
+                    Some((surface, round, grid)) => {
+                        let levels = round::levels_along(body, surface, edge, (&round, grid), eps);
+                        round::on_meridian(circle, edge, &round, grid.1, &levels, eps)
                     }
                     None => {
                         let wall = contact::wall_of(circle, walls, eps);
@@ -335,14 +336,16 @@ impl Samples {
 }
 
 /// The sphere or torus of the body `circle` is a meridian of, with its
-/// surface and how many rows a turn its grid has.
+/// surface and how many steps and rows a turn its grid has.
 fn meridian_of(
     circle: &Circle,
     grids: &BTreeMap<SurfaceId, Grid>,
     eps: f64,
-) -> Option<(SurfaceId, Rounded, usize)> {
+) -> Option<(SurfaceId, Rounded, (usize, usize))> {
     grids.iter().find_map(|(id, grid)| match grid.spun {
-        Spun::Round(round) if round.meridian(circle, eps) => Some((*id, round, grid.rows)),
+        Spun::Round(round) if round.meridian(circle, eps) => {
+            Some((*id, round, (grid.steps, grid.rows)))
+        }
         Spun::Round(_) | Spun::Cone(_) => None,
     })
 }
