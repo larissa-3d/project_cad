@@ -27,7 +27,7 @@ use std::f64::consts::TAU;
 
 use glam::DVec2;
 
-use super::super::sampling::{Rounded, Samples, rows};
+use super::super::sampling::{Rounded, Samples, rows_keeping};
 use super::Outline;
 use super::cylinder::CLEAR;
 use super::knife::Band;
@@ -47,6 +47,10 @@ pub(super) struct Lattice {
     /// The bands beside the face's knife-edge rims, inside which no row
     /// stands ([`super::knife::Band`]): none but there.
     pub(super) bands: Vec<Band>,
+    /// The rims of the face a wall runs beside, each with where the wall
+    /// ends, as angles along the meridian ([`super::knife::ends`]): a row
+    /// it ends on is cut however near the rim it stands.
+    pub(super) ends: Vec<[f64; 2]>,
     added: BTreeMap<(usize, u64), usize>,
 }
 
@@ -65,6 +69,7 @@ impl Lattice {
             levels: levels.to_vec(),
             room,
             bands: Vec::new(),
+            ends: Vec::new(),
             added: BTreeMap::new(),
         }
     }
@@ -126,7 +131,13 @@ impl Outline {
             .filter(|(point, _)| !passing.contains_key(point))
             .map(|(_, at)| at.y)
             .collect();
-        let mut grid = rows(lattice.rows, low, high, &lattice.levels, lattice.room);
+        let mut grid = rows_keeping(
+            lattice.rows,
+            (low, high),
+            &lattice.levels,
+            lattice.room,
+            &lattice.ends,
+        );
         for band in &lattice.bands {
             grid = band.cleared(grid, (low, high), &lattice.levels, lattice.room);
         }

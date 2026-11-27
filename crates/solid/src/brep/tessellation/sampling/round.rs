@@ -284,6 +284,28 @@ pub(in crate::brep::tessellation) fn rows(
     grid_rows(steps, low, high, levels, room.max(SLIVER * step))
 }
 
+/// The rows [`rows`] gives, and those it leaves out within [`SLIVER`] of a
+/// rim where a wall running beside the face from that rim ends on them:
+/// `ends`, each a rim's angle along the meridian and an end's
+/// (`outline/knife.rs`'s `ends`, #1127).
+pub(in crate::brep::tessellation) fn rows_keeping(
+    steps: usize,
+    (low, high): (f64, f64),
+    levels: &[f64],
+    room: f64,
+    ends: &[[f64; 2]],
+) -> Vec<f64> {
+    let sliver = SLIVER * TAU / steps as f64;
+    let cut = rows(steps, low, high, levels, room);
+    (grid_rows(steps, low, high, levels, room).into_iter())
+        .filter(|&row| {
+            cut.contains(&row)
+                || (ends.iter())
+                    .any(|&[rim, end]| near(row, end, ON_A_ROW) && near(row, rim, sliver))
+        })
+        .collect()
+}
+
 /// The rows of a grid of `steps` rows a turn strictly between `low` and
 /// `high`, none within `room` of either or of an angle of `levels` a whole
 /// number of turns on, ascending.
