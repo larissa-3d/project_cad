@@ -5,14 +5,13 @@
 
 use glam::DVec3;
 
-use super::super::cone::read_about;
+use super::super::super::skins::rings;
+use super::super::cone::{About, read_about};
 use super::super::round::Rounded;
 use super::Axes;
 use crate::brep::Scale;
 use crate::brep::curve::{Circle, Curve};
-use crate::brep::surface::Surface;
-use crate::brep::tessellation::contact::lies_on;
-use crate::brep::topology::{Body, Face, SurfaceId};
+use crate::brep::topology::{Body, Face, FaceId, SurfaceId};
 
 impl Axes {
     /// Where `circle` crosses the steps of the grid of each sphere carrying
@@ -33,20 +32,18 @@ impl Axes {
 
 /// Whether a face of `round`, the surface `surface` gridded with `rows` rows
 /// a turn at `fineness`, may want the places the circles of another line on
-/// it cross the steps of its grid at. Not where every such circle lies on a
-/// wall of the body the grid of the sphere read about the circle's line is
-/// lined up with ([`read_about`]), and bounds no face of the sphere but
-/// faces every edge of which is a circle of one line: those are cut in
-/// strips about that line (`Outline::about`) and cut open on its grid, which
-/// every rim of such a wall takes with the wall's. Taken, the places stood
-/// between the columns of the strips, and the wall's triangles ran from them
-/// to its other rim's, a part of a step round: a ball turned at a slant less
-/// a shaft a little under its radius had the strip from a rim to the next
-/// row cross the wall's chords over a ring thinner than they sag (#1144). A
-/// rim far off the sphere — a shaft of 4.9 through a ball of 5 — keeps them,
-/// and so does a circle on no wall of the body, the ball's circle on the end
-/// plane of a shaft laid onto its touch, whose wall's other rim takes them
-/// too (#1109).
+/// it cross the steps of its grid at. Not where every such circle bounds no
+/// face of the sphere but faces every edge of which is a circle of one line,
+/// and one of them a face standing beside a ring, drawn
+/// ([`About::beside_a_ring`]): cut in strips about the line on a grid lined
+/// up with the ring's wall, which every rim of the wall takes. Taken, the
+/// places stood between the columns of the strips, and the wall's triangles
+/// ran from them to its other rim's, a part of a step round: a ball turned
+/// at a slant less a shaft a little under its radius had the strip from a
+/// rim to the next row cross the wall's chords over a ring thinner than they
+/// sag (#1144). Every other sphere keeps them, as before: a shaft of 4.9
+/// through a ball of 5, the ball beside a shaft laid onto its touch (#1109),
+/// a ring too thin to be drawn beside the cap it leaves.
 pub(super) fn opened(
     body: &Body,
     surface: SurfaceId,
@@ -65,29 +62,50 @@ pub(super) fn opened(
                 Curve::Line(_) | Curve::Meet(_) | Curve::Conic(_) => None,
             })
             .collect();
-        circles.is_some_and(|circles| {
-            (circles.iter())
-                .all(|circle| circle.axis.cross(circles[0].axis).length() <= Scale::RELATIVE)
-        })
+        let axis = circles.as_ref()?.first()?.axis;
+        (circles?.iter())
+            .all(|circle| circle.axis.cross(axis).length() <= Scale::RELATIVE)
+            .then_some(axis)
     };
-    let lined_up = |circle: &Circle| {
-        let (_, walls) = read_about(body, sphere, circle.axis, rows, fineness);
-        walls.into_iter().any(|wall| match body.surface(wall) {
-            Surface::Cylinder(cylinder) => lies_on(circle, cylinder, eps),
-            _ => false,
-        })
-    };
-    body.edge_ids().any(|edge| {
-        let Curve::Circle(circle) = body.curve(body.edge(edge).curve) else {
-            return false;
+    let undrawn = rings(body, fineness.0);
+    let mut grids: Vec<(DVec3, About)> = Vec::new();
+    let mut beside: Vec<FaceId> = Vec::new();
+    for id in body
+        .face_ids()
+        .filter(|id| body.face(*id).surface == surface)
+    {
+        let Some(axis) = one_line(body.face(id)) else {
+            continue;
         };
-        let mut faces = (body.uses(edge).into_iter())
-            .map(|(id, _)| body.face(id))
-            .filter(|face| face.surface == surface);
-        round.carries(circle, eps)
-            && !round.holds(circle, eps)
-            && !(faces.all(one_line) && lined_up(circle))
-    })
+        if undrawn.contains(&id) || axis.cross(sphere.axis).length() <= Scale::RELATIVE {
+            continue;
+        }
+        let at = match (grids.iter()).position(|(of, _)| of.cross(axis).length() <= Scale::RELATIVE)
+        {
+            Some(at) => at,
+            None => {
+                grids.push((axis, read_about(body, sphere, axis, rows, fineness)));
+                grids.len() - 1
+            }
+        };
+        if grids[at].1.beside_a_ring(body, id, sphere, axis) {
+            beside.push(id);
+        }
+    }
+    beside.is_empty()
+        || body.edge_ids().any(|edge| {
+            let Curve::Circle(circle) = body.curve(body.edge(edge).curve) else {
+                return false;
+            };
+            let faces: Vec<FaceId> = (body.uses(edge).into_iter())
+                .map(|(id, _)| id)
+                .filter(|id| body.face(*id).surface == surface)
+                .collect();
+            round.carries(circle, eps)
+                && !round.holds(circle, eps)
+                && !(faces.iter().all(|id| one_line(body.face(*id)).is_some())
+                    && faces.iter().any(|id| beside.contains(id)))
+        })
 }
 
 /// The directions from the centre of `circle` to where it crosses the

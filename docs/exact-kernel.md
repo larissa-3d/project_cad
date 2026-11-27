@@ -2976,24 +2976,27 @@ pointed cone's flank waits on #711.
   drawn as before. A face every circle of which turns about one axis —
   half a ball cut at a slant — is cut in strips on its sphere read about
   that axis, where each is a latitude, the pole its loops turn round a
-  point added inside it. Its grid of angles, cut for the sphere's radius, is
-  lined up with the walls of that axis standing beside the sphere, as the
-  sphere's own grid is with those of its own (#1144,
-  `sampling/cone/lined_up.rs`); and a sphere each circle of another axis on
-  which lies on a wall that grid is lined up with, and bounds no face of the
-  sphere but faces every edge of which is a circle of one axis, takes none of
-  the places those circles cross the steps of its own grid at, which only a
-  face cut open there wants (#940, `sampling/axis/spheres.rs`). A ball turned
-  at a slant less a shaft a little under its radius had the strip from a rim
-  to the next row reach from a sample of the rim — on the wall's grid, or one
-  of those places — to lattice points a part of a step round, through the
-  wall's chords over a ring thinner than they sag, and the folds churned over
-  the crossings for five to forty-five seconds a cut; lined up and rid of
+  point added inside it. Its grid of angles is cut for the sphere's radius. A
+  face running from one of its rims towards the sphere's equator about that
+  axis, beside a wall of the axis standing under the sphere's radius by no
+  more than that grid's chords sag, has it lined up with that wall, as the sphere's
+  own grid is with the walls of its own (#1144, `sampling/cone/lined_up.rs`);
+  and a sphere each circle of another axis on which bounds only faces every
+  edge of which is a circle of one axis, one of them such a face, drawn, takes
+  none of the places those circles cross the steps of its own grid at, which
+  only a face cut open there wants (#940, `sampling/axis/spheres.rs`). A ball
+  turned at a slant less a shaft a little under its radius had the strip from
+  a rim to the next row reach from a sample of the rim — on the wall's grid,
+  or one of those places — to lattice points a part of a step round, through
+  the wall's chords over a ring thinner than they sag, and the folds churned
+  over the crossings for five to forty-five seconds a cut; lined up and rid of
   them, every sample of the rim has a lattice point on its ray, the ring is
-  drawn as about the shaft's axis, and the cut takes a tenth of a second. A
-  shaft of 4.9 through such a ball, far off its sphere, keeps those places,
-  and so does a ball beside a shaft laid onto its touch, whose circle on the
-  shaft's end plane lies on no wall of the body (#1109). Beside a
+  drawn as about the shaft's axis, and the cut takes a tenth of a second.
+  Every other face keeps its grid and every other sphere those places, drawn
+  as before: a cap beyond the band, the end a ball leaves on a shaft (#1138),
+  a ring thicker than the chords sag — 5e-4 under a ball of 5 at the view's
+  tolerance — a shaft of 4.9 through the ball, a shaft laid onto its touch
+  (#1109), a ring too thin to be drawn beside the cap it leaves. Beside a
   knife-edge rim, the wall and the face both running from it away from the
   sphere's equator, no row stands in the band reaching from the rim to the
   latitude where the sphere comes as near the axis as the wall's chords —
@@ -3047,9 +3050,9 @@ pointed cone's flank waits on #711.
   the sphere's vertices, which open nothing — a circle ending at one on a
   rim it stands square to touches that angle's half-plane there, and
   rounding would leave a sample a hair from the corner —, not where it only
-  touches a step's half-plane, not on a sphere whose every such circle lies
-  on a wall its grid read about the circle's axis is lined up with and
-  bounds only faces read about it (#1144), and not on a circle whose
+  touches a step's half-plane, not on a sphere whose every such circle
+  bounds only faces read about its axis, one of them beside a ring a wall
+  leaves thinner than its chords sag (#1144), and not on a circle whose
   wall stands in a group of walls close about one axis, whose other circles
   would not take those places; a crossing is left out, as a ray of the group
   is, where another wall crowds it, and where the circle's contact withholds

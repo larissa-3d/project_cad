@@ -96,13 +96,13 @@ impl Outline {
 
     /// The face `id` of `sphere` read about the axis every circle of it turns
     /// about, and cut in strips there within `tolerance`, on that reading's
-    /// own grid of angles ([`read_about`]): cut for the sphere's radius and
-    /// lined up with the walls of the axis standing beside it, so that every
-    /// sample of a rim on such a wall has a lattice point on its ray. No row
-    /// stands in the band beside a knife-edge rim ([`knife::Band`]), whose
-    /// lattice points would stand outside the wall's chords. None where an
-    /// edge is no circle, where two turn about different axes, and where the
-    /// strips cannot cut it.
+    /// own grid of angles ([`read_about`]): cut for the sphere's radius, and
+    /// beside a ring a wall of the axis leaves thinner than its chords sag
+    /// lined up with that wall, so that every sample of the rim has a lattice
+    /// point on its ray. No row stands in the band beside a knife-edge rim
+    /// ([`knife::Band`]), whose lattice points would stand outside the
+    /// wall's chords. None where an edge is no circle, where two turn about
+    /// different axes, and where the strips cannot cut it.
     pub(super) fn about(
         body: &Body,
         samples: &mut Samples,
@@ -132,8 +132,8 @@ impl Outline {
         let poles = [low, high].map(|pole| samples.added(pole.point));
         let laps = laps(body, samples, id)?;
         let rows = samples.rows(face.surface)?;
-        let (steps, _) = read_about(body, sphere, axis, rows, (tolerance, samples.span));
-        let grid = (steps, rows);
+        let about = read_about(body, sphere, axis, rows, (tolerance, samples.span));
+        let grid = (about.steps_of(body, id, sphere, axis), rows);
         let mut outline = Outline::default();
         let mut lattice = outline.laid_out(
             body,
