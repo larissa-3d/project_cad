@@ -2942,23 +2942,34 @@ pointed cone's flank waits on #711.
   tolerance: that rim bounds no face of the sphere, which runs on past its
   height with no edge there, and a circle about a sphere's axis standing
   inside it by more than the kernel's tolerance and by no more than twice
-  the sag of a cell of its grid is a level of every face of the sphere
-  (`sampling/beneath/sphere.rs`), where the strips cut the face as at a row
-  and a meridian arc running across it takes a sample. Cut at its rows
-  alone, the strip from the row under that height to the row over it sagged
-  inside the rim and through the end plane's disc: a shaft of 5 − 1e-5
-  ending 1e-3 inside a ball of 5 has its rim 2e-6 under the sphere, where
-  a chord between two rows a step apart sags some 4e-4. Its lattice points
-  at that height stand on the sphere, outside the rim, on the rays of the
-  rim's samples where the grid is lined up with the shaft's wall; a level
-  within a hundredth of a step of a rim of the face, as a row there would,
-  is left out: a shaft ending 1e-3 past the band's near edge leaves its ring
-  between that edge and its end plane, where the strip starts at the rim and
-  sags too little that near it to reach the end plane's rim. A coaxial wall a
-  hair inside a ball otherwise, whose rim stands further than twice the sag of
-  its chords from the circles of the rows about it, or whose grid has no
-  multiple with those taken under the most a turn is cut into, is not drawn in
-  common with it: a family the campaign measures.
+  the sag of a cell of its grid is a level of each face of the sphere whose
+  grid stands on the circle's (`sampling/beneath/sphere.rs`), where the
+  strips cut the face as at a row and a meridian arc running across it
+  takes a sample. Cut at its rows alone, the strip from the row under that
+  height to the row over it sagged inside the rim and through the end
+  plane's disc: a shaft of 5 − 1e-5 ending 1e-3 inside a ball of 5 has its
+  rim 2e-6 under the sphere, where a chord between two rows a step apart
+  sags some 4e-4. Its lattice points at that height stand on the sphere,
+  outside the rim, on the rays of the rim's samples: the level is laid only
+  on a face whose grid stands on every step of the rim's (`lined_with`,
+  `sampling/cone/lined_up.rs`). On a grid of its own the row's chords
+  between two lattice points sag inside a sample of the rim between them:
+  a ball cut by a flat across z less a shaft ending a few thousandths above
+  the flat, its wall a few ten-thousandths inside the sphere's circle at its
+  end, drawn sound before, was crossed along that row.
+  A level within a hundredth of a step of a rim of the face, as a row there
+  would, is left out, and the strip from that rim to the next row runs on past
+  the end plane. Where that row stands near — a shaft ending 1e-3 past the
+  band's near edge, a short way under the equator's row — it sags too little
+  to reach the end plane's rim; where the rim stands on a row itself, a whole
+  step from the next, it sags through it: a ball about z cut to z ≥ 0 less a
+  shaft 1e-5 under its radius ending 1e-3 or 1.2e-3 above the flat is crossed
+  so, before #1144 as after — with the ball at a slant cut so (#1154), out of
+  this issue's scope. A coaxial wall a hair inside a ball otherwise, whose rim
+  stands further than twice the sag of its chords from the circles of the rows
+  about it, or whose grid has no multiple with those taken under the most a
+  turn is cut into, is not drawn in common with it: a family the campaign
+  measures.
 - **A circle of another axis on a sphere** (#805, `outline/charted.rs`).
   The strips cannot cut a face of a sphere such a circle bounds, since it
   runs along no line of the chart, nor can the central chart where the face

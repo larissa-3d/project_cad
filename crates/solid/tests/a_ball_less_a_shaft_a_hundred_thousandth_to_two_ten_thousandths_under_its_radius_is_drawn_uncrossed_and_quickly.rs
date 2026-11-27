@@ -66,6 +66,30 @@
 //!   `src/brep/tessellation/sampling/tests/crossed.rs`, and those #1137 added
 //!   to `src/brep/tessellation/skins/tests.rs`; running them unchanged is the
 //!   answer
+//!
+//! Beyond the criteria: the cuts beside these that were drawn sound before
+//! the change stay so. A ball cut by a flat across z, keeping what stands
+//! above it, less a shaft along z from below the flat up to a plane a few
+//! thousandths above it, keeps a ring between the shaft's wall and the
+//! sphere from the flat up to that plane, as thin there as the wall stands
+//! inside the sphere's circle at the plane: the ball about z cut at z = 0.5
+//! or 3, less a shaft ending 1.4e-3, 3e-3 or 6e-3 above the flat, its wall
+//! 1e-4 or 3e-4 inside that circle; and the ball at the slant cut at z = 0,
+//! less a shaft 1e-4 to 4e-4 under its radius ending 1.4e-3 to 8e-3 above
+//! it. Main (0ce1e756) drew all but five of those cuts closed and uncrossed
+//! in a tenth of a second or so, and an answer to the criterion that laid a
+//! row of the sphere's grid along the circle of the shaft's end on every
+//! face of the sphere, its grid lined up with the wall or not, drew every one
+//! of them crossed. Those main drew sound are held built, exact, closed,
+//! uncrossed, drawn within the drawing's tolerance as the criterion's cuts
+//! are, and of the arithmetic's volume — what the ball holds above the flat,
+//! π (5² (5 − c) − (5³ − c³)/3), less the shaft's disc from the flat up to
+//! its end — each cut in under [`QUICK`] —
+//! `a_ball_cut_by_a_flat_across_z_less_a_shaft_along_z_ending_a_few_thousandths_above_the_flat_is_still_built_exact_closed_uncrossed_drawn_within_the_drawing_s_tolerance_and_of_the_arithmetic_s_volume_each_cut_in_under_a_second`.
+//! The five main drew crossed are left out, as nothing asks for them yet:
+//! the ball about z less a shaft 1e-4 inside ending 3e-3 or 6e-3 above
+//! either flat, and the ball at the slant less a shaft 1e-4 under ending
+//! 8e-3 above.
 
 use std::f64::consts::{PI, TAU};
 use std::time::{Duration, Instant};
@@ -466,6 +490,163 @@ fn a_ball_turned_about_z_or_at_a_slant_less_a_shaft_a_hundred_thousandth_to_two_
          through it or ending inside the band, is built exact, closed, uncrossed, of the \
          arithmetic's volume and drawn within the drawing's tolerance, each cut in under a \
          second, whatever axis the ball was turned about; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// A block from z = −[`OUT`] up to the plane z = `height`, wider than the
+/// ball: the tool that cuts `part` by a flat across z, keeping what stands
+/// above it.
+fn below(part: &Body, height: f64) -> Body {
+    let half = 8.0;
+    part.tool_raised(
+        &exact(Contour {
+            corners: vec![
+                DVec2::new(-half, -half),
+                DVec2::new(half, -half),
+                DVec2::new(half, half),
+                DVec2::new(-half, half),
+            ],
+            runs: vec![Run::Straight; 4],
+        }),
+        Frame {
+            origin: DVec3::Z * -OUT,
+            u: DVec3::X,
+            v: DVec3::Y,
+        },
+        DVec3::Z * (height + OUT),
+    )
+    .expect("the block raises")
+}
+
+/// What the ball of [`RADIUS`] holds above the plane z = `height`, within
+/// it: π (r² (r − c) − (r³ − c³)/3).
+fn above(height: f64) -> f64 {
+    PI * (RADIUS * RADIUS * (RADIUS - height) - (RADIUS.powi(3) - height.powi(3)) / 3.0)
+}
+
+/// How far above the flat each shaft cutting the ball at the slant ends.
+const ENDS: [f64; 5] = [1.4e-3, 2e-3, 3e-3, 5e-3, 8e-3];
+
+/// A ball cut by a flat across z, and the shafts it is cut by in turn.
+struct Capped {
+    /// How the ball was turned, as a failure names it.
+    about: &'static str,
+    /// The line through the origin the ball was turned about.
+    axis: DVec3,
+    /// The height of the flat, the ball keeping what stands above it.
+    flat: f64,
+    /// Each shaft's radius, and the height its end plane stands at.
+    shafts: Vec<(f64, f64)>,
+}
+
+/// The balls cut by a flat across z, keeping what stands above, less a shaft
+/// along z from z = −[`OUT`] up to a plane a few thousandths above the flat,
+/// that main drew closed and uncrossed. The ball about z cut at z = 0.5 or
+/// 3, less a shaft ending 1.4e-3, 3e-3 or 6e-3 above the flat, its wall 1e-4
+/// or 3e-4 inside the sphere's circle at its end plane — but for the shafts
+/// 1e-4 inside ending 3e-3 or 6e-3 above; the ball at the slant cut at
+/// z = 0, less a shaft 1e-4 to 4e-4 under its radius ending at each of
+/// [`ENDS`] — but for the shaft 1e-4 under ending 8e-3 above.
+fn flat_cuts() -> Vec<Capped> {
+    let [(about_z, z), (at_a_slant, slant)] = balls();
+    let mut cuts = Vec::new();
+    for flat in [0.5, 3.0] {
+        let mut shafts = Vec::new();
+        for (inside, rises) in [(1e-4, &[1.4e-3][..]), (3e-4, &[1.4e-3, 3e-3, 6e-3][..])] {
+            for &rise in rises {
+                let end = flat + rise;
+                shafts.push(((RADIUS * RADIUS - end * end).sqrt() - inside, end));
+            }
+        }
+        cuts.push(Capped {
+            about: about_z,
+            axis: z,
+            flat,
+            shafts,
+        });
+    }
+    let mut shafts = Vec::new();
+    for (under, ends) in [
+        (1e-4, &ENDS[..4]),
+        (2e-4, &ENDS[..]),
+        (3e-4, &ENDS[..]),
+        (4e-4, &ENDS[..]),
+    ] {
+        shafts.extend(ends.iter().map(|&end| (RADIUS - under, end)));
+    }
+    cuts.push(Capped {
+        about: at_a_slant,
+        axis: slant,
+        flat: 0.0,
+        shafts,
+    });
+    cuts
+}
+
+/// Each ball of [`flat_cuts`], cut by its flat, less each of its shafts:
+/// every cut built, exact, its triangles closed and uncrossed, drawn within
+/// the drawing's tolerance as [`drawn_off`] reads it, holding within a
+/// billionth of the ball above the flat and the shaft what the arithmetic
+/// leaves — what the ball holds above the flat less the shaft's disc from
+/// the flat up to its end — and made, drawing and all, within [`QUICK`].
+/// Every cut that is not is named, with how long it took and each way it is
+/// not.
+#[test]
+fn a_ball_cut_by_a_flat_across_z_less_a_shaft_along_z_ending_a_few_thousandths_above_the_flat_is_still_built_exact_closed_uncrossed_drawn_within_the_drawing_s_tolerance_and_of_the_arithmetic_s_volume_each_cut_in_under_a_second()
+ {
+    let mut wrong = Vec::new();
+    for Capped {
+        about,
+        axis,
+        flat,
+        shafts,
+    } in flat_cuts()
+    {
+        let ball = ball_about(axis);
+        let capped = ball
+            .difference(&below(&ball, flat))
+            .expect("the flat cuts the ball");
+        for (radius, end) in shafts {
+            let shaft = shaft_along_z(&capped, radius, -OUT, end);
+            let started = Instant::now();
+            let built = capped.difference(&shaft);
+            let took = started.elapsed();
+            let what = format!(
+                "the ball of {RADIUS} turned {about} cut by a flat at z = {flat}, keeping what \
+                 stands above, less a shaft along z through its centre of radius {radius} from \
+                 z = {} to {end}, cut in {took:.1?}",
+                -OUT
+            );
+            if took > QUICK {
+                wrong.push(format!("{what}: past {QUICK:?}"));
+            }
+            let body = match built {
+                Err(declined) => {
+                    wrong.push(format!("{what}: declined, {declined:?}"));
+                    continue;
+                }
+                Ok(body) => body,
+            };
+            if let Some(why) = unsound(&body) {
+                wrong.push(format!("{what}: {why}"));
+            }
+            let [held, taken] = shaft_and_its_share_of_the_ball(radius, flat, end);
+            let left = above(flat) - taken;
+            if (body.volume() - left).abs() > EXACT * (above(flat) + held) {
+                wrong.push(format!(
+                    "{what}: holds {}, where the arithmetic leaves {left}",
+                    body.volume()
+                ));
+            }
+            wrong.extend(drawn_off(&body, &what));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "a ball cut by a flat across z less a shaft along z ending a few thousandths above the \
+         flat is still built exact, closed, uncrossed, drawn within the drawing's tolerance and \
+         of the arithmetic's volume, each cut in under a second; not so:\n{}",
         wrong.join("\n")
     );
 }

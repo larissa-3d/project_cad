@@ -63,7 +63,11 @@ impl Outline {
             return None;
         }
         let laps = laps(body, samples, id)?;
-        let grid = (samples.steps(face.surface)?, samples.rows(face.surface)?);
+        let grid = (
+            samples.steps(face.surface)?,
+            samples.rows(face.surface)?,
+            tolerance,
+        );
         let round = Rounded::Sphere(*sphere);
         let mut outline = Outline::default();
         let mut lattice =
@@ -133,7 +137,7 @@ impl Outline {
         let laps = laps(body, samples, id)?;
         let rows = samples.rows(face.surface)?;
         let about = read_about(body, sphere, axis, rows, (tolerance, samples.span));
-        let grid = (about.steps_of(body, id, sphere, axis), rows);
+        let grid = (about.steps_of(body, id, sphere, axis), rows, tolerance);
         let mut outline = Outline::default();
         let mut lattice = outline.laid_out(
             body,

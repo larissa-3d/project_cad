@@ -109,7 +109,7 @@ impl Outline {
                 let round = Rounded::of(body.surface(face.surface))?;
                 let steps = samples.steps(face.surface)?;
                 let rows = samples.rows(face.surface)?;
-                outline.rounded(body, samples, face, &round, &laps, (steps, rows))?;
+                outline.rounded(body, samples, face, &round, &laps, (steps, rows, tolerance))?;
             }
             Surface::Elliptic(wall) => {
                 let steps = divisions_in(wall.major, tolerance, samples.span);

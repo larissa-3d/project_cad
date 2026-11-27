@@ -11,7 +11,10 @@
 //! by its tolerance, and seen from the wall's axis the rim stands inside
 //! by less than that wherever the cap leans to the wall. A stand-in wall,
 //! no surface of the body — under a cone's rim — holds no face: a sample
-//! counts there on the plane of one of its circles.
+//! counts there on the plane of one of its circles. Curves just inside an
+//! elliptic wall are found the same way ([`oval`]); and a circle about a
+//! sphere's axis standing just inside it gives the faces of the sphere
+//! whose grid stands on the circle's a level at its height ([`sphere`]).
 
 pub(super) mod oval;
 pub(super) mod sphere;

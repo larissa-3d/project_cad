@@ -7,29 +7,37 @@
 //! the face the circle bounds: a shaft of 5 − 1e-5 ending 1e-3 inside a
 //! ball of 5 has its end plane's rim 2e-6 under the sphere, where the chord
 //! between two rows a step apart along the meridian sags some 4e-4. The
-//! face is cut at the circle's height as at a row of its grid instead: its
-//! lattice points there stand on the sphere, outside the circle, on the
-//! rays of the circle's samples wherever the round's grid is lined up with
-//! the circle's wall.
+//! face is cut at the circle's height as at a row of its grid instead, its
+//! lattice points there on the sphere, outside the circle — but only where
+//! its grid stands on every step of the circle's ([`lined_with`]), so that
+//! each of those points stands on the ray of one of the circle's samples.
+//! On a grid of its own, the row's chords between two lattice points sag
+//! inside a sample of the circle between them: a ball cut by a flat across
+//! z less a shaft ending a few thousandths above the flat, its wall a few
+//! ten-thousandths inside the sphere's circle at its end, drawn sound
+//! before, was crossed along that row.
 
 use std::f64::consts::PI;
 
+use super::super::cone::lined_with;
 use super::super::round::Rounded;
 use crate::brep::curve::Curve;
 use crate::brep::scale::Scale;
 use crate::brep::topology::Body;
 
 /// The angles along the meridian of `round`, a sphere whose grid has `steps`
-/// angles and `rows` rows a turn, at the height of every circle of `body`
-/// about its axis that stands inside it by more than `eps` and by no more
-/// than twice the sag of a cell of that grid, its chord about the axis and
-/// its chord along the meridian together; none on a torus.
+/// angles and `rows` rows a turn at `fineness`, at the height of every
+/// circle of `body` about its axis that stands inside it by more than the
+/// kernel's tolerance and by no more than twice the sag of a cell of that
+/// grid, its chord about the axis and its chord along the meridian
+/// together, and whose grid that one stands on; none on a torus.
 pub(in crate::brep::tessellation) fn latitudes(
     body: &Body,
     round: &Rounded,
     (steps, rows): (usize, usize),
-    eps: f64,
+    fineness: (f64, f64),
 ) -> Vec<f64> {
+    let eps = body.scale().eps();
     let Rounded::Sphere(sphere) = round else {
         return Vec::new();
     };
@@ -47,8 +55,11 @@ pub(in crate::brep::tessellation) fn latitudes(
             let off = (from - sphere.axis * height).length();
             let across = (sphere.radius * sphere.radius - height * height).max(0.0);
             let inside = across.sqrt() - circle.radius;
-            (off <= eps && inside > eps && inside <= near)
-                .then(|| (height / sphere.radius).clamp(-1.0, 1.0).asin() + 0.0)
+            (off <= eps
+                && inside > eps
+                && inside <= near
+                && lined_with(round, steps, circle, fineness))
+            .then(|| (height / sphere.radius).clamp(-1.0, 1.0).asin() + 0.0)
         })
         .collect()
 }

@@ -209,21 +209,24 @@ pub(in crate::brep::tessellation) fn midway(edge: &Edge) -> f64 {
 /// The angles along the meridian that bound the faces of `face`'s surface
 /// where `face` lies, which no row of the grid may stand within the room of:
 /// its latitude circles, the poles of the surface and, on a torus, the cut
-/// of the chart; and on a sphere whose grid is `grid`, the circles of the
-/// body about its axis standing just inside it, where its faces are cut as
-/// at a row ([`over`], `beneath/sphere.rs`). A meridian arc and the face it
-/// bounds read the same list, so that the arc's samples stand exactly where
-/// the face's rows are.
+/// of the chart; and on a sphere whose grid is `grid` at `fineness`, the
+/// circles of the body about its axis standing just inside it whose grid
+/// that one stands on, where its faces are cut as at a row ([`over`],
+/// `beneath/sphere.rs`). A meridian arc and the face it bounds read the same
+/// list, so that the arc's samples stand exactly where the face's rows are.
 pub(in crate::brep::tessellation) fn levels(
     body: &Body,
     face: &Face,
     round: &Rounded,
     grid: (usize, usize),
-    eps: f64,
+    fineness: (f64, f64),
 ) -> Vec<f64> {
+    let eps = body.scale().eps();
     let mut levels: Vec<f64> = round.poles(eps).iter().map(|pole| pole.at).collect();
     levels.extend(round.cut());
-    levels.extend(super::beneath::sphere::latitudes(body, round, grid, eps));
+    levels.extend(super::beneath::sphere::latitudes(
+        body, round, grid, fineness,
+    ));
     for coedge in face.loops.iter().flatten() {
         let edge = body.edge(coedge.edge);
         if let crate::brep::curve::Curve::Circle(circle) = body.curve(edge.curve)
@@ -236,13 +239,13 @@ pub(in crate::brep::tessellation) fn levels(
 }
 
 /// The angles along the meridian bounding every face of `surface`, whose
-/// grid is `grid`, using the edge `edge`.
+/// grid is `grid` at `fineness`, using the edge `edge`.
 pub(super) fn levels_along(
     body: &Body,
     surface: SurfaceId,
     edge: &Edge,
     (round, grid): (&Rounded, (usize, usize)),
-    eps: f64,
+    fineness: (f64, f64),
 ) -> Vec<f64> {
     body.face_ids()
         .map(|id| body.face(id))
@@ -254,7 +257,7 @@ pub(super) fn levels_along(
                     .flatten()
                     .any(|coedge| std::ptr::eq(body.edge(coedge.edge), edge))
         })
-        .flat_map(|face| levels(body, face, round, grid, eps))
+        .flat_map(|face| levels(body, face, round, grid, fineness))
         .collect()
 }
 

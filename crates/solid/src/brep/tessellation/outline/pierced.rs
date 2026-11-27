@@ -99,7 +99,11 @@ impl Outline {
             }
         }
         let laps = laps(body, samples, id)?;
-        let grid = (samples.steps(face.surface)?, samples.rows(face.surface)?);
+        let grid = (
+            samples.steps(face.surface)?,
+            samples.rows(face.surface)?,
+            tolerance,
+        );
         let mut outline = Outline::default();
         let mut lattice =
             outline.laid_out(body, samples, face, &laps, grid, (&round, Read::Tilted))?;

@@ -66,8 +66,8 @@ pub(super) enum Read {
 
 impl Outline {
     /// Lays out and cuts in strips the loops `laps` of `face`, on `round`,
-    /// whose grid has `steps` angles a turn and `rows` rows a turn of the
-    /// meridian. None when an edge is neither a latitude circle nor a
+    /// whose grid has `steps` angles and `rows` rows a turn, drawn within
+    /// `tolerance`. None when an edge is neither a latitude circle nor a
     /// meridian, when a loop cannot be read, or when the strips cannot be
     /// cut.
     pub(super) fn rounded(
@@ -77,7 +77,7 @@ impl Outline {
         face: &Face,
         round: &Rounded,
         laps: &[Vec<usize>],
-        grid: (usize, usize),
+        grid: (usize, usize, f64),
     ) -> Option<()> {
         let mut lattice = self.laid_out(body, samples, face, laps, grid, (round, Read::Own))?;
         self.stripped(samples, &mut lattice)
@@ -93,11 +93,11 @@ impl Outline {
         samples: &mut Samples,
         face: &Face,
         laps: &[Vec<usize>],
-        (steps, rows): (usize, usize),
+        (steps, rows, tolerance): (usize, usize, f64),
         (round, read): (&Rounded, Read),
     ) -> Option<Lattice> {
         let eps = body.scale().eps();
-        let levels = levels(body, face, round, (steps, rows), eps);
+        let levels = levels(body, face, round, (steps, rows), (tolerance, samples.span));
         let mut lattice = Lattice::new(*round, steps, rows, &levels, eps / round.radius());
         let mut standing: BTreeMap<usize, Standing> = BTreeMap::new();
         let mut winding = Vec::new();

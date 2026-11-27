@@ -45,7 +45,7 @@ use crate::brep::surface::{Cone, Surface};
 use crate::brep::topology::{Body, Edge, Face, SurfaceId};
 use crate::brep::trace::Trace;
 use lined_up::kept_by_walls;
-pub(in crate::brep::tessellation) use lined_up::{About, read_about};
+pub(in crate::brep::tessellation) use lined_up::{About, lined_with, read_about};
 
 /// A surface of revolution carrying a grid of its own: a cone, a sphere or a
 /// torus.

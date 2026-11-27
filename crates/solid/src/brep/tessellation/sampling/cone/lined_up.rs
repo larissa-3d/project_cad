@@ -1,6 +1,10 @@
 //! A round's grid of angles lined up with the grids of the coaxial walls
 //! standing beside it (#644, #1123), so that the strip of the round along
-//! such a wall stands on the wall's columns.
+//! such a wall stands on the wall's columns; a sphere's read about another
+//! line than its own, lined up so only beside a ring a wall of that line
+//! leaves thinner than its chords sag (#1144, [`About`]); and whether a
+//! grid stands on every step of a circle's ([`lined_with`]), which a level
+//! laid at a circle just inside a sphere asks too.
 
 use std::cmp::Ordering;
 use std::f64::consts::{PI, TAU};
@@ -40,21 +44,10 @@ use crate::brep::topology::{Body, Edge, Face, FaceId, SurfaceId};
 pub(super) fn kept_by_walls(
     body: &Body,
     round: &Rounded,
-    grid: (usize, usize, usize),
-    fineness: (f64, f64),
-    eps: f64,
-) -> usize {
-    taken_by_walls(body, round, grid, fineness, eps).0
-}
-
-/// The steps [`kept_by_walls`] gives, and the walls it lines them up with.
-fn taken_by_walls(
-    body: &Body,
-    round: &Rounded,
     (steps, rows, cap): (usize, usize, usize),
     (tolerance, span): (f64, f64),
     eps: f64,
-) -> (usize, Vec<SurfaceId>) {
+) -> usize {
     let rims: Vec<&Circle> = body
         .edge_ids()
         .filter_map(|id| match body.curve(body.edge(id).curve) {
@@ -62,7 +55,7 @@ fn taken_by_walls(
             Curve::Line(_) | Curve::Circle(_) | Curve::Meet(_) | Curve::Conic(_) => None,
         })
         .collect();
-    let mut walls: Vec<(Beside, usize, SurfaceId)> = Vec::new();
+    let mut walls: Vec<(Beside, usize)> = Vec::new();
     for (id, surface) in body.surfaces.iter().enumerate() {
         let Surface::Cylinder(wall) = surface else {
             continue;
@@ -76,33 +69,50 @@ fn taken_by_walls(
         if (ranks - ranks.round()).abs() <= ALIGNED
             && let Some(near) = beside(round, wall, &rims, rows, (eps, reach), reaching)
         {
-            walls.push((near, theirs, SurfaceId(id as u32)));
+            walls.push((near, theirs));
         }
     }
-    walls.sort_by(|(one, _, _), (other, _, _)| one.order(other));
+    walls.sort_by(|(one, _), (other, _)| one.order(other));
     let mut every = 1;
-    let mut taken = Vec::new();
-    for (_, theirs, id) in walls {
+    for (_, theirs) in walls {
         let both = every / greatest_common(every, theirs) * theirs;
         if steps.div_ceil(both) * both <= cap {
             every = both;
-            taken.push(id);
         }
     }
-    (steps.div_ceil(every) * every, taken)
+    steps.div_ceil(every) * every
+}
+
+/// Whether a grid of `steps` a turn on `round` stands on every step of the
+/// grid `circle`, a circle about the round's axis, is sampled on at
+/// `fineness`: a multiple of it, starting the same way round, so that every
+/// sample the circle takes on its grid has a lattice point on its ray.
+pub(in crate::brep::tessellation) fn lined_with(
+    round: &Rounded,
+    steps: usize,
+    circle: &Circle,
+    (tolerance, span): (f64, f64),
+) -> bool {
+    let theirs = divisions_in(circle.radius, tolerance, span);
+    let turn = circle.u.dot(round.v()).atan2(circle.u.dot(round.u()));
+    let ranks = turn / TAU * steps as f64;
+    steps.is_multiple_of(theirs) && (ranks - ranks.round()).abs() <= ALIGNED
 }
 
 /// The grid of a sphere read about the line through its centre along
 /// another axis than its own ([`read_about`]).
 pub(in crate::brep::tessellation) struct About {
+    /// The sphere so read.
+    round: Rounded,
     /// The steps a turn it is cut into for the sphere's own radius: the grid
     /// of its own axis is cut for the widest its faces reach about that one,
     /// and a face of a slanted cut reaches no circle of it.
     plain: usize,
     /// Those steps lined up with the walls of the line standing beside the
-    /// sphere, as [`kept_by_walls`] lines up a round's own grid, and the walls
-    /// they are lined up with.
-    lined: (usize, Vec<SurfaceId>),
+    /// sphere, as [`kept_by_walls`] lines up a round's own grid.
+    lined: usize,
+    /// The tolerance it is cut for, and the span of the body.
+    fineness: (f64, f64),
 }
 
 /// The grid of `sphere` read about the line through its centre along
@@ -112,14 +122,20 @@ pub(in crate::brep::tessellation) fn read_about(
     sphere: &Sphere,
     axis: DVec3,
     rows: usize,
-    (tolerance, span): (f64, f64),
+    fineness: (f64, f64),
 ) -> About {
+    let (tolerance, span) = fineness;
     let round = Rounded::Sphere(sphere.about(axis));
     let plain = divisions_in(sphere.radius, tolerance * SHARE, span);
     let cap = most(round.widest(), span);
     let eps = body.scale().eps();
-    let lined = taken_by_walls(body, &round, (plain, rows, cap), (tolerance, span), eps);
-    About { plain, lined }
+    let lined = kept_by_walls(body, &round, (plain, rows, cap), fineness, eps);
+    About {
+        round,
+        plain,
+        lined,
+        fineness,
+    }
 }
 
 impl About {
@@ -134,7 +150,7 @@ impl About {
         axis: DVec3,
     ) -> usize {
         if self.beside_a_ring(body, id, sphere, axis) {
-            self.lined.0
+            self.lined
         } else {
             self.plain
         }
@@ -142,18 +158,18 @@ impl About {
 
     /// Whether the face `id` of `sphere`, read about `axis`, runs from one of
     /// its rims towards the sphere's equator about that line beside a face of
-    /// a wall the grid is lined up with, running from that rim the same way,
-    /// the wall standing under the sphere's radius by more than the kernel's
-    /// tolerance and by no more than the plain grid's chords sag: the ring a
-    /// ball less a shaft a little under its radius leaves, through it or
-    /// ending in the band. Cut on the plain grid, the strip from the rim to
-    /// the next row reached from a sample of the rim across to lattice points
-    /// a part of a step round, and sagged through the wall's chords over a
-    /// ring thinner than they sag (#1144). A face running from its rim away
-    /// from the equator — a cap beyond the band, the end a ball leaves on a
-    /// shaft (#1138) — or beside a wall running away from it — the ball
-    /// joined with the shaft — and a ring thicker than that sag keep the
-    /// plain grid, drawn as before.
+    /// a wall the lined grid stands on ([`lined_with`]), running from that
+    /// rim the same way, the wall standing under the sphere's radius by more
+    /// than the kernel's tolerance and by no more than the plain grid's
+    /// chords sag: the ring a ball less a shaft a little under its radius
+    /// leaves, through it or ending in the band. Cut on the plain grid, the
+    /// strip from the rim to the next row reached from a sample of the rim
+    /// across to lattice points a part of a step round, and sagged through the
+    /// wall's chords over a ring thinner than they sag (#1144). A face running
+    /// from its rim away from the equator — a cap beyond the band, the end a
+    /// ball leaves on a shaft (#1138) — or beside a wall running away from it —
+    /// the ball joined with the shaft — and a ring thicker than that sag keep
+    /// the plain grid, drawn as before.
     pub(in crate::brep::tessellation) fn beside_a_ring(
         &self,
         body: &Body,
@@ -177,7 +193,7 @@ impl About {
         let beside = |wall: &Face, circle: &Circle| match body.surface(wall.surface) {
             Surface::Cylinder(cylinder) => {
                 let gap = sphere.radius - cylinder.radius;
-                self.lined.1.contains(&wall.surface)
+                lined_with(&self.round, self.lined, circle, self.fineness)
                     && lies_on(circle, cylinder, eps)
                     && gap > eps
                     && gap <= sag
