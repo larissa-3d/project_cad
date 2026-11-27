@@ -67,6 +67,21 @@
 //! `a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_a_hair_outside_its_inner_one_standing_above_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`;
 //! alone, it is held here —
 //! `a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_a_millionth_outside_its_inner_radius_standing_alone_above_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//!
+//! A rod of exactly 8 above the ring and another below it, from z = −12 to
+//! −7. The kernel makes coaxial cylinders of one radius one surface, so the
+//! two rods' walls are one wall, and its faces read together stand on either
+//! side of the equators' plane: the fix's first rule (9f76955d), which
+//! folded last a touching wall whose faces do not reach the band about that
+//! plane, read the wall's lowest and highest heights over every face on it,
+//! took it first again, and the shaft's rim crossed at the same point. Two
+//! bodies, both crossed on 9f76955d: the cut ring joined with the rod above,
+//! then with the rod below; and the cut ring joined with one pin of 8 from
+//! z = −12 to 10 less its middle, a rod of 9 from z = −7 to 5, which leaves
+//! the same two rods —
+//! `a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_of_exactly_its_inner_radius_above_it_and_another_below_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//! The rod below alone, drawn sound on 9f76955d as the rod above alone is —
+//! `a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_of_exactly_its_inner_radius_standing_alone_below_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume`.
 
 use std::f64::consts::{PI, TAU};
 
@@ -370,6 +385,85 @@ fn a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_
             cut_holds + PI * rod * rod * 5.0,
             &format!(
                 "the ring cut by a shaft {hair:e} inside its outer equator, a rod of 8 + 1e-6 alone"
+            ),
+        );
+    }
+}
+
+/// The ring cut by the shaft 1e-5 and 1e-4 inside its outer equator, then
+/// joined with a rod of radius exactly 8 from z = 5 to 10, 3 above the tube's
+/// top, and another from z = −12 to −7, 5 under the tube's bottom: joined one
+/// after the other, the rod above first; or joined at once, as one pin of 8
+/// from z = −12 to 10 less its middle, a rod of 9 from z = −7 to 5. The two
+/// rods' walls are one surface, standing on either side of the equators'
+/// plane and beside the ring nowhere. Each built, exact, holding the cut ring
+/// and the two rods, which share nothing with it, its triangles closed and
+/// uncrossed — the shaft's rim under the outer equator among them.
+#[test]
+fn a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_of_exactly_its_inner_radius_above_it_and_another_below_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let rod = MAJOR - MINOR;
+    let rod_holds = PI * rod * rod * 5.0;
+    for hair in HAIRS {
+        let (cut, cut_holds) = cut_by_the_shaft(hair);
+        let ways: [(&str, Building); 2] = [
+            (
+                "the rod above, then the rod below",
+                Box::new(|| {
+                    let above = cut
+                        .union(&shaft_along_z(&cut, rod, 5.0, 10.0))
+                        .unwrap_or_else(|declined| {
+                            panic!("the cut ring and the rod above: declined, {declined:?}")
+                        });
+                    above.union(&shaft_along_z(&above, rod, -12.0, -7.0))
+                }),
+            ),
+            (
+                "one pin less its middle",
+                Box::new(|| {
+                    let pin = shaft_along_z(&cut, rod, -12.0, 10.0)
+                        .difference(&shaft_along_z(&cut, 9.0, -7.0, 5.0))
+                        .unwrap_or_else(|declined| {
+                            panic!("the pin less its middle: declined, {declined:?}")
+                        });
+                    cut.union(&pin)
+                }),
+            ),
+        ];
+        for (way, build) in ways {
+            let built = build();
+
+            built_sound_holding(
+                built,
+                cut_holds + 2.0 * rod_holds,
+                &format!(
+                    "the ring cut by a shaft {hair:e} inside its outer equator, rods of 8 above and below, {way}"
+                ),
+            );
+        }
+    }
+}
+
+/// The ring cut by the shaft 1e-5 and 1e-4 inside its outer equator, then
+/// joined with a rod of radius exactly 8 from z = −12 to −7 alone, 5 under
+/// the tube's bottom and beside the ring nowhere. Built, exact, holding the
+/// cut ring and the rod, its triangles closed and uncrossed — the shaft's
+/// rim under the outer equator among them.
+#[test]
+fn a_ring_cut_by_a_shaft_a_hair_inside_its_outer_equator_then_joined_with_a_rod_of_exactly_its_inner_radius_standing_alone_below_it_is_built_closed_uncrossed_and_of_the_arithmetic_s_volume()
+ {
+    let rod = MAJOR - MINOR;
+    for hair in HAIRS {
+        let (cut, cut_holds) = cut_by_the_shaft(hair);
+        let rod_below = shaft_along_z(&cut, rod, -12.0, -7.0);
+
+        let built = cut.union(&rod_below);
+
+        built_sound_holding(
+            built,
+            cut_holds + PI * rod * rod * 5.0,
+            &format!(
+                "the ring cut by a shaft {hair:e} inside its outer equator, a rod of 8 alone below"
             ),
         );
     }

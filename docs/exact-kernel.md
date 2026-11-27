@@ -2800,12 +2800,12 @@ pointed cone's flank waits on #711.
   a multiple of the grid of every cylinder of the body on the round's axis
   touching it, its radius an equator's, wherever it stands along the axis;
   standing within twice the sag of its own chords of an equator — as two
-  walls are told close — where its faces come within the band the round
-  stays that close to it over, √(2 r h) either side of the equators' plane
-  for a reach `h` and a tube `r`; or sharing a rim with it within that of
-  the circle of a row of the round's grid about that rim; whose grid starts
-  the same way round (#644, #1123): a ring round a post of its inner radius
-  is touched
+  walls are told close — where one of its faces comes within the band the
+  round stays that close to it over, √(2 r h) either side of the equators'
+  plane for a reach `h` and a tube `r`; or sharing a rim with it within
+  that of the circle of a row of the round's grid about that rim; whose
+  grid starts the same way round (#644, #1123): a ring round a post of
+  its inner radius is touched
   along a circle that parts neither face, and its chords along it, on its
   own grid, cut across the post's between two of its steps (5576855166) —
   and one of rows along the meridian, cut for the tube's radius; each takes
@@ -2833,10 +2833,13 @@ pointed cone's flank waits on #711.
   the wall they had lined up with. A post touching a ring's inner equator
   but stopping a hair short of it is still counted, as #644 counts it: read
   off its faces' extent, it was left out, and the ring crossed it. A wall of
-  an equator's radius whose faces stand nowhere within that band of the
-  equators' plane is still counted, but taken after every other: a rod of a
-  ring's inner radius standing above it, taken first, left out the shaft a
-  hair inside its outer equator, whose rim crossed (#1130). A round's
+  exactly an equator's radius none of whose faces comes within that band of
+  the equators' plane is still counted, but taken after every other: a rod
+  of a ring's inner radius standing above it, taken first, left out the
+  shaft a hair inside its outer equator, whose rim crossed (#1130). Each
+  face is read alone, since coaxial walls of one radius are one surface: a
+  rod above the ring and another below it, read together, stood across the
+  plane. A round's
   rims join a group of walls closer than twice a chord's sag about its axis
   (`sampling/axis.rs`) only where each stands close to one of them itself,
   each in that wall's group alone with the round's rays, not joined to each
