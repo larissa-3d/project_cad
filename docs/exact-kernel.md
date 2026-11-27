@@ -2832,7 +2832,11 @@ pointed cone's flank waits on #711.
   its radius for a pin bored beside another row, and both crossed again at
   the wall they had lined up with. A post touching a ring's inner equator
   but stopping a hair short of it is still counted, as #644 counts it: read
-  off its faces' extent, it was left out, and the ring crossed it. A round's
+  off its faces' extent, it was left out, and the ring crossed it. A wall of
+  an equator's radius whose faces stand nowhere within that band of the
+  equators' plane is still counted, but taken after every other: a rod of a
+  ring's inner radius standing above it, taken first, left out the shaft a
+  hair inside its outer equator, whose rim crossed (#1130). A round's
   rims join a group of walls closer than twice a chord's sag about its axis
   (`sampling/axis.rs`) only where each stands close to one of them itself,
   each in that wall's group alone with the round's rays, not joined to each

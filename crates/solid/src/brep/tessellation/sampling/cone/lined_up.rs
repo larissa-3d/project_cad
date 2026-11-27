@@ -35,7 +35,10 @@ use crate::brep::topology::{Body, SurfaceId};
 /// with those taken would pass the most a turn is cut into is left out
 /// alone: leaving them all out undid a half ball's shaft beside a pin's
 /// bore, and taking a wall apart before the post a ring touches undid the
-/// post's (#1123).
+/// post's (#1123). A wall touching it by its radius alone, its faces
+/// nowhere near the equators' plane, is taken after every other: taken
+/// first, a rod of a ring's inner radius standing above it left out the
+/// shaft a hair inside its outer equator, whose rim crossed (#1130).
 pub(super) fn kept_by_walls(
     body: &Body,
     round: &Rounded,
@@ -50,7 +53,7 @@ pub(super) fn kept_by_walls(
             Curve::Line(_) | Curve::Circle(_) | Curve::Meet(_) | Curve::Conic(_) => None,
         })
         .collect();
-    let mut walls: Vec<(Beside, usize)> = Vec::new();
+    let mut walls: Vec<(bool, Beside, usize)> = Vec::new();
     for (id, surface) in body.surfaces.iter().enumerate() {
         let Surface::Cylinder(wall) = surface else {
             continue;
@@ -64,12 +67,13 @@ pub(super) fn kept_by_walls(
         if (ranks - ranks.round()).abs() <= ALIGNED
             && let Some(near) = beside(round, wall, &rims, rows, (eps, reach), reaching)
         {
-            walls.push((near, theirs));
+            let far = matches!(near, Beside::Touching(_)) && !reaching();
+            walls.push((far, near, theirs));
         }
     }
-    walls.sort_by(|(one, _), (other, _)| one.order(other));
+    walls.sort_by(|(far, one, _), (other_far, other, _)| far.cmp(other_far).then(one.order(other)));
     let mut every = 1;
-    for (_, theirs) in walls {
+    for (_, _, theirs) in walls {
         let both = every / greatest_common(every, theirs) * theirs;
         if steps.div_ceil(both) * both <= cap {
             every = both;
