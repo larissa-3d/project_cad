@@ -17,7 +17,7 @@ use std::f64::consts::{FRAC_1_SQRT_2, PI, TAU};
 use glam::{DVec2, DVec3};
 
 use super::super::{Outline, laps};
-use super::{Band, Rim, bands, ends, rims, within_the_walls};
+use super::{Band, Rim, bands, ends, ends_on_the_grid, rims, within_the_walls};
 use crate::brep::Declined;
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::scale::Scale;
@@ -895,5 +895,94 @@ fn a_ball_turned_at_a_slant_less_a_short_shaft_is_cut_at_a_row_beside_its_rim_on
         between.len(),
         rim.len(),
         &between[..between.len().min(4)]
+    );
+}
+
+/// The radius of a pin boring the half ball blind from its top: its rim on
+/// the sphere is sampled on the pin's own grid as well as the sphere's, and
+/// no grid a multiple of both the pin's and the shaft's stands under the
+/// most a turn is cut into, so the sphere's is lined up with the shaft's
+/// alone (#1123's).
+const PIN: f64 = 1.0554;
+
+/// The half ball less the short shaft, then less the pin of [`PIN`] from
+/// z = 1 up past it, sampled at [`AT_FIVE`]; and the circles of the face on
+/// the sphere along which it meets the shaft's wall and the pin's.
+fn pinned() -> (Body, Samples, [(EdgeId, Circle); 2]) {
+    let half = ball_at_the_origin(RADIUS, PI, DVec3::Z);
+    let shaft = short_shaft(&half, RADIUS - HAIR, -RADIUS, 0.0);
+    let cut = half
+        .difference(&shaft)
+        .expect("the half ball less the shaft");
+    let pin = short_shaft(&cut, PIN, 1.0, 10.0);
+    let (body, samples) = read_at(cut.difference(&pin), AT_FIVE);
+    let (id, _) = on_the_sphere_of(&body, RADIUS);
+    let of_radius = |radius: f64| {
+        (body.face(id).loops.iter().flatten())
+            .find_map(|coedge| match body.curve(body.edge(coedge.edge).curve) {
+                Curve::Circle(circle) if (circle.radius - radius).abs() <= ON => {
+                    Some((coedge.edge, *circle))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("the face on the sphere meets a wall of {radius}"))
+    };
+    let rims = [of_radius(RADIUS - HAIR), of_radius(PIN)];
+    (body, samples, rims)
+}
+
+/// The [`ends_on_the_grid`] of the face of `body` on the sphere of
+/// [`RADIUS`], on the face's own grid, read in the sphere's chart.
+fn on_the_grid_beside(body: &Body, samples: &Samples) -> Vec<[f64; 2]> {
+    let (id, sphere) = on_the_sphere_of(body, RADIUS);
+    let face = body.face(id);
+    let steps = samples.steps(face.surface).expect("the sphere has a grid");
+    ends_on_the_grid(
+        body,
+        samples,
+        face,
+        &Rounded::Sphere(sphere),
+        steps,
+        body.scale().eps(),
+    )
+}
+
+/// The half ball less the short shaft and the pin: the shaft's rim, sampled
+/// at the face's angles, keeps the end of the wall from it; the pin's,
+/// sampled between them, keeps none.
+#[test]
+fn a_rim_sampled_at_the_face_s_angles_keeps_the_end_of_its_wall_and_one_sampled_between_them_keeps_none()
+ {
+    let (body, samples, _) = pinned();
+    let (_, rim) = rim_under(RADIUS, HAIR);
+    one_end_on_the_equator(
+        &on_the_grid_beside(&body, &samples),
+        rim,
+        "the half ball less the shaft and the pin",
+    );
+}
+
+/// The same body with the pin's rim turned about x and moved onto the
+/// shaft's rim's centre and radius: a circle the round does not hold, its
+/// samples still between the face's angles, standing where the shaft's rim
+/// stands. A body no step builds, to read that only the face's latitude
+/// circles are rims: the shaft's rim keeps its wall's end.
+#[test]
+fn a_circle_of_the_face_the_round_does_not_hold_keeps_no_rim_s_wall_end_out_though_its_samples_stand_between_the_face_s_angles()
+ {
+    let (body, samples, [(_, shaft_s), (pin_s, _)]) = pinned();
+    let mut turned = body.clone();
+    let curve = turned.edge(pin_s).curve;
+    turned.curves[curve.0 as usize] = Curve::Circle(Circle {
+        axis: DVec3::X,
+        u: DVec3::Y,
+        v: DVec3::Z,
+        ..shaft_s
+    });
+    let (_, rim) = rim_under(RADIUS, HAIR);
+    one_end_on_the_equator(
+        &on_the_grid_beside(&turned, &samples),
+        rim,
+        "the pin's rim turned about x onto the shaft's",
     );
 }

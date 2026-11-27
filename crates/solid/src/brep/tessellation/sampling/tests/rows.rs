@@ -141,3 +141,23 @@ fn a_row_a_wall_ends_on_is_left_out_where_it_stands_within_a_hundredth_of_a_step
         "beside the face's end"
     );
 }
+
+#[test]
+fn a_row_a_wall_ends_on_beside_an_end_of_the_face_is_cut_only_within_a_hundredth_of_a_step_of_the_wall_s_rim()
+ {
+    assert_eq!(
+        kept_beside(2.995, 9.5, &[2.995], &[[2.995, 3.0]]),
+        vec![3, 4, 5, 6, 7, 8, 9],
+        "the rim half a hundredth of a step under the row"
+    );
+    assert_eq!(
+        kept_beside(2.995, 9.5, &[3.015], &[[3.015, 3.0]]),
+        vec![4, 5, 6, 7, 8, 9],
+        "the rim one and a half hundredths of a step over the row"
+    );
+    assert_eq!(
+        kept_beside(0.5, 3.005, &[2.985], &[[2.985, 3.0]]),
+        vec![1, 2],
+        "the rim one and a half hundredths of a step under the row"
+    );
+}
