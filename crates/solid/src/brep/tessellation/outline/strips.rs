@@ -48,8 +48,9 @@ pub(super) struct Lattice {
     /// stands ([`super::knife::Band`]): none but there.
     pub(super) bands: Vec<Band>,
     /// The rims of the face a wall runs beside, each with where the wall
-    /// ends, as angles along the meridian ([`super::knife::ends`]): a row
-    /// it ends on is cut however near the rim it stands.
+    /// ends, as angles along the meridian, every sample of the rim at one of
+    /// the face's angles ([`super::knife::ends_on_the_grid`]): a row it ends
+    /// on is cut however near the rim it stands.
     pub(super) ends: Vec<[f64; 2]>,
     added: BTreeMap<(usize, u64), usize>,
 }

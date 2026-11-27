@@ -76,6 +76,57 @@
 //! reach, the shaft laid onto the touch; 1.8e-7 and 2e-7, just past the
 //! band's top; and 1e-6, further out —
 //! `a_half_ball_cut_up_to_its_centre_by_a_shaft_from_five_under_it_whose_rim_falls_just_beside_that_hundredth_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume`.
+//!
+//! And the same rim beside the same row elsewhere, which the fix's rule
+//! cures as well: a wall running from a rim within a hundredth of a step of
+//! a row, the two faces' outward normals opposed there, and ending on that
+//! row. The review of the fix (b8fbd6f3) measured each crossed on `main` and
+//! sound on the fix; each is held as the criterion holds its cuts, built,
+//! exact, closed, uncrossed, of the volume at the shaft's radius or laid
+//! onto the touch, and each built and first drawn in under [`QUICK`]. The
+//! band is reckoned as the criterion's: past decision 12's reach at the
+//! pair's reach, and up to where the rim's latitude stands a hundredth of a
+//! step of the round's rows at the drawing's tolerance from the row. Hairs
+//! of the ball of 5 at its reach stand in the criterion's band.
+//!
+//! The ball of 5 about z, whole, less the shaft from z = −5 up to its centre,
+//! 1.2e-7 and 1.5e-7 under its radius, crossed in some 60 s a cut on `main`
+//! and sound in 80 to 88 ms on the fix —
+//! `a_ball_about_z_cut_up_to_its_centre_by_a_shaft_from_its_pole_whose_rim_falls_within_a_hundredth_of_a_step_of_its_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second`.
+//!
+//! The half ball less the shaft from its centre up to z = 5, the criterion's
+//! cut mirrored across the equator, its rim a hair over the row: 21.5 s and
+//! crossed at 1.2e-7 on `main`, sound in 43 ms on the fix —
+//! `a_half_ball_cut_down_to_its_centre_by_a_shaft_from_its_pole_whose_rim_falls_within_a_hundredth_of_a_step_of_its_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second`.
+//!
+//! The whole ball less the half y ≥ 0 of the shaft, the wall's rim an arc:
+//! 53 s and crossed on `main`, sound in 123 to 135 ms on the fix —
+//! `a_ball_cut_up_to_its_centre_by_a_half_shaft_whose_rim_falls_within_a_hundredth_of_a_step_of_its_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second`.
+//!
+//! #1123's ring, of tube 2 about a ring radius of 10, less a coaxial shaft
+//! from z = −5 up to its centre plane, of 12 − h for h = 3e-7, 3.5e-7 and
+//! 4e-7: past decision 12's reach at the pair's reach of 12, 2.4e-7, and
+//! within a hundredth of a step of the outer equator's row, the tube's grid
+//! of 96 rows a turn at the drawing's tolerance of 2.4e-3, up to
+//! 2 (1 − cos(0.01 × 2π/96)) = 4.28e-7. Some 102 s and crossed a cut on
+//! `main`, sound in about 70 ms on the fix; 2e-7, laid, and 5e-7, past the
+//! band, are sound on both —
+//! `a_ring_cut_up_to_its_centre_plane_by_a_coaxial_shaft_whose_rim_falls_within_a_hundredth_of_a_step_of_its_outer_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second`.
+//!
+//! A shell, the ball of 8 less the ball of 5 about the origin, joined with
+//! the shaft from z = −5 up to its centre, of 5 − h for h = 1.7e-7, 2e-7 and
+//! 2.5e-7: past decision 12's reach at the pair's reach of 8, 1.6e-7, and
+//! within a hundredth of a step of the cavity's equator's row, its grid of
+//! 188 rows a turn at the drawing's tolerance of 1.6e-3, up to
+//! 5 (1 − cos(0.01 × 2π/188)) = 2.79e-7. What lies between the wall and the
+//! cavity's sphere is void here, not matter, and the rule cures it all the
+//! same: some 60 s and crossed a cut on `main`, sound in 165 to 175 ms on
+//! the fix —
+//! `a_shell_joined_with_a_shaft_up_to_its_centre_whose_rim_falls_within_a_hundredth_of_a_step_of_its_cavity_s_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second`.
+//!
+//! Which walls the rule reads, and which rows it keeps, are held beside it:
+//! `src/brep/tessellation/sampling/tests/rows.rs` and
+//! `src/brep/tessellation/outline/knife/tests.rs`.
 
 use std::f64::consts::{PI, TAU};
 use std::time::{Duration, Instant};
@@ -125,18 +176,18 @@ const BESIDE: [f64; 4] = [5e-8, 1.8e-7, 2e-7, 1e-6];
 /// How long one cut may take on the wall clock, its drawing with it.
 const QUICK: Duration = Duration::from_secs(1);
 
-/// The half disc of [`RADIUS`] about the origin standing on the side of x,
-/// turned half a turn about z from x towards y: the half ball y ≥ 0, its
-/// sphere's chart laid about z. #956's.
-fn half_ball() -> Body {
+/// The half disc of `radius` about the origin standing on the side of x,
+/// turned `turn` about z from x towards y: a ball, or for half a turn the
+/// half ball y ≥ 0, its sphere's chart laid about z. #956's.
+fn ball_of(radius: f64, turn: f64) -> Body {
     let sampled: &'static [DVec2] = Box::leak(
         (0..=32)
-            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * RADIUS)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * radius)
             .collect::<Vec<_>>()
             .into_boxed_slice(),
     );
     let half = Contour {
-        corners: vec![DVec2::new(0.0, -RADIUS), DVec2::new(0.0, RADIUS)],
+        corners: vec![DVec2::new(0.0, -radius), DVec2::new(0.0, radius)],
         runs: vec![
             Run::Round {
                 center: DVec2::ZERO,
@@ -145,8 +196,41 @@ fn half_ball() -> Body {
             Run::Straight,
         ],
     };
+    turned(half, sampled, turn)
+}
+
+/// The half ball of [`RADIUS`], y ≥ 0.
+fn half_ball() -> Body {
+    ball_of(RADIUS, PI)
+}
+
+/// The disc of `minor` about (`major`, 0) in the plane y = 0, turned whole
+/// about z: a ring about the origin, its outer equator of radius
+/// `major + minor` on the plane z = 0. #1123's.
+fn ring_of(major: f64, minor: f64) -> Body {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..64)
+            .map(|step| {
+                DVec2::new(major, 0.0) + DVec2::from_angle(TAU * f64::from(step) / 64.0) * minor
+            })
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let disc = Contour {
+        corners: vec![DVec2::new(major + minor, 0.0)],
+        runs: vec![Run::Round {
+            center: DVec2::new(major, 0.0),
+            turn: TAU,
+        }],
+    };
+    turned(disc, sampled, TAU)
+}
+
+/// `outline`, drawn in the plane y = 0 with x across and z up, turned
+/// `turn` about z from x towards y.
+fn turned(outline: Contour, sampled: &'static [DVec2], turn: f64) -> Body {
     let profile = Profile {
-        exact: Some((half, Vec::new())),
+        exact: Some((outline, Vec::new())),
         sampled: Loop::straight(sampled),
         sampled_holes: Vec::new(),
         triangles: &[],
@@ -161,37 +245,63 @@ fn half_ball() -> Body {
         direction: DVec2::Y,
     };
     Body::default()
-        .tool_turned(&profile, frame, &Turn::of(along_v, PI, 0.0, &profile))
-        .expect("the exact kernel turns the half disc")
+        .tool_turned(&profile, frame, &Turn::of(along_v, turn, 0.0, &profile))
+        .expect("the exact kernel turns the profile")
 }
 
-/// A shaft of `radius` along z from z = [`FROM`] up to the origin, a tool of
-/// `part`.
-fn shaft_up_to_the_centre(part: &Body, radius: f64) -> Body {
+/// `outline`, drawn in the plane z = `from` with x and y across, raised along
+/// z to z = `to`, a tool of `part`.
+fn raised(part: &Body, outline: Contour, from: f64, to: f64) -> Body {
     part.tool_raised(
         &Profile {
-            exact: Some((
-                Contour {
-                    corners: vec![DVec2::X * radius],
-                    runs: vec![Run::Round {
-                        center: DVec2::ZERO,
-                        turn: TAU,
-                    }],
-                },
-                Vec::new(),
-            )),
+            exact: Some((outline, Vec::new())),
             sampled: Loop::straight(&[]),
             sampled_holes: Vec::new(),
             triangles: &[],
         },
         Frame {
-            origin: DVec3::Z * FROM,
+            origin: DVec3::Z * from,
             u: DVec3::X,
             v: DVec3::Y,
         },
-        DVec3::Z * -FROM,
+        DVec3::Z * (to - from),
     )
     .expect("the shaft raises")
+}
+
+/// A shaft of `radius` along z from z = `from` to z = `to`, a tool of
+/// `part`.
+fn shaft_along_z(part: &Body, radius: f64, from: f64, to: f64) -> Body {
+    let disc = Contour {
+        corners: vec![DVec2::X * radius],
+        runs: vec![Run::Round {
+            center: DVec2::ZERO,
+            turn: TAU,
+        }],
+    };
+    raised(part, disc, from, to)
+}
+
+/// The half y ≥ 0 of a shaft of `radius` along z from z = `from` to z =
+/// `to`, a tool of `part`.
+fn half_shaft_along_z(part: &Body, radius: f64, from: f64, to: f64) -> Body {
+    let half = Contour {
+        corners: vec![DVec2::X * radius, DVec2::X * -radius],
+        runs: vec![
+            Run::Round {
+                center: DVec2::ZERO,
+                turn: PI,
+            },
+            Run::Straight,
+        ],
+    };
+    raised(part, half, from, to)
+}
+
+/// A shaft of `radius` along z from z = [`FROM`] up to the origin, a tool of
+/// `part`.
+fn shaft_up_to_the_centre(part: &Body, radius: f64) -> Body {
+    shaft_along_z(part, radius, FROM, 0.0)
 }
 
 /// The furthest under the ball's radius decision 12 lays the shaft onto the
@@ -208,22 +318,25 @@ fn band_s_top() -> f64 {
     RADIUS * (1.0 - (SLIVER * TAU / ROWS).cos())
 }
 
-/// What the half ball cut by the shaft `hair` under its radius leaves: the
-/// quarter of the ball above its centre, and half the ring the shaft leaves
-/// of the ball under it, between z = −a and 0 outside the wall,
-/// a = √(r² − (r − h)²): π ∫ (a² − z²) dz over it is 2π a³ / 3, the half
-/// π a³ / 3. #1123's.
-fn kept(hair: f64) -> f64 {
-    let reach = (hair * (2.0 * RADIUS - hair)).sqrt();
-    BALL / 4.0 + PI * reach.powi(3) / 3.0
+/// How far from the equator about z a sphere of `radius` crosses a coaxial
+/// wall `hair` inside it: a = √(r² − (r − h)²).
+fn rim_under(radius: f64, hair: f64) -> f64 {
+    (hair * (2.0 * radius - hair)).sqrt()
 }
 
-/// What is wrong with the half ball cut by the shaft `hair` under its
-/// radius, if anything: declined, not exact, holding neither what the
-/// arithmetic leaves at the shaft's radius nor the quarter alone, its
-/// triangles open or crossing.
-fn wrong_with(built: Result<Body, Declined>, hair: f64) -> Option<String> {
-    let what = format!("the half ball cut up to its centre by a shaft {hair:e} under its radius");
+/// What the half ball cut by the shaft `hair` under its radius leaves: the
+/// quarter of the ball above its centre, and half the ring the shaft leaves
+/// of the ball under it, between z = −a and 0 outside the wall: π ∫ (a² −
+/// z²) dz over it is 2π a³ / 3, the half π a³ / 3. #1123's.
+fn kept(hair: f64) -> f64 {
+    BALL / 4.0 + PI * rim_under(RADIUS, hair).powi(3) / 3.0
+}
+
+/// What is wrong with the body `built`, called `what`, if anything:
+/// declined, not exact, holding neither of `volumes` — what the arithmetic
+/// leaves with the shaft at its own radius, and with it laid onto the touch
+/// — to the kernel's billionth, its triangles open or crossing.
+fn off(what: &str, built: Result<Body, Declined>, volumes: [f64; 2]) -> Option<String> {
     let body = match built {
         Err(declined) => return Some(format!("{what}: declined, {declined:?}")),
         Ok(body) => body,
@@ -231,8 +344,8 @@ fn wrong_with(built: Result<Body, Declined>, hair: f64) -> Option<String> {
     if !body.is_exact() {
         return Some(format!("{what}: not exact"));
     }
-    let [drawn, laid] = [kept(hair), BALL / 4.0];
-    if [drawn, laid]
+    let [drawn, laid] = volumes;
+    if volumes
         .iter()
         .all(|volume| (body.volume() - volume).abs() > EXACT * volume)
     {
@@ -250,6 +363,38 @@ fn wrong_with(built: Result<Body, Declined>, hair: f64) -> Option<String> {
         return Some(format!("{what}: its triangles crossing, {crossing:?}"));
     }
     None
+}
+
+/// What is wrong with the half ball cut by the shaft `hair` under its
+/// radius, if anything, as [`off`] reads it, at the shaft's radius or with
+/// the quarter alone.
+fn wrong_with(built: Result<Body, Declined>, hair: f64) -> Option<String> {
+    let what = format!("the half ball cut up to its centre by a shaft {hair:e} under its radius");
+    off(&what, built, [kept(hair), BALL / 4.0])
+}
+
+/// What is wrong with the body `make` builds, called `what`, if anything:
+/// built and first drawn past [`QUICK`] on the wall clock, and each way
+/// [`off`] finds.
+fn held_quickly(
+    what: &str,
+    make: impl FnOnce() -> Result<Body, Declined>,
+    volumes: [f64; 2],
+) -> Vec<String> {
+    let started = Instant::now();
+    let built = make();
+    if let Ok(body) = &built {
+        body.triangles();
+    }
+    let took = started.elapsed();
+    let mut wrong = Vec::new();
+    if took > QUICK {
+        wrong.push(format!(
+            "{what}: built and drawn in {took:?}, past {QUICK:?}"
+        ));
+    }
+    wrong.extend(off(what, built, volumes));
+    wrong
 }
 
 /// The half ball y ≥ 0 cut by a shaft along z from z = −5 up to its centre,
@@ -332,5 +477,159 @@ fn a_half_ball_cut_up_to_its_centre_by_a_shaft_from_five_under_it_whose_rim_fall
         "a half ball cut by a shaft from z = -5 whose rim falls beside the band is built exact, \
          closed, uncrossed and of the arithmetic's volume; not so:\n{}",
         wrong.join("\n")
+    );
+}
+
+/// Every way `case` finds the body of each of `hairs` wrong, gathered and
+/// asserted at once for the `family` they belong to.
+fn every_hair(family: &str, hairs: &[f64], case: impl Fn(f64) -> Vec<String>) {
+    let wrong: Vec<String> = hairs.iter().flat_map(|&hair| case(hair)).collect();
+    assert!(
+        wrong.is_empty(),
+        "{family} is built exact, closed, uncrossed and of the arithmetic's volume, each in \
+         under a second; not so:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// The ball of [`RADIUS`] about z cut by a shaft along z from its south pole
+/// up to its centre, 1.2e-7 and 1.5e-7 under its radius: the half ball above
+/// the equator, and the ring the shaft leaves under it, 2π a³ / 3.
+#[test]
+fn a_ball_about_z_cut_up_to_its_centre_by_a_shaft_from_its_pole_whose_rim_falls_within_a_hundredth_of_a_step_of_its_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second()
+ {
+    let ball = ball_of(RADIUS, TAU);
+    every_hair(
+        "a ball about z cut by a shaft from z = -5 up to its centre",
+        &[1.2e-7, 1.5e-7],
+        |hair| {
+            let shaft = shaft_up_to_the_centre(&ball, RADIUS - hair);
+            let ring = TAU * rim_under(RADIUS, hair).powi(3) / 3.0;
+            held_quickly(
+                &format!("the ball cut up to its centre by a shaft {hair:e} under its radius"),
+                || ball.difference(&shaft),
+                [BALL / 2.0 + ring, BALL / 2.0],
+            )
+        },
+    );
+}
+
+/// The half ball cut by a shaft along z from its centre up past its north
+/// pole, to z = 5, 1.2e-7 and 1.5e-7 under its radius: the mirror of the
+/// criterion's cut across the equator, its rim a hair over the equator's
+/// row, and what it leaves the same.
+#[test]
+fn a_half_ball_cut_down_to_its_centre_by_a_shaft_from_its_pole_whose_rim_falls_within_a_hundredth_of_a_step_of_its_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second()
+ {
+    let half = half_ball();
+    every_hair(
+        "a half ball cut by a shaft from its centre up to z = 5",
+        &[1.2e-7, 1.5e-7],
+        |hair| {
+            let shaft = shaft_along_z(&half, RADIUS - hair, 0.0, -FROM);
+            held_quickly(
+                &format!(
+                    "the half ball cut down to its centre by a shaft {hair:e} under its radius"
+                ),
+                || half.difference(&shaft),
+                [kept(hair), BALL / 4.0],
+            )
+        },
+    );
+}
+
+/// The ball of [`RADIUS`] about z cut by the half y ≥ 0 of a shaft along z
+/// from its south pole up to its centre, 1.2e-7 and 1.5e-7 under its radius:
+/// three quarters of the ball, and half the ring the shaft leaves under the
+/// equator, π a³ / 3.
+#[test]
+fn a_ball_cut_up_to_its_centre_by_a_half_shaft_whose_rim_falls_within_a_hundredth_of_a_step_of_its_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second()
+ {
+    let ball = ball_of(RADIUS, TAU);
+    every_hair(
+        "a ball cut by a half shaft from z = -5 up to its centre",
+        &[1.2e-7, 1.5e-7],
+        |hair| {
+            let shaft = half_shaft_along_z(&ball, RADIUS - hair, FROM, 0.0);
+            let ring = PI * rim_under(RADIUS, hair).powi(3) / 3.0;
+            held_quickly(
+                &format!("the ball cut up to its centre by a half shaft {hair:e} under its radius"),
+                || ball.difference(&shaft),
+                [3.0 * BALL / 4.0 + ring, 3.0 * BALL / 4.0],
+            )
+        },
+    );
+}
+
+/// The radius of the ring's axis circle, about z through the origin.
+const MAJOR: f64 = 10.0;
+
+/// The radius of the ring's tube.
+const MINOR: f64 = 2.0;
+
+/// The ring: 2π² R r².
+const RING: f64 = 2.0 * PI * PI * MAJOR * MINOR * MINOR;
+
+/// The matter of the ring under z = 0 a coaxial wall `hair` inside its outer
+/// equator leaves outside it: the half segment of the tube's disc past the
+/// chord `hair` in from its edge, turned about z. Its area is r² (2θ −
+/// sin 2θ) / 4, cos θ = 1 − h / r, and its moment about the tube's centre
+/// r³ sin³θ / 3, outwards; by Pappus, 2π (R A + M). #1123's.
+fn outside(hair: f64) -> f64 {
+    let angle = 2.0 * (hair / (2.0 * MINOR)).sqrt().asin();
+    let area = MINOR * MINOR * (2.0 * angle - (2.0 * angle).sin()) / 4.0;
+    let moment = MINOR.powi(3) * angle.sin().powi(3) / 3.0;
+    TAU * (MAJOR * area + moment)
+}
+
+/// The ring of [`MAJOR`] and [`MINOR`] cut by a coaxial shaft along z from
+/// z = −5 up to its centre plane, 3e-7, 3.5e-7 and 4e-7 inside its outer
+/// equator: the upper half of the ring, and the sliver of the lower half
+/// the shaft leaves outside it.
+#[test]
+fn a_ring_cut_up_to_its_centre_plane_by_a_coaxial_shaft_whose_rim_falls_within_a_hundredth_of_a_step_of_its_outer_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second()
+ {
+    let ring = ring_of(MAJOR, MINOR);
+    every_hair(
+        "a ring cut by a coaxial shaft from z = -5 up to its centre plane",
+        &[3e-7, 3.5e-7, 4e-7],
+        |hair| {
+            let shaft = shaft_up_to_the_centre(&ring, MAJOR + MINOR - hair);
+            held_quickly(
+                &format!("the ring cut by a shaft {hair:e} inside its outer equator"),
+                || ring.difference(&shaft),
+                [RING / 2.0 + outside(hair), RING / 2.0],
+            )
+        },
+    );
+}
+
+/// The radius of the ball the shell is cut from, about the origin.
+const SHELL: f64 = 8.0;
+
+/// The ball of [`SHELL`] less the ball of [`RADIUS`], both about z, joined
+/// with a shaft along z from z = −5 up to its centre, 1.7e-7, 2e-7 and
+/// 2.5e-7 under the cavity's radius: the shaft fills the cavity under the
+/// rim, and leaves void its upper half and the ring between the shaft's
+/// wall and the cavity's sphere under the equator, 2π a³ / 3.
+#[test]
+fn a_shell_joined_with_a_shaft_up_to_its_centre_whose_rim_falls_within_a_hundredth_of_a_step_of_its_cavity_s_equator_s_row_is_built_exact_closed_uncrossed_and_of_the_arithmetic_s_volume_each_in_under_a_second()
+ {
+    let shell = ball_of(SHELL, TAU)
+        .difference(&ball_of(RADIUS, TAU))
+        .unwrap_or_else(|declined| panic!("the shell: declined, {declined:?}"));
+    let solid = 4.0 * PI / 3.0 * SHELL.powi(3) - BALL / 2.0;
+    every_hair(
+        "a shell of 8 about a cavity of 5 joined with a shaft from z = -5 up to its centre",
+        &[1.7e-7, 2e-7, 2.5e-7],
+        |hair| {
+            let shaft = shaft_up_to_the_centre(&shell, RADIUS - hair);
+            let ring = TAU * rim_under(RADIUS, hair).powi(3) / 3.0;
+            held_quickly(
+                &format!("the shell joined with a shaft {hair:e} under its cavity's radius"),
+                || shell.union(&shaft),
+                [solid - ring, solid],
+            )
+        },
     );
 }

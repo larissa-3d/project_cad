@@ -2847,17 +2847,29 @@ pointed cone's flank waits on #711.
   within a hundredth of a step of an end or a level of it, where the strip
   left beside it would be a sliver, its triangles nearer a face across a
   sharp edge than that face's chords sag (#956) — but where a wall runs
-  from a rim beside the face, the two faces' matter between them a wedge,
-  and ends on that row a hair inside the round (#1127,
-  `outline/knife.rs`): a half ball less a shaft a hair under its radius up
-  to its centre, the rim within a hundredth of a step under the equator,
-  the wall from it up to the shaft's top, which stands there a hair under
-  the sphere. With the row left out, the strip ran from the rim to the
-  next row, its chords leaning inside the wall and through that top, and
-  the folds churned over the crossing for some seventeen seconds a cut;
-  the sliver beside the rim stands outside the wall's chords, whose
-  meridian is straight. A wall running from the rim away from the face, the shaft
-  joined with the ball, leaves the row out as before. A meridian arc keeps
+  from a rim beside the face, the two side by side, their outward normals
+  there opposed, with matter or a void between them, and ends on that row
+  a hair inside the round, and every sample of the rim stands at one of
+  the face's angles (#1127, `outline/knife.rs`): a half ball less a shaft
+  a hair under its radius up to its centre, the rim within a hundredth of
+  a step under the equator, the wall from it up to the shaft's top, which
+  stands there a hair under the sphere; the same rim on a whole ball, a
+  ball less half the shaft, the mirror from the centre up, a ring less a
+  coaxial shaft of a hair under its outer equator, a shell joined with
+  such a shaft in its cavity. With the row left out, the strip ran from
+  the rim to the next row, its chords leaning inside the wall and through
+  that top, and the folds churned over the crossing for some seventeen
+  seconds a cut; kept, each sample of the rim has a point of the row on
+  its ray, and the sliver between them stands outside the wall's chords,
+  whose meridian is straight. A rim sampled between the face's angles —
+  the ball turned at a slant less the shaft, its face read about the
+  shaft's axis on a grid of its own, all but a few of its rim's samples
+  between that grid's angles — keeps the row out, and is drawn as before,
+  crossed (#1151): kept, the sliver joined a point of the row to a sample
+  of the rim a part of a step aside, as #956 found it, and the cut took
+  seven times as long. A wall running from
+  the rim away from the face, the shaft joined with the ball, leaves the
+  row out as before. A meridian arc keeps
   every row: where one of its samples stands on a row a face leaves out, the
   face's column runs on through that point rather than the face being cut
   there, so the faces either side still share every sample of the arc; an

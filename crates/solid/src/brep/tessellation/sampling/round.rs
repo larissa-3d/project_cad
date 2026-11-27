@@ -265,14 +265,17 @@ pub(super) fn levels_along(
 /// that point (`Outline::passing`) rather than the face being cut there, so
 /// the faces either side still share every sample of the arc. An arc that
 /// left the row out too opened the drawing where a face turned a corner a
-/// hair from it (#956).
+/// hair from it (#956). A face's strips keep such a row beside a rim where
+/// a wall running beside the face from the rim ends on it and every sample
+/// of the rim stands at one of the face's angles ([`rows_keeping`], #1127).
 const SLIVER: f64 = 0.01;
 
 /// The rows of a grid of `steps` rows a turn strictly between `low` and
 /// `high` along the meridian, none within `room`, or within [`SLIVER`] of a
 /// step, of either or of an angle of `levels` a whole number of turns on,
 /// ascending: the rows a face is cut at, never those an edge is sampled
-/// at, which `grid_rows` gives.
+/// at, which `grid_rows` gives — but beside a wall ending on one of them,
+/// where the strips cut the face at [`rows_keeping`]'s.
 pub(in crate::brep::tessellation) fn rows(
     steps: usize,
     low: f64,
@@ -286,8 +289,9 @@ pub(in crate::brep::tessellation) fn rows(
 
 /// The rows [`rows`] gives, and those it leaves out within [`SLIVER`] of a
 /// rim where a wall running beside the face from that rim ends on them:
-/// `ends`, each a rim's angle along the meridian and an end's
-/// (`outline/knife.rs`'s `ends`, #1127).
+/// `ends`, each a rim's angle along the meridian and an end's, the rim's
+/// samples each at one of the face's angles (`outline/knife.rs`'s
+/// `ends_on_the_grid`, #1127).
 pub(in crate::brep::tessellation) fn rows_keeping(
     steps: usize,
     (low, high): (f64, f64),
