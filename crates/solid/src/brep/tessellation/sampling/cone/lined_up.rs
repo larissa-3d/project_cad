@@ -35,7 +35,8 @@ use crate::brep::topology::{Body, SurfaceId};
 /// with those taken would pass the most a turn is cut into is left out
 /// alone: leaving them all out undid a half ball's shaft beside a pin's
 /// bore, and taking a wall apart before the post a ring touches undid the
-/// post's (#1123).
+/// post's (#1123); a wall touching it far along its axis is taken after
+/// every other (#1130).
 pub(super) fn kept_by_walls(
     body: &Body,
     round: &Rounded,
@@ -64,6 +65,10 @@ pub(super) fn kept_by_walls(
         if (ranks - ranks.round()).abs() <= ALIGNED
             && let Some(near) = beside(round, wall, &rims, rows, (eps, reach), reaching)
         {
+            let near = match near {
+                Beside::Touching(gap) if !reaching() => Beside::Far(gap),
+                Beside::Touching(_) | Beside::Apart(_) | Beside::Far(_) => near,
+            };
             walls.push((near, theirs));
         }
     }
@@ -91,17 +96,32 @@ enum Beside {
     /// Within twice the sag of its chords of the circle it stands nearest,
     /// this far from it.
     Apart(f64),
+    /// Of an equator's radius within the kernel's tolerance, this far from
+    /// it, but no face of it within the band about the equators' plane
+    /// ([`reaches_the_equators`]): a rod of a ring's inner radius standing
+    /// above it, which touches it nowhere.
+    Far(f64),
 }
 
 impl Beside {
-    /// A wall touching the round before any standing apart from it, and the
-    /// nearer first among either.
+    /// A wall touching the round first, then those standing apart from it,
+    /// then those touching it far along its axis, and the nearer first
+    /// among each: a rod of a ring's inner radius above it, taken first,
+    /// left out the shaft a hair inside its outer equator, whose rim crossed
+    /// (#1130).
     fn order(&self, other: &Beside) -> Ordering {
-        match (self, other) {
-            (Beside::Touching(_), Beside::Apart(_)) => Ordering::Less,
-            (Beside::Apart(_), Beside::Touching(_)) => Ordering::Greater,
-            (Beside::Touching(one), Beside::Touching(other))
-            | (Beside::Apart(one), Beside::Apart(other)) => one.total_cmp(other),
+        let (rank, gap) = self.ranked();
+        let (other_rank, other_gap) = other.ranked();
+        rank.cmp(&other_rank).then(gap.total_cmp(&other_gap))
+    }
+
+    /// Where the way a wall stands comes in [`Beside::order`], and how far
+    /// it stands.
+    fn ranked(&self) -> (u8, f64) {
+        match *self {
+            Beside::Touching(gap) => (0, gap),
+            Beside::Apart(gap) => (1, gap),
+            Beside::Far(gap) => (2, gap),
         }
     }
 }
@@ -162,27 +182,33 @@ const PLACES: usize = 8;
 /// of the equators of `round`, along its axis: its edges read at their ends
 /// and at [`PLACES`] places between. A round stays within a wall's reach of
 /// it, `h`, over √(2 r h) either side of the equator it stands beside, the
-/// band `window` is given.
+/// band `window` is given. Each face is read alone: coaxial walls of one
+/// radius are one surface, and a rod above a ring and another below it, read
+/// together, stood across the plane (#1130).
 fn reaches_the_equators(body: &Body, surface: SurfaceId, round: &Rounded, window: f64) -> bool {
     let height = |point: DVec3| (point - round.origin()).dot(round.axis());
     let level = height(round.point(DVec2::ZERO));
-    let (low, high) = body
-        .face_ids()
+    body.face_ids()
         .map(|id| body.face(id))
         .filter(|face| face.surface == surface)
-        .flat_map(|face| face.loops.iter().flatten())
-        .flat_map(|coedge| {
-            let edge = body.edge(coedge.edge);
-            let curve = body.curve(edge.curve);
-            (0..=PLACES).map(move |place| {
-                let at = edge.from + (edge.to - edge.from) * place as f64 / PLACES as f64;
-                height(curve.point(at))
-            })
+        .any(|face| {
+            let (low, high) = face
+                .loops
+                .iter()
+                .flatten()
+                .flat_map(|coedge| {
+                    let edge = body.edge(coedge.edge);
+                    let curve = body.curve(edge.curve);
+                    (0..=PLACES).map(move |place| {
+                        let at = edge.from + (edge.to - edge.from) * place as f64 / PLACES as f64;
+                        height(curve.point(at))
+                    })
+                })
+                .fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), at| {
+                    (low.min(at), high.max(at))
+                });
+            low - window <= level && level <= high + window
         })
-        .fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), at| {
-            (low.min(at), high.max(at))
-        });
-    low - window <= level && level <= high + window
 }
 
 fn greatest_common(one: usize, other: usize) -> usize {
