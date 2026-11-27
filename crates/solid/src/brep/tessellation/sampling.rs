@@ -72,7 +72,7 @@ use circle::on_circle_by;
 use cone::{Grid, Spun};
 use ends::Ends;
 pub(super) use planes::{on_a_plane, touching_planes};
-pub(super) use round::{ON_A_ROW, Rounded, SHARE, levels, midway, rows};
+pub(super) use round::{ON_A_ROW, Rounded, SHARE, levels, midway, rows, rows_keeping};
 pub(in crate::brep) use steps::divisions_in;
 use touches::{Places, on_the_line};
 

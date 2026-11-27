@@ -2,13 +2,22 @@
 //! rim reads off the body it is drawn on, which points it passes, which rows
 //! the band beside it clears, which rims are knife edges at all, and which
 //! faces the central chart leaves to the charts after it.
+//!
+//! And the walls running beside a face from a rim a hair under its equator
+//! up to where they end on its row (#1127): which rims and ends [`ends`]
+//! finds — beside matter or beside void, never beside a wall running away
+//! from the face — and which faces are cut at that row, the strips keeping
+//! it only where every sample of the rim stands on the angle of one of the
+//! row's points. A row kept where the rim's samples stand between the
+//! face's angles joins a point of the grid to a sample of the rim a part of
+//! a step aside, the sliver #956 left the row out for.
 
 use std::f64::consts::{FRAC_1_SQRT_2, PI, TAU};
 
 use glam::{DVec2, DVec3};
 
-use super::super::laps;
-use super::{Band, Rim, bands, rims, within_the_walls};
+use super::super::{Outline, laps};
+use super::{Band, Rim, bands, ends, ends_on_the_grid, rims, within_the_walls};
 use crate::brep::Declined;
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::scale::Scale;
@@ -121,12 +130,18 @@ fn shaft_between(part: &crate::Body, radius: f64, from: f64, to: f64) -> crate::
 /// What `step` leaves, as the exact kernel holds it, sampled at
 /// [`TOLERANCE`].
 fn read(step: Result<crate::Body, Declined>) -> (Body, Samples) {
+    read_at(step, TOLERANCE)
+}
+
+/// What `step` leaves, as the exact kernel holds it, sampled at
+/// `tolerance`.
+fn read_at(step: Result<crate::Body, Declined>, tolerance: f64) -> (Body, Samples) {
     let body = step
         .expect("the step is built")
         .brep()
         .expect("the exact kernel computed the step")
         .clone();
-    let samples = Samples::of(&body, TOLERANCE);
+    let samples = Samples::of(&body, tolerance);
     (body, samples)
 }
 
@@ -592,4 +607,382 @@ fn a_rim_on_the_sphere_s_equator_reaches_no_band_though_the_wall_and_the_face_ru
     assert!(rim.side > 0.0, "the wall runs {} from the rim", rim.side);
     let found = bands_of(&body, &mut samples, CENTRE + DVec3::Z * RADIUS);
     assert!(found.is_empty(), "{} bands beside the equator", found.len());
+}
+
+/// How far under the radius of a ball about the origin the short shafts of
+/// #1127 stand: past decision 12's reach at the reach of 5 the ball and a
+/// shaft from its south pole stand to, 1e-7, and within a hundredth of a
+/// step of the equator's row of its sphere, drawn at that reach, 1.772e-7.
+const HAIR: f64 = 1.2e-7;
+
+/// The drawing's tolerance, 2e-4 of the reach, at the reach of 5 of a ball
+/// of [`RADIUS`] about the origin.
+const AT_FIVE: f64 = 1e-3;
+
+/// The radius of the ball the shell is cut from, about the origin.
+const SHELL: f64 = 8.0;
+
+/// The drawing's tolerance at the shell's reach of [`SHELL`].
+const AT_EIGHT: f64 = 1.6e-3;
+
+/// How far under its cavity's radius the shaft joined with the shell
+/// stands: past decision 12's reach at the reach of 8, 1.6e-7, and within a
+/// hundredth of a step of the row of the cavity's equator, drawn at that
+/// reach, 2.79e-7.
+const SHELL_HAIR: f64 = 2e-7;
+
+/// Nearer than this, a sample stands on a circle or a sphere: a millionth of
+/// the drawing's tolerance at the reach of 5.
+const ON: f64 = 1e-9;
+
+/// A ball of `radius` about the origin, a half disc turned `turn` about the
+/// line through it along `axis` from x, or from a direction square to a
+/// slanted axis: the half ball y ≥ 0 for half a turn about z.
+fn ball_at_the_origin(radius: f64, turn: f64, axis: DVec3) -> crate::Body {
+    let sampled: &'static [DVec2] = Box::leak(
+        (0..=32)
+            .map(|step| DVec2::from_angle(-PI / 2.0 + PI * f64::from(step) / 32.0) * radius)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    );
+    let half = Contour {
+        corners: vec![DVec2::new(0.0, -radius), DVec2::new(0.0, radius)],
+        runs: vec![
+            Run::Round {
+                center: DVec2::ZERO,
+                turn: PI,
+            },
+            Run::Straight,
+        ],
+    };
+    let profile = Profile {
+        exact: Some((half, Vec::new())),
+        sampled: crate::Loop::straight(sampled),
+        sampled_holes: Vec::new(),
+        triangles: &[],
+    };
+    let frame = Frame {
+        origin: DVec3::ZERO,
+        u: if axis == DVec3::Z {
+            DVec3::X
+        } else {
+            axis.any_orthonormal_vector()
+        },
+        v: axis,
+    };
+    let along_v = Axis {
+        origin: DVec2::ZERO,
+        direction: DVec2::Y,
+    };
+    crate::Body::default()
+        .tool_turned(&profile, frame, &Turn::of(along_v, turn, 0.0, &profile))
+        .expect("the exact kernel turns the ball")
+}
+
+/// A shaft of `radius` along z through the origin from z = `from` to `to`,
+/// a tool of `part`.
+fn short_shaft(part: &crate::Body, radius: f64, from: f64, to: f64) -> crate::Body {
+    part.tool_raised(
+        &exact(Contour {
+            corners: vec![DVec2::X * radius],
+            runs: vec![Run::Round {
+                center: DVec2::ZERO,
+                turn: TAU,
+            }],
+        }),
+        Frame {
+            origin: DVec3::Z * from,
+            u: DVec3::X,
+            v: DVec3::Y,
+        },
+        DVec3::Z * (to - from),
+    )
+    .expect("the shaft raises")
+}
+
+/// How far under the equator about z a sphere of `radius` about the origin
+/// crosses a coaxial wall `hair` inside it, and that rim's angle along the
+/// meridian: a = √(r² − (r − h)²), at −atan(a / (r − h)).
+fn rim_under(radius: f64, hair: f64) -> (f64, f64) {
+    let reach = (hair * (2.0 * radius - hair)).sqrt();
+    (reach, (-reach).atan2(radius - hair))
+}
+
+/// The face of `body` on the sphere of `radius`, and the sphere.
+fn on_the_sphere_of(body: &Body, radius: f64) -> (FaceId, Sphere) {
+    body.face_ids()
+        .find_map(|id| match body.surface(body.face(id).surface) {
+            Surface::Sphere(sphere) if (sphere.radius - radius).abs() <= ON => Some((id, *sphere)),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("a face on the sphere of {radius}"))
+}
+
+/// The rims and ends [`ends`] finds beside the face of `body` on the sphere
+/// of `radius`, read in its own chart.
+fn ends_beside(body: &Body, radius: f64) -> Vec<[f64; 2]> {
+    let (id, sphere) = on_the_sphere_of(body, radius);
+    ends(
+        body,
+        body.face(id),
+        &Rounded::Sphere(sphere),
+        body.scale().eps(),
+    )
+}
+
+/// That `found` is one rim at the angle `rim` along the meridian, with the
+/// wall from it ending on the equator, both within the rounding of an
+/// angle a ten-thousandth of a radian or less.
+fn one_end_on_the_equator(found: &[[f64; 2]], rim: f64, what: &str) {
+    let [[at, end]] = found[..] else {
+        panic!("{what}: one wall ending beside a rim, found {found:?}");
+    };
+    assert!(
+        (at - rim).abs() <= 1e-12 && end.abs() <= 1e-12,
+        "{what}: the rim at {at}, where the sphere crosses the wall at {rim}, the wall ending at \
+         {end}, where the shaft's top stands on the equator"
+    );
+}
+
+#[test]
+fn a_half_ball_less_a_short_shaft_a_hair_under_its_radius_has_its_rim_found_with_the_shaft_s_top_its_wall_ends_on()
+ {
+    let half = ball_at_the_origin(RADIUS, PI, DVec3::Z);
+    let shaft = short_shaft(&half, RADIUS - HAIR, -RADIUS, 0.0);
+    let (body, _) = read_at(half.difference(&shaft), AT_FIVE);
+    let (_, rim) = rim_under(RADIUS, HAIR);
+    one_end_on_the_equator(
+        &ends_beside(&body, RADIUS),
+        rim,
+        "the half ball less the shaft",
+    );
+}
+
+/// The ball of [`SHELL`] less the ball of [`RADIUS`], joined with a shaft of
+/// the cavity's radius less [`SHELL_HAIR`] from the cavity's south pole up to
+/// its centre: the wall runs from the rim on the cavity's sphere up to the
+/// shaft's top, on the equator, their outward normals opposed, and what lies
+/// between them is the void the shaft leaves of the cavity, not matter.
+#[test]
+fn a_shell_joined_with_a_short_shaft_a_hair_under_its_cavity_s_radius_has_its_rim_found_with_the_shaft_s_top_though_the_wedge_between_them_is_void()
+ {
+    let shell = ball_at_the_origin(SHELL, TAU, DVec3::Z)
+        .difference(&ball_at_the_origin(RADIUS, TAU, DVec3::Z))
+        .expect("the shell is built");
+    let shaft = short_shaft(&shell, RADIUS - SHELL_HAIR, -RADIUS, 0.0);
+    let (body, _) = read_at(shell.union(&shaft), AT_EIGHT);
+    let (_, rim) = rim_under(RADIUS, SHELL_HAIR);
+    one_end_on_the_equator(
+        &ends_beside(&body, RADIUS),
+        rim,
+        "the shell joined with the shaft",
+    );
+    let outer = ends_beside(&body, SHELL);
+    assert!(
+        outer.is_empty(),
+        "the shell's outer sphere meets no wall: {outer:?}"
+    );
+}
+
+/// The half ball joined with the same shaft: the wall the join keeps runs
+/// from the rim down to the shaft's foot, away from the face on the sphere,
+/// their outward normals alike there.
+#[test]
+fn a_half_ball_joined_with_a_short_shaft_a_hair_under_its_radius_has_no_wall_ending_beside_its_rim_the_wall_running_away_from_the_face()
+ {
+    let half = ball_at_the_origin(RADIUS, PI, DVec3::Z);
+    let shaft = short_shaft(&half, RADIUS - HAIR, -RADIUS, 0.0);
+    let (body, _) = read_at(half.union(&shaft), AT_FIVE);
+    let found = ends_beside(&body, RADIUS);
+    assert!(found.is_empty(), "{found:?}");
+}
+
+/// The face on the sphere of [`RADIUS`] of `body`, a ball about the origin
+/// less a short shaft `hair` under its radius, cut as the drawing cuts it at
+/// `tolerance`: the samples of its rim, the circle a under the equator
+/// about z, and the points it is cut at on that equator, the row of the
+/// strips about z within a hundredth of a step of the rim.
+fn beside_the_rim(
+    body: &Body,
+    samples: &mut Samples,
+    tolerance: f64,
+    hair: f64,
+) -> (Vec<DVec3>, Vec<DVec3>) {
+    let (id, _) = on_the_sphere_of(body, RADIUS);
+    let (under, _) = rim_under(RADIUS, hair);
+    let edge = (body.face(id).loops.iter().flatten())
+        .find_map(|coedge| match body.curve(body.edge(coedge.edge).curve) {
+            Curve::Circle(circle)
+                if circle.axis.cross(DVec3::Z).length() <= ON
+                    && (circle.center + DVec3::Z * under).length() <= ON =>
+            {
+                Some(coedge.edge)
+            }
+            _ => None,
+        })
+        .expect("the face on the sphere is bounded by the rim");
+    let rim: Vec<DVec3> = (samples.edge(edge).iter())
+        .map(|&sample| samples.point(sample))
+        .collect();
+    let (outline, _) =
+        Outline::cut_of(body, samples, id, tolerance).expect("the face on the sphere is cut");
+    let row: Vec<DVec3> = (outline.samples.iter())
+        .map(|&sample| samples.point(sample))
+        .filter(|point| point.z.abs() <= ON && (point.length() - RADIUS).abs() <= ON)
+        .collect();
+    (rim, row)
+}
+
+/// The samples of `rim` standing at an angle about z no point of `row`
+/// stands at.
+fn between_the_row_s_points(rim: &[DVec3], row: &[DVec3]) -> Vec<DVec3> {
+    let way = |point: &DVec3| point.truncate().normalize();
+    (rim.iter())
+        .filter(|sample| {
+            !row.iter()
+                .any(|point| way(point).distance(way(sample)) <= ON)
+        })
+        .copied()
+        .collect()
+}
+
+/// The half ball about z less the short shaft: its grid of angles is lined
+/// up with the shaft's wall (#1123), each sample of the rim on one of its
+/// angles, so the strips cut the face at the equator's row the wall ends on
+/// — at its points off the half ball's flat face, not at the meridians'
+/// samples alone, which every row has — and every sample of the rim stands
+/// under one of them.
+#[test]
+fn a_half_ball_about_z_less_a_short_shaft_is_cut_at_the_row_beside_its_rim_every_sample_of_the_rim_standing_at_the_angle_of_a_point_of_the_row()
+ {
+    let half = ball_at_the_origin(RADIUS, PI, DVec3::Z);
+    let shaft = short_shaft(&half, RADIUS - HAIR, -RADIUS, 0.0);
+    let (body, mut samples) = read_at(half.difference(&shaft), AT_FIVE);
+    let (rim, row) = beside_the_rim(&body, &mut samples, AT_FIVE, HAIR);
+    assert!(
+        row.iter().any(|point| point.y > ON),
+        "the face is cut at the equator's row inside it, not at its meridians alone: {row:?}"
+    );
+    let between = between_the_row_s_points(&rim, &row);
+    assert!(
+        between.is_empty(),
+        "{} of the rim's {} samples stand between the row's {} points: {between:?}",
+        between.len(),
+        rim.len(),
+        row.len()
+    );
+}
+
+/// The ball turned at a slant about (1, 0, 1)/√2 less the same shaft: its
+/// face on the sphere is read about z (`charted.rs`'s `about`), on a grid of
+/// angles cut for the sphere alone and not lined up with the wall's, the
+/// samples of the rim between its angles. The face is cut at the equator's
+/// row only if every sample of the rim stands at the angle of one of the
+/// row's points; left out, as on `main`, it is not cut there at all.
+#[test]
+fn a_ball_turned_at_a_slant_less_a_short_shaft_is_cut_at_a_row_beside_its_rim_only_where_every_sample_of_the_rim_stands_at_the_angle_of_a_point_of_the_row()
+ {
+    let ball = ball_at_the_origin(RADIUS, TAU, DVec3::new(1.0, 0.0, 1.0).normalize());
+    let shaft = short_shaft(&ball, RADIUS - HAIR, -RADIUS, 0.0);
+    let (body, mut samples) = read_at(ball.difference(&shaft), AT_FIVE);
+    let (rim, row) = beside_the_rim(&body, &mut samples, AT_FIVE, HAIR);
+    let between = between_the_row_s_points(&rim, &row);
+    assert!(
+        row.is_empty() || between.is_empty(),
+        "the face is cut at the equator's row, at {} points, and {} of the rim's {} samples \
+         stand between them: {:?}",
+        row.len(),
+        between.len(),
+        rim.len(),
+        &between[..between.len().min(4)]
+    );
+}
+
+/// The radius of a pin boring the half ball blind from its top: its rim on
+/// the sphere is sampled on the pin's own grid as well as the sphere's, and
+/// no grid a multiple of both the pin's and the shaft's stands under the
+/// most a turn is cut into, so the sphere's is lined up with the shaft's
+/// alone (#1123's).
+const PIN: f64 = 1.0554;
+
+/// The half ball less the short shaft, then less the pin of [`PIN`] from
+/// z = 1 up past it, sampled at [`AT_FIVE`]; and the circles of the face on
+/// the sphere along which it meets the shaft's wall and the pin's.
+fn pinned() -> (Body, Samples, [(EdgeId, Circle); 2]) {
+    let half = ball_at_the_origin(RADIUS, PI, DVec3::Z);
+    let shaft = short_shaft(&half, RADIUS - HAIR, -RADIUS, 0.0);
+    let cut = half
+        .difference(&shaft)
+        .expect("the half ball less the shaft");
+    let pin = short_shaft(&cut, PIN, 1.0, 10.0);
+    let (body, samples) = read_at(cut.difference(&pin), AT_FIVE);
+    let (id, _) = on_the_sphere_of(&body, RADIUS);
+    let of_radius = |radius: f64| {
+        (body.face(id).loops.iter().flatten())
+            .find_map(|coedge| match body.curve(body.edge(coedge.edge).curve) {
+                Curve::Circle(circle) if (circle.radius - radius).abs() <= ON => {
+                    Some((coedge.edge, *circle))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("the face on the sphere meets a wall of {radius}"))
+    };
+    let rims = [of_radius(RADIUS - HAIR), of_radius(PIN)];
+    (body, samples, rims)
+}
+
+/// The [`ends_on_the_grid`] of the face of `body` on the sphere of
+/// [`RADIUS`], on the face's own grid, read in the sphere's chart.
+fn on_the_grid_beside(body: &Body, samples: &Samples) -> Vec<[f64; 2]> {
+    let (id, sphere) = on_the_sphere_of(body, RADIUS);
+    let face = body.face(id);
+    let steps = samples.steps(face.surface).expect("the sphere has a grid");
+    ends_on_the_grid(
+        body,
+        samples,
+        face,
+        &Rounded::Sphere(sphere),
+        steps,
+        body.scale().eps(),
+    )
+}
+
+/// The half ball less the short shaft and the pin: the shaft's rim, sampled
+/// at the face's angles, keeps the end of the wall from it; the pin's,
+/// sampled between them, keeps none.
+#[test]
+fn a_rim_sampled_at_the_face_s_angles_keeps_the_end_of_its_wall_and_one_sampled_between_them_keeps_none()
+ {
+    let (body, samples, _) = pinned();
+    let (_, rim) = rim_under(RADIUS, HAIR);
+    one_end_on_the_equator(
+        &on_the_grid_beside(&body, &samples),
+        rim,
+        "the half ball less the shaft and the pin",
+    );
+}
+
+/// The same body with the pin's rim turned about x and moved onto the
+/// shaft's rim's centre and radius: a circle the round does not hold, its
+/// samples still between the face's angles, standing where the shaft's rim
+/// stands. A body no step builds, to read that only the face's latitude
+/// circles are rims: the shaft's rim keeps its wall's end.
+#[test]
+fn a_circle_of_the_face_the_round_does_not_hold_keeps_no_rim_s_wall_end_out_though_its_samples_stand_between_the_face_s_angles()
+ {
+    let (body, samples, [(_, shaft_s), (pin_s, _)]) = pinned();
+    let mut turned = body.clone();
+    let curve = turned.edge(pin_s).curve;
+    turned.curves[curve.0 as usize] = Curve::Circle(Circle {
+        axis: DVec3::X,
+        u: DVec3::Y,
+        v: DVec3::Z,
+        ..shaft_s
+    });
+    let (_, rim) = rim_under(RADIUS, HAIR);
+    one_end_on_the_equator(
+        &on_the_grid_beside(&turned, &samples),
+        rim,
+        "the pin's rim turned about x onto the shaft's",
+    );
 }

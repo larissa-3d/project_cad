@@ -22,15 +22,100 @@
 //! lattice point beside it stands on the ray of one of the rim's samples.
 //! Met at a wide angle, the band is narrower than the central chart's lines
 //! bow away from the rim, and no point falls in it.
+//!
+//! A wall can run from a knife-edge rim beside the face instead, towards the
+//! equator, and end there a hair inside the round: a half ball less a shaft
+//! a hair under its radius up to its centre, the rim a hair under the
+//! equator (#1127). The strips leave out a row within a hundredth of a step
+//! of the rim, and the strip from the rim to the row past it leans inside
+//! the wall and through the face closing it, which stands at the equator a
+//! hair under the sphere. Where the wall ends on such a row and every sample
+//! of the rim stands at one of the face's angles, the strips cut the face
+//! there ([`ends_on_the_grid`]): each sample of the rim then has a point of
+//! the row on its ray, and the sliver between them stands outside the
+//! wall's chords, whose meridian is straight. A rim sampled between the
+//! face's angles — a ball turned at a slant less the shaft, its face read
+//! about the shaft's axis on a grid of its own — would have the sliver join
+//! a point of the row to a sample of the rim a part of a step aside, as
+//! #956 found it, and keeps the row out.
+
+use std::f64::consts::TAU;
 
 use glam::{DVec2, DVec3};
 
-use super::super::sampling::{Rounded, Samples};
+use super::super::sampling::{Rounded, Samples, midway};
+use super::cylinder::CLEAR;
 use super::laps;
 use crate::brep::curve::{Circle, Curve};
 use crate::brep::scale::Scale;
 use crate::brep::surface::{Cylinder, Sphere, Surface};
-use crate::brep::topology::{Body, EdgeId, FaceId};
+use crate::brep::topology::{Body, EdgeId, Face, FaceId};
+
+/// The [`ends`] of `face` beside a rim every sample of which stands at one
+/// of the face's `steps` angles a turn about the axis of `round`.
+pub(super) fn ends_on_the_grid(
+    body: &Body,
+    samples: &Samples,
+    face: &Face,
+    round: &Rounded,
+    steps: usize,
+    eps: f64,
+) -> Vec<[f64; 2]> {
+    let step = TAU / steps as f64;
+    let off_the_grid = |edge: EdgeId| {
+        samples.edge(edge).iter().any(|&sample| {
+            let theta = round.parameters(samples.point(sample)).x;
+            (theta - (theta / step).round() * step).abs() > CLEAR
+        })
+    };
+    let between: Vec<f64> = (face.loops.iter().flatten())
+        .filter(|coedge| off_the_grid(coedge.edge))
+        .filter_map(|coedge| match body.curve(body.edge(coedge.edge).curve) {
+            Curve::Circle(circle) if round.holds(circle, eps) => Some(round.latitude(circle)),
+            Curve::Circle(_) | Curve::Line(_) | Curve::Meet(_) | Curve::Conic(_) => None,
+        })
+        .collect();
+    (ends(body, face, round, eps).into_iter())
+        .filter(|[rim, _]| !between.contains(rim))
+        .collect()
+}
+
+/// Each rim of `face`, a latitude of `round`, along which a wall runs beside
+/// it — a face of a cylinder, the two running side by side from the rim,
+/// their outward normals there opposed, with matter or a void between them
+/// — with each circle the wall ends at off the round, as their angles along
+/// the meridian.
+pub(super) fn ends(body: &Body, face: &Face, round: &Rounded, eps: f64) -> Vec<[f64; 2]> {
+    let outward = |face: &Face, at: DVec3| {
+        let surface = body.surface(face.surface);
+        let normal = surface.normal(surface.parameters(at));
+        if face.flipped { -normal } else { normal }
+    };
+    let circle = |edge: EdgeId| match body.curve(body.edge(edge).curve) {
+        Curve::Circle(circle) => Some(*circle),
+        Curve::Line(_) | Curve::Meet(_) | Curve::Conic(_) => None,
+    };
+    let mut ends = Vec::new();
+    for coedge in face.loops.iter().flatten() {
+        let Some(rim) = circle(coedge.edge).filter(|rim| round.holds(rim, eps)) else {
+            continue;
+        };
+        let at = rim.point(midway(body.edge(coedge.edge)));
+        for (id, _) in body.uses(coedge.edge) {
+            let wall = body.face(id);
+            if !matches!(body.surface(wall.surface), Surface::Cylinder(_))
+                || outward(wall, at).dot(outward(face, at)) >= 0.0
+            {
+                continue;
+            }
+            let off = (wall.loops.iter().flatten())
+                .filter_map(|other| circle(other.edge))
+                .filter(|end| !round.holds(end, eps));
+            ends.extend(off.map(|end| [round.latitude(&rim), round.latitude(&end)]));
+        }
+    }
+    ends
+}
 
 /// Whether every sample from `from` on among `samples_of`, the points added
 /// inside the face `id` of a sphere, stands within the chords of each wall

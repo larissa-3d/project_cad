@@ -99,6 +99,7 @@ impl Outline {
         let eps = body.scale().eps();
         let levels = levels(body, face, round, eps);
         let mut lattice = Lattice::new(*round, steps, rows, &levels, eps / round.radius());
+        lattice.ends = super::knife::ends_on_the_grid(body, samples, face, round, steps, eps);
         let mut standing: BTreeMap<usize, Standing> = BTreeMap::new();
         let mut winding = Vec::new();
         let mut met = false;
